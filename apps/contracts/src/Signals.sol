@@ -9,12 +9,18 @@ import 'lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol';
 /// @notice Contract for proposing and tracking initiatives with token locking
 /// @dev Implements governance features for initiatives
 contract Signals is Ownable {
-  uint256 public threshold;
+  /// @notice Custom errors
+  error EmptyTitle();
+  error EmptyBody();
+  error InsufficientTokens();
+
+  /// @notice Threshold required to accept a proposal
+  uint256 public acceptanceThreshold;
+
   uint256 public lockDurationCap;
   uint256 public proposalCap;
   uint256 public decayCurveType;
   address public underlyingToken;
-  bool public isERC20;
 
   struct Initiative {
     string title;
@@ -27,6 +33,7 @@ contract Signals is Ownable {
 
   Initiative[] public initiatives;
   mapping(uint256 => uint256) public initiativeWeights;
+
   /// @notice Event emitted when a new initiative is proposed
   /// @param initiativeId ID of the proposed initiative
   /// @param proposer Address of the proposer
@@ -57,34 +64,29 @@ contract Signals is Ownable {
 
   /// @notice Initializes the Signals contract
   /// @param owner_ Address of the owner of the contract
+  /// @param _underlyingToken Address of the underlying token (ERC20) TODO: ERC721
   /// @param _threshold Minimum tokens required to propose an initiative
   /// @param _lockDurationCap Maximum lock duration allowed
   /// @param _proposalCap Maximum number of proposals allowed
   /// @param _decayCurveType Type of decay curve to be used
-  /// @param _underlyingToken Address of the underlying token (ERC20 or ERC721)
-  /// @param _isERC20 Boolean indicating if the underlying token is ERC20
   function initialize(
     address owner_,
+    address _underlyingToken,
     uint256 _threshold,
     uint256 _lockDurationCap,
     uint256 _proposalCap,
-    uint256 _decayCurveType,
-    address _underlyingToken,
-    bool _isERC20
-  ) external onlyNotInitialized {
-    require(owner_ != address(0), 'Invalid owner address');
-
-    threshold = _threshold;
+    uint256 _decayCurveType
+  ) external isNotInitialized {
+    underlyingToken = _underlyingToken;
+    acceptanceThreshold = _threshold;
     lockDurationCap = _lockDurationCap;
     proposalCap = _proposalCap;
     decayCurveType = _decayCurveType;
-    underlyingToken = _underlyingToken;
-    isERC20 = _isERC20;
     transferOwnership(owner_);
   }
 
-  modifier onlyNotInitialized() {
-    require(threshold == 0, 'Already initialized');
+  modifier isNotInitialized() {
+    require(acceptanceThreshold == 0, 'Already initialized');
     _;
   }
 
@@ -92,9 +94,9 @@ contract Signals is Ownable {
   /// @param title Title of the initiative
   /// @param body Body of the initiative
   function proposeInitiative(string memory title, string memory body) external {
-    require(bytes(title).length > 0, 'Title cannot be empty');
-    require(bytes(body).length > 0, 'Body cannot be empty');
-    require(balanceOf(msg.sender) >= threshold, 'Insufficient tokens to propose');
+    if (bytes(title).length == 0) revert EmptyTitle();
+    if (bytes(body).length == 0) revert EmptyBody();
+    if (balanceOf(msg.sender) < acceptanceThreshold) revert InsufficientTokens();
 
     Initiative memory newInitiative = Initiative({
       title: title,
@@ -128,18 +130,10 @@ contract Signals is Ownable {
     require(duration <= lockDurationCap, 'Duration exceeds lock duration cap');
     require(balanceOf(msg.sender) >= amount, 'Insufficient tokens to lock');
 
-    if (isERC20) {
-      require(
-        IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount),
-        'Token transfer failed'
-      );
-    } else {
-      require(
-        IERC721(underlyingToken).ownerOf(amount) == msg.sender,
-        'Caller is not the owner of the token'
-      );
-      IERC721(underlyingToken).transferFrom(msg.sender, address(this), amount);
-    }
+    require(
+      IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount),
+      'Token transfer failed'
+    );
 
     uint256 weight = _calculateLockWeight(amount, duration);
     Initiative memory newInitiative = Initiative({
@@ -162,11 +156,7 @@ contract Signals is Ownable {
   /// @param account Address of the account
   /// @return Balance of the account
   function balanceOf(address account) public view returns (uint256) {
-    if (isERC20) {
-      return IERC20(underlyingToken).balanceOf(account);
-    } else {
-      return IERC721(underlyingToken).balanceOf(account);
-    }
+    return IERC20(underlyingToken).balanceOf(account);
   }
 
   /// @notice Returns the current weight of an initiative
