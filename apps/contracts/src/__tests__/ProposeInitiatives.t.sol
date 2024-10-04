@@ -83,4 +83,28 @@ contract ProposeInitiativesTest is Test {
     uint256 weight = _instance.getWeight(0);
     assertEq(weight, 0); // Weight should be 0
   }
+
+  // function testProposeInitiativeWithLock() public {
+  //   vm.prank(bob);
+
+  //   // Load the Signals contract instance
+  //   Signals _instance = Signals(instance);
+  //   string memory title = 'Some title';
+  //   string memory body = 'Some body';
+
+  //   _instance.proposeInitiativeWithLock(title, body, 100_000 * 10 ** 18, 1);
+
+  //   // Retrieve the initiative
+  //   Signals.Initiative memory initiative = _instance.getInitiative(0);
+
+  //   // Check the initiative's state
+  //   assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
+  //   assertEq(initiative.title, title);
+  //   assertEq(initiative.body, body);
+  //   assertEq(address(initiative.proposer), alice);
+
+  //   // Check the weight
+  //   uint256 weight = _instance.getWeight(0);
+  //   assertEq(weight, 0); // Weight should be 0
+  // }
 }
