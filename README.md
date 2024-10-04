@@ -1,11 +1,15 @@
-# Signals by Lighthouse
+# 📡 Signals by Lighthouse
 
 A [Turborepo](https://turbo.build/) configured with the following web interfaces and shared packages:
 
 ## Getting Started
 
+* Use `yarn` as our package manager.
+* Use [direnv](https://github.com/direnv/direnv) to manage environment variables.
+
 ```bash
-#  Documentation...
+# Setup .env
+cp .envrc.example .envrc
 ```
 
 ## Apps
