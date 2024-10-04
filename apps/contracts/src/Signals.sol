@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import 'forge-std/console.sol';
 import 'lib/openzeppelin-contracts/contracts/access/Ownable.sol';
 import 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 
@@ -150,6 +151,8 @@ contract Signals is Ownable {
     );
 
     uint256 weight = _calculateLockWeight(amount, duration);
+
+    console.log('Proposer: ', msg.sender);
 
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
