@@ -100,7 +100,7 @@ contract ProposeInitiativesTest is Test {
 
     // Approve the contract to spend the tokens
     vm.startPrank(bob);
-    someERC20.approve(address(_instance), someERC20.balanceOf(bob));
+    someERC20.approve(address(_instance), amount);
     vm.stopPrank();
 
     // Ensure the caller is the owner
@@ -120,5 +120,14 @@ contract ProposeInitiativesTest is Test {
     // Check the weight
     uint256 weight = _instance.getWeight(0);
     assertEq(weight, amount);
+
+    // Let charlie vote
+    vm.startPrank(charlie);
+    someERC20.approve(address(_instance), amount);
+    _instance.supportInitiative(0, amount / 2, 4); // 50% less but double the duration
+    vm.stopPrank();
+
+    uint256 weight2 = _instance.getWeight(0);
+    assertEq(weight2, 300_000 * 1e18); // 100% more weight
   }
 }
