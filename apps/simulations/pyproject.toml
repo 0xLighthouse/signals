@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "simulations"
+version = "0.1.0"
+description = ""
+package-mode = false
+authors = ["1a35e1 <1a35e1@protonmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pandas = "^2.2.3"
+matplotlib = "^3.9.2"
+cadcad = "^0.5.3"
+seaborn = "^0.13.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
