@@ -2,6 +2,12 @@
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
+```shell
+forge install OpenZeppelin/openzeppelin-contracts@v4.8.3 --no-commit
+forge install transmissions11/solmate --no-commit
+forge install vectorized/solady --no-commit
+```
+
 Foundry consists of:
 
 -   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
