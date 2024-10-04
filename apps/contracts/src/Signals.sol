@@ -7,7 +7,6 @@ import 'lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol';
 
 /// @title Signals
 contract Signals is Ownable, ReentrancyGuard {
-  /// @notice Enum representing the status of an initiative
   enum InitiativeState {
     Proposed,
     Accepted,
@@ -49,10 +48,10 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /// @notice Struct to store lock information for each supporter
   struct LockInfo {
-    uint256 amount;
-    uint256 duration; // in months
-    uint256 timestamp; // when the lock started
-    bool withdrawn; // indicates if tokens have been withdrawn
+    uint256 totalAmount;
+    uint256 weightedDuration; // Weighted average duration
+    uint256 timestamp; // Last time the lock was updated
+    bool withdrawn; // Indicates if tokens have been withdrawn
   }
 
   /// @notice Mapping from initiative ID to Initiative
@@ -82,8 +81,8 @@ contract Signals is Ownable, ReentrancyGuard {
   event WeightUpdated(
     uint256 indexed initiativeId,
     address indexed supporter,
-    uint256 amount,
-    uint256 duration,
+    uint256 totalAmount,
+    uint256 weightedDuration,
     uint256 timestamp
   );
 
@@ -184,8 +183,6 @@ contract Signals is Ownable, ReentrancyGuard {
       'Token transfer failed'
     );
 
-    uint256 weight = _calculateLockWeight(amount, duration);
-
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
       title: title,
@@ -199,16 +196,12 @@ contract Signals is Ownable, ReentrancyGuard {
     initiatives[initiativeId] = newInitiative;
     initiativeCount++;
 
-    // Store the lock info for the proposer
-    initiativeLocks[initiativeId][msg.sender] = LockInfo({
-      amount: amount,
-      duration: duration,
-      timestamp: block.timestamp,
-      withdrawn: false
-    });
+    // Update the lock info for the proposer
+    _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
     // Update total initial weight
-    initiativeTotalInitialWeight[initiativeId] = weight;
+    uint256 weight = _calculateLockWeight(amount, duration);
+    initiativeTotalInitialWeight[initiativeId] += weight;
 
     // Add proposer to the supporters list if not already added
     if (!isSupporter[initiativeId][msg.sender]) {
@@ -220,7 +213,13 @@ contract Signals is Ownable, ReentrancyGuard {
     _addPendingWithdrawal(msg.sender, initiativeId);
 
     emit InitiativeProposed(initiativeId, msg.sender, title, body);
-    emit WeightUpdated(initiativeId, msg.sender, amount, duration, block.timestamp);
+    emit WeightUpdated(
+      initiativeId,
+      msg.sender,
+      initiativeLocks[initiativeId][msg.sender].totalAmount,
+      initiativeLocks[initiativeId][msg.sender].weightedDuration,
+      block.timestamp
+    );
   }
 
   /// @notice Allows a user to support an existing initiative with locked tokens
@@ -240,17 +239,11 @@ contract Signals is Ownable, ReentrancyGuard {
       'Token transfer failed'
     );
 
-    uint256 weight = _calculateLockWeight(amount, duration);
-
-    // Store the lock info for the supporter
-    initiativeLocks[initiativeId][msg.sender] = LockInfo({
-      amount: amount,
-      duration: duration,
-      timestamp: block.timestamp,
-      withdrawn: false
-    });
+    // Update the lock info for the supporter
+    _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
     // Update total initial weight
+    uint256 weight = _calculateLockWeight(amount, duration);
     initiativeTotalInitialWeight[initiativeId] += weight;
 
     // Add supporter to the supporters list if not already added
@@ -265,7 +258,34 @@ contract Signals is Ownable, ReentrancyGuard {
     // Update last activity timestamp
     initiative.lastActivity = block.timestamp;
 
-    emit WeightUpdated(initiativeId, msg.sender, amount, duration, block.timestamp);
+    emit WeightUpdated(
+      initiativeId,
+      msg.sender,
+      initiativeLocks[initiativeId][msg.sender].totalAmount,
+      initiativeLocks[initiativeId][msg.sender].weightedDuration,
+      block.timestamp
+    );
+  }
+
+  /// @notice Internal function to update lock information
+  function _updateLockInfo(
+    uint256 initiativeId,
+    address supporter,
+    uint256 amount,
+    uint256 duration
+  ) internal {
+    LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
+
+    // Calculate new weighted duration
+    uint256 totalAmount = lockInfo.totalAmount + amount;
+    uint256 newWeightedDuration = ((lockInfo.totalAmount * lockInfo.weightedDuration) +
+      (amount * duration)) / totalAmount;
+
+    // Update lock info
+    lockInfo.totalAmount = totalAmount;
+    lockInfo.weightedDuration = newWeightedDuration;
+    lockInfo.timestamp = block.timestamp; // Update timestamp to the latest lock
+    // withdrawn remains the same
   }
 
   /// @notice Accepts an initiative
@@ -311,10 +331,10 @@ contract Signals is Ownable, ReentrancyGuard {
     );
 
     LockInfo storage lockInfo = initiativeLocks[initiativeId][msg.sender];
-    require(lockInfo.amount > 0, 'No tokens to withdraw');
+    require(lockInfo.totalAmount > 0, 'No tokens to withdraw');
     require(!lockInfo.withdrawn, 'Tokens already withdrawn');
 
-    uint256 amountToWithdraw = lockInfo.amount;
+    uint256 amountToWithdraw = lockInfo.totalAmount;
 
     // Mark as withdrawn
     lockInfo.withdrawn = true;
@@ -346,10 +366,10 @@ contract Signals is Ownable, ReentrancyGuard {
       if (
         (initiative.state == InitiativeState.Accepted ||
           initiative.state == InitiativeState.Expired) &&
-        lockInfo.amount > 0 &&
+        lockInfo.totalAmount > 0 &&
         !lockInfo.withdrawn
       ) {
-        uint256 amountToWithdraw = lockInfo.amount;
+        uint256 amountToWithdraw = lockInfo.totalAmount;
         lockInfo.withdrawn = true;
 
         // Remove initiative from pending withdrawals
@@ -378,9 +398,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param supporter Address of the supporter
   /// @param initiativeId ID of the initiative
   function _addPendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    uint256 index = pendingWithdrawals[supporter].length;
+    // If the initiative is already in pending withdrawals, do not add it again
+    if (pendingWithdrawalIndex[supporter][initiativeId] != 0) {
+      return;
+    }
     pendingWithdrawals[supporter].push(initiativeId);
-    pendingWithdrawalIndex[supporter][initiativeId] = index;
+    // Store index + 1 to avoid confusion with default value 0
+    pendingWithdrawalIndex[supporter][initiativeId] = pendingWithdrawals[supporter].length;
   }
 
   /// @notice Internal function to remove an initiative ID from a user's pending withdrawals
@@ -388,11 +412,14 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param initiativeId ID of the initiative
   function _removePendingWithdrawal(address supporter, uint256 initiativeId) internal {
     uint256 index = pendingWithdrawalIndex[supporter][initiativeId];
+    require(index != 0, 'Initiative not in pending withdrawals');
+    index -= 1; // Adjust for 1-based indexing
+
     uint256 lastIndex = pendingWithdrawals[supporter].length - 1;
     if (index != lastIndex) {
       uint256 lastInitiativeId = pendingWithdrawals[supporter][lastIndex];
       pendingWithdrawals[supporter][index] = lastInitiativeId;
-      pendingWithdrawalIndex[supporter][lastInitiativeId] = index;
+      pendingWithdrawalIndex[supporter][lastInitiativeId] = index + 1;
     }
     pendingWithdrawals[supporter].pop();
     delete pendingWithdrawalIndex[supporter][initiativeId];
@@ -418,11 +445,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @return Current total weight of the initiative
   function getWeight(uint256 initiativeId) external view returns (uint256) {
     require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    // Initiative storage initiative = initiatives[initiativeId];
     uint256 totalCurrentWeight = 0;
     address[] storage supporters = initiativeSupporters[initiativeId];
     for (uint256 i = 0; i < supporters.length; i++) {
       address supporter = supporters[i];
-      uint256 currentWeight = _calculateCurrentWeight(initiativeId, supporter);
+      LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
+      uint256 currentWeight = _calculateCurrentWeight(lockInfo);
       totalCurrentWeight += currentWeight;
     }
     return totalCurrentWeight;
@@ -444,24 +473,19 @@ contract Signals is Ownable, ReentrancyGuard {
     return amount * duration;
   }
 
-  /// @notice Calculates the current weight of a supporter's lock based on elapsed time
-  /// @param initiativeId ID of the initiative
-  /// @param supporter Address of the supporter
-  /// @return Current weight of the supporter's lock
-  function _calculateCurrentWeight(
-    uint256 initiativeId,
-    address supporter
-  ) private view returns (uint256) {
-    LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
+  /// @notice Calculates the current weight of a lock based on elapsed time
+  /// @param lockInfo Lock information
+  /// @return Current weight of the lock
+  function _calculateCurrentWeight(LockInfo storage lockInfo) private view returns (uint256) {
     if (lockInfo.withdrawn) {
       return 0;
     }
     uint256 elapsedTime = (block.timestamp - lockInfo.timestamp) / 30 days; // Assuming 1 month = 30 days
-    if (elapsedTime >= lockInfo.duration) {
+    if (elapsedTime >= lockInfo.weightedDuration) {
       return 0;
     }
-    uint256 remainingDuration = lockInfo.duration - elapsedTime;
-    uint256 currentWeight = lockInfo.amount * remainingDuration;
+    uint256 remainingDuration = lockInfo.weightedDuration - elapsedTime;
+    uint256 currentWeight = lockInfo.totalAmount * remainingDuration;
     return currentWeight;
   }
 }
