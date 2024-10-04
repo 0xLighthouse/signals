@@ -9,6 +9,14 @@ import 'lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol';
 /// @notice Contract for proposing and tracking initiatives with token locking
 /// @dev Implements governance features for initiatives
 contract Signals is Ownable {
+  /// @notice Enum representing the status of an initiative
+  enum InitiativeState {
+    Proposed,
+    Accepted,
+    Cancelled,
+    Expired
+  }
+
   /// @notice Custom errors
   error EmptyTitle();
   error EmptyBody();
@@ -25,13 +33,16 @@ contract Signals is Ownable {
   struct Initiative {
     string title;
     string body;
+    InitiativeState state;
     address proposer;
     uint256 timestamp;
     uint256 initialWeight;
     uint256 lockDuration;
   }
 
+  /// @notice Array of all proposed initiatives
   Initiative[] public initiatives;
+
   mapping(uint256 => uint256) public initiativeWeights;
 
   /// @notice Event emitted when a new initiative is proposed
@@ -99,6 +110,7 @@ contract Signals is Ownable {
     if (balanceOf(msg.sender) < acceptanceThreshold) revert InsufficientTokens();
 
     Initiative memory newInitiative = Initiative({
+      state: InitiativeState.Proposed,
       title: title,
       body: body,
       proposer: msg.sender,
@@ -124,8 +136,8 @@ contract Signals is Ownable {
     uint256 amount,
     uint256 duration
   ) external {
-    require(bytes(title).length > 0, 'Title cannot be empty');
-    require(bytes(body).length > 0, 'Body cannot be empty');
+    if (bytes(title).length == 0) revert EmptyTitle();
+    if (bytes(body).length == 0) revert EmptyBody();
     require(duration > 0, 'Duration must be greater than zero');
     require(duration <= lockDurationCap, 'Duration exceeds lock duration cap');
     require(balanceOf(msg.sender) >= amount, 'Insufficient tokens to lock');
@@ -136,7 +148,9 @@ contract Signals is Ownable {
     );
 
     uint256 weight = _calculateLockWeight(amount, duration);
+
     Initiative memory newInitiative = Initiative({
+      state: InitiativeState.Proposed,
       title: title,
       body: body,
       proposer: msg.sender,
@@ -152,6 +166,14 @@ contract Signals is Ownable {
     emit InitiativeProposedWithLock(initiativeId, msg.sender, title, body, amount, duration);
   }
 
+  /// @notice Get an initiative by its ID
+  /// @param initiativeId The ID of the initiative
+  /// @return The initiative struct
+  function getInitiative(uint256 initiativeId) external view returns (Initiative memory) {
+    require(initiativeId < initiatives.length, 'Invalid initiative ID');
+    return initiatives[initiativeId];
+  }
+
   /// @notice Returns the token balance of an account
   /// @param account Address of the account
   /// @return Balance of the account
@@ -162,7 +184,7 @@ contract Signals is Ownable {
   /// @notice Returns the current weight of an initiative
   /// @param initiativeId ID of the initiative
   /// @return Current weight of the initiative
-  function getInitiativeWeight(uint256 initiativeId) external view returns (uint256) {
+  function getWeight(uint256 initiativeId) external view returns (uint256) {
     require(initiativeId < initiatives.length, 'Invalid initiative ID');
     return _calculateCurrentWeight(initiativeId);
   }
