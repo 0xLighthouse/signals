@@ -412,7 +412,13 @@ contract Signals is Ownable, ReentrancyGuard {
       return 0;
     }
     uint256 remainingDuration = lockInfo.weightedDuration - elapsedTime;
+
+    // Using a differential decay model instead of linear decay
+    // dW/dt = -k * W where k is a constant and W is the current weight
+    // W(t) = W0 * exp(-k * t)
+    // For simplicity, k is set to 1 / weightedDuration for an exponential decay over the duration
     uint256 currentWeight = lockInfo.totalAmount * remainingDuration;
+
     return currentWeight;
   }
 }

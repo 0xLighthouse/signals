@@ -55,7 +55,78 @@ After locking, commitment weight decays over time based on a configurable decay 
 > Too complex for the initial version.
 - **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
 > Too complex for the initial version.
-- **Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.
+- ~~**Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
+> Semi boring.
+- **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
+
+#### Graphing the Differential Decay Function
+
+To graph the equation
+$$
+\frac{dW}{dt} = -kW
+$$
+ where  k  is a constant and  W  is the current weight, you’ll first need to solve this differential equation to find  W  as a function of  t . Once you have  W(t) , you can plot it using graphing software or a calculator.
+
+This is a separable first-order linear ordinary differential equation. Here’s how to solve it:
+
+	1.	Separate Variables:
+
+$$
+\frac{dW}{W} = -k\,dt
+$$
+
+	2.	Integrate Both Sides:
+
+$$
+\int \frac{1}{W}\,dW = \int -k\,dt
+$$
+
+
+$$
+\ln|W| = -k t + C
+$$
+
+Here,  C  is the constant of integration.
+	3.	Solve for  W :
+Exponentiate both sides to eliminate the natural logarithm:
+
+$$
+W = e^{-k t + C} = e^C \cdot e^{-k t}
+$$
+
+Let
+
+$$
+W_0 = e^C
+$$
+
+(the initial weight when  t = 0 ) Then;
+
+$$
+W(t) = W_0 \, e^{-k t}
+$$
+
+
+## Graph the funcion
+
+Step 2: Choose Values for Constants
+
+To graph  W(t) , you need specific values for  W_0  and  k :
+
+	•	Initial Weight ( W_0 ): This is the weight at  t = 0 . Choose a positive value that makes sense for your context (e.g.,  W_0 = 100  units).
+	•	Decay Constant ( k ): This constant determines the rate of decay. Choose a positive value (e.g.,  k = 0.1 ).
+
+Step 3: Create Data Points
+
+Using the equation
+
+$$
+W(t) = W_0 \, e^{-k t}
+$$
+
+Calculate W for various values of t, to explore parameter space.
+
+<https://www.desmos.com/calculator/slpil4yhlm>
 
 ### Example
 
