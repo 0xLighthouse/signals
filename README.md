@@ -2,6 +2,10 @@
 
 A [Turborepo](https://turbo.build/) configured with the following web interfaces and shared packages:
 
+## Tools
+
+* [shovel](https://indexsupply.com/shovel/)
+
 ## Getting Started
 
 * Use `yarn` as our package manager.
