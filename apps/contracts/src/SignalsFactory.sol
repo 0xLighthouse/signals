@@ -39,6 +39,9 @@ contract SignalsFactory is Ownable {
     // Create a new instance of the Signals contract
     Signals newSignals = new Signals();
 
+    // TODO: Guard against underlying tokens that are not ERC20
+    // TODO: Guard against underlying tokens that are currently incompatable ie. Not 1e18
+
     // Initialize the new Signals contract
     newSignals.initialize(
       owner_,

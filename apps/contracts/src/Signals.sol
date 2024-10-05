@@ -31,7 +31,7 @@ contract Signals is Ownable, ReentrancyGuard {
   address public underlyingToken;
 
   /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
-  uint256 public inactivityThreshold = 60 days;
+  uint256 public activityTimeout = 60 days;
 
   struct Initiative {
     string title;
@@ -130,7 +130,7 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Allows the owner to update the inactivity threshold
   /// @param _newThreshold New inactivity threshold in seconds
   function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
-    inactivityThreshold = _newThreshold;
+    activityTimeout = _newThreshold;
   }
 
   /// @notice Proposes a new initiative
@@ -282,7 +282,7 @@ contract Signals is Ownable, ReentrancyGuard {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
-    if (block.timestamp <= initiative.lastActivity + inactivityThreshold)
+    if (block.timestamp <= initiative.lastActivity + activityTimeout)
       revert InvalidInitiativeState('Initiative not yet eligible for expiration');
 
     initiative.state = InitiativeState.Expired;
@@ -417,8 +417,22 @@ contract Signals is Ownable, ReentrancyGuard {
     // dW/dt = -k * W where k is a constant and W is the current weight
     // W(t) = W0 * exp(-k * t)
     // For simplicity, k is set to 1 / weightedDuration for an exponential decay over the duration
-    uint256 currentWeight = lockInfo.totalAmount * remainingDuration;
+    uint256 decayFactor = exp((elapsedTime * 1e18) / lockInfo.weightedDuration);
+    uint256 currentWeight = (lockInfo.totalAmount * remainingDuration * decayFactor) / 1e18;
 
     return currentWeight;
+  }
+
+  // TODO: Find a well tested library for this
+  function exp(uint256 x) internal pure returns (uint256) {
+    // Approximate exponential function using a simplified Taylor series expansion
+    // e^(-x) where x is scaled by 1e18
+    uint256 result = 1e18;
+    uint256 term = 1e18;
+    for (uint256 i = 1; i < 10; i++) {
+      term = (term * x) / (i * 1e18);
+      result += term;
+    }
+    return 1e18 / result;
   }
 }
