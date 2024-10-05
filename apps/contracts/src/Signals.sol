@@ -15,16 +15,12 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   /// @notice Custom errors
-  error EmptyTitle();
-  error EmptyBody();
+  error InvalidInput(string message);
   error InsufficientTokens();
-  error NotProposedState();
-  error AlreadyAccepted();
-  error NoSupporters();
-  error AlreadyWithdrawn();
-  error NotAcceptableState();
+  error InvalidInitiativeState(string message);
+  error TokenTransferFailed();
   error NothingToWithdraw();
-  error InitiativeNotExpired();
+  error InitiativeNotFound();
 
   /// @notice Threshold required to accept a proposal
   uint256 public acceptanceThreshold;
@@ -141,8 +137,8 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param title Title of the initiative
   /// @param body Body of the initiative
   function proposeInitiative(string memory title, string memory body) external {
-    if (bytes(title).length == 0) revert EmptyTitle();
-    if (bytes(body).length == 0) revert EmptyBody();
+    if (bytes(title).length == 0 || bytes(body).length == 0)
+      revert InvalidInput('Title or body cannot be empty');
     if (balanceOf(msg.sender) < acceptanceThreshold) revert InsufficientTokens();
 
     Initiative memory newInitiative = Initiative({
@@ -172,16 +168,13 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 amount,
     uint256 duration
   ) external {
-    if (bytes(title).length == 0) revert EmptyTitle();
-    if (bytes(body).length == 0) revert EmptyBody();
-    require(duration > 0, 'Duration must be greater than zero');
-    require(duration <= lockDurationCap, 'Duration exceeds lock duration cap');
-    require(balanceOf(msg.sender) >= amount, 'Insufficient tokens to lock');
+    if (bytes(title).length == 0 || bytes(body).length == 0)
+      revert InvalidInput('Title or body cannot be empty');
+    if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
+    if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
 
-    require(
-      IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount),
-      'Token transfer failed'
-    );
+    if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
+      revert TokenTransferFailed();
 
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
@@ -196,20 +189,16 @@ contract Signals is Ownable, ReentrancyGuard {
     initiatives[initiativeId] = newInitiative;
     initiativeCount++;
 
-    // Update the lock info for the proposer
     _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
-    // Update total initial weight
     uint256 weight = _calculateLockWeight(amount, duration);
     initiativeTotalInitialWeight[initiativeId] += weight;
 
-    // Add proposer to the supporters list if not already added
     if (!isSupporter[initiativeId][msg.sender]) {
       initiativeSupporters[initiativeId].push(msg.sender);
       isSupporter[initiativeId][msg.sender] = true;
     }
 
-    // Add initiative ID to pending withdrawals
     _addPendingWithdrawal(msg.sender, initiativeId);
 
     emit InitiativeProposed(initiativeId, msg.sender, title, body);
@@ -227,35 +216,28 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param amount Amount of tokens to lock
   /// @param duration Duration for which tokens are locked (in months)
   function supportInitiative(uint256 initiativeId, uint256 amount, uint256 duration) external {
-    require(duration > 0, 'Duration must be greater than zero');
-    require(duration <= lockDurationCap, 'Duration exceeds lock duration cap');
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
-    require(balanceOf(msg.sender) >= amount, 'Insufficient tokens to lock');
+    if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
     Initiative storage initiative = initiatives[initiativeId];
-    require(initiative.state == InitiativeState.Proposed, 'Initiative is not in Proposed state');
+    if (initiative.state != InitiativeState.Proposed)
+      revert InvalidInitiativeState('Initiative is not in Proposed state');
 
-    require(
-      IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount),
-      'Token transfer failed'
-    );
+    if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
+      revert TokenTransferFailed();
 
-    // Update the lock info for the supporter
     _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
-    // Update total initial weight
     uint256 weight = _calculateLockWeight(amount, duration);
     initiativeTotalInitialWeight[initiativeId] += weight;
 
-    // Add supporter to the supporters list if not already added
     if (!isSupporter[initiativeId][msg.sender]) {
       initiativeSupporters[initiativeId].push(msg.sender);
       isSupporter[initiativeId][msg.sender] = true;
     }
 
-    // Add initiative ID to pending withdrawals
     _addPendingWithdrawal(msg.sender, initiativeId);
 
-    // Update last activity timestamp
     initiative.lastActivity = block.timestamp;
 
     emit WeightUpdated(
@@ -267,7 +249,6 @@ contract Signals is Ownable, ReentrancyGuard {
     );
   }
 
-  /// @notice Internal function to update lock information
   function _updateLockInfo(
     uint256 initiativeId,
     address supporter,
@@ -276,82 +257,60 @@ contract Signals is Ownable, ReentrancyGuard {
   ) internal {
     LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
 
-    // Calculate new weighted duration
     uint256 totalAmount = lockInfo.totalAmount + amount;
     uint256 newWeightedDuration = ((lockInfo.totalAmount * lockInfo.weightedDuration) +
       (amount * duration)) / totalAmount;
 
-    // Update lock info
     lockInfo.totalAmount = totalAmount;
     lockInfo.weightedDuration = newWeightedDuration;
-    lockInfo.timestamp = block.timestamp; // Update timestamp to the latest lock
-    // withdrawn remains the same
+    lockInfo.timestamp = block.timestamp;
   }
 
-  /// @notice Accepts an initiative
-  /// @param initiativeId ID of the initiative to accept
   function acceptInitiative(uint256 initiativeId) external onlyOwner {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
-    require(initiative.state == InitiativeState.Proposed, 'Initiative is not in Proposed state');
+    if (initiative.state != InitiativeState.Proposed)
+      revert InvalidInitiativeState('Initiative is not in Proposed state');
 
-    // Update the initiative state to Accepted
     initiative.state = InitiativeState.Accepted;
 
-    // Emit an event for acceptance
     emit InitiativeAccepted(initiativeId);
   }
 
-  /// @notice Expires an initiative if it has been inactive for longer than inactivityThreshold
-  /// @param initiativeId ID of the initiative to expire
   function expireInitiative(uint256 initiativeId) external {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
-    require(initiative.state == InitiativeState.Proposed, 'Initiative is not in Proposed state');
-    require(
-      block.timestamp > initiative.lastActivity + inactivityThreshold,
-      'Initiative not yet eligible for expiration'
-    );
+    if (initiative.state != InitiativeState.Proposed)
+      revert InvalidInitiativeState('Initiative is not in Proposed state');
+    if (block.timestamp <= initiative.lastActivity + inactivityThreshold)
+      revert InvalidInitiativeState('Initiative not yet eligible for expiration');
 
-    // Update the initiative state to Expired
     initiative.state = InitiativeState.Expired;
 
-    // Emit an event for expiration
     emit InitiativeExpired(initiativeId);
   }
 
-  /// @notice Allows supporters to withdraw their tokens after initiative is accepted or expired
-  /// @param initiativeId ID of the initiative
   function withdrawTokens(uint256 initiativeId) public nonReentrant {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
-    require(
-      initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired,
-      'Initiative not in a withdrawable state'
-    );
+    if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
+      revert InvalidInitiativeState('Initiative not in a withdrawable state');
 
     LockInfo storage lockInfo = initiativeLocks[initiativeId][msg.sender];
-    require(lockInfo.totalAmount > 0, 'No tokens to withdraw');
-    require(!lockInfo.withdrawn, 'Tokens already withdrawn');
+    if (lockInfo.totalAmount == 0 || lockInfo.withdrawn) revert NothingToWithdraw();
 
     uint256 amountToWithdraw = lockInfo.totalAmount;
 
-    // Mark as withdrawn
     lockInfo.withdrawn = true;
 
-    // Remove initiative from pending withdrawals
     _removePendingWithdrawal(msg.sender, initiativeId);
 
-    // Transfer tokens back to the supporter
-    require(
-      IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw),
-      'Token transfer failed'
-    );
+    if (!IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw))
+      revert TokenTransferFailed();
 
     emit TokensWithdrawn(initiativeId, msg.sender, amountToWithdraw);
   }
 
-  /// @notice Allows supporters to withdraw tokens from all initiatives they have pending withdrawals from
   function withdrawAll() external nonReentrant {
     uint256[] storage initiativesToWithdraw = pendingWithdrawals[msg.sender];
     uint256 totalInitiatives = initiativesToWithdraw.length;
@@ -372,15 +331,11 @@ contract Signals is Ownable, ReentrancyGuard {
         uint256 amountToWithdraw = lockInfo.totalAmount;
         lockInfo.withdrawn = true;
 
-        // Remove initiative from pending withdrawals
         _removePendingWithdrawal(msg.sender, initiativeId);
         totalInitiatives--;
 
-        // Transfer tokens back to the supporter
-        require(
-          IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw),
-          'Token transfer failed'
-        );
+        if (!IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw))
+          revert TokenTransferFailed();
 
         emit TokensWithdrawn(initiativeId, msg.sender, amountToWithdraw);
         hasWithdrawn = true;
@@ -390,30 +345,22 @@ contract Signals is Ownable, ReentrancyGuard {
     }
 
     if (!hasWithdrawn) {
-      revert('No tokens to withdraw');
+      revert NothingToWithdraw();
     }
   }
 
-  /// @notice Internal function to add an initiative ID to a user's pending withdrawals
-  /// @param supporter Address of the supporter
-  /// @param initiativeId ID of the initiative
   function _addPendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    // If the initiative is already in pending withdrawals, do not add it again
     if (pendingWithdrawalIndex[supporter][initiativeId] != 0) {
       return;
     }
     pendingWithdrawals[supporter].push(initiativeId);
-    // Store index + 1 to avoid confusion with default value 0
     pendingWithdrawalIndex[supporter][initiativeId] = pendingWithdrawals[supporter].length;
   }
 
-  /// @notice Internal function to remove an initiative ID from a user's pending withdrawals
-  /// @param supporter Address of the supporter
-  /// @param initiativeId ID of the initiative
   function _removePendingWithdrawal(address supporter, uint256 initiativeId) internal {
     uint256 index = pendingWithdrawalIndex[supporter][initiativeId];
-    require(index != 0, 'Initiative not in pending withdrawals');
-    index -= 1; // Adjust for 1-based indexing
+    if (index == 0) revert InitiativeNotFound();
+    index -= 1;
 
     uint256 lastIndex = pendingWithdrawals[supporter].length - 1;
     if (index != lastIndex) {
@@ -425,27 +372,17 @@ contract Signals is Ownable, ReentrancyGuard {
     delete pendingWithdrawalIndex[supporter][initiativeId];
   }
 
-  /// @notice Get an initiative by its ID
-  /// @param initiativeId The ID of the initiative
-  /// @return The initiative struct
   function getInitiative(uint256 initiativeId) external view returns (Initiative memory) {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     return initiatives[initiativeId];
   }
 
-  /// @notice Returns the token balance of an account
-  /// @param account Address of the account
-  /// @return Balance of the account
   function balanceOf(address account) public view returns (uint256) {
     return IERC20(underlyingToken).balanceOf(account);
   }
 
-  /// @notice Returns the current total weight of an initiative
-  /// @param initiativeId ID of the initiative
-  /// @return Current total weight of the initiative
   function getWeight(uint256 initiativeId) external view returns (uint256) {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
-    // Initiative storage initiative = initiatives[initiativeId];
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     uint256 totalCurrentWeight = 0;
     address[] storage supporters = initiativeSupporters[initiativeId];
     for (uint256 i = 0; i < supporters.length; i++) {
@@ -457,30 +394,20 @@ contract Signals is Ownable, ReentrancyGuard {
     return totalCurrentWeight;
   }
 
-  /// @notice Returns the total initial weight of an initiative at the time of proposal
-  /// @param initiativeId ID of the initiative
-  /// @return Total initial weight of the initiative
   function getTotalWeight(uint256 initiativeId) external view returns (uint256) {
-    require(initiativeId < initiativeCount, 'Invalid initiative ID');
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     return initiativeTotalInitialWeight[initiativeId];
   }
 
-  /// @notice Calculates the lock weight based on amount and duration
-  /// @param amount Amount of tokens locked
-  /// @param duration Duration for which tokens are locked
-  /// @return Calculated weight
   function _calculateLockWeight(uint256 amount, uint256 duration) private pure returns (uint256) {
     return amount * duration;
   }
 
-  /// @notice Calculates the current weight of a lock based on elapsed time
-  /// @param lockInfo Lock information
-  /// @return Current weight of the lock
   function _calculateCurrentWeight(LockInfo storage lockInfo) private view returns (uint256) {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedTime = (block.timestamp - lockInfo.timestamp) / 30 days; // Assuming 1 month = 30 days
+    uint256 elapsedTime = (block.timestamp - lockInfo.timestamp) / 30 days;
     if (elapsedTime >= lockInfo.weightedDuration) {
       return 0;
     }
