@@ -1,10 +1,11 @@
 import random
-from cadCAD.configuration import Configuration
-from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
-from collections import deque
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+from collections import deque
+from cadCAD.configuration import Configuration
+from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
 
 # Initialize an empty list for configurations
 configs = []

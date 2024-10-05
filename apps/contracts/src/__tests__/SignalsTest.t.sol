@@ -184,7 +184,7 @@ contract SignalsTest is Test {
     assertEq(finalBalance, initialBalance + 200 * 1e18);
 
     // Check that tokens cannot be withdrawn again
-    vm.expectRevert('Tokens already withdrawn');
+    vm.expectRevert(Signals.NothingToWithdraw.selector);
     signalsContract.withdrawTokens(0);
 
     vm.stopPrank();
@@ -199,7 +199,12 @@ contract SignalsTest is Test {
     signalsContract.proposeInitiativeWithLock('Initiative 2', 'Description 2', 200 * 1e18, 6);
 
     // Attempt to withdraw tokens before acceptance
-    vm.expectRevert('Initiative not in a withdrawable state');
+    vm.expectRevert(
+      abi.encodeWithSignature(
+        'InvalidInitiativeState(string)',
+        'Initiative not in a withdrawable state'
+      )
+    );
     signalsContract.withdrawTokens(0);
 
     vm.stopPrank();
@@ -279,7 +284,12 @@ contract SignalsTest is Test {
     vm.stopPrank();
 
     // Attempt to expire the initiative before inactivity threshold
-    vm.expectRevert('Initiative not yet eligible for expiration');
+    vm.expectRevert(
+      abi.encodeWithSignature(
+        'InvalidInitiativeState(string)',
+        'Initiative not yet eligible for expiration'
+      )
+    );
     signalsContract.expireInitiative(0);
   }
 
@@ -361,7 +371,7 @@ contract SignalsTest is Test {
     signalsContract.withdrawAll();
 
     // Attempt to withdraw again
-    vm.expectRevert('No tokens to withdraw');
+    vm.expectRevert(Signals.NothingToWithdraw.selector);
     signalsContract.withdrawAll();
 
     vm.stopPrank();
@@ -407,7 +417,7 @@ contract SignalsTest is Test {
     assertEq(balanceDifference, 100 * 1e18);
 
     // Attempt to withdraw tokens again (should fail)
-    vm.expectRevert('No tokens to withdraw');
+    vm.expectRevert(Signals.NothingToWithdraw.selector);
     signalsContract.withdrawAll();
 
     // Fast forward time beyond inactivity threshold
