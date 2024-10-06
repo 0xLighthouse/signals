@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/primitives/Button'
 
 export default function Home() {
   const addSupport = (id: number) => {
@@ -55,13 +56,9 @@ export default function Home() {
           </div>
           <p>{card.body.length > 100 ? `${card.body.substring(0, 100)}...` : card.body}</p>
           <div className="flex justify-between">
-            <div className="flex gap-4">
-              <button type={'button'} onClick={() => addSupport(card.id)}>
-                Add Support
-              </button>
-              <button type={'button'} onClick={() => removeSupport(card.id)}>
-                Remove Support
-              </button>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => addSupport(card.id)}>Add Support</Button>
+              <Button onClick={() => removeSupport(card.id)}>Remove Support</Button>
             </div>
             <div className="flex flex-col items-end">
               <span>#{card.rank}</span>
