@@ -17,7 +17,10 @@ export default function Home() {
             <p>Sidenav</p>
           </div>
           <div>
-            <div className="flex border border-t-0 border-neutral-200 bg-neutral-100 p-4">
+            <div className="my-6">
+              <p className="text-xl font-bold">Feature requests</p>
+            </div>
+            <div className="flex border rounded-t-md border-neutral-200 bg-neutral-50 dark:bg-neutral-800 p-4">
               <p>Showing trending posts</p>
             </div>
             <FeedbackCards />
