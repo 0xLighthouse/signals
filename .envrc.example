@@ -4,7 +4,6 @@ git config user.name "1a35e1"
 
 echo "=> 1a35e1 <1a35e1@protonmail.com>"
 
-# Same id used in across all environments
 export NEXT_PUBLIC_SIGNALS_ENV="dev"
-
+export POLYGON_RPC_URL=
 
