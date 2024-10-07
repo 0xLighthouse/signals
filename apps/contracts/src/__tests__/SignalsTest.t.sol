@@ -332,7 +332,7 @@ contract SignalsTest is Test {
     signalsContract.setInactivityThreshold(30 days);
 
     // Check that the threshold is updated
-    assertEq(signalsContract.inactivityThreshold(), 30 days);
+    assertEq(signalsContract.activityTimeout(), 30 days);
 
     vm.stopPrank();
   }

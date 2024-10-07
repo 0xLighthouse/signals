@@ -34,12 +34,20 @@ Aligning community priorities can help set both short- and long-term strategies,
 
 ## Method
 
-* **Idea Submission:** Members of the on-chain community can submit ideas if they hold tokens meeting the threshold required for submission.\
-* **Commitment Mechanism:** Members can commit tokens to support an idea, signaling their backing for that proposal. Tokens are locked for a duration of the member's choosing.\
-* **Commitment Weighting:** The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.\
+* **Idea Submission:** Members of the on-chain community can submit ideas if they hold tokens meeting the threshold required for submission.
+* **Commitment Mechanism:** Members can commit tokens to support an idea, signaling their backing for that proposal. Tokens are locked for a duration of the member's choosing.
+* **Commitment Weighting:** The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.
 * **Dynamic Ranking:** The decay function plays an important role as issues that may seem topical at first glance may lose amplification over time.
 
 ### Weight Calculation
+
+Code Context:
+	•	The function calculates how much weight (influence, stake, or value) remains for a user’s locked amount over time.
+	•	The intended model is exponential decay to reflect diminishing returns or influence as time progresses.
+	•	Due to practical constraints, the implementation uses a linear decay, multiplying the initial amount by the remaining duration.
+
+
+Premise: The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.
 
 $$
 \text{Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
@@ -49,17 +57,23 @@ $$
 W = T \times D
 $$
 
-After locking, commitment weight decays over time based on a configurable decay function. The decay function can be tailored to the organization's needs, and options include:
+Exploring decay functions:
 
-**Exponential Decay:** ~~Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.~~
+When locking, commitment weight decays over time based on a a configurable decay function:
+
+* **Exponential Decay:** ~~Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.~~
 > Too complex for the initial version.
-- **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
+* **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
 > Too complex for the initial version.
-- ~~**Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
-> Semi boring.
-- **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
+* **Linear Decay:** ~~Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
+> Boring.
+* **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
+
 
 #### Graphing the Differential Decay Function
+
+Why? models processes where a quantity decreases at a rate proportional to its current value.
+	•	Recognizing the limitations of the programming environment helps understand why the decay model is simplified.
 
 To graph the equation
 $$
@@ -125,6 +139,23 @@ W(t) = W_0 \, e^{-k t}
 $$
 
 Calculate W for various values of t, to explore parameter space.
+
+Differential Equation:
+
+$$
+\frac{dW}{dt} = -kW
+$$
+
+Solution to the Differential Equation:
+
+$$
+W(t) = W_0 \, e^{-k t}
+$$
+
+	•	Where:
+	•	 `W(t)`: Weight at time  `t`.
+	•	 `W_0`: Initial weight at  `t = 0`.
+	•	 `k` : Positive decay constant.
 
 <https://www.desmos.com/calculator/slpil4yhlm>
 
