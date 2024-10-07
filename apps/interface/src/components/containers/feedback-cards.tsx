@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/ButtonOld'
-import clsx from 'clsx'
+import { Button } from '@/components/ui/button-old'
+import { cn } from '@/lib/utils'
 
 export const FeedbackCards: React.FC = () => {
   const addSupport = (id: number) => {
@@ -52,7 +52,7 @@ export const FeedbackCards: React.FC = () => {
       {cards.map((card, idx) => (
         <div
           key={card.id}
-          className={clsx(
+          className={cn(
             'p-4 flex flex-col gap-4 border border-t-0 border-neutral-200 dark:bg-neutral-900',
             idx === cards.length - 1 ? 'rounded-b-md' : undefined,
           )}

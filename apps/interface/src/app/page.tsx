@@ -1,7 +1,7 @@
-import { FeedbackCards } from '@/components/containers/FeedbackCards'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { HomeLogo } from '@/components/HomeLogo'
-import { ProductPrioritizationComponent } from '@/components/product-prioritization'
+import { FeedbackCards } from '@/components/containers/feedback-cards'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { HomeLogo } from '@/components/ui/home-logo'
+import { ProductPrioritizationComponent } from '@/components/containers/product-prioritization'
 
 export default function Home() {
   return (
