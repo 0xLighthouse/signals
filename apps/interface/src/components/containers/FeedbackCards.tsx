@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/primitives/Button'
+import { Button } from '@/components/ui/ButtonOld'
 import clsx from 'clsx'
 
 export const FeedbackCards: React.FC = () => {

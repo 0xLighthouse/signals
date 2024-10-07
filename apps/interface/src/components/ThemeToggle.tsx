@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from '@phosphor-icons/react'
 import React, { useCallback, useEffect } from 'react'
-import { IconButton } from './primitives/IconButton'
+import { IconButton } from './ui/IconButton'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
 import clsx from 'clsx'

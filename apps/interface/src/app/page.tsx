@@ -24,8 +24,8 @@ export default function Home() {
             <ProductPrioritizationComponent />
             {/* <div className="flex border rounded-t-md border-neutral-200 bg-neutral-50 dark:bg-neutral-800 p-4">
               <p>Showing trending posts</p>
-            </div> */}
-            {/* <FeedbackCards /> */}
+            </div>
+            <FeedbackCards /> */}
           </div>
         </div>
       </div>
