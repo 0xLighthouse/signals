@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #f9f9f9;
   --foreground: #171717;
 }
 
@@ -21,7 +21,7 @@ body {
 }
 
 html.dark {
-  --background: #1F1B24;
+  --background: #1b1b1b;
   --foreground: #ededed;
 }
 
