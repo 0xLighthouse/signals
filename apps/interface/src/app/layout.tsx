@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
+
+import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
+
 import './globals.css'
 
 const geistSans = localFont({
@@ -23,8 +26,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Set the tailwind theme from stored cookie preference
+  const theme = getThemeCookie()
   return (
-    <html lang="en">
+    <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
     </html>
   )
