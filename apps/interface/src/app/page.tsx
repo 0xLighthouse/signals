@@ -1,10 +1,11 @@
 import { FeedbackCards } from '@/components/containers/FeedbackCards'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { HomeLogo } from '@/components/HomeLogo'
+import { ProductPrioritizationComponent } from '@/components/product-prioritization'
 
 export default function Home() {
   return (
-    <div>
+    <div className="">
       <div className="flex align-center p-4 border-neutral-200 border-b">
         <div className="container mx-auto flex">
           <HomeLogo />
@@ -20,10 +21,11 @@ export default function Home() {
             <div className="my-6">
               <p className="text-xl font-bold">Feature requests</p>
             </div>
-            <div className="flex border rounded-t-md border-neutral-200 bg-neutral-50 dark:bg-neutral-800 p-4">
+            <ProductPrioritizationComponent />
+            {/* <div className="flex border rounded-t-md border-neutral-200 bg-neutral-50 dark:bg-neutral-800 p-4">
               <p>Showing trending posts</p>
-            </div>
-            <FeedbackCards />
+            </div> */}
+            {/* <FeedbackCards /> */}
           </div>
         </div>
       </div>
