@@ -19,7 +19,7 @@ Foundry consists of:
 
 ```shell
 # Local Development Node
-anvil
+anvil --mnemonic $DEPLOYER_TESTNET_SEED_PHRASE --auto-impersonate
 
 # Setup Contracts
 forge script script/Development.s.sol --fork-url http://127.0.0.1:8545 --broadcast
