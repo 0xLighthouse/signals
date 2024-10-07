@@ -1,10 +1,48 @@
 import React from 'react'
+import { tv, VariantProps } from 'tailwind-variants'
 
-interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+const iconButton = tv(
+  {
+    base: 'flex items-center justify-center rounded-full p-2',
+    variants: {
+      clear: {
+        true: 'bg-transparent',
+        false:
+          'bg-neutral-100 dark:bg-neutral-800 dark:text-white-0 hover:bg-orange-200 dark:hover:bg-orange-500',
+      },
+      size: {
+        sm: 'p-2',
+        md: 'p-3',
+        lg: 'p-4',
+      },
+    },
+    defaultVariants: {
+      size: 'sm',
+      color: 'primary',
+    },
+  },
+  {
+    // TODO: where is this configured? Why is 'xs' not available on the types like in the docs?
+    // TODO: can this just be setup by default
+    responsiveVariants: ['sm', 'md', 'lg'],
+  },
+)
 
-export const IconButton: React.FC<IconButtonProps> = ({ children, ...props }) => {
+type IconButtonVariants = VariantProps<typeof iconButton>
+
+interface IconButtonProps
+  extends IconButtonVariants,
+    React.ButtonHTMLAttributes<HTMLButtonElement> {}
+
+export const IconButton: React.FC<IconButtonProps> = ({ children, clear, size, ...props }) => {
   return (
-    <button className="p-4 rounded-full w-[36px]" {...props}>
+    <button
+      className={iconButton({
+        clear,
+        size,
+      })}
+      {...props}
+    >
       {children}
     </button>
   )

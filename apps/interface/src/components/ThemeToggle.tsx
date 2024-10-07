@@ -3,12 +3,9 @@
 import { Moon, Sun } from '@phosphor-icons/react'
 import React, { useCallback, useEffect } from 'react'
 import { IconButton } from './primitives/IconButton'
-import { setThemeCookie } from '@/lib/nextjs/setThemeCookie'
 import { UITheme } from '@/config/theme'
-
-interface ThemeToggleProps {
-  initialTheme: UITheme
-}
+import { useTheme } from '@/contexts/ThemeContext'
+import clsx from 'clsx'
 
 /**
  * ThemeToggle component
@@ -16,36 +13,32 @@ interface ThemeToggleProps {
  * Changing system preferences with the app open will take preference over the local storage theme.
  * TODO: Dropdown with Light/Dark/System opens for full user control
  */
-export const ThemeToggle: React.FC<ThemeToggleProps> = ({ initialTheme }) => {
-  const [isDark, setIsDark] = React.useState(initialTheme === 'dark')
+export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => {
+  const { theme, setTheme } = useTheme()
+
+  const isDark = theme === UITheme.DARK
 
   const handleToggle = useCallback(() => {
     if (isDark) {
-      setThemeCookie('light')
-      setIsDark(false)
+      setTheme(UITheme.LIGHT)
     } else {
-      setThemeCookie('dark')
-      setIsDark(true)
+      setTheme(UITheme.DARK)
     }
-  }, [isDark])
+  }, [isDark, setTheme])
 
   useEffect(() => {
-    // Sync initial state with react state for icon display
-    setIsDark(document.documentElement.classList.contains('dark'))
-
     // Setup event to watch the system theme
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (event: MediaQueryListEvent) => {
-      const newColorScheme = event.matches ? 'dark' : 'light'
-      setIsDark(newColorScheme === 'dark')
-      setThemeCookie(newColorScheme)
+      const newColorScheme = event.matches ? UITheme.DARK : UITheme.LIGHT
+      setTheme(newColorScheme)
     }
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+  }, [setTheme])
 
   return (
-    <div>
+    <div className={clsx('flex items-center justify-center', className)}>
       <IconButton onClick={() => handleToggle()}>{isDark ? <Moon /> : <Sun />}</IconButton>
     </div>
   )
