@@ -6,4 +6,5 @@ echo "=> 1a35e1 <1a35e1@protonmail.com>"
 
 export NEXT_PUBLIC_SIGNALS_ENV="dev"
 export POLYGON_RPC_URL=
+export DEPLOYER_TESTNET_SEED_PHRASE=
 
