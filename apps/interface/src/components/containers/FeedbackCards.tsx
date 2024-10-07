@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/primitives/Button'
+import clsx from 'clsx'
 
 export const FeedbackCards: React.FC = () => {
   const addSupport = (id: number) => {
@@ -49,7 +50,13 @@ export const FeedbackCards: React.FC = () => {
   return (
     <div className="flex flex-col">
       {cards.map((card, idx) => (
-        <div key={card.id} className="p-4 flex flex-col gap-4 border border-t-0 border-neutral-200">
+        <div
+          key={card.id}
+          className={clsx(
+            'p-4 flex flex-col gap-4 border border-t-0 border-neutral-200 dark:bg-neutral-900',
+            idx === cards.length - 1 ? 'rounded-b-md' : undefined,
+          )}
+        >
           <div className="flex flex-col">
             <span className="font-bold text-xl">{card.title}</span>
             <span>{card.status}</span>
