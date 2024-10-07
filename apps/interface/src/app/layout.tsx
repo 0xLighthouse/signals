@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 import './globals.css'
 
@@ -30,7 +31,9 @@ export default function RootLayout({
   const theme = getThemeCookie()
   return (
     <html lang="en" className={theme}>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
+      </body>
     </html>
   )
 }
