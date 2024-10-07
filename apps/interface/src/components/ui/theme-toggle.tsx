@@ -2,10 +2,10 @@
 
 import { Moon, Sun } from '@phosphor-icons/react'
 import React, { useCallback, useEffect } from 'react'
-import { IconButton } from './ui/IconButton'
+import { IconButton } from './icon-button'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
-import clsx from 'clsx'
+import { cn } from '@/lib/utils'
 
 /**
  * ThemeToggle component
@@ -38,7 +38,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
   }, [setTheme])
 
   return (
-    <div className={clsx('flex items-center justify-center', className)}>
+    <div className={cn('flex items-center justify-center', className)}>
       <IconButton onClick={() => handleToggle()}>{isDark ? <Moon /> : <Sun />}</IconButton>
     </div>
   )
