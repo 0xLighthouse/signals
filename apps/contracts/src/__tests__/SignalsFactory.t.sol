@@ -47,6 +47,7 @@ contract SignalsFactoryTest is Test {
     address instanceAddress = factory.create(
       alice,
       address(mockToken),
+      100, // proposalThreshold
       100, // acceptanceThreshold
       12, // lockDurationCap
       5, // proposalCap
@@ -79,6 +80,7 @@ contract SignalsFactoryTest is Test {
     factory.create(
       address(0), // --- invalid owner address
       address(mockToken),
+      100,
       100,
       12,
       5,

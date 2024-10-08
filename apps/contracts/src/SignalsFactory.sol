@@ -27,7 +27,8 @@ contract SignalsFactory  {
   ///
   ///   @param _owner Address of the owner of the new Signals contract
   ///   @param _underlyingToken Address of the underlying token
-  ///   @param _acceptanceThreshold Minimum tokens required to propose an initiative
+  ///   @param _proposalThreshold Minimum tokens required to propose an initiative
+  ///   @param _acceptanceThreshold Minimum tokens required to accept an initiative
   ///   @param lockDurationCap Maximum lock duration allowed
   ///   @param proposalCap Maximum number of proposals allowed
   ///   @param decayCurveType Type of decay curve to be used
@@ -37,6 +38,7 @@ contract SignalsFactory  {
   function create(
     address _owner,
     address _underlyingToken,
+    uint256 _proposalThreshold,
     uint256 _acceptanceThreshold,
     uint256 lockDurationCap,
     uint256 proposalCap,
@@ -49,6 +51,7 @@ contract SignalsFactory  {
     instance.initialize(
       _owner,
       _underlyingToken,
+      _proposalThreshold,
       _acceptanceThreshold,
       lockDurationCap,
       proposalCap,

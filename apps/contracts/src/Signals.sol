@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import 'forge-std/console.sol';
+
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
@@ -23,12 +25,22 @@ contract Signals is Ownable, ReentrancyGuard {
   error NothingToWithdraw();
   error InitiativeNotFound();
 
-  /// @notice Threshold required to accept a proposal
+  /// @notice Minimum tokens required to propose an initiative
+  uint256 public proposalThreshold;
+
+  /// @notice Minimum tokens required to accept an initiative
   uint256 public acceptanceThreshold;
 
+  /// @notice Maximum lock duration allowed
   uint256 public lockDurationCap;
+
+  /// @notice Maximum number of proposals allowed
   uint256 public proposalCap;
+
+  /// @notice Type of decay curve to be used
   uint256 public decayCurveType;
+
+  /// @notice Address of the underlying token (ERC20)
   address public underlyingToken;
 
   /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
@@ -113,33 +125,40 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Event emitted when a supporter withdraws their tokens
   event TokensWithdrawn(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
 
-  /// @notice Initializes the Signals contract
-  /// @param owner_ Address of the owner of the contract
-  /// @param _underlyingToken Address of the underlying token (ERC20)
-  /// @param _threshold Minimum tokens required to propose an initiative
-  /// @param _lockDurationCap Maximum lock duration allowed
-  /// @param _proposalCap Maximum number of proposals allowed
-  /// @param _decayCurveType Type of decay curve to be used
   function initialize(
     address owner_,
     address _underlyingToken,
-    uint256 _threshold,
+    uint256 _proposalThreshold,
+    uint256 _acceptanceThreshold,
     uint256 _lockDurationCap,
     uint256 _proposalCap,
     uint256 _decayCurveType
-  ) public {
+  ) external isNotInitialized {
     underlyingToken = _underlyingToken;
-    acceptanceThreshold = _threshold;
+    proposalThreshold = _proposalThreshold;
+    acceptanceThreshold = _acceptanceThreshold;
     lockDurationCap = _lockDurationCap;
     proposalCap = _proposalCap;
     decayCurveType = _decayCurveType;
+
     transferOwnership(owner_);
   }
 
-  // modifier isNotInitialized() {
-  //   require(acceptanceThreshold == 0, 'Already initialized');
-  //   _;
-  // }
+  modifier isNotInitialized() {
+    require(acceptanceThreshold == 0, 'Already initialized');
+    _;
+  }
+
+  modifier hasSufficientTokens() {
+    if (balanceOf(msg.sender) < proposalThreshold) revert InsufficientTokens();
+    _;
+  }
+
+  modifier hasValidInput(string memory title, string memory body) {
+    if (bytes(title).length == 0 || bytes(body).length == 0)
+      revert InvalidInput('Title or body cannot be empty');
+    _;
+  }
 
   /// @notice Allows the owner to update the inactivity threshold
   /// @param _newThreshold New inactivity threshold in seconds
@@ -150,11 +169,10 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Proposes a new initiative
   /// @param title Title of the initiative
   /// @param body Body of the initiative
-  function proposeInitiative(string memory title, string memory body) external {
-    if (bytes(title).length == 0 || bytes(body).length == 0)
-      revert InvalidInput('Title or body cannot be empty');
-    if (balanceOf(msg.sender) < acceptanceThreshold) revert InsufficientTokens();
-
+  function proposeInitiative(
+    string memory title,
+    string memory body
+  ) external hasSufficientTokens hasValidInput(title, body) {
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
       title: title,
@@ -181,11 +199,8 @@ contract Signals is Ownable, ReentrancyGuard {
     string memory body,
     uint256 amount,
     uint256 duration
-  ) external {
-    if (bytes(title).length == 0 || bytes(body).length == 0)
-      revert InvalidInput('Title or body cannot be empty');
+  ) external hasSufficientTokens hasValidInput(title, body) {
     if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
-    if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
 
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
@@ -206,6 +221,9 @@ contract Signals is Ownable, ReentrancyGuard {
     _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
     uint256 weight = _calculateLockWeight(amount, duration);
+
+    console.log('_calculateLockWeight:', weight);
+
     initiativeTotalInitialWeight[initiativeId] += weight;
 
     if (!isSupporter[initiativeId][msg.sender]) {
