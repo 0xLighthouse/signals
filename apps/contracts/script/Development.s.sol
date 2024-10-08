@@ -42,6 +42,7 @@ contract DevelopmentScript is Script {
     uint256 initialSupply = 1_000_000 * 1e18;
     token = new MockERC20('MockToken', 'MTK');
     token.initialize(initialSupply);
+    console.log('Contract', address(token));
 
     // Distribute tokens to test addresses
     token.transfer(alice, 200_000 * 1e18);

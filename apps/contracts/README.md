@@ -18,6 +18,8 @@ Foundry consists of:
 ## Local Development
 
 ```shell
+# First time 
+forge install
 # Local Development Node
 anvil --mnemonic $DEPLOYER_TESTNET_SEED_PHRASE --auto-impersonate
 

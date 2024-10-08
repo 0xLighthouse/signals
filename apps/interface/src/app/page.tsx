@@ -1,18 +1,12 @@
 import { FeedbackCards } from '@/components/containers/feedback-cards'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { HomeLogo } from '@/components/ui/home-logo'
 import { ProductPrioritizationComponent } from '@/components/containers/product-prioritization'
 import { FaucetCard } from '@/components/containers/faucet-card'
+import { TopNav } from '@/components/containers/topnav'
 
 export default function Home() {
   return (
     <div className="">
-      <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-500 border-b">
-        <div className="container mx-auto flex">
-          <HomeLogo />
-          <ThemeToggle className="ml-4" />
-        </div>
-      </div>
+      <TopNav />
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-[300px_1fr]">
           <div className="px-2 py-4">

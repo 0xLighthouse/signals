@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { Web3Provider } from '@/contexts/Web3Provider'
 
 import './globals.css'
 
@@ -32,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
+        <ThemeProvider initialTheme={theme}>
+          <Web3Provider>{children}</Web3Provider>
+        </ThemeProvider>
       </body>
     </html>
   )

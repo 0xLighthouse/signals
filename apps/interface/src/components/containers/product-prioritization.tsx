@@ -21,6 +21,8 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useAccount } from 'wagmi'
+import { ConnectCTAPanel } from '../web3/connect-cta-panel'
 
 interface Idea {
   id: number
@@ -34,6 +36,8 @@ interface Idea {
 }
 
 export function ProductPrioritizationComponent() {
+  const { isConnected } = useAccount()
+
   const [ideas, setIdeas] = useState<Idea[]>([
     {
       id: 1,
@@ -105,60 +109,67 @@ export function ProductPrioritizationComponent() {
     setIdeas(ideas.map((idea) => (idea.id === id ? { ...idea, votes: idea.votes + 1 } : idea)))
   }
 
+  // TODO: break out the ideas/feedbacks list into a separate component
   const filteredAndSortedIdeas = ideas
     .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => (sortBy === "'trending'" ? b.votes - a.votes : b.id - a.id))
 
   return (
     <div className="">
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Submit a new idea</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              placeholder="Short, descriptive title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-            <Textarea
-              placeholder="Description"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              required
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                placeholder="Network (optional)"
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-              />
-              <Input
-                placeholder="Token (optional)"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Amount (optional)"
-                value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
-              />
-              <Input
-                placeholder="Duration (optional)"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
-            </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline">Cancel</Button>
-          <Button onClick={handleSubmit}>Create Post</Button>
-        </CardFooter>
-      </Card>
+      <div className="mb-8">
+        {isConnected ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Submit a new idea</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
+                  placeholder="Short, descriptive title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+                <Textarea
+                  placeholder="Description"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  required
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Network (optional)"
+                    value={network}
+                    onChange={(e) => setNetwork(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Token (optional)"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Amount (optional)"
+                    value={amount || ''}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                  />
+                  <Input
+                    placeholder="Duration (optional)"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                  />
+                </div>
+              </form>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline">Cancel</Button>
+              <Button onClick={handleSubmit}>Create Post</Button>
+            </CardFooter>
+          </Card>
+        ) : (
+          <ConnectCTAPanel />
+        )}
+      </div>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-2">
           <span>Showing</span>
