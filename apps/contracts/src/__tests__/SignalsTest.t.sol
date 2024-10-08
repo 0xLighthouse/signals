@@ -31,6 +31,7 @@ contract SignalsTest is Test {
     signalsContract.initialize(
       deployer,
       address(token),
+      100 * 1e18, // proposalThreshold
       100 * 1e18, // acceptanceThreshold
       12, // lockDurationCap (months)
       100, // proposalCap
@@ -210,7 +211,6 @@ contract SignalsTest is Test {
     vm.stopPrank();
   }
 
-  /// Test withdrawAll function
   /// Test withdrawAll function
   function testWithdrawAll() public {
     vm.startPrank(alice);
