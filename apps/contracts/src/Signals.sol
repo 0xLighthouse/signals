@@ -127,7 +127,7 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 _lockDurationCap,
     uint256 _proposalCap,
     uint256 _decayCurveType
-  ) external isNotInitialized {
+  ) public {
     underlyingToken = _underlyingToken;
     acceptanceThreshold = _threshold;
     lockDurationCap = _lockDurationCap;
@@ -136,10 +136,10 @@ contract Signals is Ownable, ReentrancyGuard {
     transferOwnership(owner_);
   }
 
-  modifier isNotInitialized() {
-    require(acceptanceThreshold == 0, 'Already initialized');
-    _;
-  }
+  // modifier isNotInitialized() {
+  //   require(acceptanceThreshold == 0, 'Already initialized');
+  //   _;
+  // }
 
   /// @notice Allows the owner to update the inactivity threshold
   /// @param _newThreshold New inactivity threshold in seconds

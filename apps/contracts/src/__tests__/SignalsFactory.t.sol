@@ -15,20 +15,15 @@ contract SignalsFactoryTest is Test {
   MockERC20 mockToken;
 
   address deployer;
-
   address alice;
-  address bob;
-  address charlie;
-
+  
   function setUp() public {
+    
     deployer = address(this);
-
-    alice = address(0x1234);
-    bob = address(0x2345);
-    charlie = address(0x3456);
+    alice = address(0x1111);
 
     // Log the test addresses
-    console.log('Owner:', deployer);
+    console.log('Deployer:', deployer);
     console.log('Alice:', alice);
 
     // Deploy MockERC20 token and mint 1 million tokens
@@ -38,19 +33,17 @@ contract SignalsFactoryTest is Test {
     deal(address(mockToken), deployer, initialSupply);
 
     // Distribute tokens to test addresses
-    deal(address(mockToken), alice, 200_000 * 10 ** 18);
-    deal(address(mockToken), bob, 200_000 * 10 ** 18);
-    deal(address(mockToken), charlie, 200_000 * 10 ** 18);
+    deal(address(mockToken), alice, 200_000 * 10 ** 18);    
 
-    // Deploy SignalsFactory with the Signals implementation
+    // Deploy the SignalsFactory contract
     factory = new SignalsFactory();
   }
 
   function testFactoryDeployment() public {
     // Ensure the caller is the owner
-    vm.prank(alice);
+    vm.prank(deployer);
 
-    // Deploy a new Signals contract using the factory
+    // Deploy a new instance using the factory
     address instanceAddress = factory.create(
       alice,
       address(mockToken),
@@ -82,6 +75,7 @@ contract SignalsFactoryTest is Test {
     // Set the implementation to an invalid address and attempt to create a clone
     vm.prank(deployer);
     vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
+  
     factory.create(
       address(0), // --- invalid owner address
       address(mockToken),
@@ -102,7 +96,8 @@ contract SignalsFactoryTest is Test {
   //   // Implement this test
   // }
 
-  // TODO: Test with different parameters
+  // TODO: Test with different parameters (e.g. acceptanceThreshold, lockDurationCap, proposalCap, decayCurveType)
+  // Also include fuzzing tests
   // function testCreateWithDifferentParameters() public {
   //   // Implement this test
   // }
