@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import 'lib/openzeppelin-contracts/contracts/access/Ownable.sol';
-import 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import 'lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 /// @title Signals
 contract Signals is Ownable, ReentrancyGuard {
+  // @notice Possible initiative states
   enum InitiativeState {
     Proposed,
     Accepted,
@@ -33,21 +34,34 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
   uint256 public activityTimeout = 60 days;
 
+  /// @notice Represents an initiative in the Signals contract
+  /// @dev Stores all relevant information about a single initiative
   struct Initiative {
+    /// @notice The title of the initiative
     string title;
+    /// @notice The detailed description or body of the initiative
     string body;
+    /// @notice The current state of the initiative (Proposed, Accepted, Cancelled, or Expired)
     InitiativeState state;
+    /// @notice The address of the account that proposed this initiative
     address proposer;
+    /// @notice The timestamp when the initiative was created
     uint256 timestamp;
-    uint256 lastActivity; // Timestamp of the last activity on the initiative
+    /// @notice The timestamp of the last activity on the initiative
+    /// @dev Used to determine if an initiative has become inactive and can be expired
+    uint256 lastActivity;
   }
 
   /// @notice Struct to store lock information for each supporter
   struct LockInfo {
+    /// @dev Total amount of tokens locked by the supporter for this initiative
     uint256 totalAmount;
-    uint256 weightedDuration; // Weighted average duration
-    uint256 timestamp; // Last time the lock was updated
-    bool withdrawn; // Indicates if tokens have been withdrawn
+    /// @dev Weighted average duration of the lock in months
+    uint256 weightedDuration;
+    /// @dev Timestamp of the last update to this lock
+    uint256 timestamp;
+    /// @dev Flag indicating whether the locked tokens have been withdrawn
+    bool withdrawn;
   }
 
   /// @notice Mapping from initiative ID to Initiative

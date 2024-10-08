@@ -6,6 +6,7 @@ import 'forge-std/Test.sol';
 import 'forge-std/console.sol';
 import 'forge-std/StdUtils.sol';
 import 'forge-std/mocks/MockERC20.sol';
+
 import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
 
@@ -45,38 +46,39 @@ contract SignalsFactoryTest is Test {
     factory = new SignalsFactory();
   }
 
-  function testFactoryDeploymentWithCorrectParameters() public {
+  function testFactoryDeployment() public {
     // Ensure the caller is the owner
-    vm.prank(deployer);
+    vm.prank(alice);
 
     // Deploy a new Signals contract using the factory
-    address newSignalsAddress = factory.create(
+    address instanceAddress = factory.create(
       alice,
       address(mockToken),
-      100, // threshold
+      100, // acceptanceThreshold
       12, // lockDurationCap
       5, // proposalCap
       1 // decayCurveType
     );
 
     // Check that the Signals contract was deployed
-    assertTrue(newSignalsAddress != address(0));
-
-    console.log('[signals:instance]', newSignalsAddress);
+    assertTrue(instanceAddress != address(0));
 
     // Load the Signals contract instance
-    Signals instance = Signals(newSignalsAddress);
+    Signals _instance = Signals(instanceAddress);
+
+    console.log('[signals:instance]', instanceAddress);
+    console.log('[signals:owner]', _instance.owner());
 
     // Verify the parameters were initialized correctly
-    // assertEq(newSignals.threshold(), 100);
-    assertEq(instance.owner(), address(alice));
-    assertEq(instance.lockDurationCap(), 12);
-    assertEq(instance.proposalCap(), 5);
-    assertEq(instance.decayCurveType(), 1);
-    assertEq(instance.underlyingToken(), address(mockToken));
+    assertEq(_instance.owner(), alice);
+    assertEq(_instance.underlyingToken(), address(mockToken));
+    assertEq(_instance.acceptanceThreshold(), 100);
+    assertEq(_instance.lockDurationCap(), 12);
+    assertEq(_instance.proposalCap(), 5);
+    assertEq(_instance.decayCurveType(), 1);
   }
 
-  function testRevertCreatingInstancesWithAnInvalidOwner() public {
+  function testRevertsWithInvalidOwnerAddress() public {
     // Set the implementation to an invalid address and attempt to create a clone
     vm.prank(deployer);
     vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
@@ -89,4 +91,34 @@ contract SignalsFactoryTest is Test {
       1
     );
   }
+
+  // TODO: Test that the SignalsCreated event is emitted with correct parameters
+  // function testSignalsCreatedEvent() public {
+  //   // Implement this test
+  // }
+
+  // TODO: Test creating multiple Signals contracts
+  // function testCreateMultipleSignals() public {
+  //   // Implement this test
+  // }
+
+  // TODO: Test with different parameters
+  // function testCreateWithDifferentParameters() public {
+  //   // Implement this test
+  // }
+
+  // TODO: Test that the created Signals contract is a clone
+  // function testCreatedContractIsClone() public {
+  //   // Implement this test
+  // }
+
+  // TODO: Add guard to only allow ERC20 tokens
+  // function testUnderlyingTokenInteraction() public {
+  //   // Implement this test
+  // }
+  
+  // TODO: Add guard to only allow ERC20 tokens
+  // function testUnderlyingTokenInteraction() public {
+  //   // Implement this test
+  // }
 }

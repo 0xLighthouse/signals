@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "ms-python.vscode-pylance",
-        "shd101wyy.markdown-preview-enhanced"
+        "shd101wyy.markdown-preview-enhanced",
+        "tintinweb.solidity-visual-auditor"
     ]
 }

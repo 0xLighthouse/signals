@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/console.sol';
 
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -13,7 +12,7 @@ import './Signals.sol';
 
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
-contract SignalsFactory is Ownable {
+contract SignalsFactory  {
   using Clones for address;
   using SafeERC20 for IERC20;
 
@@ -49,7 +48,7 @@ contract SignalsFactory is Ownable {
     uint256 lockDurationCap,
     uint256 proposalCap,
     uint256 decayCurveType
-  ) external onlyOwner returns (address) {
+  ) external returns (address) {
     if (owner_ == address(0)) revert InvalidOwnerAddress();
 
     // Create a new clone of the Signals contract
