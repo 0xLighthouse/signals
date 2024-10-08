@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/console.sol';
 
-import '@openzeppelin/contracts/proxy/Clones.sol';
+// TODO: Use OpenZeppelin Clones library to create a new clone of the Signals contract
+// import '@openzeppelin/contracts/proxy/Clones.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
@@ -13,7 +14,6 @@ import './Signals.sol';
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
 contract SignalsFactory  {
-  using Clones for address;
   using SafeERC20 for IERC20;
 
   error FactoryDeploymentFailed();
@@ -22,19 +22,12 @@ contract SignalsFactory  {
   /// @notice Event emitted when a new Signals contract is created
   event SignalsCreated(address indexed newSignals, address indexed owner);
 
-  /// @notice The implementation contract for Signals
-  Signals public immutable signalsImplementation;
-
-  /// @notice Constructor to initialize the factory
-  constructor() {
-    signalsImplementation = new Signals();
-  }
-
+  
   /// @notice Creates a new Signals contract
   ///
-  ///   @param owner_ Address of the owner of the new Signals contract
-  ///   @param underlyingToken Address of the underlying token
-  ///   @param threshold Minimum tokens required to propose an initiative
+  ///   @param _owner Address of the owner of the new Signals contract
+  ///   @param _underlyingToken Address of the underlying token
+  ///   @param _acceptanceThreshold Minimum tokens required to propose an initiative
   ///   @param lockDurationCap Maximum lock duration allowed
   ///   @param proposalCap Maximum number of proposals allowed
   ///   @param decayCurveType Type of decay curve to be used
@@ -42,31 +35,29 @@ contract SignalsFactory  {
   /// @return Address of the newly created Signals contract
   /// --------------------------------------------------------
   function create(
-    address owner_,
-    address underlyingToken,
-    uint256 threshold,
+    address _owner,
+    address _underlyingToken,
+    uint256 _acceptanceThreshold,
     uint256 lockDurationCap,
     uint256 proposalCap,
     uint256 decayCurveType
-  ) external returns (address) {
-    if (owner_ == address(0)) revert InvalidOwnerAddress();
-
-    // Create a new clone of the Signals contract
-    address newSignals = address(signalsImplementation).clone();
+  ) public payable returns  (address) {
+    if (_owner == address(0)) revert InvalidOwnerAddress();
 
     // Initialize the new Signals contract
-    Signals(newSignals).initialize(
-      owner_,
-      underlyingToken,
-      threshold,
+    Signals instance = new Signals();
+    instance.initialize(
+      _owner,
+      _underlyingToken,
+      _acceptanceThreshold,
       lockDurationCap,
       proposalCap,
       decayCurveType
     );
 
     // Emit an event for the creation of the new contract
-    emit SignalsCreated(newSignals, owner_);
+    emit SignalsCreated(address(instance), _owner);
 
-    return newSignals;
+    return address(instance);
   }
 }
