@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "ms-python.vscode-pylance"
+        "ms-python.vscode-pylance",
+        "shd101wyy.markdown-preview-enhanced"
     ]
 }

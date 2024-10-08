@@ -4,42 +4,56 @@
 **Author:** Arnold ([1a35e1.eth](https://warpcast.com/1a35e1)) [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)\
 **Contributors:** [jkm.eth](https://warpcast.com/jkm.eth), [x43n](https://warpcast.com/0x43n)
 
-## Background
+## TL;DR
 
-[Lighthouse](https://lighthouse.cx) is a governance aggregator that supports many EVM-based communities, providing real-time proposal and voting capabilities.
+* **Alice** locks 300 tokens for 1 month: **Weight = 300**
+* **Bob** locks 100 tokens for 3 months: **Weight = 300**
 
-Our work has led us to classify the governance stack as: **Ideation, Discourse, Voting, Allocation, Accountability**.
+Bob achieves the same voting weight as Alice by locking tokens three times longer, even though he holds has one-third of the tokens.
 
-In our experience, the **Ideation** phase is often overlooked. XXXX
+## Abstract
 
-**Ideation** is often a catalyse for why new mebers join a community. This protocol, ensures any actor can get a verifable birds eye view of a communities macro intentions.
+SIGNALS is a protocol designed to prioritize community objectives in decentralized organizations. It leverages tokenization to create structured ideation processes and enhance governance token utility. The protocol allows community members to submit initiatives and signal support by locking tokens, with longer lock periods resulting in greater initial commitment weight
 
-## Problem
+## Motivation
 
-For our collabtech submission, we explore how we can brorrow from product prioritization frameworks and apply tokenisation to:
+Decentralized communities often struggle with effective prioritization of objectives and ideas. SIGNALS addresses this by:
 
-* Create more structured ideation processes.
-* Bolster utility for governance tokens.
+1. Providing a structured method for idea submission and prioritization
+2. Enabling new and existing participants to gauge current community sentiment
+3. Amplifying minority voices through collective action
+4. Increasing governance token utility
 
+## Specification
 
-1. Many good ideas are often lost in various channels.
-2. New and even returning participants to gauge the current sentiment and objectives of a community.
+* **Idea Submission:** Community members can submit initiatives if they hold the required token threshold.
 
+* **Commitment Mechanism:** Members lock tokens to support initiatives, with longer lock periods resulting in higher initial commitment weight.
+**Dynamic Ranking:** Commitment weight decays over time based on a configurable function, ensuring that priorities remain current.
 
-## Proposed solution
+* **Weight Calculation:** Where W is weight, T is number of tokens, and D is lock duration.
 
-* **Idea Submission:** Members of the on-chain community can submit a initiative if they hold tokens meeting the threshold required for submission.
-* **Commitment Mechanism:** Members can commit tokens to support an initiative, signaling their backing for that proposal. Tokens are locked for a duration of the member's choosing.
-* **Commitment Weighting:** The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.
-* **Dynamic Ranking:** The decay function plays an important role as issues that may seem topical at first glance may lose amplification over time.
+  $$
+  \text{Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
+  $$
 
-* Allow community members to submit initiatives.
-  * This can be configured to require a minimum number of tokens to submit an initiative.
-* Allow community members to lock tokens to signal support.
-  * The longer tokens are locked, the greater the initial commitment weight.
-  * Commitment weight decays over time based on the duration.
+* **Decay Function:** A differential decay function is proposed, where weight decreases at a rate proportional to the square root of time passed since locking.
 
-> *Side affect: This allows for the amplification of minority voices and the alignment of community priorities.*
+* **Reward System:** Reputation-based rewards (e.g., attestations or POAPs) for accepted ideas and supporters.
+
+## Rationale
+
+SIGNALS improves upon existing governance models by:
+
+1. Encouraging thoughtful participation and reducing noise in idea submission
+2. Providing a fair system for minority stakeholders to amplify their voice
+3. Offering a web3-native solution for community prioritization, unlike centralized web2 forums
+4. Enabling trustless external support for initiatives
+5. Increasing governance token utility through active participation
+
+The protocol's design considers potential abuses and includes measures such as lock duration caps, proposal limits, and spam prevention mechanisms. By using a token-based weighting system with time decay, SIGNALS creates a dynamic and responsive prioritization process that reflects the community's evolving priorities.
+
+## Appendix
 
 ### Analague to existing practices
 
@@ -49,32 +63,24 @@ Aligning community priorities can help set both short- and long-term strategies,
 
 ## Objectives
 
-### Primary Objectives
-- Crowdsourcing ideas from the community in a way that encourages thoughtful participation and reduces noise.
-- Giving minority stakeholders an opportunity to coordinate and amplify their voice through collective action.
-- Optionally rewarding meaningful contributions fairly, while avoiding incentives that could be counterproductive.
-
-
 ### Tailwinds
 
-## Rationale
+* Smaller token holders may be more willing to lock tokens for ideas they strongly believe in, as their risk lies in opportunity cost.
+* Large token holders ("whales") may be less inclined to lock tokens for long periods, particularly if they have mercenary motives. This dampens larger voices.
 
-Smaller token holders may be more willing to lock tokens for ideas they strongly believe in, as their risk lies in opportunity cost.\
-Large token holders ("whales") may be less inclined to lock tokens for long periods, particularly if they have mercenary motives. This dampens larger voices.
+* **Reputation Benefits:** Proposers and supporters can be issued attestations or POAPs for accepted ideas.
+* **External Support:** Third parties can support initiatives in a trustless manner.
 
-- **Reputation Benefits:** Proposers and supporters can be issued attestations or POAPs for accepted ideas.
-- **External Support:** Third parties can support initiatives in a trustless manner.
+### Headwinds
 
-## Reward System
+* Introducing financial rewards could be risky, potentially incentivising unwanted behaviors. Reputation-based rewards are preferable.
 
-Introducing financial rewards could be risky, potentially incentivising unwanted behaviors. Reputation-based rewards are preferable.
+## Configuration
 
-## Additional Considerations
-
-- **Lock Duration Cap:** Limit lock duration to avoid abuses.
-- **Proposal Caps:** Limit the number of suggestions per epoch.
-- **Spam Prevention:** Once an idea reaches sufficient weight, tokens are returned if accepted within a 7-day period. If tokens are not returned within this period, the proposal can be canceled by any user, and the proposer loses their locked tokens, which may discourage spam submissions and promote timely decision-making.
-- **Optimal Threshold:** Uncertain. Potentially require 51% of votable supply to accept.
+* **Submissions Threshold:** Minimum tokens required to submit an idea.
+* **Acceptance Threshold:** Number of tokens (weighted) required to accept an idea.
+* **Lock Duration Cap:** Cap duration tokens may be locked for.
+* **Submission Cap:** Cap number of submissions within an epoch.
 
 ## Feedback
 
@@ -94,21 +100,18 @@ While forums often get cluttered, SIGNALS enables the best ideas to surface quic
 
 After locking, commitment weight decays over time based on a configurable decay function. The decay function can be tailored to the organization's needs, and options include:
 
-- **Exponential Decay:** Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.
-- **Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.
-- **Step Decay:** Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.
-
-
+* **Exponential Decay:** Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.
+* **Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.
+* **Step Decay:** Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.
 
 ## Technical Overview
 
 ### Weight Calculation
 
 Code Context:
-	•	The function calculates how much weight (influence, stake, or value) remains for a user’s locked amount over time.
-	•	The intended model is exponential decay to reflect diminishing returns or influence as time progresses.
-	•	Due to practical constraints, the implementation uses a linear decay, multiplying the initial amount by the remaining duration.
-
+ • The function calculates how much weight (influence, stake, or value) remains for a user’s locked amount over time.
+ • The intended model is exponential decay to reflect diminishing returns or influence as time progresses.
+ • Due to practical constraints, the implementation uses a linear decay, multiplying the initial amount by the remaining duration.
 
 Premise: The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.
 
@@ -125,18 +128,23 @@ Exploring decay functions:
 When locking, commitment weight decays over time based on a a configurable decay function:
 
 * **Exponential Decay:** ~~Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.~~
-> Too complex for the initial version.
-* **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
-> Too complex for the initial version.
-* **Linear Decay:** ~~Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
-> Boring.
-* **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
 
+> Too complex for the initial version.
+
+* **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
+
+> Too complex for the initial version.
+
+* **Linear Decay:** ~~Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
+
+> Boring.
+
+* **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
 
 ### Graphing the Differential Decay Function
 
 Why? models processes where a quantity decreases at a rate proportional to its current value.
-	•	Recognizing the limitations of the programming environment helps understand why the decay model is simplified.
+ • Recognizing the limitations of the programming environment helps understand why the decay model is simplified.
 
 To graph the equation
 $$
@@ -146,25 +154,24 @@ $$
 
 This is a separable first-order linear ordinary differential equation. Here’s how to solve it:
 
-	1.	Separate Variables:
+ 1. Separate Variables:
 
 $$
 \frac{dW}{W} = -k\,dt
 $$
 
-	2.	Integrate Both Sides:
+ 2. Integrate Both Sides:
 
 $$
 \int \frac{1}{W}\,dW = \int -k\,dt
 $$
-
 
 $$
 \ln|W| = -k t + C
 $$
 
 Here,  C  is the constant of integration.
-	3.	Solve for  W :
+ 3. Solve for  W :
 Exponentiate both sides to eliminate the natural logarithm:
 
 $$
@@ -183,15 +190,14 @@ $$
 W(t) = W_0 \, e^{-k t}
 $$
 
-
 ## Graph the funcion
 
 Step 2: Choose Values for Constants
 
 To graph  W(t) , you need specific values for  W_0  and  k :
 
-	•	Initial Weight ( W_0 ): This is the weight at  t = 0 . Choose a positive value that makes sense for your context (e.g.,  W_0 = 100  units).
-	•	Decay Constant ( k ): This constant determines the rate of decay. Choose a positive value (e.g.,  k = 0.1 ).
+ • Initial Weight ( W_0 ): This is the weight at  t = 0 . Choose a positive value that makes sense for your context (e.g.,  W_0 = 100  units).
+ • Decay Constant ( k ): This constant determines the rate of decay. Choose a positive value (e.g.,  k = 0.1 ).
 
 Step 3: Create Data Points
 
@@ -215,26 +221,9 @@ $$
 W(t) = W_0 \, e^{-k t}
 $$
 
-	•	Where:
-	•	 `W(t)`: Weight at time  `t`.
-	•	 `W_0`: Initial weight at  `t = 0`.
-	•	 `k` : Positive decay constant.
+ • Where:
+ •  `W(t)`: Weight at time  `t`.
+ •  `W_0`: Initial weight at  `t = 0`.
+ •  `k` : Positive decay constant.
 
 <https://www.desmos.com/calculator/slpil4yhlm>
-
-### Example
-
-- **Alice** locks 300 tokens for 1 month: **Weight = 300**
-- **Bob** locks 100 tokens for 3 months: **Weight = 300**
-
-Bob achieves the same voting weight as Alice by locking tokens three times longer, even though he holds only one-third the tokens.
-
-## Parameters
-
-Configurations can be customized for the organization:
-
-- **Threshold:** Minimum tokens required to submit an idea.
-- **Tags:** Tagging ideas (future version).
-- **Conviction Bonus:** Maximum multiple allowed.
-- **Decay Curve:** Configurable decay (e.g., exponential, linear, or step decay).
-
