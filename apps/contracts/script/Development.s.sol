@@ -33,22 +33,22 @@ contract DevelopmentScript is Script {
 
     // --- Begin deployment script ---
     // Deploy MockERC20 token and mint 1 million tokens
-    // uint256 initialSupply = 1_000_000 * 1e18;
     vm.startBroadcast();
     token = new MockERC20('CollabTech Hackathon', 'CTH');
     vm.stopBroadcast();
 
-    // vm.startBroadcast();
-    // token.initialize(initialSupply);
-    // vm.stopBroadcast();
+    vm.startBroadcast();
+    uint256 initialSupply = 1_000_000 * 1e18;
+    token.initialize(initialSupply);
+    vm.stopBroadcast();
     console.log('Contract', address(token));
 
     // Distribute tokens to test addresses
     // vm.startBroadcast();
-    // token.transfer(alice, 200_000 * 1e18);
+    // token.faucet(alice);
+    // vm.stopBroadcast();
     // token.transfer(bob, 200_000 * 1e18);
     // token.transfer(charlie, 200_000 * 1e18);
-    // vm.stopBroadcast();
 
     // Deploy SignalsFactory with the Signals implementation
     // factory = new SignalsFactory();
