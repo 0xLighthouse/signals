@@ -34,7 +34,7 @@ contract DevelopmentScript is Script {
 
     // Deploy MockERC20 token and mint 1 million tokens
     vm.broadcast(deployer);
-    token = new MockERC20('CollabTech Hackathon', 'CTH');
+    token = new MockERC20('CollabTech Hackathon', 'SGNL');
     console.log('TokenContract', address(token));
 
     uint256 initialSupply = 1_000_000 * 1e18;

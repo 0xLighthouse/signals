@@ -15,8 +15,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { Textarea } from "../ui/textarea"
 
 export const SubmissionsV2 = () => {
+  
   return (
     <Tabs defaultValue="account" className="w-[400px]">
       <TabsList className="grid w-full grid-cols-2">
@@ -26,19 +28,21 @@ export const SubmissionsV2 = () => {
       <TabsContent value="account">
         <Card>
           <CardHeader>
-            <CardTitle>Account</CardTitle>
             <CardDescription>
-              Make changes to your account here. Click save when you're done.
+              You will need XXX tokens to submit an idea. You have XXX tokens. Your tokens will not be locked.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="space-y-1">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Pedro Duarte" />
+              <Label htmlFor="name">Title</Label>
+              <Input id="title" placeholder="On-chain forums." />
             </div>
             <div className="space-y-1">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" defaultValue="@peduarte" />
+              <Textarea
+                  placeholder="Enter something novel. Remember to search for existing ideas first and a reminder this is public."
+                  required
+                />
             </div>
           </CardContent>
           <CardFooter>
@@ -49,9 +53,8 @@ export const SubmissionsV2 = () => {
       <TabsContent value="password">
         <Card>
           <CardHeader>
-            <CardTitle>Password</CardTitle>
             <CardDescription>
-              Change your password here. After saving, you'll be logged out.
+            You will need XXX tokens to submit an idea. You have XXX tokens. Your tokens WILL not be locked.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
