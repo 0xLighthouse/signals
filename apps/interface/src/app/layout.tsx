@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
 
 import './globals.css'
+import { TokenProvider } from '@/contexts/ContractContext'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -30,11 +31,16 @@ export default function RootLayout({
 }>) {
   // Set the tailwind theme from stored cookie preference
   const theme = getThemeCookie()
+  
   return (
     <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider initialTheme={theme}>
-          <Web3Provider>{children}</Web3Provider>
+          <Web3Provider>
+            <TokenProvider>
+              {children}
+            </TokenProvider>
+          </Web3Provider>
         </ThemeProvider>
       </body>
     </html>

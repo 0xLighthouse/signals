@@ -75,29 +75,29 @@ contract Signals is Ownable, ReentrancyGuard {
     bool withdrawn;
   }
 
-  /// @notice Mapping from initiative ID to Initiative
+  /// @notice (initiativeId => Initiative)
   mapping(uint256 => Initiative) public initiatives;
 
-  /// @notice Mapping from initiative ID to total initial weight
-  mapping(uint256 => uint256) public initiativeTotalInitialWeight;
+  /// @notice (initiativeId => weight)
+  mapping(uint256 => uint256) public weights;
 
-  /// @notice Mapping from initiative ID to mapping of supporter address to their LockInfo
-  mapping(uint256 => mapping(address => LockInfo)) public initiativeLocks;
+  /// @notice (initiativeId => (supporter => LockInfo))
+  mapping(uint256 => mapping(address => LockInfo)) public locks;
 
-  /// @notice Mapping from initiative ID to array of supporter addresses
-  mapping(uint256 => address[]) public initiativeSupporters;
+  /// @notice (initiativeId => supporter[])
+  mapping(uint256 => address[]) public supporters;
 
-  /// @notice Mapping to check if an address is already a supporter of an initiative
+  /// @notice (initiativeId => (supporter => bool))
   mapping(uint256 => mapping(address => bool)) public isSupporter;
 
-  /// @notice Mapping from supporter address to array of initiative IDs they have pending withdrawals from
+  /// @dev (supporter => id[])
   mapping(address => uint256[]) public pendingWithdrawals;
 
-  /// @notice Mapping to keep track of initiative IDs indices in the pendingWithdrawals array
+  /// @dev (supporter => (id => index))
   mapping(address => mapping(uint256 => uint256)) private pendingWithdrawalIndex;
 
-  /// @notice Counter for initiative IDs
-  uint256 public initiativeCount;
+  /// @dev {n} total initiatives
+  uint256 public count;
 
   event WeightUpdated(
     uint256 indexed initiativeId,
@@ -181,9 +181,9 @@ contract Signals is Ownable, ReentrancyGuard {
       lastActivity: block.timestamp
     });
 
-    uint256 initiativeId = initiativeCount;
+    uint256 initiativeId = count;
     initiatives[initiativeId] = newInitiative;
-    initiativeCount++;
+    count++;
 
     emit InitiativeProposed(initiativeId, msg.sender, title, body);
   }
@@ -213,9 +213,9 @@ contract Signals is Ownable, ReentrancyGuard {
       lastActivity: block.timestamp
     });
 
-    uint256 initiativeId = initiativeCount;
+    uint256 initiativeId = count;
     initiatives[initiativeId] = newInitiative;
-    initiativeCount++;
+    count++;
 
     _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
@@ -223,10 +223,10 @@ contract Signals is Ownable, ReentrancyGuard {
 
     console.log('_calculateLockWeight:', weight);
 
-    initiativeTotalInitialWeight[initiativeId] += weight;
+    weights[initiativeId] += weight;
 
     if (!isSupporter[initiativeId][msg.sender]) {
-      initiativeSupporters[initiativeId].push(msg.sender);
+      supporters[initiativeId].push(msg.sender);
       isSupporter[initiativeId][msg.sender] = true;
     }
 
@@ -236,8 +236,8 @@ contract Signals is Ownable, ReentrancyGuard {
     emit WeightUpdated(
       initiativeId,
       msg.sender,
-      initiativeLocks[initiativeId][msg.sender].totalAmount,
-      initiativeLocks[initiativeId][msg.sender].weightedDuration,
+      locks[initiativeId][msg.sender].totalAmount,
+      locks[initiativeId][msg.sender].weightedDuration,
       block.timestamp
     );
   }
@@ -248,7 +248,7 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param duration Duration for which tokens are locked (in months)
   function supportInitiative(uint256 initiativeId, uint256 amount, uint256 duration) external {
     if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
@@ -260,10 +260,10 @@ contract Signals is Ownable, ReentrancyGuard {
     _updateLockInfo(initiativeId, msg.sender, amount, duration);
 
     uint256 weight = _calculateLockWeight(amount, duration);
-    initiativeTotalInitialWeight[initiativeId] += weight;
+    weights[initiativeId] += weight;
 
     if (!isSupporter[initiativeId][msg.sender]) {
-      initiativeSupporters[initiativeId].push(msg.sender);
+      supporters[initiativeId].push(msg.sender);
       isSupporter[initiativeId][msg.sender] = true;
     }
 
@@ -274,8 +274,8 @@ contract Signals is Ownable, ReentrancyGuard {
     emit WeightUpdated(
       initiativeId,
       msg.sender,
-      initiativeLocks[initiativeId][msg.sender].totalAmount,
-      initiativeLocks[initiativeId][msg.sender].weightedDuration,
+      locks[initiativeId][msg.sender].totalAmount,
+      locks[initiativeId][msg.sender].weightedDuration,
       block.timestamp
     );
   }
@@ -286,7 +286,7 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 amount,
     uint256 duration
   ) internal {
-    LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
+    LockInfo storage lockInfo = locks[initiativeId][supporter];
 
     uint256 totalAmount = lockInfo.totalAmount + amount;
     uint256 newWeightedDuration = ((lockInfo.totalAmount * lockInfo.weightedDuration) +
@@ -298,7 +298,7 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function acceptInitiative(uint256 initiativeId) external onlyOwner {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -309,7 +309,7 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function expireInitiative(uint256 initiativeId) external {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -322,12 +322,12 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function withdrawTokens(uint256 initiativeId) public nonReentrant {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
 
-    LockInfo storage lockInfo = initiativeLocks[initiativeId][msg.sender];
+    LockInfo storage lockInfo = locks[initiativeId][msg.sender];
     if (lockInfo.totalAmount == 0 || lockInfo.withdrawn) revert NothingToWithdraw();
 
     uint256 amountToWithdraw = lockInfo.totalAmount;
@@ -351,7 +351,7 @@ contract Signals is Ownable, ReentrancyGuard {
     while (i < totalInitiatives) {
       uint256 initiativeId = initiativesToWithdraw[i];
       Initiative storage initiative = initiatives[initiativeId];
-      LockInfo storage lockInfo = initiativeLocks[initiativeId][msg.sender];
+      LockInfo storage lockInfo = locks[initiativeId][msg.sender];
 
       if (
         (initiative.state == InitiativeState.Accepted ||
@@ -404,7 +404,7 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function getInitiative(uint256 initiativeId) external view returns (Initiative memory) {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     return initiatives[initiativeId];
   }
 
@@ -413,12 +413,12 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function getWeight(uint256 initiativeId) external view returns (uint256) {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+    if (initiativeId >= count) revert InitiativeNotFound();
     uint256 totalCurrentWeight = 0;
-    address[] storage supporters = initiativeSupporters[initiativeId];
+    address[] storage supporters = supporters[initiativeId];
     for (uint256 i = 0; i < supporters.length; i++) {
       address supporter = supporters[i];
-      LockInfo storage lockInfo = initiativeLocks[initiativeId][supporter];
+      LockInfo storage lockInfo = locks[initiativeId][supporter];
       uint256 currentWeight = _calculateCurrentWeight(lockInfo);
       totalCurrentWeight += currentWeight;
     }
@@ -426,8 +426,8 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   function getTotalWeight(uint256 initiativeId) external view returns (uint256) {
-    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
-    return initiativeTotalInitialWeight[initiativeId];
+    if (initiativeId >= count) revert InitiativeNotFound();
+    return weights[initiativeId];
   }
 
   function _calculateLockWeight(uint256 amount, uint256 duration) private pure returns (uint256) {

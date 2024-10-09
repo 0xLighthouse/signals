@@ -1,20 +1,18 @@
 'use client'
 
-import { getContract } from 'viem'
 import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAccount } from 'wagmi'
 import { readClient, ABI, signer, ERC20_ADDRESS } from '@/config/web3'
+import { useUnderlying } from '@/hooks'
 
 export const FaucetCard = () => {
   const { address } = useAccount()
+  const { name, symbol, totalSupply, balance } = useUnderlying()
 
   const [gas, setGas] = useState<string | null>(null)
-  const [name, setContractName] = useState<string | null>(null)
-  const [symbol, setSymbol] = useState<string | null>(null)
-  const [supply, setSupply] = useState<number | null>(null)
-  const [balance, setBalance] = useState<number | null>(null)
+  
 
   // Get the balance of the gas using viem
   useEffect(() => {
@@ -31,38 +29,7 @@ export const FaucetCard = () => {
     }
     fetchGasBalance()
   }, [address])
-  
-  // Fetch contract metadata
-  useEffect(() => {
-    const fetchContractMetadata = async () => {
-      if (!address) return
 
-      try {
-        const contract = getContract({ address: ERC20_ADDRESS, abi: ABI, client: readClient })
-
-        // The below will send a single request to the RPC Provider.
-        const [name, symbol, totalSupply, balance] = await Promise.all([
-          contract.read.name() as Promise<string>,
-          contract.read.symbol() as Promise<string>,
-          contract.read.totalSupply() as Promise<number>,
-          contract.read.balanceOf([address]) as Promise<number>,
-        ])
-
-        console.log('Contract Metadata:', name, symbol, totalSupply, balance)
-
-        setContractName(name)
-        setSymbol(symbol)
-        setSupply(Number(totalSupply))
-        setBalance(Number(balance))
-
-        
-      } catch (error) {
-        console.error('Error fetching gas balance:', error)
-      }
-    }
-
-    fetchContractMetadata()
-  }, [address])
 
   const handleClaimTokens = async () => {
     if (!address) throw new Error('Address not available.')
@@ -111,7 +78,7 @@ export const FaucetCard = () => {
               Tokens: {balance} ({symbol})
             </CardDescription>
             <CardDescription>
-              Supply: {Number(supply) / 1e18}
+              Supply: {Number(totalSupply) / 1e18}
             </CardDescription>
             <CardDescription>
             Gas: {Number(gas) / 1e18} ETH
