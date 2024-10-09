@@ -1,3 +1,5 @@
+'use client'
+
 import { createPublicClient, http, createWalletClient, custom, erc20Abi } from 'viem';
 import { hardhat } from 'viem/chains';
 
@@ -6,10 +8,12 @@ export const readClient = createPublicClient({
   chain: hardhat,
   transport: http(process.env.RPC_URL!),
 })
+
 export const signer = createWalletClient({
   chain: hardhat,
   transport: custom(window.ethereum!),
 })
+
 export const ABI = [
   ...erc20Abi,
   {
