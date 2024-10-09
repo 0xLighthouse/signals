@@ -53,6 +53,7 @@ SIGNALS improves upon existing governance models by:
 
 The protocol's design considers potential abuses and includes measures such as lock duration caps, proposal limits, and spam prevention mechanisms. By using a token-based weighting system with time decay, SIGNALS creates a dynamic and responsive prioritization process that reflects the community's evolving priorities.
 
+<!-- 
 ## Appendix
 
 ### Analague to existing practices
@@ -227,3 +228,5 @@ $$
  •  `k` : Positive decay constant.
 
 <https://www.desmos.com/calculator/slpil4yhlm>
+
+ -->
