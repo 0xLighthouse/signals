@@ -7,7 +7,7 @@ import {SignalsFactory} from '../src/SignalsFactory.sol';
 import {MockERC20} from '../src/__mocks__/MockERC20.m.sol'; // Add this line to import MockERC20;
 
 /**
- * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast
+ * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
  */
 contract DevelopmentScript is Script {
   address deployer;
@@ -21,43 +21,39 @@ contract DevelopmentScript is Script {
   SignalsFactory factory;
 
   function run() external {
-    deployer = msg.sender;
-
     // Load the developer seed phrase from the environment variable
     string memory seedPhrase = vm.envString('DEPLOYER_TESTNET_SEED_PHRASE');
     console.log('Seed Phrase:', seedPhrase);
 
     // Derive addresses for alice, bob, and charlie using the seed phrase and HD paths
-    alice = vm.addr(vm.deriveKey(seedPhrase, 0));
-    bob = vm.addr(vm.deriveKey(seedPhrase, 1));
-    charlie = vm.addr(vm.deriveKey(seedPhrase, 2));
+    deployer = vm.addr(vm.deriveKey(seedPhrase, 0));
 
     // Log the test addresses
     console.log('Deployer:', deployer);
-    console.log('Alice:', alice);
-    console.log('Bob:', bob);
-    console.log('Charlie:', charlie);
 
     // --- Begin deployment script ---
-    vm.startPrank(deployer);
-
     // Deploy MockERC20 token and mint 1 million tokens
-    uint256 initialSupply = 1_000_000 * 1e18;
+    // uint256 initialSupply = 1_000_000 * 1e18;
+    vm.startBroadcast();
     token = new MockERC20('CollabTech Hackathon', 'CTH');
-    token.initialize(initialSupply);
+    vm.stopBroadcast();
+
+    // vm.startBroadcast();
+    // token.initialize(initialSupply);
+    // vm.stopBroadcast();
     console.log('Contract', address(token));
 
     // Distribute tokens to test addresses
-    token.transfer(alice, 200_000 * 1e18);
-    token.transfer(bob, 200_000 * 1e18);
-    token.transfer(charlie, 200_000 * 1e18);
+    // vm.startBroadcast();
+    // token.transfer(alice, 200_000 * 1e18);
+    // token.transfer(bob, 200_000 * 1e18);
+    // token.transfer(charlie, 200_000 * 1e18);
+    // vm.stopBroadcast();
 
     // Deploy SignalsFactory with the Signals implementation
     // factory = new SignalsFactory();
 
     // Deploy a new Signals contract using the factory
     // instance = factory.create();
-
-    vm.stopPrank();
   }
 }

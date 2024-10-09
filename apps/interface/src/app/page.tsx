@@ -1,5 +1,5 @@
 import { ProductPrioritizationComponent } from '@/components/containers/product-prioritization'
-import { FaucetCard } from '@/components/containers/faucet-card'
+import { FaucetCard } from '@/components/containers/faucet.card'
 import { TopNav } from '@/components/containers/topnav'
 import { InstructionsCard } from '@/components/containers/instructions'
 
