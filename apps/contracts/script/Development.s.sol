@@ -6,6 +6,9 @@ import 'forge-std/Script.sol';
 import {SignalsFactory} from '../src/SignalsFactory.sol';
 import {MockERC20} from '../src/__mocks__/MockERC20.m.sol'; // Add this line to import MockERC20;
 
+/**
+ * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast
+ */
 contract DevelopmentScript is Script {
   address deployer;
   address instance;
@@ -22,7 +25,7 @@ contract DevelopmentScript is Script {
 
     // Load the developer seed phrase from the environment variable
     string memory seedPhrase = vm.envString('DEPLOYER_TESTNET_SEED_PHRASE');
-    console.log('Developer Seed Phrase:', seedPhrase);
+    console.log('Seed Phrase:', seedPhrase);
 
     // Derive addresses for alice, bob, and charlie using the seed phrase and HD paths
     alice = vm.addr(vm.deriveKey(seedPhrase, 0));
@@ -40,7 +43,7 @@ contract DevelopmentScript is Script {
 
     // Deploy MockERC20 token and mint 1 million tokens
     uint256 initialSupply = 1_000_000 * 1e18;
-    token = new MockERC20('MockToken', 'MTK');
+    token = new MockERC20('CollabTech Hackathon', 'CTH');
     token.initialize(initialSupply);
     console.log('Contract', address(token));
 
