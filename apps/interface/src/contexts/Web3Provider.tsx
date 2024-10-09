@@ -15,7 +15,7 @@ const config = createConfig(
       // [mainnet.id]: http(
       //   `https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_ID}`,
       // ),
-      [hardhat.id]: http('https://6391-157-211-27-89.ngrok-free.app'),
+      [hardhat.id]: http('https://cb4081703720.ngrok.app'),
     },
 
     // Required API Keys

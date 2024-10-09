@@ -11,4 +11,9 @@ contract MockERC20 is ERC20 {
     // Mint initial supply to the deployer
     _mint(msg.sender, totalSupply * 1e18);
   }
+
+  // Mints 50k tokens to the specified address
+  function faucet(address to) public {
+    _mint(to, 50_000 * 1e18);
+  }
 }
