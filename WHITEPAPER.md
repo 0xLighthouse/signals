@@ -1,7 +1,7 @@
 # SIGNALS, A protocol for prioritising community objectives
 
 **Created:** October 2, 2024\
-**Author:** Arnold ([1a35e1.eth](https://warpcast.com/1a35e1)) [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)\
+**Author:** Arnold ([1a35e1.eth](https://t.me/x1a35e1)) [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)\
 **Contributors:** [jkm.eth](https://warpcast.com/jkm.eth), [x43n](https://warpcast.com/0x43n)
 
 ## TL;DR
