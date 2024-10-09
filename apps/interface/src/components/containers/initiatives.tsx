@@ -23,55 +23,25 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAccount } from 'wagmi'
 import { ConnectCTAPanel } from '../web3/connect-cta-panel'
 
+import data from '@/config/proposals.json'
+
+const cleanedData = data.map((idea) => ({
+  ...idea,
+  created_at: new Date(idea.created_at).getTime(),
+}))
+
 interface Idea {
   id: number
   title: string
-  body: string
-  network?: string
-  token?: string
-  amount?: number
-  duration?: string
-  votes: number
+  views: number
+  like_count: number  
+  created_at: number
 }
 
 export function Initiatives() {
   const { isConnected } = useAccount()
 
-  const [initiatives, setInitiatives] = useState<Idea[]>([
-    {
-      id: 1,
-      title: 'E2E Encrypted Chat',
-      body: 'Enable end-to-end encryption for chat messages.',
-      network: 'Ethereum',
-      amount: 400000,
-      votes: 10,
-      // tokenPercentage: '3%',
-      // rank: 1,
-      // status: 'Proposed',
-    },
-    {
-      id: 2,
-      title: 'Space Audio Room',
-      body: 'Implement an audio room for community discussions.',
-      network: 'Polygon',
-      amount: 400000,
-      votes: 10,
-      // tokenPercentage: '2%',
-      // rank: 2,
-      // status: 'Under Review',
-    },
-    {
-      id: 3,
-      title: 'On Chain Forums',
-      body: 'Create a forum integrated directly with on-chain data.',
-      network: 'Optimism',
-      amount: 400000,
-      votes: 10,
-      // tokenPercentage: '4%',
-      // rank: 3,
-      // status: 'Proposed',
-    },
-  ])
+  const [initiatives, setInitiatives] = useState<Idea[]>(cleanedData)
   
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
@@ -82,7 +52,7 @@ export function Initiatives() {
   // TODO: break out the ideas/feedbacks list into a separate component
   const filteredAndSortedIdeas = initiatives
     .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => (sortBy === "'trending'" ? b.votes - a.votes : b.id - a.id))
+    .sort((a, b) => (sortBy === "'trending'" ? b.created_at - a.created_at : b.id - a.id))
 
   return (
     <div className="">
