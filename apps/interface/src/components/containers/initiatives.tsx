@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Search, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -35,10 +34,10 @@ interface Idea {
   votes: number
 }
 
-export function ProductPrioritizationComponent() {
+export function Initiatives() {
   const { isConnected } = useAccount()
 
-  const [ideas, setIdeas] = useState<Idea[]>([
+  const [initiatives, setInitiatives] = useState<Idea[]>([
     {
       id: 1,
       title: 'E2E Encrypted Chat',
@@ -73,44 +72,15 @@ export function ProductPrioritizationComponent() {
       // status: 'Proposed',
     },
   ])
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [network, setNetwork] = useState('')
-  const [token, setToken] = useState('')
-  const [amount, setAmount] = useState<number | undefined>()
-  const [duration, setDuration] = useState('')
+  
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (title && body) {
-      const newIdea: Idea = {
-        id: Date.now(),
-        title,
-        body,
-        network,
-        token,
-        amount,
-        duration,
-        votes: 0,
-      }
-      setIdeas([...ideas, newIdea])
-      setTitle('')
-      setBody('')
-      setNetwork('')
-      setToken('')
-      setAmount(undefined)
-      setDuration('')
-    }
-  }
+  
 
-  const handleVote = (id: number) => {
-    setIdeas(ideas.map((idea) => (idea.id === id ? { ...idea, votes: idea.votes + 1 } : idea)))
-  }
-
+  
   // TODO: break out the ideas/feedbacks list into a separate component
-  const filteredAndSortedIdeas = ideas
+  const filteredAndSortedIdeas = initiatives
     .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => (sortBy === "'trending'" ? b.votes - a.votes : b.id - a.id))
 
@@ -118,54 +88,9 @@ export function ProductPrioritizationComponent() {
     <div className="">
       <div className="mb-8">
         {isConnected ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Submit a new idea</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  placeholder="Short, descriptive title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  required
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    placeholder="Network (optional)"
-                    value={network}
-                    onChange={(e) => setNetwork(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Token (optional)"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Amount (optional)"
-                    value={amount || ''}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                  />
-                  <Input
-                    placeholder="Duration (optional)"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                  />
-                </div>
-              </form>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">Cancel</Button>
-              <Button onClick={handleSubmit}>Propose</Button>
-            </CardFooter>
-          </Card>
+          <>
+            {/* <Submission /> */}            
+          </>
         ) : (
           <ConnectCTAPanel />
         )}
