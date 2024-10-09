@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PlusCircle, Search, ChevronUp, ChevronDown } from 'lucide-react'
+import { Search, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -163,7 +163,7 @@ export function ProductPrioritizationComponent() {
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline">Cancel</Button>
-              <Button onClick={handleSubmit}>Create Post</Button>
+              <Button onClick={handleSubmit}>Propose</Button>
             </CardFooter>
           </Card>
         ) : (
@@ -178,11 +178,11 @@ export function ProductPrioritizationComponent() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="trending">Trending</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="popular">Popular</SelectItem>
+              <SelectItem value="latest">Latest</SelectItem>
             </SelectContent>
           </Select>
-          <span>posts</span>
+          <span>initiatives</span>
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />

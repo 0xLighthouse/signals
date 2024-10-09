@@ -12,7 +12,7 @@ contract MockERC20 is ERC20 {
 
   function initialize(uint256 totalSupply) public {
     // Mint initial supply to the deployer
-    _mint(msg.sender, totalSupply * 1e18);
+    _mint(msg.sender, totalSupply);
   }
 
   // Mints 10k tokens to the specified address, limited to 10 claims

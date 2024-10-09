@@ -2,48 +2,19 @@
 
 import { getContract } from 'viem'
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAccount } from 'wagmi'
-import { createPublicClient, createWalletClient, custom, erc20Abi, http } from 'viem'
-import { hardhat } from 'viem/chains'
-
-const ERC20_ADDRESS = '0xD00B87df994b17a27aBA4f04c7A7D77bE3b95e10'
-
-export const readClient = createPublicClient({
-  chain: hardhat,
-  transport: http('https://cb4081703720.ngrok.app'),
-})
-
-const signer = createWalletClient({
-  chain: hardhat,
-  transport: custom(window.ethereum!),
-})
-
-const ABI = [
-  ...erc20Abi,
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'to',
-        type: 'address',
-      },
-    ],
-    name: 'faucet',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-]
+import { readClient, ABI, signer, ERC20_ADDRESS } from '@/config/web3'
 
 export const FaucetCard = () => {
   const { address } = useAccount()
 
-  const [balance, setBalance] = useState<string | null>(null)
-  const [metadata, setTokenMetdata] = useState<[string, string, number, number] | undefined>(
-    undefined,
-  )
+  const [gas, setGas] = useState<string | null>(null)
+  const [name, setContractName] = useState<string | null>(null)
+  const [symbol, setSymbol] = useState<string | null>(null)
+  const [supply, setSupply] = useState<number | null>(null)
+  const [balance, setBalance] = useState<number | null>(null)
 
   // Get the balance of the gas using viem
   useEffect(() => {
@@ -53,19 +24,20 @@ export const FaucetCard = () => {
         const gasBalance = await readClient.getBalance({
           address,
         })
-        setBalance(String(gasBalance))
+        setGas(String(gasBalance))
       } catch (error) {
         console.error('Error fetching gas balance:', error)
       }
     }
-
     fetchGasBalance()
   }, [address])
+  
   // Fetch contract metadata
   useEffect(() => {
     const fetchContractMetadata = async () => {
+      if (!address) return
+
       try {
-        if (!address) return
         const contract = getContract({ address: ERC20_ADDRESS, abi: ABI, client: readClient })
 
         // The below will send a single request to the RPC Provider.
@@ -76,7 +48,14 @@ export const FaucetCard = () => {
           contract.read.balanceOf([address]) as Promise<number>,
         ])
 
-        setTokenMetdata([name, symbol, totalSupply, balance])
+        console.log('Contract Metadata:', name, symbol, totalSupply, balance)
+
+        setContractName(name)
+        setSymbol(symbol)
+        setSupply(Number(totalSupply))
+        setBalance(Number(balance))
+
+        
       } catch (error) {
         console.error('Error fetching gas balance:', error)
       }
@@ -86,19 +65,24 @@ export const FaucetCard = () => {
   }, [address])
 
   const handleClaimTokens = async () => {
-    if (!address) {
-      console.error('Signer or address not available.')
-      return
-    }
+    if (!address) throw new Error('Address not available.')
 
     try {
+
+      // Signer get nonce
+      const nonce = await readClient.getTransactionCount({  
+        address,
+      })
+
       // Use the viem client to send the transaction
       const transactionHash = await signer.writeContract({
         account: address,
+        nonce,
         address: ERC20_ADDRESS,
         abi: ABI,
         functionName: 'faucet',
         args: [address],
+        gas: 10000n,
       })
 
       console.log('Transaction Hash:', transactionHash)
@@ -112,23 +96,26 @@ export const FaucetCard = () => {
     }
   }
 
+
   return (
     <Card>
       <CardHeader>
-        {metadata && (
+        {name && (
           <CardTitle className="text-lg font-bold">
-            {metadata[0]}
+            {name}
           </CardTitle>
         )}        
       </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="text-sm text-muted-foreground">Balance:</div>
-        {metadata && (
-          <CardTitle className="text-2xl font-bold">
-            {metadata[3] ?? 0} ({metadata[1]})
-          </CardTitle>
-        )}
-        <div className="text-sm text-muted-foreground">Gas: {Number(balance) / 1e18} ETH</div>
+      <CardContent className="space-y-2">        
+            <CardDescription>
+              Tokens: {balance} ({symbol})
+            </CardDescription>
+            <CardDescription>
+              Supply: {Number(supply) / 1e18}
+            </CardDescription>
+            <CardDescription>
+            Gas: {Number(gas) / 1e18} ETH
+            </CardDescription>
       </CardContent>
       <CardFooter className="flex justify-end">
         <Button onClick={handleClaimTokens}>Claim tokens</Button>

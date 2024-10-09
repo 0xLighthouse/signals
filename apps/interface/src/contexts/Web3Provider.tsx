@@ -3,19 +3,13 @@
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConnectKitProvider, getDefaultConfig } from 'connectkit'
-import { hardhat, mainnet } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, hardhat } from 'viem/chains'
 
 const config = createConfig(
   getDefaultConfig({
-    // - arbitrum
-    // - sepolia
-    chains: [hardhat],
+    chains: [hardhat, arbitrum, arbitrumSepolia],
     transports: {
-      // RPC URL for each chain
-      // [mainnet.id]: http(
-      //   `https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_ID}`,
-      // ),
-      [hardhat.id]: http('https://cb4081703720.ngrok.app'),
+      [hardhat.id]: http(process.env.RPC_URL!),
     },
 
     // Required API Keys
@@ -24,10 +18,9 @@ const config = createConfig(
     // Required App Info
     appName: 'Signals',
 
-    // Optional App Info
-    // appDescription: 'Your App Description',
-    // appUrl: 'https://family.co', // your app's url
-    // appIcon: 'https://family.co/logo.png', // your app's icon, no bigger than 1024x1024px (max. 1MB)
+    appDescription: 'Signals by Lighthouse',
+    appUrl: 'https://lighthouse.cx',
+    appIcon: 'https://avatars.githubusercontent.com/u/128300619?s=200&v=4', // your app's icon, no bigger than 1024x1024px (max. 1MB)
   }),
 )
 

@@ -1,6 +1,5 @@
 import React from 'react'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const InstructionsCard = () => {
   return (
@@ -12,8 +11,8 @@ export const InstructionsCard = () => {
         <ul>
             <li>1. Connect your wallet</li>
             <li>2. Claim tokens from our faucet</li>
-            <li>3. Propose an initiative.</li>
-            <li>4. Support other initiatives.</li>
+            <li>3. Propose an initiative</li>
+            <li>4. Support other initiatives</li>
         </ul>
       </CardContent>      
     </Card>
