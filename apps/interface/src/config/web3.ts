@@ -9,9 +9,11 @@ export const readClient = createPublicClient({
   transport: http(process.env.RPC_URL!),
 })
 
+// TODO: Should be in an effect
 export const signer = createWalletClient({
   chain: hardhat,
-  transport: custom(window.ethereum!),
+  // Injected provider from MetaMask
+  transport: custom(window?.ethereum!),
 })
 
 export const ABI = [

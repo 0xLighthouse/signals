@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button'
 import { useAccount } from 'wagmi'
 import { readClient, ABI, signer, ERC20_ADDRESS } from '@/config/web3'
-import { useUnderlying } from '@/hooks'
+import { useUnderlying } from '@/contexts/ContractContext'
 
 export const FaucetCard = () => {
   const { address } = useAccount()

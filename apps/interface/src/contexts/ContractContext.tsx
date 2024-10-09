@@ -17,6 +17,15 @@ interface ContractContextType {
 // Default values for the context
 export const ContractContext = createContext<ContractContextType | undefined>(undefined)
 
+// Custom hook to use the contract context
+export const useUnderlying = () => {
+  const context = useContext(ContractContext)
+  if (!context) {
+    throw new Error('useUnderlying must be used within a ContractContext')
+  }
+  return context
+}
+
 interface Props {
   children: React.ReactNode
 }

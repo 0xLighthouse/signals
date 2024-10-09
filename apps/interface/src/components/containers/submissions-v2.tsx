@@ -1,10 +1,11 @@
+'use client'
+
 import {
     Card,
     CardContent,
     CardDescription,
     CardFooter,
-    CardHeader,
-    CardTitle,
+    CardHeader    
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,9 +17,12 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Textarea } from "../ui/textarea"
+import { useUnderlying } from "@/contexts/ContractContext"
 
 export const SubmissionsV2 = () => {
+  const { name, symbol, totalSupply, balance } = useUnderlying()
   
+
   return (
     <Tabs defaultValue="account" className="w-[400px]">
       <TabsList className="grid w-full grid-cols-2">
@@ -29,7 +33,7 @@ export const SubmissionsV2 = () => {
         <Card>
           <CardHeader>
             <CardDescription>
-              You will need XXX tokens to submit an idea. You have XXX tokens. Your tokens will not be locked.
+              You will need {symbol} tokens to submit an idea. You have {balance} ({symbol}) tokens. Your tokens will not be locked.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
