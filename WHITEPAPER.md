@@ -4,27 +4,38 @@
 **Author:** Arnold ([1a35e1.eth](https://t.me/x1a35e1)) [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)\
 **Contributors:** [jkm.eth](https://warpcast.com/jkm.eth), [x43n](https://warpcast.com/0x43n)
 
-## TL;DR
-
-* **Alice** locks 300 tokens for 1 month: **Weight = 300**
-* **Bob** locks 100 tokens for 3 months: **Weight = 300**
-
-Bob achieves the same voting weight as Alice by locking tokens three times longer, even though he holds has one-third of the tokens.
-
 ## Abstract
 
-SIGNALS is a protocol designed to prioritize community objectives in decentralized organizations. It leverages tokenization to create structured ideation processes and enhance governance token utility. The protocol allows community members to submit initiatives and signal support by locking tokens, with longer lock periods resulting in greater initial commitment weight
+SIGNALS allows on-chain governance groups to discover which initiatives are most important to the community, by allowing participants to stake their governance tokens on the issues they care about most. Lockup and decay mechanisms create a level playing field, preventing whales from having an outsized impact on the discussion.
 
 ## Motivation
 
-Decentralized communities often struggle with effective prioritization of objectives and ideas. SIGNALS addresses this by:
+Many on-chain organisations and DAOs allow thier participants to submit open-ended proposals, which are then voted on by governance token holders. Proposals which pass (based on the group's rules around thresholds, quorum, etc.) are executed autonomously. This common system has multiple flaws:
 
-1. Providing a structured method for idea submission and prioritization
-2. Enabling new and existing participants to gauge current community sentiment
-3. Amplifying minority voices through collective action
-4. Increasing governance token utility
+**1. Participants who hold a large number of governance tokens can dominate the discussion.**
+
+In many of these groups, a small number of "whale" token holders hold all the power to make or break a proposal. This leads to proposers needing to tailor their proposals to suit the opinions of an elite minority, which might not actually represent the interests of the community. This results in most participants only enjoying the illusion of participation, and defeats the purpose of decentralised governance.
+
+Also, these whales could collude to forcibly pass proposals that are harmful to the community.
+
+**2. Proposers have no mechanism to discover the optimal proposal, other than putting it up for a vote.**
+
+Many proposals include multiple variables, such as an amount of money to be paid, a duration for which an initiative should run, or various other details.
+
+It is common for voters to agree with the majority of the proposal, but take issue with one or more details (it's too expensive, it runs for too long, etc). In this case, the voter's only option is to reject the proposal completely (and hope it is resubmitted with more favourable terms) or vote in favour, even though they disagree with what is being presented.
+
+When a proposal fails, proposers often don't know if it was because of minor details which can easily be corrected, or if the idea as a whole has been rejected by the community. Proposers will try to get feedback on their proposal before submission, but it is rare for the community to give honest feedback unless the proposal is up for a vote and at risk of being passed as presented.
+
+**3. Community activists have no visibility into the community's top priorities.**
+
+In this case, an "activist" can be a founder, organiser, passionate community member who drives a lot of initiatives, or even a new group member who wants to contribute in a substantial way.
+
+With the current proposal system, proposers are left to guess for themselves what kind of proposals will pass. Popular participants can leverage their reputation to get proposals passed, even if they are not a top priority for the community, and new proposers might have their good ideas defeated simply because each voter assumes the idea is not a top priority.
+
+***There is no way for the community to express, in a substantive way, what kind of proposals it would like to see.***
 
 ## Specification
+
 
 * **Idea Submission:** Community members can submit initiatives if they hold the required token threshold.
 
