@@ -1,8 +1,12 @@
 # SIGNALS, A protocol for prioritising community objectives
 
 **Created:** October 2, 2024\
-**Author:** Arnold ([1a35e1.eth](https://t.me/x1a35e1)) [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)\
-**Contributors:** [jkm.eth](https://warpcast.com/jkm.eth), [x43n](https://warpcast.com/0x43n)
+**Authors:** Arnold ([1a35e1.eth](https://t.me/x1a35e1) / [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx))
+James ([jkm.eth](https://warpcast.com/jkm.eth) / [james@lighthouse.cx](mailto\:james@lighthouse.cx))
+
+**Code contributors:**  Arnold ([1a35e1.eth](https://t.me/x1a35e1) / [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx))
+Xaun ([x34n.eth](https://warpcast.com/x34n) / [xaun@lighthouse.cx](mailto\:xaun@lighthouse.cx))
+
 
 ## Abstract
 
@@ -34,35 +38,49 @@ With the current proposal system, proposers are left to guess for themselves wha
 
 ***There is no way for the community to express, in a substantive way, what kind of proposals it would like to see.***
 
-## Specification
+## The SIGNALS solution
 
+The SIGNALS protocol uses an on-chain smart contract and works in the following way:
 
-* **Idea Submission:** Community members can submit initiatives if they hold the required token threshold.
+**1. Users submit initiatives to the system.** These can be specific proposals of things they think the community should do, or even just a "wish-list" of actions they would like to see taken.
 
-* **Commitment Mechanism:** Members lock tokens to support initiatives, with longer lock periods resulting in higher initial commitment weight.
-**Dynamic Ranking:** Commitment weight decays over time based on a configurable function, ensuring that priorities remain current.
+**2. Community members who hold governance tokens (or other tokens designated for use with SIGNALS) can lock up and stake their tokens in support of or opposition to the initiatives they care about most most.** It us up to the individual to decide how many tokens and for how long they should be locked; locking up tokens for longer increases the weight they provide for the initiative to which they are applied, but has a higher opportunity cost.
 
-* **Weight Calculation:** Where W is weight, T is number of tokens, and D is lock duration.
+**3. The community can easily see which initiatives have received the most support, and initiatives that surpass a specified threshold of support can be "actioned."** This removes the initiative from the system, immediately returns all staked funds to the original owners, and signals to the community that the initiative is ready to be acted upon: e.g. a proposal is popular enough to submit, a need is high enough priority to add to the budget, etc.
 
+**4. Initiatives that receive no support for a specified period of time can be "deactivated."** These initiates are removed from the system, and tokens are returned to their original owners after a cooldown period.
+
+**5. The weight of tokens decays over time, keeping initiatives timely.** Although a lukewarm idea that gets moderate support contunually over a long period of time could add up to a lot of tokens, it is not as powerful as an idea that has a lot of support all at once.
+
+## Configuration
+
+The community can decide on various aspects of the system, by setting smart contract variables:
+
+- The requirements for submitting initiatives (whitelist, token threshold, etc)
+- The threshold weight required for actioning an initiative, and who can trigger it.
+- The inactivity period after which initiatives can be deactivated.
+- The cooldown period for returning tokens from failed initiatives.
+- The function for calculating weight.
+- The function for calculating decay.
+
+Similarly, what happens to an initiative after it is actioned is up to the community and outside the scope of this system (i.e. SIGNALS does not execute any on-chain transactions as the result of an initiative being actioned or deactivated)
+
+## Weight calculation
+
+The default weight caclulation is:
   $$
   \text{Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
   $$
 
-* **Decay Function:** A differential decay function is proposed, where weight decreases at a rate proportional to the square root of time passed since locking.
+  This means that a community member who does not have as many tokens (or is not willing to stake as many tokens) as another community member can choose to lock up their tokens for a longer time to result in the same amount of weight being applied to their chosen initiative.
 
-* **Reward System:** Reputation-based rewards (e.g., attestations or POAPs) for accepted ideas and supporters.
+## Decay function
 
-## Rationale
+A differential decay function is proposed, where weight decreases at a rate proportional to the square root of time passed since locking.
 
-SIGNALS improves upon existing governance models by:
+## Reward system [WIP]
 
-1. Encouraging thoughtful participation and reducing noise in idea submission
-2. Providing a fair system for minority stakeholders to amplify their voice
-3. Offering a web3-native solution for community prioritization, unlike centralized web2 forums
-4. Enabling trustless external support for initiatives
-5. Increasing governance token utility through active participation
-
-The protocol's design considers potential abuses and includes measures such as lock duration caps, proposal limits, and spam prevention mechanisms. By using a token-based weighting system with time decay, SIGNALS creates a dynamic and responsive prioritization process that reflects the community's evolving priorities.
+Supporters of a particular initiative can deposit tokens into the contract which are then distributed, as rewards, to all token holders who staked tokens in favour of the initiative once it is actioned.
 
 <!-- 
 ## Appendix
