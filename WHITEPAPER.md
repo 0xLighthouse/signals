@@ -1,12 +1,9 @@
-# SIGNALS, A protocol for prioritising community objectives
+# SIGNALS, a protocol for prioritising community objectives
 
 **Created:** October 2, 2024\
-**Authors:** Arnold ([1a35e1.eth](https://t.me/x1a35e1) / [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx))
+**Authors:**
+Arnold ([1a35e1.eth](https://t.me/x1a35e1) / [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx)),
 James ([jkm.eth](https://warpcast.com/jkm.eth) / [james@lighthouse.cx](mailto\:james@lighthouse.cx))
-
-**Code contributors:**  Arnold ([1a35e1.eth](https://t.me/x1a35e1) / [arnold@lighthouse.cx](mailto\:arnold@lighthouse.cx))
-Xaun ([x34n.eth](https://warpcast.com/x34n) / [xaun@lighthouse.cx](mailto\:xaun@lighthouse.cx))
-
 
 ## Abstract
 
@@ -42,15 +39,17 @@ With the current proposal system, proposers are left to guess for themselves wha
 
 The SIGNALS protocol uses an on-chain smart contract and works in the following way:
 
-**1. Users submit initiatives to the system.** These can be specific proposals of things they think the community should do, or even just a "wish-list" of actions they would like to see taken.
+**1. Users submit initiatives to the system.** It is up to the community to decide what amount of detail is expected to be included. For example, a community could require initiatives to be specific, detailed proposals of actions to take, or they could encourage participants to submit rough ideas as a way to surface what should be explored more.
 
-**2. Community members who hold governance tokens (or other tokens designated for use with SIGNALS) can lock up and stake their tokens in support of or opposition to the initiatives they care about most most.** It us up to the individual to decide how many tokens and for how long they should be locked; locking up tokens for longer increases the weight they provide for the initiative to which they are applied, but has a higher opportunity cost.
+**2. Community members who hold governance tokens (or other tokens designated for use with SIGNALS) can lock up and stake their tokens in support of, or opposition to, the initiatives they care about most most.** It us up to the individual to decide how many tokens and for how long they should be locked. This allows users who hold less tokens to lock them up for longer, exchanging furture opportunity cost for immediate staking weight.
 
-**3. The community can easily see which initiatives have received the most support, and initiatives that surpass a specified threshold of support can be "actioned."** This removes the initiative from the system, immediately returns all staked funds to the original owners, and signals to the community that the initiative is ready to be acted upon: e.g. a proposal is popular enough to submit, a need is high enough priority to add to the budget, etc.
+**3. The community can easily see which initiatives have received the most support, and initiatives that surpass a specified threshold of support can be "actioned."** This removes the initiative from the system, immediately returns all staked funds to the original owners, and signals to the community that the initiative is ready to be acted upon: e.g. a proposal is popular enough to submit for a formal vote, a need is high enough priority to add to the budget, etc.
 
 **4. Initiatives that receive no support for a specified period of time can be "deactivated."** These initiates are removed from the system, and tokens are returned to their original owners after a cooldown period.
 
-**5. The weight of tokens decays over time, keeping initiatives timely.** Although a lukewarm idea that gets moderate support contunually over a long period of time could add up to a lot of tokens, it is not as powerful as an idea that has a lot of support all at once.
+**5. The weight of tokens decays over time, keeping initiatives timely.** Although a lukewarm idea that gets moderate support contunually over a long period of time could add up to a lot of tokens staked, it is not as powerful as an idea that has a lot of support all at once.
+
+Decay is also essential for making lockup time a more balanced alternative to staking more tokens. A longer lockup essentially takes future opportunity cost and applies it to the current staking weight right now. If that weight did not decay, there would be no temporal transfer of opportunity cost from the future to the present.
 
 ## Configuration
 
@@ -62,21 +61,51 @@ The community can decide on various aspects of the system, by setting smart cont
 - The cooldown period for returning tokens from failed initiatives.
 - The function for calculating weight.
 - The function for calculating decay.
+- The length of an epoch (e.g. 24 hours).
 
 Similarly, what happens to an initiative after it is actioned is up to the community and outside the scope of this system (i.e. SIGNALS does not execute any on-chain transactions as the result of an initiative being actioned or deactivated)
 
 ## Weight calculation
 
-The default weight caclulation is:
+The default weight caclulation, at the time of staking, is:
   $$
-  \text{Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
+  \text{Starting Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
   $$
 
-  This means that a community member who does not have as many tokens (or is not willing to stake as many tokens) as another community member can choose to lock up their tokens for a longer time to result in the same amount of weight being applied to their chosen initiative.
+  The lock duration is an integer representing the number of epochs, and must be greater than zero. It is not possible to specify partial epochs as part of the lockup duration.
 
 ## Decay function
 
-A differential decay function is proposed, where weight decreases at a rate proportional to the square root of time passed since locking.
+The default decay function reduces the weight of staked tokens by 10% of the starting weight, every 1/10th of the lockup duration:
+
+
+1. Calculate \( k \):
+
+   \[
+   k = \left\lfloor \dfrac{10 \times (t - 1)}{D} \right\rfloor
+   \]
+
+2. Calculate \( V(t) \):
+
+   \[
+   V(t) = \dfrac{W \times (10 - k)}{10}
+   \]
+
+
+In Javascript, this could look like:
+```javascript
+let decay = 0;
+if (epochsElapsed > 1) {
+  decay = Math.floor((epochs - 1) * 10 / lockDuration);
+}
+let currentWeight = 0;
+if (decay < 10) {
+  currentWeight = Math.floor(startingWeight * (10 - decay) / 10);
+}
+return currentWeight;
+```
+
+This behaviour makes it easier for stakers to coordinate, as all stakes will carry full weight for at least the first epoch, and it is quite easy to figure out exactly how much weight will be left after a certain number of epochs have passed.
 
 ## Reward system [WIP]
 
