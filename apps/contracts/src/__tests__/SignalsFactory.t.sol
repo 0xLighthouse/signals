@@ -66,7 +66,7 @@ contract SignalsFactoryTest is Test {
     assertEq(_instance.owner(), alice);
     assertEq(_instance.underlyingToken(), address(mockToken));
     assertEq(_instance.acceptanceThreshold(), 100);
-    assertEq(_instance.lockDurationCap(), 12);
+    assertEq(_instance.maxLockIntervals(), 12);
     assertEq(_instance.proposalCap(), 5);
     assertEq(_instance.decayInterval(), 1);
   }

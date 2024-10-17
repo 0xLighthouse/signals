@@ -31,8 +31,8 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Minimum tokens required to accept an initiative
   uint256 public acceptanceThreshold;
 
-  /// @notice Maximum lock duration allowed
-  uint256 public lockDurationCap;
+  /// @notice Maximum time we can lock tokens for denominated in intervals
+  uint256 public maxLockIntervals;
 
   /// @notice Maximum number of proposals allowed
   uint256 public proposalCap;
@@ -131,14 +131,14 @@ contract Signals is Ownable, ReentrancyGuard {
     address _underlyingToken,
     uint256 _proposalThreshold,
     uint256 _acceptanceThreshold,
-    uint256 _lockDurationCap,
+    uint256 _maxLockIntervals,
     uint256 _proposalCap,
     uint256 _decayInterval
   ) external isNotInitialized {
     underlyingToken = _underlyingToken;
     proposalThreshold = _proposalThreshold;
     acceptanceThreshold = _acceptanceThreshold;
-    lockDurationCap = _lockDurationCap;
+    maxLockIntervals = _maxLockIntervals;
     proposalCap = _proposalCap;
     decayInterval = _decayInterval;
 
@@ -194,14 +194,15 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param title Title of the initiative
   /// @param body Body of the initiative
   /// @param amount Amount of tokens to lock
-  /// @param duration Duration for which tokens are locked (in months)
+  /// @param intervals Duration for which tokens are locked (in months)
   function proposeInitiativeWithLock(
     string memory title,
     string memory body,
     uint256 amount,
-    uint256 duration
+    uint256 intervals
   ) external hasSufficientTokens hasValidInput(title, body) {
-    if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
+    if (intervals == 0 || intervals > maxLockIntervals)
+      revert InvalidInput('Invalid lock interval');
 
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
@@ -219,11 +220,9 @@ contract Signals is Ownable, ReentrancyGuard {
     initiatives[initiativeId] = newInitiative;
     count++;
 
-    _updateLockInfo(initiativeId, msg.sender, amount, duration);
+    _updateLockInfo(initiativeId, msg.sender, amount, intervals);
 
-    uint256 weight = _calculateLockWeight(amount, duration);
-
-    console.log('_calculateLockWeight:', weight);
+    uint256 weight = _calculateLockWeight(amount, intervals);
 
     weights[initiativeId] += weight;
 
@@ -247,10 +246,11 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Allows a user to support an existing initiative with locked tokens
   /// @param initiativeId ID of the initiative to support
   /// @param amount Amount of tokens to lock
-  /// @param duration Duration for which tokens are locked (in months)
+  /// @param intervals Duration for which tokens are locked (in months)
   // TODO: Rename this to increaseLock
-  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 duration) external {
-    if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
+  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external {
+    if (intervals == 0 || intervals > maxLockIntervals)
+      revert InvalidInput('Invalid lock interval');
     if (initiativeId >= count) revert InitiativeNotFound();
     if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
     Initiative storage initiative = initiatives[initiativeId];
@@ -260,9 +260,9 @@ contract Signals is Ownable, ReentrancyGuard {
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
 
-    _updateLockInfo(initiativeId, msg.sender, amount, duration);
+    _updateLockInfo(initiativeId, msg.sender, amount, intervals);
 
-    uint256 weight = _calculateLockWeight(amount, duration);
+    uint256 weight = _calculateLockWeight(amount, intervals);
     weights[initiativeId] += weight;
 
     if (!isSupporter[initiativeId][msg.sender]) {
@@ -287,13 +287,20 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 initiativeId,
     address supporter,
     uint256 amount,
-    uint256 duration
+    uint256 intervals
   ) internal {
     LockInfo storage lockInfo = locks[initiativeId][supporter];
 
+    console.log('totalAmount:', lockInfo.totalAmount);
+    console.log('weightedDuration:', lockInfo.weightedDuration);
+    console.log('amount:', amount);
+
     uint256 totalAmount = lockInfo.totalAmount + amount;
+
+    console.log('totalAmount:', totalAmount);
     uint256 newWeightedDuration = ((lockInfo.totalAmount * lockInfo.weightedDuration) +
-      (amount * duration)) / totalAmount;
+      (amount * intervals)) / totalAmount;
+    console.log('newWeightedDuration:', newWeightedDuration);
 
     lockInfo.totalAmount = totalAmount;
     lockInfo.weightedDuration = newWeightedDuration;
@@ -465,7 +472,7 @@ contract Signals is Ownable, ReentrancyGuard {
     // W(t) = W0 * exp(-k * t)
     // For simplicity, k is set to 1 / weightedDuration for an exponential decay over the duration
     uint256 decayFactor = exp((elapsedTime * 1e18) / lockInfo.weightedDuration);
-    uint256 currentWeight = (lockInfo.totalAmount * remainingDuration * decayFactor) / 1e18;
+    uint256 currentWeight = (lockInfo.totalAmount * remainingDuration * decayFactor);
 
     return currentWeight;
   }
