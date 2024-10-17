@@ -466,4 +466,9 @@ contract Signals is Ownable, ReentrancyGuard {
     }
     return 1e18 / result;
   }
+
+  /// @notice Returns the address of the underlying token
+  function token() external view returns (address) {
+    return underlyingToken;
+  }
 }

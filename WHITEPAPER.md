@@ -78,7 +78,6 @@ The default weight caclulation, at the time of staking, is:
 
 The default decay function reduces the weight of staked tokens by 10% of the starting weight, every 1/10th of the lockup duration:
 
-
 1. Calculate \( k \):
 
    \[
@@ -91,8 +90,8 @@ The default decay function reduces the weight of staked tokens by 10% of the sta
    V(t) = \dfrac{W \times (10 - k)}{10}
    \]
 
-
 In Javascript, this could look like:
+
 ```javascript
 let decay = 0;
 if (epochsElapsed > 1) {
@@ -110,6 +109,26 @@ This behaviour makes it easier for stakers to coordinate, as all stakes will car
 ## Reward system [WIP]
 
 Supporters of a particular initiative can deposit tokens into the contract which are then distributed, as rewards, to all token holders who staked tokens in favour of the initiative once it is actioned.
+
+## Additional research questions
+
+- Issue ERC721 tokens that can be used to redeem tokens when a lock reaches maturity.
+- Explore if we can use Uniswap v4 to create a secondary market for these tokens/bonds.
+
+## Protocol Overview
+
+### AMM contracts
+
+| Filename | Description |
+| --- | --- |
+| `Signals.sol` | Basic implementation of the SIGNALS protocol |
+| `SignalsFactory.sol` | Allows for creation of new initiatives |
+
+## References
+
+- [Curve contracts](https://github.com/curvefi/curve-dao-contracts)
+- [Aerodrome contracts](https://github.com/aerodrome-finance/contracts)
+- [Emergent Outcomes of the veToken Model](https://arxiv.org/abs/2311.17589)
 
 <!-- 
 ## Appendix

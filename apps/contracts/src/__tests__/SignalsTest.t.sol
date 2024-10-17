@@ -15,8 +15,13 @@ contract SignalsTest is Test {
   address bob;
   address charlie;
 
+  uint256 constant PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
+  uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
+  uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
+  uint256 constant PROPOSAL_CAP = 100; // 100 proposals
+
   function setUp() public {
-    deployer = address(this); // Test contract is the owner
+    deployer = address(this);
     alice = address(0x1111);
     bob = address(0x2222);
     charlie = address(0x3333);
@@ -31,26 +36,46 @@ contract SignalsTest is Test {
     signalsContract.initialize(
       deployer,
       address(token),
-      100 * 1e18, // proposalThreshold
-      100 * 1e18, // acceptanceThreshold
-      12, // lockDurationCap (months)
-      100, // proposalCap
-      0 // decayCurveType (not used in current implementation)
+      PROPOSAL_THRESHOLD,
+      ACCEPTANCE_THRESHOLD,
+      LOCK_DURATION_CAP,
+      PROPOSAL_CAP,
+      0
     );
 
     // Mint tokens to participants
     // Distribute tokens to test addresses
-    deal(address(token), alice, 200_000 * 1e18);
-    deal(address(token), bob, 200_000 * 1e18);
-    deal(address(token), charlie, 200_000 * 1e18);
+    deal(address(token), alice, PROPOSAL_THRESHOLD); // Alice has 50k
+    deal(address(token), bob, PROPOSAL_THRESHOLD * 2); // Bob has 100k
+    deal(address(token), charlie, PROPOSAL_THRESHOLD / 2); // Charlie has 25k
   }
 
-  /// Test proposing an initiative without locking tokens
+  function testInitialState() public {
+    assertEq(signalsContract.owner(), address(deployer));
+    assertEq(signalsContract.token(), address(token));
+    assertEq(signalsContract.proposalThreshold(), PROPOSAL_THRESHOLD);
+    assertEq(signalsContract.acceptanceThreshold(), ACCEPTANCE_THRESHOLD);
+    assertEq(signalsContract.lockDurationCap(), LOCK_DURATION_CAP);
+    assertEq(signalsContract.proposalCap(), PROPOSAL_CAP);
+    assertEq(signalsContract.decayCurveType(), 0);
+  }
+
+  /**
+   * @notice Test revert when proposing an initiative with insufficient tokens
+   */
+  function testProposeInitiativeRevertsWithInsufficientTokens() public {
+    vm.startPrank(charlie);
+    vm.expectRevert(Signals.InsufficientTokens.selector);
+    signalsContract.proposeInitiative('Should revert', 'Description 1');
+    vm.stopPrank();
+  }
+
+  /**
+   * @notice Test proposing an initiative without locking tokens
+   */
   function testProposeInitiative() public {
     vm.startPrank(alice);
-
-    // Approve tokens to meet acceptance threshold
-    token.approve(address(signalsContract), 100 * 1e18);
+    token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
 
     // Propose an initiative
     signalsContract.proposeInitiative('Initiative 1', 'Description 1');
@@ -61,16 +86,16 @@ contract SignalsTest is Test {
     assertEq(initiative.body, 'Description 1');
     assertEq(uint(initiative.state), uint(Signals.InitiativeState.Proposed));
     assertEq(initiative.proposer, alice);
-
     vm.stopPrank();
   }
 
-  /// Test proposing an initiative with locked tokens
+  /**
+   * @notice Test proposing an initiative with locked tokens
+   */
   function testProposeInitiativeWithLock() public {
-    vm.startPrank(bob);
-
     // Approve tokens
-    token.approve(address(signalsContract), 200 * 1e18);
+    vm.startPrank(bob);
+    token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
 
     // Propose an initiative with lock
     signalsContract.proposeInitiativeWithLock('Initiative 2', 'Description 2', 200 * 1e18, 6);
@@ -380,48 +405,51 @@ contract SignalsTest is Test {
   /// Test that withdrawAll only withdraws from initiatives in withdrawable state
   /// Test that withdrawAll only withdraws from initiatives in withdrawable state
   function testWithdrawAllPartialWithdrawal() public {
-    vm.startPrank(alice);
-
     // Propose initiative with lock
-    token.approve(address(signalsContract), 100 * 1e18);
-    signalsContract.proposeInitiativeWithLock('Initiative 1', 'Description 1', 100 * 1e18, 6);
+    vm.startPrank(bob);
+    token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
+    signalsContract.proposeInitiativeWithLock(
+      'Initiative 1',
+      'Description 1',
+      PROPOSAL_THRESHOLD,
+      6
+    );
 
     // Propose another initiative with lock
-    token.approve(address(signalsContract), 150 * 1e18);
-    signalsContract.proposeInitiativeWithLock('Initiative 2', 'Description 2', 150 * 1e18, 6);
-
+    token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
+    signalsContract.proposeInitiativeWithLock(
+      'Initiative 2',
+      'Description 2',
+      PROPOSAL_THRESHOLD,
+      6
+    );
     vm.stopPrank();
 
     vm.startPrank(deployer);
-
-    // Accept only the first initiative
     signalsContract.acceptInitiative(0);
-
     vm.stopPrank();
 
-    vm.startPrank(alice);
-
     // Record the balance before first withdrawal
-    uint256 initialBalance = token.balanceOf(alice);
-
+    vm.startPrank(bob);
+    uint256 initialBalance = token.balanceOf(bob);
     // Withdraw all tokens (should only withdraw from the accepted initiative)
     signalsContract.withdrawAll();
 
     // Record the balance after first withdrawal
-    uint256 balanceAfterFirstWithdraw = token.balanceOf(alice);
+    uint256 balanceAfterFirstWithdraw = token.balanceOf(bob);
 
     // Calculate the balance difference
     uint256 balanceDifference = balanceAfterFirstWithdraw - initialBalance;
 
     // Assert that the balance difference is equal to the withdrawn amount
-    assertEq(balanceDifference, 100 * 1e18);
+    assertEq(balanceDifference, PROPOSAL_THRESHOLD);
 
     // Attempt to withdraw tokens again (should fail)
     vm.expectRevert(Signals.NothingToWithdraw.selector);
     signalsContract.withdrawAll();
 
     // Fast forward time beyond inactivity threshold
-    vm.warp(block.timestamp + 61 days);
+    skip(61 days);
 
     // Expire the second initiative
     signalsContract.expireInitiative(1);
@@ -430,13 +458,13 @@ contract SignalsTest is Test {
     signalsContract.withdrawAll();
 
     // Record the final balance
-    uint256 finalBalance = token.balanceOf(alice);
+    uint256 finalBalance = token.balanceOf(bob);
 
     // Calculate the total balance difference
     uint256 totalBalanceDifference = finalBalance - initialBalance;
 
     // Assert that the total balance difference equals the sum of both withdrawals
-    assertEq(totalBalanceDifference, 250 * 1e18);
+    assertEq(totalBalanceDifference, 2 * PROPOSAL_THRESHOLD);
 
     vm.stopPrank();
   }
