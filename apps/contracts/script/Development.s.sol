@@ -30,45 +30,50 @@ contract DevelopmentScript is Script {
     charlie = vm.addr(vm.deriveKey(seedPhrase, 3));
 
     // Log the deployer addresses
+    console.log('----- Accounts -----');
     console.log('Deployer:', deployer);
+    console.log('Alice:', alice);
+    console.log('Bob:', bob);
+    console.log('Charlie:', charlie);
 
     // Deploy MockERC20 token and mint 1 million tokens
+    console.log('----- Contracts -----');
     vm.broadcast(deployer);
-    token = new MockERC20('CollabTech Hackathon', 'SGNL');
+    token = new MockERC20('CollabTech', 'SGNL');
     console.log('TokenContract', address(token));
 
-    uint256 initialSupply = 1_000_000 * 1e18;
+    // uint256 initialSupply = 1_000_000 * 1e18;
 
-    vm.broadcast(deployer);
-    token.initialize(initialSupply);
-    console.log('TokenContract', 'initialized');
+    // vm.broadcast(deployer);
+    // token.initialize(initialSupply);
+    // console.log('TokenContract', 'initialized');
 
     // Distribute tokens to test addresses
-    vm.broadcast(deployer);
-    token.faucet(alice);
+    // vm.broadcast(deployer);
+    // token.faucet(alice);
 
-    vm.broadcast(deployer);
-    token.faucet(bob);
+    // vm.broadcast(deployer);
+    // token.faucet(bob);
 
-    vm.broadcast(deployer);
-    token.faucet(charlie);
+    // vm.broadcast(deployer);
+    // token.faucet(charlie);
 
-    // Deploy a new SignalsFactory contract
-    vm.broadcast(deployer);
-    factory = new SignalsFactory();
-    console.log('FactoryContract', address(factory));
+    // // Deploy a new SignalsFactory contract
+    // vm.broadcast(deployer);
+    // factory = new SignalsFactory();
+    // console.log('FactoryContract', address(factory));
 
-    // Deploy a new Signals contract using the factory
-    address protocolAddress = factory.create(
-      alice,
-      address(token),
-      100_000 * 1e18, // 100k proposalThreshold
-      200_000, // 200k acceptanceThreshold
-      12, // lockDurationCap (months)
-      5, // proposalCap
-      1 // decayCurveType
-    );
-    console.log('SignalsContract', protocolAddress);
+    // // Deploy a new Signals contract using the factory
+    // address protocolAddress = factory.create(
+    //   alice,
+    //   address(token),
+    //   100_000 * 1e18, // 100k proposalThreshold
+    //   200_000, // 200k acceptanceThreshold
+    //   12, // lockDurationCap (months)
+    //   5, // proposalCap
+    //   1 // decayCurveType
+    // );
+    // console.log('SignalsContract', protocolAddress);
     // Signals protocol = Signals(protocolAddress);
   }
 }
