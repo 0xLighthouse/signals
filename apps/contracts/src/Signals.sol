@@ -246,6 +246,7 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param initiativeId ID of the initiative to support
   /// @param amount Amount of tokens to lock
   /// @param duration Duration for which tokens are locked (in months)
+  // TODO: Rename this to increaseLock
   function supportInitiative(uint256 initiativeId, uint256 amount, uint256 duration) external {
     if (duration == 0 || duration > lockDurationCap) revert InvalidInput('Invalid lock duration');
     if (initiativeId >= count) revert InitiativeNotFound();
@@ -419,10 +420,20 @@ contract Signals is Ownable, ReentrancyGuard {
     for (uint256 i = 0; i < supporters.length; i++) {
       address supporter = supporters[i];
       LockInfo storage lockInfo = locks[initiativeId][supporter];
-      uint256 currentWeight = _calculateCurrentWeight(lockInfo);
+      uint256 currentWeight = _calculateWeight(lockInfo, block.timestamp);
       totalCurrentWeight += currentWeight;
     }
     return totalCurrentWeight;
+  }
+
+  function getWeightAt(
+    uint256 initiativeId,
+    address supporter,
+    uint256 timestamp
+  ) external view returns (uint256) {
+    if (initiativeId >= count) revert InitiativeNotFound();
+    LockInfo storage lockInfo = locks[initiativeId][supporter];
+    return _calculateWeight(lockInfo, timestamp);
   }
 
   function getTotalWeight(uint256 initiativeId) external view returns (uint256) {
@@ -434,11 +445,14 @@ contract Signals is Ownable, ReentrancyGuard {
     return amount * duration;
   }
 
-  function _calculateCurrentWeight(LockInfo storage lockInfo) private view returns (uint256) {
+  function _calculateWeight(
+    LockInfo storage lockInfo,
+    uint256 timestamp
+  ) private view returns (uint256) {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedTime = (block.timestamp - lockInfo.timestamp) / 30 days;
+    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / 30 days;
     if (elapsedTime >= lockInfo.weightedDuration) {
       return 0;
     }
