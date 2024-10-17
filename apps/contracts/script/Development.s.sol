@@ -42,11 +42,11 @@ contract DevelopmentScript is Script {
     token = new MockERC20('CollabTech', 'SGNL');
     console.log('TokenContract', address(token));
 
-    // uint256 initialSupply = 1_000_000 * 1e18;
+    uint256 initialSupply = 1_000_000 * 1e18;
 
-    // vm.broadcast(deployer);
-    // token.initialize(initialSupply);
-    // console.log('TokenContract', 'initialized');
+    vm.broadcast(deployer);
+    token.initialize(initialSupply);
+    console.log('TokenContract', 'initialized');
 
     // Distribute tokens to test addresses
     // vm.broadcast(deployer);

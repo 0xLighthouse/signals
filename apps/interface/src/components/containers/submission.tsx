@@ -4,9 +4,52 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
 import { useUnderlying } from '@/contexts/ContractContext'
+import { ABI, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { createWalletClient, custom } from 'viem'
+import { readClient } from '@/config/web3'
+import { useAccount } from 'wagmi'
+import { hardhat } from 'viem/chains'
 
 export const Submission = () => {
+  const { address } = useAccount()
   const { name, symbol, totalSupply, balance } = useUnderlying()
+
+  const handleSubmission = async () => {
+    if (!address) throw new Error('Address not available.')
+
+    try {
+      // Signer get nonce
+      const nonce = await readClient.getTransactionCount({
+        address,
+      })
+
+      const signer = createWalletClient({
+        chain: hardhat,
+        // Injected provider from MetaMask
+        transport: custom(window.ethereum),
+      })
+
+      // Use the viem client to send the transaction
+      const transactionHash = await signer.writeContract({
+        account: address,
+        nonce,
+        address: SIGNALS_PROTOCOL,
+        abi: SIGNALS_ABI,
+        functionName: 'proposeInitiative',
+        args: ['Initiative 1', 'Description 1'],
+        gas: 10000n,
+      })
+
+      console.log('Transaction Hash:', transactionHash)
+
+      const receipt = await readClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      })
+      console.log('Transaction Receipt:', receipt)
+    } catch (error) {
+      console.error('Error claiming tokens:', error)
+    }
+  }
 
   return (
     <Card>
@@ -37,7 +80,7 @@ export const Submission = () => {
         </div>
       </CardContent>
       <CardFooter>
-        <Button>Save changes</Button>
+        <Button onClick={handleSubmission}>Save changes</Button>
       </CardFooter>
     </Card>
   )

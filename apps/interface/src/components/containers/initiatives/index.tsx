@@ -1,23 +1,29 @@
+import { Button } from '@/components/ui/button'
 import { InitiativesList } from './list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PlusIcon } from 'lucide-react'
 
 export function Initiatives() {
   return (
-    <Tabs defaultValue="upcoming">
-      <TabsList className="grid w-full grid-cols-6">
-        <TabsTrigger value="upcoming">Upcoming </TabsTrigger>
-        <TabsTrigger value="accepted">Accepted</TabsTrigger>
-        <TabsTrigger value="executed">Executed</TabsTrigger>
-        <TabsTrigger value="archived">Archived </TabsTrigger>
-      </TabsList>
-      <TabsContent value="upcoming">
-        <InitiativesList type="upcoming" />
+    <Tabs defaultValue="active">
+      <div className="flex justify-between items-center gap-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="accepted">Accepted</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+        <Button>
+          <div className="flex items-center gap-2">
+            <PlusIcon size={16} />
+            <p>New Initiative</p>
+          </div>
+        </Button>
+      </div>
+      <TabsContent value="active">
+        <InitiativesList type="active" />
       </TabsContent>
       <TabsContent value="accepted">
         <InitiativesList type="accepted" />
-      </TabsContent>
-      <TabsContent value="executed">
-        <InitiativesList type="executed" />
       </TabsContent>
       <TabsContent value="archived">
         <InitiativesList type="archived" />

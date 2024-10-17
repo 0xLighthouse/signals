@@ -20,9 +20,7 @@ interface Idea {
   created_at: number
 }
 
-export const InitiativesList = ({
-  type,
-}: { type: 'upcoming' | 'accepted' | 'executed' | 'archived' }) => {
+export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archived' }) => {
   const [initiatives, setInitiatives] = useState<Idea[]>(cleanedData)
 
   const [sortBy, setSortBy] = useState("'trending'")

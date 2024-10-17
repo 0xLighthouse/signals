@@ -9,7 +9,7 @@ export default function Home() {
     <div>
       <TopNav />
       <div className="container mx-auto max-w-7xl">
-        <AlertDemo />
+        {/* <AlertDemo /> */}
         <div className="grid grid-cols-1 md:grid-cols-[800px_1fr]">
           <div className="px-4 py-8 space-y-6">
             <Initiatives />

@@ -30,7 +30,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const TokenProvider: React.FC<Props> = ({  children }) => {
+export const TokenProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
 
   const [name, setContractName] = useState<string | null>(null)
@@ -51,7 +51,7 @@ export const TokenProvider: React.FC<Props> = ({  children }) => {
         })
 
         // Fetch contract data in parallel using Promise.all
-        const [name, symbol, totalSupply, balance] = await Promise.all([
+        const [name, symbol, decimals, totalSupply, balance] = await Promise.all([
           contract.read.name(),
           contract.read.symbol(),
           contract.read.decimals(),

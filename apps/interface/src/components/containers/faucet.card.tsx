@@ -1,18 +1,26 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useAccount } from 'wagmi'
-import { readClient, ABI, signer, ERC20_ADDRESS } from '@/config/web3'
+import { custom, useAccount } from 'wagmi'
+import { readClient, ABI, ERC20_ADDRESS } from '@/config/web3'
 import { useUnderlying } from '@/contexts/ContractContext'
+import { hardhat } from 'viem/chains'
+import { createWalletClient } from 'viem'
 
 export const FaucetCard = () => {
   const { address } = useAccount()
   const { name, symbol, totalSupply, balance } = useUnderlying()
 
   const [gas, setGas] = useState<string | null>(null)
-  
 
   // Get the balance of the gas using viem
   useEffect(() => {
@@ -30,15 +38,19 @@ export const FaucetCard = () => {
     fetchGasBalance()
   }, [address])
 
-
   const handleClaimTokens = async () => {
     if (!address) throw new Error('Address not available.')
 
     try {
-
       // Signer get nonce
-      const nonce = await readClient.getTransactionCount({  
+      const nonce = await readClient.getTransactionCount({
         address,
+      })
+
+      const signer = createWalletClient({
+        chain: hardhat,
+        // Injected provider from MetaMask
+        transport: custom(window.ethereum),
       })
 
       // Use the viem client to send the transaction
@@ -63,26 +75,15 @@ export const FaucetCard = () => {
     }
   }
 
-
   return (
     <Card>
-      <CardHeader>
-        {name && (
-          <CardTitle className="text-lg font-bold">
-            {name}
-          </CardTitle>
-        )}        
-      </CardHeader>
-      <CardContent className="space-y-2">        
-            <CardDescription>
-              Tokens: {balance} ({symbol})
-            </CardDescription>
-            <CardDescription>
-              Supply: {Number(totalSupply) / 1e18}
-            </CardDescription>
-            <CardDescription>
-            Gas: {Number(gas) / 1e18} ETH
-            </CardDescription>
+      <CardHeader>{name && <CardTitle className="text-lg font-bold">{name}</CardTitle>}</CardHeader>
+      <CardContent className="space-y-2">
+        <CardDescription>
+          Tokens: {balance} ({symbol})
+        </CardDescription>
+        <CardDescription>Supply: {Number(totalSupply) / 1e18}</CardDescription>
+        <CardDescription>Gas: {Number(gas) / 1e18} ETH</CardDescription>
       </CardContent>
       <CardFooter className="flex justify-end">
         <Button onClick={handleClaimTokens}>Claim tokens</Button>

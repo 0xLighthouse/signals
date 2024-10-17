@@ -3,17 +3,12 @@
 import { createPublicClient, http, createWalletClient, custom, erc20Abi } from 'viem';
 import { hardhat } from 'viem/chains';
 
+import signalsAbi from './signals.abi.json'
+
 
 export const readClient = createPublicClient({
   chain: hardhat,
   transport: http(process.env.RPC_URL!),
-})
-
-// TODO: Should be in an effect
-export const signer = createWalletClient({
-  chain: hardhat,
-  // Injected provider from MetaMask
-  transport: custom(window?.ethereum!),
 })
 
 export const ABI = [
@@ -32,6 +27,8 @@ export const ABI = [
     type: 'function',
   },
 ];
+
+export const SIGNALS_ABI = signalsAbi
 
 /**
  * The address of the mock ERC20 contract for testing...

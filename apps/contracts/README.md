@@ -3,6 +3,13 @@
 ## Getting Started
 
 * Ensure the standard foundry tools are available
+
+```shell
+curl -L https://foundry.paradigm.xyz | bash
+# Installs forge, anvil
+foundaryup
+```
+
 * Copy `.envrc.example` to `.envrc` and set the correct environment variables
 
 ## Local development
