@@ -57,7 +57,7 @@ contract SignalsTest is Test {
     assertEq(signalsContract.acceptanceThreshold(), ACCEPTANCE_THRESHOLD);
     assertEq(signalsContract.lockDurationCap(), LOCK_DURATION_CAP);
     assertEq(signalsContract.proposalCap(), PROPOSAL_CAP);
-    assertEq(signalsContract.decayCurveType(), 0);
+    assertEq(signalsContract.decayInterval(), 0);
   }
 
   /**

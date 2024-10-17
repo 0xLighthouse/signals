@@ -16,9 +16,8 @@ contract SignalsFactoryTest is Test {
 
   address deployer;
   address alice;
-  
+
   function setUp() public {
-    
     deployer = address(this);
     alice = address(0x1111);
 
@@ -33,7 +32,7 @@ contract SignalsFactoryTest is Test {
     deal(address(mockToken), deployer, initialSupply);
 
     // Distribute tokens to test addresses
-    deal(address(mockToken), alice, 200_000 * 10 ** 18);    
+    deal(address(mockToken), alice, 200_000 * 10 ** 18);
 
     // Deploy the SignalsFactory contract
     factory = new SignalsFactory();
@@ -69,14 +68,14 @@ contract SignalsFactoryTest is Test {
     assertEq(_instance.acceptanceThreshold(), 100);
     assertEq(_instance.lockDurationCap(), 12);
     assertEq(_instance.proposalCap(), 5);
-    assertEq(_instance.decayCurveType(), 1);
+    assertEq(_instance.decayInterval(), 1);
   }
 
   function testRevertsWithInvalidOwnerAddress() public {
     // Set the implementation to an invalid address and attempt to create a clone
     vm.prank(deployer);
     vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
-  
+
     factory.create(
       address(0), // --- invalid owner address
       address(mockToken),
@@ -113,7 +112,7 @@ contract SignalsFactoryTest is Test {
   // function testUnderlyingTokenInteraction() public {
   //   // Implement this test
   // }
-  
+
   // TODO: Add guard to only allow ERC20 tokens
   // function testUnderlyingTokenInteraction() public {
   //   // Implement this test

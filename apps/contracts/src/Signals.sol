@@ -37,8 +37,10 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Maximum number of proposals allowed
   uint256 public proposalCap;
 
-  /// @notice Type of decay curve to be used
-  uint256 public decayCurveType;
+  /// @notice Interval used for the decay curve
+  /// eg. A decay interval of [1 month] would mean the weight of the lock reduces each month
+  /// eg. A decay interval of [1 day] would mean the weight of the lock reduces each day
+  uint256 public decayInterval;
 
   /// @notice Address of the underlying token (ERC20)
   address public underlyingToken;
@@ -131,14 +133,14 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 _acceptanceThreshold,
     uint256 _lockDurationCap,
     uint256 _proposalCap,
-    uint256 _decayCurveType
+    uint256 _decayInterval
   ) external isNotInitialized {
     underlyingToken = _underlyingToken;
     proposalThreshold = _proposalThreshold;
     acceptanceThreshold = _acceptanceThreshold;
     lockDurationCap = _lockDurationCap;
     proposalCap = _proposalCap;
-    decayCurveType = _decayCurveType;
+    decayInterval = _decayInterval;
 
     transferOwnership(owner_);
   }
@@ -452,7 +454,7 @@ contract Signals is Ownable, ReentrancyGuard {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / 30 days;
+    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / decayInterval;
     if (elapsedTime >= lockInfo.weightedDuration) {
       return 0;
     }
