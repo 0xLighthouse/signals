@@ -47,12 +47,15 @@ export function Initiatives() {
   const [searchTerm, setSearchTerm] = useState('')
 
   
-
-  
   // TODO: break out the ideas/feedbacks list into a separate component
   const filteredAndSortedIdeas = initiatives
     .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => (sortBy === "'trending'" ? b.created_at - a.created_at : b.id - a.id))
+
+
+  const handleSupportInitiative = (id: number) => {
+    console.log('Voting for idea', id)
+  }
 
   return (
     <div className="">
@@ -95,21 +98,22 @@ export function Initiatives() {
             <Card key={idea.id}>
               <CardHeader>
                 <CardTitle>{idea.title}</CardTitle>
-                {idea.network && <CardDescription>{idea.network}</CardDescription>}
+                {/* {idea.network && <CardDescription>{idea.network}</CardDescription>} */}
               </CardHeader>
               <CardContent>
-                <p>{idea.body}</p>
-                {(idea.token || idea.amount || idea.duration) && (
+                {/* <p>{idea.body}</p> */}
+                <p>Some body</p>
+                {/* {(idea.token || idea.amount || idea.duration) && (
                   <div className="mt-2 text-sm text-gray-500">
                     {idea.token && <span className="mr-2">Token: {idea.token}</span>}
                     {idea.amount && <span className="mr-2">Amount: {idea.amount}</span>}
                     {idea.duration && <span>Duration: {idea.duration}</span>}
                   </div>
-                )}
+                )} */}
               </CardContent>
               <CardFooter className="flex justify-between">
-                <span>{idea.votes} votes</span>
-                <Button variant="outline" size="sm" onClick={() => handleVote(idea.id)}>
+                <span>XXX votes</span>
+                <Button variant="outline" size="sm" onClick={() => handleSupportInitiative(idea.id)}>
                   <ChevronUp className="mr-1 h-4 w-4" />
                   Upvote
                 </Button>
