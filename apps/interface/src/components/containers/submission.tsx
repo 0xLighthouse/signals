@@ -1,70 +1,43 @@
-'use client'
-
-import { useState } from 'react'
-import { Button } from '../ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card'
-import { Input } from '../ui/input'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
+import { useUnderlying } from '@/contexts/ContractContext'
 
 export const Submission = () => {
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [network, setNetwork] = useState('')
-  const [token, setToken] = useState('')
-  const [amount, setAmount] = useState<number | undefined>()
-  const [duration, setDuration] = useState('')
+  const { name, symbol, totalSupply, balance } = useUnderlying()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log({ title, body, network, token, amount, duration })
-  }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submit a new idea</CardTitle>
+        <CardDescription>
+          You will need {symbol} tokens to submit an idea. You have {balance} ({symbol}) tokens.
+          Your tokens will not be locked.
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            placeholder="Short, descriptive title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+      <CardContent className="space-y-2">
+        <div className="space-y-1">
+          <Label htmlFor="name">Title</Label>
+          <Input id="title" placeholder="On-chain forums." />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="username">Username</Label>
           <Textarea
-            placeholder="Description"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
+            placeholder="Enter something novel. Remember to search for existing ideas first and a reminder this is public."
             required
           />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              placeholder="Network (optional)"
-              value={network}
-              onChange={(e) => setNetwork(e.target.value)}
-            />
-            <Input
-              placeholder="Token (optional)"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
-            <Input
-              type="number"
-              placeholder="Amount (optional)"
-              value={amount || ''}
-              onChange={(e) => setAmount(Number(e.target.value))}
-            />
-            <Input
-              placeholder="Duration (optional)"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-            />
-          </div>
-        </form>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input placeholder="Network (optional)" />
+          <Input placeholder="Token (optional)" />
+          <Input type="number" />
+          <Input placeholder="Duration (optional)" />
+        </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline">Cancel</Button>
-        <Button onClick={handleSubmit}>Propose</Button>
+      <CardFooter>
+        <Button>Save changes</Button>
       </CardFooter>
     </Card>
   )

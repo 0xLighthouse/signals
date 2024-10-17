@@ -1,30 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, ChevronUp } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useAccount } from 'wagmi'
-import { ConnectCTAPanel } from '../web3/connect-cta-panel'
+import { ChevronUp, Search } from 'lucide-react'
 
 import data from '@/config/proposals.json'
-
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 const cleanedData = data.map((idea) => ({
   ...idea,
   created_at: new Date(idea.created_at).getTime(),
@@ -34,41 +16,30 @@ interface Idea {
   id: number
   title: string
   views: number
-  like_count: number  
+  like_count: number
   created_at: number
 }
 
-export function Initiatives() {
-  const { isConnected } = useAccount()
-
+export const InitiativesList = ({
+  type,
+}: { type: 'upcoming' | 'accepted' | 'executed' | 'archived' }) => {
   const [initiatives, setInitiatives] = useState<Idea[]>(cleanedData)
-  
+
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
 
-  
   // TODO: break out the ideas/feedbacks list into a separate component
   const filteredAndSortedIdeas = initiatives
     .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => (sortBy === "'trending'" ? b.created_at - a.created_at : b.id - a.id))
 
-
   const handleSupportInitiative = (id: number) => {
-    console.log('Voting for idea', id)
+    console.log('support initiative', id)
   }
 
   return (
     <div className="">
-      <div className="mb-8">
-        {isConnected ? (
-          <>
-            {/* <Submission /> */}            
-          </>
-        ) : (
-          <ConnectCTAPanel />
-        )}
-      </div>
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-2">
           <span>Showing</span>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -91,7 +62,7 @@ export function Initiatives() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
       <ScrollArea className="w-full mb-24">
         <div className="space-y-4">
           {filteredAndSortedIdeas.map((idea) => (
@@ -113,7 +84,11 @@ export function Initiatives() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <span>XXX votes</span>
-                <Button variant="outline" size="sm" onClick={() => handleSupportInitiative(idea.id)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSupportInitiative(idea.id)}
+                >
                   <ChevronUp className="mr-1 h-4 w-4" />
                   Upvote
                 </Button>
