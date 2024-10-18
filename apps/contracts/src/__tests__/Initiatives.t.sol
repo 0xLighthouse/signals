@@ -53,6 +53,9 @@ contract InitiativesTest is Test {
     // Ensure the caller is the owner
     vm.prank(deployer);
 
+    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1); // 0.9
+    DECAY_CURVE_PARAMETERS[0] = 9e17;
+
     // Deploy a new Signals contract using the factory
     instance = factory.create(
       alice,
@@ -62,7 +65,8 @@ contract InitiativesTest is Test {
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
       LOCK_INTERVAL,
-      DECAY_CURVE_TYPE
+      DECAY_CURVE_TYPE,
+      DECAY_CURVE_PARAMETERS
     );
   }
 

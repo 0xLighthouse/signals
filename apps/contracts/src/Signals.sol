@@ -7,6 +7,8 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
+import './DecayCurves.sol';
+
 /// @title Signals
 contract Signals is Ownable, ReentrancyGuard {
   // @notice Possible initiative states
@@ -44,6 +46,9 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
   uint256 public decayCurveType;
+
+  /// @notice Parameters for the decay curve (the requirements of which depend on which curve is chosen)
+  uint256[] public decayCurveParameters;
 
   /// @notice Address of the underlying token (ERC20)
   address public underlyingToken;
@@ -137,7 +142,8 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 _maxLockIntervals,
     uint256 _proposalCap,
     uint256 _lockInterval,
-    uint256 _decayCurveType
+    uint256 _decayCurveType,
+    uint256[] calldata _decayCurveParameters
   ) external isNotInitialized {
     underlyingToken = _underlyingToken;
     proposalThreshold = _proposalThreshold;
@@ -146,6 +152,7 @@ contract Signals is Ownable, ReentrancyGuard {
     proposalCap = _proposalCap;
     lockInterval = _lockInterval;
     decayCurveType = _decayCurveType;
+    decayCurveParameters = _decayCurveParameters;
 
     transferOwnership(owner_);
   }
@@ -435,7 +442,7 @@ contract Signals is Ownable, ReentrancyGuard {
   function getWeight(uint256 initiativeId) external view returns (uint256) {
     if (initiativeId >= count) revert InitiativeNotFound();
     uint256 totalCurrentWeight = 0;
-    address[] storage supporters = supporters[initiativeId];
+    address[] memory supporters = supporters[initiativeId];
     for (uint256 i = 0; i < supporters.length; i++) {
       address supporter = supporters[i];
       LockInfo storage lockInfo = locks[initiativeId][supporter];

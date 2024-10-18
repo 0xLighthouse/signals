@@ -49,6 +49,9 @@ contract SignalsFactoryTest is Test {
     // Ensure the caller is the owner
     vm.prank(deployer);
 
+    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1);
+    DECAY_CURVE_PARAMETERS[0] = 9e17;
+
     // Deploy a new instance using the factory
     address instanceAddress = factory.create(
       alice,
@@ -58,7 +61,8 @@ contract SignalsFactoryTest is Test {
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
       LOCK_INTERVAL,
-      DECAY_CURVE_TYPE
+      DECAY_CURVE_TYPE,
+      DECAY_CURVE_PARAMETERS
     );
 
     // Check that the Signals contract was deployed
@@ -85,6 +89,9 @@ contract SignalsFactoryTest is Test {
     vm.prank(deployer);
     vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
 
+    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1); // 0.9
+  DECAY_CURVE_PARAMETERS[0] = 9e17;
+
     factory.create(
       address(0), // --- invalid owner address
       address(mockToken),
@@ -93,7 +100,8 @@ contract SignalsFactoryTest is Test {
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
       LOCK_INTERVAL,
-      DECAY_CURVE_TYPE
+      DECAY_CURVE_TYPE,
+      DECAY_CURVE_PARAMETERS
     );
   }
 
