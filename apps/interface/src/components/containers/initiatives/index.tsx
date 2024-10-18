@@ -1,7 +1,5 @@
-import { Button } from '@/components/ui/button'
 import { InitiativesList } from './list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PlusIcon } from 'lucide-react'
 
 export function Initiatives() {
   return (

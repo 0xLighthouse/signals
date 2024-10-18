@@ -7,6 +7,7 @@ import { readClient, ABI, ERC20_ADDRESS } from '@/config/web3'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { hardhat } from 'viem/chains'
 import { createWalletClient } from 'viem'
+import { toast } from 'sonner'
 
 export const FaucetBar = () => {
   const { address } = useAccount()
@@ -57,6 +58,8 @@ export const FaucetBar = () => {
       const receipt = await readClient.waitForTransactionReceipt({
         hash: transactionHash,
       })
+
+      toast(`Claimed ${symbol} tokens`)
       console.log('Transaction Receipt:', receipt)
     } catch (error) {
       console.error('Error claiming tokens:', error)

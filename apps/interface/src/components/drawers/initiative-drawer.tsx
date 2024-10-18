@@ -96,19 +96,20 @@ export function InitiativeDrawer() {
       {/* Control drawer open state */}
       <DrawerTrigger asChild>
         <Button onClick={() => setIsDrawerOpen(true)}>
-          {' '}
           {/* Open drawer on button click */}
-          <PlusIcon size={16} />
-          New Initiative
+          Propose Initiative &nbsp; <PlusIcon size={24} />
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-lg pt-8 pb-12">
           <DrawerHeader>
-            <DrawerTitle>Submit your initiative</DrawerTitle>
+            <DrawerTitle>Propose a new initiative</DrawerTitle>
             <DrawerDescription>
-              You will need SGNL tokens to submit an idea. You have 1e+24 (SGNL) tokens. Your tokens
-              will not be locked.
+              This board requires your wallet to hold <strong>XX SGNL</strong> tokens to propose an
+              idea. You have <strong>1e+24 SGNL</strong> tokens.{' '}
+              {lockTokens
+                ? `Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.`
+                : 'Your tokens will not be locked.'}
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 pb-0">

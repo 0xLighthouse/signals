@@ -3,7 +3,7 @@ import { getContract } from 'viem'
 import { useAccount } from 'wagmi'
 
 // Types for contract metadata
-interface ProtocolContextType {}
+type ProtocolContextType = {}
 
 // Default values for the context
 export const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined)
@@ -21,7 +21,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const TokenProvider: React.FC<Props> = ({ children }) => {
+export const ProtocolProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
 
   // const [name, setContractName] = useState<string | null>(null)
@@ -70,9 +70,5 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
   // }, [address])
 
   // // Provide contract data to children
-  // return (
-  //   <ContractContext.Provider value={{ name, symbol, decimals, totalSupply, balance }}>
-  //     {children}
-  //   </ContractContext.Provider>
-  // )
+  return <ProtocolContext.Provider value={{}}>{children}</ProtocolContext.Provider>
 }

@@ -1,37 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CassetteTape, ChevronUp, Monitor, Search, TrendingUp } from 'lucide-react'
 
-import data from '@/config/proposals.json'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Chart } from './chart'
-import { Money } from '@phosphor-icons/react'
-const cleanedData = data.map((idea) => ({
-  ...idea,
-  created_at: new Date(idea.created_at).getTime(),
-}))
+import { NormalisedInitiative } from '@/app/api/initiatives/route'
 
-interface Idea {
-  id: number
-  title: string
-  views: number
-  like_count: number
-  created_at: number
-}
+// import data from '@/config/proposals.json'
+// import { Money } from '@phosphor-icons/react'
+// const cleanedData = data.map((idea) => ({
+//   ...idea,
+//   createdAtTimestamp: new Date(idea.created_at).getTime(),
+// })) satisfies NormalisedInitiative[]
 
 export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archived' }) => {
-  const [initiatives, setInitiatives] = useState<Idea[]>(cleanedData)
+  const [initiatives, setInitiatives] = useState<NormalisedInitiative[]>([]) // Ensure it's initialized as an empty array
+
+  useEffect(() => {
+    fetch('/api/initiatives')
+      .then((res) => res.json())
+      .then((data) => {
+        console.log('initiatives', data)
+        // Ensure data is an array before setting state
+        if (Array.isArray(data)) {
+          setInitiatives(data) // Update the state with the fetched data
+        } else {
+          console.error('Fetched data is not an array:', data) // Log an error if data is not an array
+        }
+      })
+      .catch((error) => console.error('Error fetching initiatives:', error)) // Handle errors
+  }, [])
 
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
 
   // TODO: break out the ideas/feedbacks list into a separate component
-  const filteredAndSortedIdeas = initiatives
-    .filter((idea) => idea.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => (sortBy === "'trending'" ? b.created_at - a.created_at : b.id - a.id))
+  // Ensure initiatives is always an array before filtering
+  const _initiativesSorted = initiatives
+    .filter((o) => o.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) =>
+      sortBy === "'trending'"
+        ? b.createdAtTimestamp - a.createdAtTimestamp
+        : b.initiativeId - a.initiativeId,
+    )
 
   const handleSupportInitiative = (id: number) => {
     console.log('support initiative', id)
@@ -65,10 +79,10 @@ export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archi
       </div> */}
       <ScrollArea className="w-full mb-24">
         <div className="space-y-4">
-          {filteredAndSortedIdeas.map((idea) => (
-            <Card key={idea.id}>
+          {_initiativesSorted.map((item) => (
+            <Card key={item.initiativeId}>
               <CardHeader>
-                <CardTitle>{idea.title}</CardTitle>
+                <CardTitle>{item.title}</CardTitle>
                 {/* {idea.network && <CardDescription>{idea.network}</CardDescription>} */}
               </CardHeader>
               <CardContent>
@@ -89,7 +103,7 @@ export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archi
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleSupportInitiative(idea.id)}
+                  onClick={() => handleSupportInitiative(item.initiativeId)}
                 >
                   <ChevronUp className="mr-1 h-4 w-4" />
                   Upvote
