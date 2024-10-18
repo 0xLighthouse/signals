@@ -1,4 +1,4 @@
-import { readClient, SIGNALS_PROTOCOL } from '@/config/web3'
+import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { NextResponse } from 'next/server'
 import { createPublicClient, http } from 'viem'
 import { hardhat } from 'viem/chains'
@@ -8,13 +8,15 @@ export interface NormalisedInitiative {
   title: string
   description: string
   weight: number
+  progress: number
   proposer: string
   supporters: string[]
   createdAtTimestamp: number
+  updatedAtTimestamp: number
   status: 'active' | 'accepted' | 'archived'
 }
 
-export const publicClient = createPublicClient({
+const publicClient = createPublicClient({
   chain: hardhat,
   transport: http(process.env.RPC_URL!),
 })
@@ -50,21 +52,38 @@ export const GET = async () => {
       process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev'
         ? 'earliest'
         : BigInt(process.env.NEXT_PUBLIC_PROTOCOL_DEPLOYED_BLOCK!),
-    toBlock: 'latest',
+    // toBlock: 'latest',
   })
 
   const initiatives = await Promise.all(
     logs.map(async (log) => {
-      const block = await readClient.getBlock({ blockNumber: log.blockNumber })
+      const weight = await readClient.readContract({
+        address: SIGNALS_PROTOCOL,
+        abi: SIGNALS_ABI,
+        functionName: 'getWeight',
+        args: [log.args.initiativeId],
+      })
+      const _initiative = await readClient.readContract({
+        address: SIGNALS_PROTOCOL,
+        abi: SIGNALS_ABI,
+        functionName: 'getInitiative',
+        args: [log.args.initiativeId],
+      })
+
       return {
         initiativeId: log.args.initiativeId?.toString(),
         title: log.args.title,
         description: log.args.body,
-        weight: 0,
+        weight: Number(weight) / 1e18,
+        progress: 0,
         proposer: log.args.proposer,
         supporters: [],
-        createdAtTimestamp: Number(block.timestamp),
-        status: 'TODO',
+        // @ts-ignore
+        createdAtTimestamp: Number(_initiative.timestamp),
+        // @ts-ignore
+        updatedAtTimestamp: Number(_initiative.lastActivity),
+        // @ts-ignore
+        status: _initiative.state,
       }
     }),
   )

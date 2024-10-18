@@ -58,6 +58,7 @@ contract Signals is Ownable, ReentrancyGuard {
     string title;
     /// @notice The detailed body of the initiative in markdown format
     string body;
+    /// @notice The current state of the initiative
     InitiativeState state;
     /// @notice The address of the account that proposed this initiative
     address proposer;

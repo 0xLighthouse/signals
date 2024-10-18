@@ -73,6 +73,7 @@ export function InitiativeDrawer() {
       const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
 
       // Simulate the contract call
+      // @ts-ignore
       const { request } = await readClient
         .simulateContract({
           account: address,

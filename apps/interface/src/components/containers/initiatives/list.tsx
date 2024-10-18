@@ -4,11 +4,19 @@ import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CassetteTape, ChevronUp, TrendingUp } from 'lucide-react'
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Chart } from './chart'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { useSignals } from '@/contexts/SignalsContext'
+import { timeAgoWords } from '@/lib/utils'
 
 // import data from '@/config/proposals.json'
 // import { Money } from '@phosphor-icons/react'
@@ -86,23 +94,25 @@ export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archi
           {_initiativesSorted.map((item) => (
             <Card key={item.initiativeId}>
               <CardHeader>
-                <CardTitle>{item.title}</CardTitle>
-                {/* {idea.network && <CardDescription>{idea.network}</CardDescription>} */}
+                <CardTitle>
+                  #{item.initiativeId} — {item.title}
+                </CardTitle>
+                <CardDescription>Proposed {timeAgoWords(item.createdAtTimestamp)}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex">
-                  <div className="w-3/5">asdasd</div>
+                  <div className="w-3/5">{item.description}</div>
                   <div className="w-2/5">
                     <Chart />
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <div className="flex gap-2 font-medium leading-none">
-                  Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+                <div className="flex gap-2 text-xs leading-none">
+                  {item.weight > 0 && <div>Updated {timeAgoWords(item.updatedAtTimestamp)}</div>}
                 </div>
                 <div className="flex gap-2 font-medium leading-none">
-                  $5.2% this month <CassetteTape className="h-4 w-4" />
+                  {item.weight}% reached <TrendingUp className="h-4 w-4" />
                 </div>
                 <Button
                   variant="outline"

@@ -81,7 +81,12 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
   // Provide contract data to children
   return (
     <ProtocolContext.Provider
-      value={{ formatter, initiativesCount, proposalThreshold, acceptanceThreshold }}
+      value={{
+        formatter: formatter as (value?: number | null) => number,
+        initiativesCount,
+        proposalThreshold,
+        acceptanceThreshold,
+      }}
     >
       {children}
     </ProtocolContext.Provider>
