@@ -13,7 +13,7 @@ import './Signals.sol';
 
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
-contract SignalsFactory  {
+contract SignalsFactory {
   using SafeERC20 for IERC20;
 
   error FactoryDeploymentFailed();
@@ -22,7 +22,6 @@ contract SignalsFactory  {
   /// @notice Event emitted when a new Signals contract is created
   event SignalsCreated(address indexed newSignals, address indexed owner);
 
-  
   /// @notice Creates a new Signals contract
   ///
   ///   @param _owner Address of the owner of the new Signals contract
@@ -31,6 +30,7 @@ contract SignalsFactory  {
   ///   @param _acceptanceThreshold Minimum tokens required to accept an initiative
   ///   @param lockDurationCap Maximum lock duration allowed
   ///   @param proposalCap Maximum number of proposals allowed
+  ///   @param lockInterval Interval at which the lock duration is applied
   ///   @param decayCurveType Type of decay curve to be used
   ///
   /// @return Address of the newly created Signals contract
@@ -42,9 +42,9 @@ contract SignalsFactory  {
     uint256 _acceptanceThreshold,
     uint256 lockDurationCap,
     uint256 proposalCap,
-    uint256 decayInterval,
+    uint256 lockInterval,
     uint256 decayCurveType
-  ) public payable returns  (address) {
+  ) public payable returns (address) {
     if (_owner == address(0)) revert InvalidOwnerAddress();
 
     // Initialize the new Signals contract
@@ -56,7 +56,7 @@ contract SignalsFactory  {
       _acceptanceThreshold,
       lockDurationCap,
       proposalCap,
-      decayInterval,
+      lockInterval,
       decayCurveType
     );
 

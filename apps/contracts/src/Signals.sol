@@ -102,7 +102,7 @@ contract Signals is Ownable, ReentrancyGuard {
   mapping(address => mapping(uint256 => uint256)) private pendingWithdrawalIndex;
 
   /// @dev {n} total initiatives
-  uint256 public count;
+  uint256 public count = 0;
 
   event WeightUpdated(
     uint256 indexed initiativeId,
@@ -503,5 +503,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Returns the address of the underlying token
   function token() external view returns (address) {
     return underlyingToken;
+  }
+
+  function totalProposals() external view returns (uint256 totalProposals) {
+    return count;
+  }
+
+  function totalSupporters(uint256 initiativeId) external view returns (uint256 totalSupporters) {
+    return supporters[initiativeId].length;
   }
 }

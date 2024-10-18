@@ -62,6 +62,7 @@ contract SignalsTest is Test {
     assertEq(signalsContract.proposalCap(), PROPOSAL_CAP);
     assertEq(signalsContract.lockInterval(), LOCK_INTERVAL);
     assertEq(signalsContract.decayCurveType(), DECAY_CURVE_TYPE);
+    assertEq(signalsContract.totalProposals(), 0);
   }
 
   /**
