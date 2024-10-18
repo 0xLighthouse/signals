@@ -6,7 +6,7 @@ import { createWalletClient, custom } from 'viem'
 import { hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 
-import { SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { ABI, ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { readClient } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
@@ -41,6 +41,7 @@ export function InitiativeDrawer() {
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false) // Add state for drawer open
+  const [hasAllowance, setHasAllowance] = React.useState(false)
 
   const weight = amount ? amount * duration : 0
 
@@ -108,6 +109,48 @@ export function InitiativeDrawer() {
     }
   }
 
+  // Every time the allowance changes; ensure account has enough tokens
+  React.useEffect(() => {
+    const checkAllowance = async () => {
+      if (!amount) return
+
+      const allowance = await readClient.readContract({
+        address: ERC20_ADDRESS,
+        abi: ABI,
+        functionName: 'allowance',
+        args: [address, SIGNALS_PROTOCOL], // Corrected the second argument to the protocol address
+      })
+
+      const _hasAllowance = Number(allowance) >= amount * 1e18
+      console.log('hasAllowance', _hasAllowance)
+      setHasAllowance(_hasAllowance)
+    }
+
+    checkAllowance()
+  }, [address, amount])
+
+  const handleApprove = async (amount: number) => {
+    const signer = createWalletClient({
+      chain: hardhat,
+      transport: custom(window.ethereum),
+    })
+    const { request } = await readClient.simulateContract({
+      account: address,
+      address: ERC20_ADDRESS,
+      abi: ABI,
+      functionName: 'approve',
+      args: [SIGNALS_PROTOCOL, amount * 1e18],
+    })
+
+    const hash = await signer.writeContract(request)
+    console.log('Transaction Hash:', hash)
+
+    const receipt = await readClient.waitForTransactionReceipt({
+      hash: hash,
+    })
+    console.log('Transaction Receipt:', receipt)
+  }
+
   const meetsThreshold = balance && proposalThreshold && balance >= proposalThreshold
 
   return (
@@ -132,6 +175,13 @@ export function InitiativeDrawer() {
                   <li>Approve the protocol contract to store your tokens</li>
                   <li>Submit your idea</li>
                 </ol>
+
+                {!hasAllowance && amount && (
+                  <strong>
+                    You need to <Button onClick={() => handleApprove(amount)}>approve</Button> the
+                    protocol to store your tokens.
+                  </strong>
+                )}
               </CardDescription>
             </CardHeader>
           </Card>

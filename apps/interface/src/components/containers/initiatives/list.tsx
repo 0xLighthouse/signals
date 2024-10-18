@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { CassetteTape, ChevronUp, Monitor, Search, TrendingUp } from 'lucide-react'
+import { CassetteTape, ChevronUp, TrendingUp } from 'lucide-react'
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
