@@ -1,5 +1,3 @@
-'use client'
-
 import { createPublicClient, http, createWalletClient, custom, erc20Abi } from 'viem'
 import { hardhat } from 'viem/chains'
 

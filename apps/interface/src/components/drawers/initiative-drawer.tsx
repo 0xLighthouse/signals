@@ -25,10 +25,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { useAccount } from 'wagmi'
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useUnderlying } from '@/contexts/ContractContext'
+import { useSignals } from '@/contexts/SignalsContext'
 
 const threshold = 30_000
 
 export function InitiativeDrawer() {
+  const { balance, symbol } = useUnderlying()
+  const { proposalThreshold, acceptanceThreshold, formatter } = useSignals()
   const { address } = useAccount()
   const [duration, setDuration] = React.useState(1)
   const [amount, setAmount] = React.useState<number | undefined>(0)
@@ -66,20 +71,33 @@ export function InitiativeDrawer() {
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
 
-      const transactionHash = await signer.writeContract({
-        account: address,
-        nonce,
-        address: SIGNALS_PROTOCOL,
-        abi: SIGNALS_ABI,
-        functionName,
-        args,
-        gas: 100_000n,
-      })
+      // Simulate the contract call
+      const { request } = await readClient
+        .simulateContract({
+          account: address,
+          address: SIGNALS_PROTOCOL,
+          abi: SIGNALS_ABI,
+          functionName,
+          nonce,
+          args,
+        })
+        .catch((err) => {
+          console.log('Failed')
+          console.log('Failed')
+          console.log(err)
+          toast('Failed to simulate contract call', {
+            description: err.message,
+          })
+          return
+        })
 
-      console.log('Transaction Hash:', transactionHash)
+      // Proceed with the actual contract call
+      const hash = await signer.writeContract(request)
+
+      console.log('Transaction Hash:', hash)
 
       const receipt = await readClient.waitForTransactionReceipt({
-        hash: transactionHash,
+        hash: hash,
       })
       console.log('Transaction Receipt:', receipt)
 
@@ -89,6 +107,8 @@ export function InitiativeDrawer() {
       console.error('Error claiming tokens:', error)
     }
   }
+
+  const meetsThreshold = balance && proposalThreshold && balance >= proposalThreshold
 
   return (
     <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -102,11 +122,37 @@ export function InitiativeDrawer() {
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-lg pt-8 pb-12">
+          <Card className="fixed top-200 right-10 w-[200px]">
+            <CardHeader>
+              <CardTitle>Propose new initiative</CardTitle>
+              <CardDescription>
+                <ol>
+                  <li>Come up with a sweet idea</li>
+                  <li>Write a compelling description</li>
+                  <li>Approve the protocol contract to store your tokens</li>
+                  <li>Submit your idea</li>
+                </ol>
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           <DrawerHeader>
             <DrawerTitle>Propose a new initiative</DrawerTitle>
             <DrawerDescription>
-              This board requires your wallet to hold <strong>XX SGNL</strong> tokens to propose an
-              idea. You have <strong>1e+24 SGNL</strong> tokens.{' '}
+              This board requires your wallet to hold{' '}
+              <strong>
+                {formatter(proposalThreshold)} {symbol}
+              </strong>{' '}
+              tokens to propose an idea. You have{' '}
+              <strong>
+                {formatter(balance)} {symbol}
+              </strong>{' '}
+              tokens.
+              {meetsThreshold ? (
+                <strong>You have enough tokens to propose an idea.</strong>
+              ) : (
+                <strong>You do not have enough tokens to propose an idea.</strong>
+              )}
               {lockTokens
                 ? `Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.`
                 : 'Your tokens will not be locked.'}

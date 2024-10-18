@@ -4,12 +4,14 @@ import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
 import { useAccount } from 'wagmi'
+import { useUnderlying } from './ContractContext'
 
 // Types for contract metadata
 type ProtocolContextType = {
   initiativesCount: number | null
   proposalThreshold: number | null
   acceptanceThreshold: number | null
+  formatter: (value?: number | null) => number
 }
 
 // Default values for the context
@@ -30,6 +32,7 @@ interface Props {
 
 export const ProtocolProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
+  const { decimals } = useUnderlying()
 
   const [initiativesCount, setInitiativesCount] = useState<number | null>(null)
   const [proposalThreshold, setProposalThreshold] = useState<number | null>(null)
@@ -53,6 +56,10 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
           protocol.read.count(),
         ])
 
+        console.log('proposalThreshold', proposalThreshold)
+        console.log('acceptanceThreshold', acceptanceThreshold)
+        console.log('count', count)
+
         // Update state with fetched metadata
         setInitiativesCount(Number(count))
         setProposalThreshold(Number(proposalThreshold))
@@ -66,9 +73,16 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [address])
 
+  const formatter = (value?: number | null) => {
+    if (!decimals || !value) return value
+    return Math.ceil(value / 1e18)
+  }
+
   // Provide contract data to children
   return (
-    <ProtocolContext.Provider value={{ initiativesCount, proposalThreshold, acceptanceThreshold }}>
+    <ProtocolContext.Provider
+      value={{ formatter, initiativesCount, proposalThreshold, acceptanceThreshold }}
+    >
       {children}
     </ProtocolContext.Provider>
   )
