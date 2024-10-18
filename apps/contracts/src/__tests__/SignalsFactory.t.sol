@@ -17,6 +17,13 @@ contract SignalsFactoryTest is Test {
   address deployer;
   address alice;
 
+  uint256 constant PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
+  uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
+  uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
+  uint256 constant PROPOSAL_CAP = 100; // 100 proposals
+  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
+
   function setUp() public {
     deployer = address(this);
     alice = address(0x1111);
@@ -46,11 +53,12 @@ contract SignalsFactoryTest is Test {
     address instanceAddress = factory.create(
       alice,
       address(mockToken),
-      100, // proposalThreshold
-      100, // acceptanceThreshold
-      12, // lockDurationCap
-      5, // proposalCap
-      1 // decayCurveType
+      PROPOSAL_THRESHOLD,
+      ACCEPTANCE_THRESHOLD,
+      LOCK_DURATION_CAP,
+      PROPOSAL_CAP,
+      LOCK_INTERVAL,
+      DECAY_CURVE_TYPE
     );
 
     // Check that the Signals contract was deployed
@@ -65,10 +73,11 @@ contract SignalsFactoryTest is Test {
     // Verify the parameters were initialized correctly
     assertEq(_instance.owner(), alice);
     assertEq(_instance.underlyingToken(), address(mockToken));
-    assertEq(_instance.acceptanceThreshold(), 100);
-    assertEq(_instance.maxLockIntervals(), 12);
-    assertEq(_instance.proposalCap(), 5);
-    assertEq(_instance.decayInterval(), 1);
+    assertEq(_instance.acceptanceThreshold(), ACCEPTANCE_THRESHOLD);
+    assertEq(_instance.maxLockIntervals(), LOCK_DURATION_CAP);
+    assertEq(_instance.proposalCap(), PROPOSAL_CAP);
+    assertEq(_instance.lockInterval(), LOCK_INTERVAL);
+    assertEq(_instance.decayCurveType(), DECAY_CURVE_TYPE);
   }
 
   function testRevertsWithInvalidOwnerAddress() public {
@@ -79,11 +88,12 @@ contract SignalsFactoryTest is Test {
     factory.create(
       address(0), // --- invalid owner address
       address(mockToken),
-      100,
-      100,
-      12,
-      5,
-      1
+      PROPOSAL_THRESHOLD,
+      ACCEPTANCE_THRESHOLD,
+      LOCK_DURATION_CAP,
+      PROPOSAL_CAP,
+      LOCK_INTERVAL,
+      DECAY_CURVE_TYPE
     );
   }
 

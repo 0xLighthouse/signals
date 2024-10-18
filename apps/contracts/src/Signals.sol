@@ -37,10 +37,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Maximum number of proposals allowed
   uint256 public proposalCap;
 
-  /// @notice Interval used for the decay curve
-  /// eg. A decay interval of [1 month] would mean the weight of the lock reduces each month
-  /// eg. A decay interval of [1 day] would mean the weight of the lock reduces each day
-  uint256 public decayInterval;
+  /// @notice Interval used for lockup duration and calculating the decay curve
+  /// Lockup durations are specified in the number of intervals, and the decay curve is also applied
+  /// per interval (e.g. interval of [1 day] means the weight of the lock would only be updated once per day
+  uint256 public lockInterval;
+
+  /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
+  uint256 public decayCurveType;
 
   /// @notice Address of the underlying token (ERC20)
   address public underlyingToken;
@@ -133,14 +136,16 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 _acceptanceThreshold,
     uint256 _maxLockIntervals,
     uint256 _proposalCap,
-    uint256 _decayInterval
+    uint256 _lockInterval,
+    uint256 _decayCurveType
   ) external isNotInitialized {
     underlyingToken = _underlyingToken;
     proposalThreshold = _proposalThreshold;
     acceptanceThreshold = _acceptanceThreshold;
     maxLockIntervals = _maxLockIntervals;
     proposalCap = _proposalCap;
-    decayInterval = _decayInterval;
+    lockInterval = _lockInterval;
+    decayCurveType = _decayCurveType;
 
     transferOwnership(owner_);
   }
@@ -461,7 +466,7 @@ contract Signals is Ownable, ReentrancyGuard {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / decayInterval;
+    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / lockInterval;
     if (elapsedTime >= lockInfo.weightedDuration) {
       return 0;
     }

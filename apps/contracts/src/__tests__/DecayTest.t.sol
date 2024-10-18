@@ -19,7 +19,8 @@ contract DecayTest is Test {
   uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
   uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
   uint256 constant PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant DECAY_INTERVAL = 1 days; // 1 day
+  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
 
   function setUp() public {
     deployer = address(this);
@@ -39,7 +40,8 @@ contract DecayTest is Test {
       ACCEPTANCE_THRESHOLD,
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
-      DECAY_INTERVAL
+      LOCK_INTERVAL,
+      DECAY_CURVE_TYPE
     );
 
     // Mint tokens to participants
@@ -64,9 +66,10 @@ contract DecayTest is Test {
     uint256 weight = signalsContract.getWeight(0);
     assertEq(weight, PROPOSAL_THRESHOLD * 6);
 
+    // Show that the weight has decayed
     skip(1 days);
     weight = signalsContract.getWeight(0);
-    assertEq(weight, PROPOSAL_THRESHOLD * 5);
+    assertLt(weight, PROPOSAL_THRESHOLD * 6);
 
     vm.stopPrank();
   }

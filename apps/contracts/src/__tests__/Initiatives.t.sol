@@ -23,11 +23,12 @@ contract InitiativesTest is Test {
   address charlie;
 
   // Parameters
-  uint256 constant PROPOSAL_THRESHOLD = 100_000 * 1e18;
-  uint256 constant ACCEPTANCE_THRESHOLD = 300_000 * 1e18;
-  uint256 constant LOCK_DURATION_CAP = 1;
-  uint256 constant PROPOSAL_CAP = 5;
-  uint256 constant DECAY_K_VAL = 1;
+  uint256 constant PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
+  uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
+  uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
+  uint256 constant PROPOSAL_CAP = 100; // 100 proposals
+  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
 
   function setUp() public {
     deployer = address(this);
@@ -44,7 +45,7 @@ contract InitiativesTest is Test {
     // Distribute tokens to test addresses
     deal(address(someERC20), alice, 200_000 * 1e18);
     deal(address(someERC20), bob, 200_000 * 1e18);
-    deal(address(someERC20), charlie, 50_000 * 1e18);
+    deal(address(someERC20), charlie, 40_000 * 1e18);
 
     // Deploy SignalsFactory with the Signals implementation
     factory = new SignalsFactory();
@@ -60,7 +61,8 @@ contract InitiativesTest is Test {
       ACCEPTANCE_THRESHOLD,
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
-      DECAY_K_VAL
+      LOCK_INTERVAL,
+      DECAY_CURVE_TYPE
     );
   }
 
@@ -72,7 +74,7 @@ contract InitiativesTest is Test {
     string memory body = 'This initiative should fail due to insufficient tokens';
 
     // Approve the contract to spend the tokens
-    someERC20.approve(address(instance), 50_000);
+    someERC20.approve(address(instance), 40_000);
 
     Signals signals = Signals(instance);
 

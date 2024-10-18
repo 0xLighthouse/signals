@@ -42,6 +42,7 @@ contract SignalsFactory  {
     uint256 _acceptanceThreshold,
     uint256 lockDurationCap,
     uint256 proposalCap,
+    uint256 decayInterval,
     uint256 decayCurveType
   ) public payable returns  (address) {
     if (_owner == address(0)) revert InvalidOwnerAddress();
@@ -55,6 +56,7 @@ contract SignalsFactory  {
       _acceptanceThreshold,
       lockDurationCap,
       proposalCap,
+      decayInterval,
       decayCurveType
     );
 

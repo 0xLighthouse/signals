@@ -19,6 +19,8 @@ contract SignalsTest is Test {
   uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
   uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
   uint256 constant PROPOSAL_CAP = 100; // 100 proposals
+  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
 
   function setUp() public {
     deployer = address(this);
@@ -40,7 +42,8 @@ contract SignalsTest is Test {
       ACCEPTANCE_THRESHOLD,
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
-      0
+      LOCK_INTERVAL,
+      DECAY_CURVE_TYPE
     );
 
     // Mint tokens to participants
@@ -49,17 +52,7 @@ contract SignalsTest is Test {
     deal(address(token), bob, PROPOSAL_THRESHOLD * 2); // Bob has 100k
     deal(address(token), charlie, PROPOSAL_THRESHOLD / 2); // Charlie has 25k
   }
-
-  function testInitialState() public {
-    assertEq(signalsContract.owner(), address(deployer));
-    assertEq(signalsContract.token(), address(token));
-    assertEq(signalsContract.proposalThreshold(), PROPOSAL_THRESHOLD);
-    assertEq(signalsContract.acceptanceThreshold(), ACCEPTANCE_THRESHOLD);
-    assertEq(signalsContract.maxLockIntervals(), LOCK_DURATION_CAP);
-    assertEq(signalsContract.proposalCap(), PROPOSAL_CAP);
-    assertEq(signalsContract.decayInterval(), 0);
-  }
-
+  
   /**
    * @notice Test revert when proposing an initiative with insufficient tokens
    */
