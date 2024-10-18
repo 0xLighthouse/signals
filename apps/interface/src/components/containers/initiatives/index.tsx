@@ -12,10 +12,6 @@ export function Initiatives() {
           <TabsTrigger value="accepted">Accepted</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
-        <Button>
-          <PlusIcon size={16} />
-          New Initiative
-        </Button>
       </div>
       <TabsContent value="active">
         <InitiativesList type="active" />

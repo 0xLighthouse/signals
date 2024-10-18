@@ -1,6 +1,7 @@
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { HomeLogo } from '@/components/ui/home-logo'
 import { ConnectButton } from '@/components/web3/connect-button'
+import { InitiativeDrawer } from '../initiative-drawer'
 
 export const TopNav = () => {
   return (
@@ -10,7 +11,10 @@ export const TopNav = () => {
           <HomeLogo />
           <ThemeToggle className="ml-4" />
         </div>
-        <ConnectButton />
+        <div className="flex align-center gap-4">
+          <InitiativeDrawer />
+          <ConnectButton />
+        </div>
       </div>
     </div>
   )

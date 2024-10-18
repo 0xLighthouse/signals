@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+
 import localFont from 'next/font/local'
 
+import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
@@ -31,7 +33,7 @@ export default function RootLayout({
 }>) {
   // Set the tailwind theme from stored cookie preference
   const theme = getThemeCookie()
-  
+
   return (
     <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -39,6 +41,7 @@ export default function RootLayout({
           <Web3Provider>
             <TokenProvider>
               {children}
+              <Toaster />
             </TokenProvider>
           </Web3Provider>
         </ThemeProvider>
