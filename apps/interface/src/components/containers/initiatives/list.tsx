@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ChevronUp, Search } from 'lucide-react'
+import { CassetteTape, ChevronUp, Monitor, Search, TrendingUp } from 'lucide-react'
 
 import data from '@/config/proposals.json'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Chart } from './chart'
+import { Money } from '@phosphor-icons/react'
 const cleanedData = data.map((idea) => ({
   ...idea,
   created_at: new Date(idea.created_at).getTime(),
@@ -70,18 +72,20 @@ export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archi
                 {/* {idea.network && <CardDescription>{idea.network}</CardDescription>} */}
               </CardHeader>
               <CardContent>
-                {/* <p>{idea.body}</p> */}
-                <p>Some body</p>
-                {/* {(idea.token || idea.amount || idea.duration) && (
-                  <div className="mt-2 text-sm text-gray-500">
-                    {idea.token && <span className="mr-2">Token: {idea.token}</span>}
-                    {idea.amount && <span className="mr-2">Amount: {idea.amount}</span>}
-                    {idea.duration && <span>Duration: {idea.duration}</span>}
+                <div className="flex">
+                  <div className="w-3/5">asdasd</div>
+                  <div className="w-2/5">
+                    <Chart />
                   </div>
-                )} */}
+                </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <span>XXX votes</span>
+                <div className="flex gap-2 font-medium leading-none">
+                  Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="flex gap-2 font-medium leading-none">
+                  $5.2% this month <CassetteTape className="h-4 w-4" />
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
