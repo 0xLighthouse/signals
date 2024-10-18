@@ -64,17 +64,23 @@ contract DevelopmentScript is Script {
     console.log('FactoryContract', address(factory));
 
     // Deploy a new Signals contract using the factory
+    vm.broadcast(deployer);
     address protocolAddress = factory.create(
       alice,
       address(token),
       50_000 * 1e18, // 50k _proposalThreshold
-      200_000, // 200k _acceptanceThreshold
+      200_000 * 1e18, // 200k _acceptanceThreshold
       12, // lockDurationCap
       5, // map active initiatives
       1 hours, // decayInterval
       0 // decayCurveType, linear
     );
-    console.log('SignalsContract', protocolAddress);
+
     Signals protocol = Signals(protocolAddress);
+
+    console.log('SignalsContract', address(protocolAddress));
+    console.log('Total proposals', protocol.count());
+    console.log('Proposal threshold', protocol.proposalThreshold());
+    console.log('Acceptance threshold', protocol.acceptanceThreshold());
   }
 }
