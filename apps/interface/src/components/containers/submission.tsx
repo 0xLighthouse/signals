@@ -1,3 +1,5 @@
+'use client'
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,7 +39,7 @@ export const Submission = () => {
         abi: SIGNALS_ABI,
         functionName: 'proposeInitiative',
         args: ['Initiative 1', 'Description 1'],
-        gas: 10000n,
+        gas: 100_000n,
       })
 
       console.log('Transaction Hash:', transactionHash)

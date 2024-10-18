@@ -61,7 +61,7 @@ export const FaucetCard = () => {
         abi: ABI,
         functionName: 'faucet',
         args: [address],
-        gas: 10000n,
+        gas: 100_000n,
       })
 
       console.log('Transaction Hash:', transactionHash)
