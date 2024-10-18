@@ -49,31 +49,32 @@ contract DevelopmentScript is Script {
     console.log('TokenContract', 'initialized');
 
     // Distribute tokens to test addresses
-    // vm.broadcast(deployer);
-    // token.faucet(alice);
+    vm.broadcast(deployer);
+    token.faucet(alice);
 
-    // vm.broadcast(deployer);
-    // token.faucet(bob);
+    vm.broadcast(deployer);
+    token.faucet(bob);
 
-    // vm.broadcast(deployer);
-    // token.faucet(charlie);
+    vm.broadcast(deployer);
+    token.faucet(charlie);
 
-    // // Deploy a new SignalsFactory contract
-    // vm.broadcast(deployer);
-    // factory = new SignalsFactory();
-    // console.log('FactoryContract', address(factory));
+    // Deploy a new SignalsFactory contract
+    vm.broadcast(deployer);
+    factory = new SignalsFactory();
+    console.log('FactoryContract', address(factory));
 
-    // // Deploy a new Signals contract using the factory
-    // address protocolAddress = factory.create(
-    //   alice,
-    //   address(token),
-    //   100_000 * 1e18, // 100k proposalThreshold
-    //   200_000, // 200k acceptanceThreshold
-    //   12, // lockDurationCap (months)
-    //   5, // proposalCap
-    //   1 // decayCurveType
-    // );
-    // console.log('SignalsContract', protocolAddress);
-    // Signals protocol = Signals(protocolAddress);
+    // Deploy a new Signals contract using the factory
+    address protocolAddress = factory.create(
+      alice,
+      address(token),
+      50_000 * 1e18, // 50k _proposalThreshold
+      200_000, // 200k _acceptanceThreshold
+      12, // lockDurationCap
+      5, // map active initiatives
+      1 hours, // decayInterval
+      0 // decayCurveType, linear
+    );
+    console.log('SignalsContract', protocolAddress);
+    Signals protocol = Signals(protocolAddress);
   }
 }
