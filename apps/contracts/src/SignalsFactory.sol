@@ -43,7 +43,7 @@ contract SignalsFactory {
     uint256 lockDurationCap,
     uint256 proposalCap,
     uint256 lockInterval,
-    uint256 decayCurveType
+    uint256 decayCurveType,
     uint256[] memory decayCurveParameters
   ) public payable returns  (address) {
     if (_owner == address(0)) revert InvalidOwnerAddress();

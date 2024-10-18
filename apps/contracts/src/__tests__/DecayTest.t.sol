@@ -24,6 +24,8 @@ contract DecayTest is Test {
   uint256 constant LOCK_INTERVAL = 1 days; // 1 day
   uint256 constant DECAY_CURVE_TYPE = 0; // Linear
 
+  uint256[] DECAY_CURVE_PARAMETERS = new uint256[](1);
+
   function setUp() public {
     deployer = address(this);
     alice = address(0x1111);
@@ -34,8 +36,7 @@ contract DecayTest is Test {
     // Deploy the Signals contract
     signalsContract = new Signals();
 
-    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1); // 0.9
-    DECAY_CURVE_PARAMETERS[0] = 9e17;
+    DECAY_CURVE_PARAMETERS[0] = 1e18;
 
     // Initialize the Signals contract
     signalsContract.initialize(
@@ -80,28 +81,43 @@ contract DecayTest is Test {
     vm.stopPrank();
   }
 
-  /**
-   * @notice Test the linear decay curve
-   */
+  /// @notice Test the linear decay curve
+  function testLinearDecayCurve() public pure {
+    uint256  lockDuration = 20;
+    uint256  lockAmount = 50_000 * 1e18;
+    uint256  currentInterval = 3;
+    uint256[] memory curveParameters = new uint256[](1);
+    
+    // A parameter value of 11e17 is the equivalent of 1.1 in base 1e18.
+    curveParameters[0] = 11e17;
+    // The starting weight will be 50k * 20 = 1M
+    // After 3 intervals, the weight should reduce by 3 / 20. Multiple by parameter means 3.3 / 20.
+    // 1M - (3.3 / 20 * 1M) = 165_000
+    assertEq(DecayCurves.linear(lockDuration, lockAmount, currentInterval, curveParameters), 835_000 * 1e18);
+  }
 
-  function testDecayCurves() public pure {
-    uint256  _lockDuration = 20;
-    uint256  _lockAmount = 50_000 * 1e18;
-    uint256  _currentInterval = 3;
-    uint256[] memory _curveParameters = new uint256[](1);
-    _curveParameters[0] = 9e17;
+  /// @notice Test the exponential decay curve
+  function testExponentialDecayCurve() public pure {
+    uint256  lockDuration = 20;
+    uint256  lockAmount = 50_000 * 1e18;
+    uint256  currentInterval = 3;
+    uint256[] memory curveParameters = new uint256[](1);
 
-    // Exponential:
     // A parameter value of 9e17 is the equivalent of 0.9 in base 1e18.
+    curveParameters[0] = 9e17;
     // The starting weight will be 50k * 20 = 1M
     // After 3 intervals, the weight should be 1M * 0.9^3 = 729_000
-    assertEq(DecayCurves.exponential(_lockDuration, _lockAmount, _currentInterval, _curveParameters), 729_000 * 1e18);
-    
-    // Linear:
-    // A parameter value of 11e17 is the equivalent of 1.1 in base 1e18.
-    // The starting weight will be 50k * 20 = 1M
-    // After 3 intervals, the weight should reduce by 3 / 20, times the parameter means 3.3 / 20.
-    // 1M * 3.3 / 20 = 165_000
-    assertEq(DecayCurves.exponential(_lockDuration, _lockAmount, _currentInterval, _curveParameters), 729_000 * 1e18);
+    assertEq(DecayCurves.exponential(lockDuration, lockAmount, currentInterval, curveParameters), 729_000 * 1e18);
+  }
+
+  /// @notice Passing 0 for interval must always return the starting weight
+  function testDecayIntervalZero() public pure {
+    uint256  lockDuration = 20;
+    uint256  lockAmount = 50_000 * 1e18;
+    uint256[] memory curveParameters = new uint256[](1);
+    curveParameters[0] = 9e17;
+
+    assertEq(DecayCurves.linear(lockDuration, lockAmount, 0, curveParameters), lockAmount * lockDuration);
+    assertEq(DecayCurves.exponential(lockDuration, lockAmount, 0, curveParameters), lockAmount * lockDuration);
   }
 }

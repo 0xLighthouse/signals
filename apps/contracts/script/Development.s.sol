@@ -63,6 +63,9 @@ contract DevelopmentScript is Script {
     factory = new SignalsFactory();
     console.log('FactoryContract', address(factory));
 
+    uint256[] memory params = new uint256[](1);
+    params[0] = 9e17;
+
     // Deploy a new Signals contract using the factory
     vm.broadcast(deployer);
     address protocolAddress = factory.create(
@@ -73,7 +76,8 @@ contract DevelopmentScript is Script {
       12, // lockDurationCap
       5, // map active initiatives
       1 hours, // decayInterval
-      0 // decayCurveType, linear
+      0, // decayCurveType, linear
+      params // decayCurveParameters
     );
 
     Signals protocol = Signals(protocolAddress);

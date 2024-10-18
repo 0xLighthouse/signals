@@ -5,44 +5,47 @@ import 'forge-std/console.sol';
 
 library DecayCurves {
   /// @notice Linear decay curve
-  /// @param _lockDuration Total number of intervals of lock
-  /// @param _lockAmount Amount of tokens locked
-  /// @param _currentInterval How many intervals have passed
-  /// @param _curveParameters Linear takes just one value. e.g. 1e18 = 1:1 linear decay
+  /// @param lockDuration Total number of intervals of lock
+  /// @param lockAmount Amount of tokens locked
+  /// @param currentInterval How many intervals have passed
+  /// @param curveParameters Linear takes just one value. e.g. 1e18 = 1:1 linear decay
   /// @return The weight of the lock at the current interval
 
-  function linear(uint256 _lockDuration, uint256 _lockAmount, uint256 _currentInterval, uint256[] memory _curveParameters) internal pure returns (uint256) {
+  function linear(uint256 lockDuration, uint256 lockAmount, uint256 currentInterval, uint256[] memory curveParameters) internal pure returns (uint256) {
 
-    require(_curveParameters.length == 1, 'Invalid curve parameters');
-    require(_currentInterval <= _lockDuration, 'Invalid interval');
+    require(curveParameters.length == 1, 'Invalid curve parameters');
+    require(currentInterval <= lockDuration, 'Invalid interval');
 
-    uint256 weight = _lockAmount * _lockDuration - _lockAmount * _currentInterval * _curveParameters[0] / 1e18;
-    if (weight < _lockAmount) {
-      return _lockAmount;
+    uint256 weight = lockAmount * lockDuration - lockAmount * currentInterval * curveParameters[0] / 1e18;
+    if (weight < lockAmount) {
+      return lockAmount;
     }
 
     return weight;
   }
 
   /// @notice Exponential decay curve
-  /// @param _lockDuration Total number of intervals of lock
-  /// @param _lockAmount Amount of tokens locked
-  /// @param _currentInterval How many intervals have passed
-  /// @param _curveParameters This curve takes just one value. e.g. 9e17 = 0.9 (10% reduced each interval)
+  /// @param lockDuration Total number of intervals of lock
+  /// @param lockAmount Amount of tokens locked
+  /// @param currentInterval How many intervals have passed
+  /// @param curveParameters This curve takes just one value. e.g. 9e17 = 0.9 (10% reduced each interval)
   /// @return The weight of the lock at the current interval
 
-  function exponential(uint256 _lockDuration, uint256 _lockAmount, uint256 _currentInterval, uint256[] memory _curveParameters) internal pure returns (uint256) {
+  function exponential(uint256 lockDuration, uint256 lockAmount, uint256 currentInterval, uint256[] memory curveParameters) internal pure returns (uint256) {
 
-    require(_curveParameters.length == 1, 'Invalid curve parameters');
-    require(_currentInterval <= _lockDuration, 'Invalid interval');
 
-    uint256 weight = _lockAmount * _lockDuration;
-    for (uint256 i = 0; i < _currentInterval; i++) {
-      console.log(i, weight);
-      weight = (weight * _curveParameters[0]) / 1e18;
+    require(curveParameters.length == 1, 'Invalid curve parameters');
+    require(currentInterval <= lockDuration, 'Invalid interval');
+
+    uint256 weight = lockAmount * lockDuration;
+    console.log("Starting Weight", weight);
+    console.log("currentInterval", currentInterval);
+    for (uint256 i = 0; i < currentInterval; i++) {
+      weight = (weight * curveParameters[0]) / 1e18;
+      console.log("Step", i, weight);
     }
-    if (weight < _lockAmount) {
-      return _lockAmount;
+    if (weight < lockAmount) {
+      return lockAmount;
     }
 
     return weight;

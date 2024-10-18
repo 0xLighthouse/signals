@@ -474,8 +474,8 @@ contract Signals is Ownable, ReentrancyGuard {
     return weights[initiativeId];
   }
 
-  function _calculateLockWeight(uint256 amount, uint256 duration) private pure returns (uint256) {
-    return amount * duration;
+  function _calculateLockWeight(uint256 amount, uint256 duration) private returns (uint256) {
+    return _calculateWeightAt(duration, amount, 0);
   }
 
   function _calculateWeight(
@@ -485,33 +485,22 @@ contract Signals is Ownable, ReentrancyGuard {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedTime = (timestamp - lockInfo.timestamp) / lockInterval;
-    if (elapsedTime >= lockInfo.weightedDuration) {
+    uint256 elapsedIntervals = (timestamp - lockInfo.timestamp) / lockInterval;
+    if (elapsedIntervals >= lockInfo.weightedDuration) {
       return 0;
     }
-    uint256 remainingDuration = lockInfo.weightedDuration - elapsedTime;
 
-    // Using a differential decay model instead of linear decay
-    // dW/dt = -k * W where k is a constant and W is the current weight
-    // W(t) = W0 * exp(-k * t)
-    // For simplicity, k is set to 1 / weightedDuration for an exponential decay over the duration
-    uint256 decayFactor = exp((elapsedTime * 1e18) / lockInfo.weightedDuration);
-    uint256 currentWeight = (lockInfo.totalAmount * remainingDuration * decayFactor);
-
-    return currentWeight;
+    return _calculateWeightAt(lockInfo.weightedDuration, lockInfo.totalAmount, elapsedIntervals);
   }
 
-  // TODO: Find a well tested library for this
-  function exp(uint256 x) internal pure returns (uint256) {
-    // Approximate exponential function using a simplified Taylor series expansion
-    // e^(-x) where x is scaled by 1e18
-    uint256 result = 1e18;
-    uint256 term = 1e18;
-    for (uint256 i = 1; i < 10; i++) {
-      term = (term * x) / (i * 1e18);
-      result += term;
+  function _calculateWeightAt(uint256 lockDuration, uint256 lockAmount, uint256 targetInterval) internal view returns (uint256) {
+    require(decayCurveType < 2, 'Invalid decayCurveType');
+
+    if (decayCurveType == 0) {
+      return DecayCurves.linear(lockDuration, lockAmount, targetInterval, decayCurveParameters);
+    } else {
+      return DecayCurves.exponential(lockDuration, lockAmount, targetInterval, decayCurveParameters);
     }
-    return 1e18 / result;
   }
 
   /// @notice Returns the address of the underlying token
