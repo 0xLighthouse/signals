@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import 'forge-std/console.sol';
 
@@ -435,9 +435,9 @@ contract Signals is Ownable, ReentrancyGuard {
   function getWeight(uint256 initiativeId) external view returns (uint256) {
     if (initiativeId >= count) revert InitiativeNotFound();
     uint256 totalCurrentWeight = 0;
-    address[] storage supporters = supporters[initiativeId];
-    for (uint256 i = 0; i < supporters.length; i++) {
-      address supporter = supporters[i];
+    address[] memory _supporters = supporters[initiativeId];
+    for (uint256 i = 0; i < _supporters.length; i++) {
+      address supporter = _supporters[i];
       LockInfo storage lockInfo = locks[initiativeId][supporter];
       uint256 currentWeight = _calculateWeight(lockInfo, block.timestamp);
       totalCurrentWeight += currentWeight;
@@ -505,11 +505,11 @@ contract Signals is Ownable, ReentrancyGuard {
     return underlyingToken;
   }
 
-  function totalProposals() external view returns (uint256 totalProposals) {
+  function totalProposals() external view returns (uint256) {
     return count;
   }
 
-  function totalSupporters(uint256 initiativeId) external view returns (uint256 totalSupporters) {
+  function totalSupporters(uint256 initiativeId) external view returns (uint256) {
     return supporters[initiativeId].length;
   }
 }

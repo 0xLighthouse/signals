@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import 'forge-std/Test.sol';
 import 'forge-std/mocks/MockERC20.sol';
@@ -53,7 +53,7 @@ contract SignalsTest is Test {
     deal(address(token), charlie, PROPOSAL_THRESHOLD / 2); // Charlie has 25k
   }
 
-  function testInitialState() public {
+  function testInitialState() public view {
     assertEq(signalsContract.owner(), address(deployer));
     assertEq(signalsContract.token(), address(token));
     assertEq(signalsContract.proposalThreshold(), PROPOSAL_THRESHOLD);
@@ -82,7 +82,9 @@ contract SignalsTest is Test {
     vm.startPrank(alice);
     token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
 
-    // Propose an initiative
+    vm.expectEmit();
+    emit Signals.InitiativeProposed(0, alice, 'Initiative 1', 'Description 1');
+
     signalsContract.proposeInitiative('Initiative 1', 'Description 1');
 
     // Check that the initiative is stored correctly
@@ -102,8 +104,15 @@ contract SignalsTest is Test {
     vm.startPrank(bob);
     token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
 
+    uint256 balanceBefore = token.balanceOf(bob);
+    uint256 lockedAmount = 50_000 * 1e18;
+
     // Propose an initiative with lock
-    signalsContract.proposeInitiativeWithLock('Initiative 2', 'Description 2', 200 * 1e18, 6);
+    vm.expectEmit();
+    emit Signals.InitiativeProposed(0, bob, 'Initiative 2', 'Description 2');
+    signalsContract.proposeInitiativeWithLock('Initiative 2', 'Description 2', lockedAmount, 6);
+
+    assertEq(token.balanceOf(bob), balanceBefore - lockedAmount);
 
     // Check that the initiative is stored correctly
     Signals.Initiative memory initiative = signalsContract.getInitiative(0);
@@ -114,7 +123,7 @@ contract SignalsTest is Test {
 
     // Check that the lock info is stored
     (uint256 amount, uint256 duration, , bool withdrawn) = signalsContract.locks(0, bob);
-    assertEq(amount, 200 * 1e18);
+    assertEq(amount, lockedAmount);
     assertEq(duration, 6);
     assertEq(withdrawn, false);
 
