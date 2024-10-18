@@ -17,5 +17,5 @@ export const Actions = () => {
     return <div>Loading...</div>
   }
 
-  return <div>{isConnected ? <Submission /> : <ConnectCTAPanel />}</div>
+  return isConnected ? null : <ConnectCTAPanel />
 }

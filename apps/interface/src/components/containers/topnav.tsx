@@ -1,7 +1,7 @@
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { HomeLogo } from '@/components/ui/home-logo'
 import { ConnectButton } from '@/components/web3/connect-button'
-import { InitiativeDrawer } from '../initiative-drawer'
+import { InitiativeDrawer } from '../drawers/initiative-drawer'
 
 export const TopNav = () => {
   return (
