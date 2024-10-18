@@ -44,7 +44,8 @@ contract SignalsFactory {
     uint256 proposalCap,
     uint256 lockInterval,
     uint256 decayCurveType
-  ) public payable returns (address) {
+    uint256[] memory decayCurveParameters
+  ) public payable returns  (address) {
     if (_owner == address(0)) revert InvalidOwnerAddress();
 
     // Initialize the new Signals contract
@@ -57,7 +58,8 @@ contract SignalsFactory {
       lockDurationCap,
       proposalCap,
       lockInterval,
-      decayCurveType
+      decayCurveType,
+      decayCurveParameters
     );
 
     // Emit an event for the creation of the new contract

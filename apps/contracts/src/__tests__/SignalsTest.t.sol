@@ -34,6 +34,9 @@ contract SignalsTest is Test {
     // Deploy the Signals contract
     signalsContract = new Signals();
 
+    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1);
+    DECAY_CURVE_PARAMETERS[0] = 9e17;
+
     // Initialize the Signals contract
     signalsContract.initialize(
       deployer,
@@ -43,7 +46,8 @@ contract SignalsTest is Test {
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
       LOCK_INTERVAL,
-      DECAY_CURVE_TYPE
+      DECAY_CURVE_TYPE,
+      DECAY_CURVE_PARAMETERS
     );
 
     // Mint tokens to participants

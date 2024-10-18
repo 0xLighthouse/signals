@@ -5,8 +5,10 @@ import 'forge-std/Test.sol';
 import 'forge-std/mocks/MockERC20.sol';
 
 import {Signals} from '../Signals.sol';
+import {DecayCurves} from '../DecayCurves.sol';
 
 contract DecayTest is Test {
+
   Signals signalsContract;
 
   MockERC20 token;
@@ -32,6 +34,9 @@ contract DecayTest is Test {
     // Deploy the Signals contract
     signalsContract = new Signals();
 
+    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1); // 0.9
+    DECAY_CURVE_PARAMETERS[0] = 9e17;
+
     // Initialize the Signals contract
     signalsContract.initialize(
       deployer,
@@ -41,7 +46,8 @@ contract DecayTest is Test {
       LOCK_DURATION_CAP,
       PROPOSAL_CAP,
       LOCK_INTERVAL,
-      DECAY_CURVE_TYPE
+      DECAY_CURVE_TYPE,
+      DECAY_CURVE_PARAMETERS
     );
 
     // Mint tokens to participants
@@ -72,5 +78,30 @@ contract DecayTest is Test {
     }
 
     vm.stopPrank();
+  }
+
+  /**
+   * @notice Test the linear decay curve
+   */
+
+  function testDecayCurves() public pure {
+    uint256  _lockDuration = 20;
+    uint256  _lockAmount = 50_000 * 1e18;
+    uint256  _currentInterval = 3;
+    uint256[] memory _curveParameters = new uint256[](1);
+    _curveParameters[0] = 9e17;
+
+    // Exponential:
+    // A parameter value of 9e17 is the equivalent of 0.9 in base 1e18.
+    // The starting weight will be 50k * 20 = 1M
+    // After 3 intervals, the weight should be 1M * 0.9^3 = 729_000
+    assertEq(DecayCurves.exponential(_lockDuration, _lockAmount, _currentInterval, _curveParameters), 729_000 * 1e18);
+    
+    // Linear:
+    // A parameter value of 11e17 is the equivalent of 1.1 in base 1e18.
+    // The starting weight will be 50k * 20 = 1M
+    // After 3 intervals, the weight should reduce by 3 / 20, times the parameter means 3.3 / 20.
+    // 1M * 3.3 / 20 = 165_000
+    assertEq(DecayCurves.exponential(_lockDuration, _lockAmount, _currentInterval, _curveParameters), 729_000 * 1e18);
   }
 }
