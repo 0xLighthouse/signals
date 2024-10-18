@@ -9,6 +9,7 @@ import { Web3Provider } from '@/contexts/Web3Provider'
 
 import './globals.css'
 import { TokenProvider } from '@/contexts/ContractContext'
+import { ProtocolProvider } from '@/contexts/SignalsContext'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -40,7 +41,7 @@ export default function RootLayout({
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
             <TokenProvider>
-              {children}
+              <ProtocolProvider>{children}</ProtocolProvider>
               <Toaster />
             </TokenProvider>
           </Web3Provider>

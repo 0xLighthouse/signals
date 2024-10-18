@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CassetteTape, ChevronUp, Monitor, Search, TrendingUp } from 'lucide-react'
 
@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button'
 import { Chart } from './chart'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
+import { useSignals } from '@/contexts/SignalsContext'
 
 // import data from '@/config/proposals.json'
 // import { Money } from '@phosphor-icons/react'
@@ -17,7 +18,10 @@ import { NormalisedInitiative } from '@/app/api/initiatives/route'
 // })) satisfies NormalisedInitiative[]
 
 export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archived' }) => {
+  const { initiativesCount } = useSignals()
   const [initiatives, setInitiatives] = useState<NormalisedInitiative[]>([]) // Ensure it's initialized as an empty array
+
+  console.log('count initiatives', initiativesCount)
 
   useEffect(() => {
     fetch('/api/initiatives')

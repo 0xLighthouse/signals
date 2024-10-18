@@ -44,7 +44,7 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
       if (!address) return
 
       try {
-        const contract = getContract({
+        const token = getContract({
           address: ERC20_ADDRESS,
           abi: ABI,
           client: readClient,
@@ -52,11 +52,11 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
 
         // Fetch contract data in parallel using Promise.all
         const [name, symbol, decimals, totalSupply, balance] = await Promise.all([
-          contract.read.name(),
-          contract.read.symbol(),
-          contract.read.decimals(),
-          contract.read.totalSupply(),
-          contract.read.balanceOf([address]),
+          token.read.name(),
+          token.read.symbol(),
+          token.read.decimals(),
+          token.read.totalSupply(),
+          token.read.balanceOf([address]),
         ])
 
         // Update state with fetched metadata
