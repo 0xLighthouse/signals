@@ -13,10 +13,8 @@ export function Initiatives() {
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
         <Button>
-          <div className="flex items-center gap-2">
-            <PlusIcon size={16} />
-            <p>New Initiative</p>
-          </div>
+          <PlusIcon size={16} />
+          New Initiative
         </Button>
       </div>
       <TabsContent value="active">
