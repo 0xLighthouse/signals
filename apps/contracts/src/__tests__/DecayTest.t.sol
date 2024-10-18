@@ -53,23 +53,23 @@ contract DecayTest is Test {
    * @notice Test proposing an initiative with locked tokens
    */
   function testProposeInitiativeWithLock() public {
-    // Approve tokens
     vm.startPrank(alice);
     token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
 
     // Propose an initiative with lock
-
-    // 50k * 6 months shoud
+    // 50k over 6 days should be 300k
     signalsContract.proposeInitiativeWithLock('Test Locks', 'Description 2', PROPOSAL_THRESHOLD, 6);
 
     // Check that the lock info is stored
     uint256 weight = signalsContract.getWeight(0);
     assertEq(weight, PROPOSAL_THRESHOLD * 6);
 
-    // Show that the weight has decayed
-    skip(1 days);
-    weight = signalsContract.getWeight(0);
-    assertLt(weight, PROPOSAL_THRESHOLD * 6);
+    // Weight should decay linearly over 6 days
+    for (uint256 i = 6; i > 0; i--) {
+      skip(1 days);
+      weight = signalsContract.getWeight(0);
+      assertEq(weight, PROPOSAL_THRESHOLD * (i - 1));
+    }
 
     vm.stopPrank();
   }

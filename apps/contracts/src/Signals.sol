@@ -72,7 +72,7 @@ contract Signals is Ownable, ReentrancyGuard {
   struct LockInfo {
     /// @dev Total amount of tokens locked by the supporter for this initiative
     uint256 totalAmount;
-    /// @dev Weighted average duration of the lock in months
+    /// @dev Weighted average duration of the lock in intervals
     uint256 weightedDuration;
     /// @dev Timestamp of the last update to this lock
     uint256 timestamp;
@@ -425,6 +425,11 @@ contract Signals is Ownable, ReentrancyGuard {
 
   function balanceOf(address account) public view returns (uint256) {
     return IERC20(underlyingToken).balanceOf(account);
+  }
+
+  function getSupporters(uint256 initiativeId) external view returns (address[] memory) {
+    if (initiativeId >= count) revert InitiativeNotFound();
+    return supporters[initiativeId];
   }
 
   function getWeight(uint256 initiativeId) external view returns (uint256) {

@@ -52,7 +52,18 @@ contract SignalsTest is Test {
     deal(address(token), bob, PROPOSAL_THRESHOLD * 2); // Bob has 100k
     deal(address(token), charlie, PROPOSAL_THRESHOLD / 2); // Charlie has 25k
   }
-  
+
+  function testInitialState() public {
+    assertEq(signalsContract.owner(), address(deployer));
+    assertEq(signalsContract.token(), address(token));
+    assertEq(signalsContract.proposalThreshold(), PROPOSAL_THRESHOLD);
+    assertEq(signalsContract.acceptanceThreshold(), ACCEPTANCE_THRESHOLD);
+    assertEq(signalsContract.maxLockIntervals(), LOCK_DURATION_CAP);
+    assertEq(signalsContract.proposalCap(), PROPOSAL_CAP);
+    assertEq(signalsContract.lockInterval(), LOCK_INTERVAL);
+    assertEq(signalsContract.decayCurveType(), DECAY_CURVE_TYPE);
+  }
+
   /**
    * @notice Test revert when proposing an initiative with insufficient tokens
    */
