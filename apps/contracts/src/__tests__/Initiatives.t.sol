@@ -12,99 +12,99 @@ import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
 
 contract InitiativesTest is Test {
-  SignalsFactory factory;
-  MockERC20 someERC20;
+  SignalsFactory _factory;
+  MockERC20 _someERC20;
 
-  address deployer;
-  address instance;
+  address _deployer;
+  address _instance;
 
-  address alice;
-  address bob;
-  address charlie;
+  address _alice;
+  address _bob;
+  address _charlie;
 
   // Parameters
-  uint256 constant PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
-  uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
-  uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
-  uint256 constant PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
-  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
+  uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
+  uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
+  uint256 constant _LOCK_DURATION_CAP = 365 days; // 1 year
+  uint256 constant _PROPOSAL_CAP = 100; // 100 proposals
+  uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
   function setUp() public {
-    deployer = address(this);
-    alice = address(0x1111);
-    bob = address(0x2222);
-    charlie = address(0x3333);
+    _deployer = address(this);
+    _alice = address(0x1111);
+    _bob = address(0x2222);
+    _charlie = address(0x3333);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    someERC20 = new MockERC20();
-    someERC20.initialize('MockToken', 'MTK', 18);
+    _someERC20 = new MockERC20();
+    _someERC20.initialize('MockToken', 'MTK', 18);
     uint256 initialSupply = 1_000_000 * 1e18;
-    deal(address(someERC20), deployer, initialSupply);
+    deal(address(_someERC20), _deployer, initialSupply);
 
     // Distribute tokens to test addresses
-    deal(address(someERC20), alice, 200_000 * 1e18);
-    deal(address(someERC20), bob, 200_000 * 1e18);
-    deal(address(someERC20), charlie, 40_000 * 1e18);
+    deal(address(_someERC20), _alice, 200_000 * 1e18);
+    deal(address(_someERC20), _bob, 200_000 * 1e18);
+    deal(address(_someERC20), _charlie, 40_000 * 1e18);
 
     // Deploy SignalsFactory with the Signals implementation
-    factory = new SignalsFactory();
+    _factory = new SignalsFactory();
 
     // Ensure the caller is the owner
-    vm.prank(deployer);
+      vm.prank(_deployer);
 
-    uint256[] memory DECAY_CURVE_PARAMETERS = new uint256[](1); // 0.9
-    DECAY_CURVE_PARAMETERS[0] = 9e17;
+    uint256[] memory _decayCurveParameters = new uint256[](1); // 0.9
+    _decayCurveParameters[0] = 9e17;
 
     // Deploy a new Signals contract using the factory
-    instance = factory.create(
-      alice,
-      address(someERC20),
-      PROPOSAL_THRESHOLD,
-      ACCEPTANCE_THRESHOLD,
-      LOCK_DURATION_CAP,
-      PROPOSAL_CAP,
-      LOCK_INTERVAL,
-      DECAY_CURVE_TYPE,
-      DECAY_CURVE_PARAMETERS
+    _instance = _factory.create(
+      _alice,
+      address(_someERC20),
+      _PROPOSAL_THRESHOLD,
+      _ACCEPTANCE_THRESHOLD,
+      _LOCK_DURATION_CAP,
+      _PROPOSAL_CAP,
+      _LOCK_INTERVAL,
+      _DECAY_CURVE_TYPE,
+      _decayCurveParameters
     );
   }
 
   function testRevertProposeInitiativeWithInsufficientTokens() public {
     // Impersonate Charlie
-    vm.startPrank(charlie);
+    vm.startPrank(_charlie);
 
     string memory title = 'Insufficient Tokens Initiative';
     string memory body = 'This initiative should fail due to insufficient tokens';
 
     // Approve the contract to spend the tokens
-    someERC20.approve(address(instance), 40_000);
+    _someERC20.approve(address(_instance), 40_000);
 
-    Signals signals = Signals(instance);
+    Signals instance = Signals(_instance);
 
     // Charlie has InsufficientTokens, so this should revert
     vm.expectRevert(Signals.InsufficientTokens.selector);
-    signals.proposeInitiative(title, body);
+    instance.proposeInitiative(title, body);
   }
 
   /// @notice Test proposing an initiative with empty title or body
   function testProposeInitiativeWithEmptyTitleOrBody() public {
-    vm.startPrank(alice);
+    vm.startPrank(_alice);
 
     // Load the Signals contract instance
-    Signals _instance = Signals(instance);
+    Signals instance = Signals(_instance);
 
     // Attempt to propose with empty title
     vm.expectRevert(
       abi.encodeWithSelector(Signals.InvalidInput.selector, 'Title or body cannot be empty')
     );
-    _instance.proposeInitiative('', 'Some body');
+    instance.proposeInitiative('', 'Some body');
 
     // Attempt to propose with empty body
     vm.expectRevert(
       abi.encodeWithSelector(Signals.InvalidInput.selector, 'Title or body cannot be empty')
     );
-    _instance.proposeInitiative('Some title', '');
+    instance.proposeInitiative('Some title', '');
 
     vm.stopPrank();
   }
@@ -139,51 +139,34 @@ contract InitiativesTest is Test {
 
   function testProposeInitiativeWithLock() public {
     // Bob has enough tokens to propose an initiative with a lock
-    vm.prank(bob);
+    vm.prank(_bob);
 
     // Load the Signals contract instance
-    Signals _instance = Signals(instance);
+    Signals instance = Signals(_instance);
 
     string memory title = 'Test Proposing Initiative with Locks';
     string memory body = 'This initiative should be proposed with a lock';
 
     uint256 amountToLock = 100_000 * 1e18;
 
-    console.log('Bob balance:', someERC20.balanceOf(bob));
-    console.log('Decimals:', someERC20.decimals());
+    console.log('Bob balance:', _someERC20.balanceOf(_bob));
+    console.log('Decimals:', _someERC20.decimals());
 
     // Approve the contract to spend the tokens
-    vm.startPrank(bob);
-    someERC20.approve(address(_instance), amountToLock);
-    _instance.proposeInitiativeWithLock(title, body, amountToLock, 1);
+    vm.startPrank(_bob);
+    _someERC20.approve(address(_instance), amountToLock);
+    instance.proposeInitiativeWithLock(title, body, amountToLock, 1);
     vm.stopPrank();
 
     // Retrieve the initiative and check the details
-    Signals.Initiative memory initiative = _instance.getInitiative(0);
+    Signals.Initiative memory initiative = instance.getInitiative(0);
     assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
     assertEq(initiative.title, title);
     assertEq(initiative.body, body);
-    assertEq(address(initiative.proposer), bob);
-
-    // Check the weight
-    uint256 weight = _instance.getWeightAt(0, block.timestamp);
+    assertEq(address(initiative.proposer), _bob);
 
     // The weight should be equal to the amount of tokens locked
-    console.log('Current weight:', weight);
-
-    // TODO: FIXME
-    // TODO: FIXME
-    // TODO: FIXME
-    // TODO: FIXME
+    uint256 weight = instance.getWeightAt(0, block.timestamp);
     assertEq(weight, amountToLock);
-
-    // // Let charlie vote
-    // vm.startPrank(charlie);
-    // someERC20.approve(address(_instance), amount);
-    // _instance.supportInitiative(0, amount / 2, 4); // 50% less but double the duration
-    // vm.stopPrank();
-
-    // uint256 weight2 = _instance.getWeight(0);
-    // assertEq(weight2, 300_000 * 1e18); // 100% more weight
   }
 }

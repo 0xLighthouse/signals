@@ -8,73 +8,73 @@ import {Signals} from '../Signals.sol';
 import {DecayCurves} from '../DecayCurves.sol';
 
 contract DecayTest is Test {
-  Signals signalsContract;
+  Signals _signalsContract;
 
-  MockERC20 token;
+  MockERC20 _token;
 
-  address deployer;
-  address alice;
-  address bob;
+  address _deployer;
+  address _alice;
+  address _bob;
 
-  uint256 constant PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
-  uint256 constant ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
-  uint256 constant LOCK_DURATION_CAP = 365 days; // 1 year
-  uint256 constant PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant LOCK_INTERVAL = 1 days; // 1 day
-  uint256 constant DECAY_CURVE_TYPE = 0; // Linear
+  uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
+  uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
+  uint256 constant _LOCK_DURATION_CAP = 365 days; // 1 year
+  uint256 constant _PROPOSAL_CAP = 100; // 100 proposals
+  uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
+  uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
-  uint256[] DECAY_CURVE_PARAMETERS = new uint256[](1);
+  uint256[] _decayCurveParameters = new uint256[](1);
 
   function setUp() public {
-    deployer = address(this);
-    alice = address(0x1111);
+    _deployer = address(this);
+    _alice = address(0x1111);
 
     // Deploy the mock ERC20 token
-    token = new MockERC20();
+    _token = new MockERC20();
 
     // Deploy the Signals contract
-    signalsContract = new Signals();
+    _signalsContract = new Signals();
 
-    DECAY_CURVE_PARAMETERS[0] = 1e18;
+    _decayCurveParameters[0] = 1e18;
 
     // Initialize the Signals contract
-    signalsContract.initialize(
-      deployer,
-      address(token),
-      PROPOSAL_THRESHOLD,
-      ACCEPTANCE_THRESHOLD,
-      LOCK_DURATION_CAP,
-      PROPOSAL_CAP,
-      LOCK_INTERVAL,
-      DECAY_CURVE_TYPE,
-      DECAY_CURVE_PARAMETERS
+    _signalsContract.initialize(
+      _deployer,
+      address(_token),
+      _PROPOSAL_THRESHOLD,
+      _ACCEPTANCE_THRESHOLD,
+      _LOCK_DURATION_CAP,
+      _PROPOSAL_CAP,
+      _LOCK_INTERVAL,
+      _DECAY_CURVE_TYPE,
+      _decayCurveParameters
     );
 
     // Mint tokens to participants
     // Distribute tokens to test addresses
-    deal(address(token), alice, PROPOSAL_THRESHOLD); // Alice has 50k
+    deal(address(_token), _alice, _PROPOSAL_THRESHOLD); // Alice has 50k
   }
 
   /**
    * @notice Test proposing an initiative with locked tokens
    */
   function testProposeInitiativeWithLock() public {
-    vm.startPrank(alice);
-    token.approve(address(signalsContract), PROPOSAL_THRESHOLD);
+    vm.startPrank(_alice);
+    _token.approve(address(_signalsContract), _PROPOSAL_THRESHOLD);
 
     // Propose an initiative with lock
     // 50k over 6 days should be 300k
-    signalsContract.proposeInitiativeWithLock('Test Locks', 'Description 2', PROPOSAL_THRESHOLD, 6);
+    _signalsContract.proposeInitiativeWithLock('Test Locks', 'Description 2', _PROPOSAL_THRESHOLD, 6);
 
     // Check that the lock info is stored
-    uint256 weight = signalsContract.getWeightAt(0, block.timestamp);
-    assertEq(weight, PROPOSAL_THRESHOLD * 6);
+    uint256 weight = _signalsContract.getWeightAt(0, block.timestamp);
+    assertEq(weight, _PROPOSAL_THRESHOLD * 6);
 
     // Weight should decay linearly over 6 days
     for (uint256 i = 6; i > 0; i--) {
       skip(1 days);
-      weight = signalsContract.getWeightAt(0, block.timestamp);
-      assertEq(weight, PROPOSAL_THRESHOLD * (i - 1));
+      weight = _signalsContract.getWeightAt(0, block.timestamp);
+      assertEq(weight, _PROPOSAL_THRESHOLD * (i - 1));
     }
 
     vm.stopPrank();

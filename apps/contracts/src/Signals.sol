@@ -105,7 +105,7 @@ contract Signals is Ownable, ReentrancyGuard {
   mapping(address => uint256[]) public pendingWithdrawals;
 
   /// @dev (supporter => (id => index))
-  mapping(address => mapping(uint256 => uint256)) private pendingWithdrawalIndex;
+  mapping(address => mapping(uint256 => uint256)) private _pendingWithdrawalIndex;
 
   /// @dev {n} total initiatives
   uint256 public count = 0;
@@ -379,15 +379,15 @@ contract Signals is Ownable, ReentrancyGuard {
 
   //TODO: Redo withdrawal tracking
   function _addPendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    if (pendingWithdrawalIndex[supporter][initiativeId] != 0) {
+    if (_pendingWithdrawalIndex[supporter][initiativeId] != 0) {
       return;
     }
     pendingWithdrawals[supporter].push(initiativeId);
-    pendingWithdrawalIndex[supporter][initiativeId] = pendingWithdrawals[supporter].length;
+    _pendingWithdrawalIndex[supporter][initiativeId] = pendingWithdrawals[supporter].length;
   }
 
   function _removePendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    uint256 index = pendingWithdrawalIndex[supporter][initiativeId];
+    uint256 index = _pendingWithdrawalIndex[supporter][initiativeId];
     if (index == 0) revert InitiativeNotFound();
     index -= 1;
 
@@ -395,10 +395,10 @@ contract Signals is Ownable, ReentrancyGuard {
     if (index != lastIndex) {
       uint256 lastInitiativeId = pendingWithdrawals[supporter][lastIndex];
       pendingWithdrawals[supporter][index] = lastInitiativeId;
-      pendingWithdrawalIndex[supporter][lastInitiativeId] = index + 1;
+      _pendingWithdrawalIndex[supporter][lastInitiativeId] = index + 1;
     }
     pendingWithdrawals[supporter].pop();
-    delete pendingWithdrawalIndex[supporter][initiativeId];
+    delete _pendingWithdrawalIndex[supporter][initiativeId];
   }
 
   function getInitiative(uint256 initiativeId) external view initiativeExists(initiativeId) returns (Initiative memory) {
