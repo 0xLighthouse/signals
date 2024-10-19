@@ -126,7 +126,7 @@ contract SignalsTest is Test {
     assertEq(initiative.proposer, bob);
 
     // Check that the lock info is stored
-    (uint256 amount, uint256 duration, , bool withdrawn) = signalsContract.locks(0, bob);
+    (uint256 amount, uint256 duration, , bool withdrawn) = signalsContract.locks(0, bob, 0);
     assertEq(amount, lockedAmount);
     assertEq(duration, 6);
     assertEq(withdrawn, false);
