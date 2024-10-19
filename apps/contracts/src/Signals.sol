@@ -237,7 +237,7 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param amount Amount of tokens to lock
   /// @param intervals Duration for which tokens are locked (in months)
   // TODO: Rename this to increaseLock
-  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external {
+  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external exists(initiativeId) {
     _addLock(initiativeId, msg.sender, amount, intervals);
   }
 
@@ -247,7 +247,6 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 amount,
     uint256 duration
   ) internal {
-    if (initiativeId >= count) revert InitiativeNotFound();
     if (duration == 0 || duration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
     if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
 
