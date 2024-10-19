@@ -9,9 +9,66 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import './DecayCurves.sol';
 
-/// @title Signals
+/**
+ * @title Signals by Lighthouse <https://lighthouse.cx>
+ *
+ *                                        * .,
+ *                                      * ,i:;,
+ *                                    * 1 ;ti:
+ *                                   * :;;t. i:..:
+ *                                  * .i;i   .f;1i;          .,,.
+ *                                 * i:f..., ;1. i1,,   ...::,::;,
+ *                                * :ift:;;:ii,   i1,;::;1ii;,.::1:
+ *                               * .Ct:   .:it     ;:      :;11i;;1;::.
+ *                            * .:Ct.  .:i, :;     :i. .,;::;;;ii;;.,:;,
+ * ,,,,,,,,,,,,,,,::,,::,:::;:;11:  ,11,  .,1i     ,1ii;;:,,,:;; ,i,  ;;;:,,,,,,,,,,,,,,:,:,,,,,,
+ * ;;;;;:::::::::::::::::;;::ii,   ;1i ..,i, ,i     .,,;;,     :;  :;: .:;;;;;:::::::::::::::::::
+ * ::::::::::::::::::::,::::;,   :f1, i;:t    i:     ,;:.,;i;;:,;t,  ,;;;:::,::::::::::::::::::::
+ * ,:,:::::::::::::::::::;;,  ,;:;, .fi;::i.   ti;;ii:. .,;:;;:, ;f:.   ,;;;:::::::::::,,,,,,::::
+ * :::::;:::::::::::::::::,;ii;.   .Lt  :11i1::ii:;:,:::;i;...,i: ,1;;::,,,,::::::::::::::,:::,:,
+ * ,,,,,,,,,,,,,::::::::;;;:.     .Lf,   .::;;;1     .  ,;ti;iti1i,,,:::;;;::,::::,::::::::::::::
+ * ::::::::::::::,,,,,::,,...,,,:it1i      ;1i,,1i:;::;:i: ,...;i..::::,,,,::::,,,:,,,,,,,,,,,,,,
+ * ,::,,,,,,,:::::::::,::;;;;;itf;.i.     ;; ,ii,...            ti;:::;;;;;:::::::::::,,,:,,:::::
+ * ,::::::::::,,,:,:::::,,.,,::, .1;    .i,   .;;,.        ..,:,:1:,:ii,...,,:,,,,,::::::::::::::
+ * ,:::::::::::::::,,,,:,,:::,,::;i    :;,       .,::::,;;;;::.,;t,  .;ii;:::::::::::::::::,,,,,,
+ * ,,,,,,,,,,,,,,,::::::::::,,,..i.  ;ti     :;:;..  ,if;:.      ;f;.   .,,,,,,,,,,,,,,,,,,::::::
+ * ,:,,,::::::::::,,,,,:,,:::::i1. ,11,  , ,;:.,.::i.  .;,     .. ,f1;::::,,::::::::::::::::::::,
+ * ,::,::::::::::::::::::::::,:,.:t1, ,:;:1;. ,,   ,;:   i;.,,;:::::1i;:,:::,,:,,,,,,,,,,,:,,,::,
+ * ,,:::,,,,,,,,,::::::,::,:,,:;i11:,1:  .;i.;;,i,  .;1;i;1;,:t;:::,:ii;:,,::,,,,,,,,,,,,,,,,,,,,
+ * :::::,,,,,,,,,,,,,,,,,,,,:::;ii, ::,;;:1i:t  .11;:,,,i1.:;;,  .;;,..,::,,,,,::,:,,,,,,,,,,,,::
+ * .,,,,,,,::,,::::::::::::::;ii:,:ti,ti  ,;i,    :;:,  .:1;::::   :t;;;,,,,::::::::,,,,,,,,,,::,
+ * :::::::::::::,,,,,,,,,:;;i;..,:11.tt    .1,      .:1;:,.    :i:    ,1fti;:::,,,,::::::::::::::
+ * ,,,,,,,,,,,,,,,,,,,,,:,,,,,:::;: :L.      :i:;;..:;,          :i:,    ,;;;::,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,,,. .,;:,1t;:;.     ,t,,:;;      .      .1;;,     .,:,,,,,,,,,,,,,,,::,
+ * ,,,,,,,,,,,,,:::,:,::,,,,,;;;;::i   .i:    .ii::::;;:::::::::.  .i::;i;::,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,::::;ii;;, 1. ....:;,,;;.        .,     :ti. .i,.,:::::::::::,:,:,,,,,,,,,
+ * ,:,:::::,::,:::,,,,,,,::;:,. .i, :;::i;;1it1;,      ;::;:::;:.:f;  ,::,,,,,,....,,,,,:::::::::
+ * ,,,,,,,,,,,,,,,,,,,,,,,.     1. ,i .;:: ;1i:,i:   .i:, ,:,.    ,Li.  ..,,,:,::::,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,,,:::1, .i  1.  ;.,;:  ;i:;t;iit;,::::;:,,t1:,,,,,,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,::::::::,:,:,,:i:  1. ;:.:i,i. ,i, :;ii:,,.     :1.   11:,,,,,,,,,,,,,,,,,,,,,,,,,
+ * ::,,,,,,,,,,..........,,:;i, .i,.:;:;,  .;;,.:;;:,..,,::;,.,..1.   ;tt1;:,,,,,,,,,,,,,,,,,,,,,
+ * .,,,,,:,,,,,:,:,:::::::;::,,:;:;:,;t,...  .;:::::::.  ...,:it1ii,,.  .:ii;::,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,,.....,i. :1,,:::;;.  .    ,:::,:::,. ,i..,;;.   .,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,...,,,,,,,,,,,,,.,,,:;: .i;       ,i:                  ,i   ,;;:,,,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,:;ii:..:;,          :;:,..              :i    :i;::,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,,. .:;:.          .   .,::;,    .. .,:::.:1:    ..,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,,;i;,         ,;:;11;;:,   ::,,:ii1:;i:;i,:1t;:,,...,,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,:;;;,         :1i.     :ii1;ii;i;;:,    .;;;. .:;i;;::::,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,..       ..,:;1;         .. .,:;;:...,,;;,:i;:.    ....,,,,,,,,,,,,,,,,,,
+ * ,,,,,,,,,,,,,,,,,,,,,,,:,,,,:::::;;.                  .,::,,.   ,;;:::,,,,,,,,,,,,,,,,,,,,,,,,
+ * ,,,,,..................,,,,,,,:::,                               .:::,,,,,,,,::::,,,,,,...,,..
+ * ,,,,,,,,,,,,,,,,,,:,,,,,,,,,,,.                                     .,,,,,,,,,..,,,,,,,,,,,,,,
+ *
+ *
+ *
+ * @notice Managing community initiatives with ERC20 tokens
+ *
+ * @author 1a35e1.eth <arnold@lighthouse.cx>
+ * @author jkm.eth <james@lighthouse.cx>
+ * @author Patakk (Artist) <https://patakk.tumblr.com/>
+ */
 contract Signals is Ownable, ReentrancyGuard {
-  // @notice Possible initiative states
+  /// @notice Possible initiative states
   enum InitiativeState {
     Proposed,
     Accepted,
@@ -39,9 +96,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Maximum number of proposals allowed
   uint256 public proposalCap;
 
-  /// @notice Interval used for lockup duration and calculating the decay curve
-  /// Lockup durations are specified in the number of intervals, and the decay curve is also applied
-  /// per interval (e.g. interval of [1 day] means the weight of the lock would only be updated once per day
+
+  /**
+   * @notice Interval used for lockup duration and calculating the decay curve
+   * 
+   * Lockup durations are specified in the number of intervals, and the decay curve is also applied
+   * per interval (e.g. interval of [1 day] means the weight of the lock would only be updated once per day
+   */
   uint256 public lockInterval;
 
   /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
@@ -56,33 +117,38 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
   uint256 public activityTimeout = 60 days;
 
-  /// @notice Represents an initiative in the Signals contract
-  /// @dev Stores all relevant information about a single initiative
+  /**
+   * @notice Represents an initiative in the Signals contract
+   * @dev Stores all relevant information about a single initiative
+   * 
+   * @param title The title of the initiative
+   * @param body The detailed body of the initiative in markdown format
+   * @param state The current state of the initiative
+   * @param proposer The address of the account that proposed this initiative
+   * @param timestamp The timestamp when the initiative was created
+   * @param lastActivity Used to determine if an initiative has become inactive and can be expired
+   */
   struct Initiative {
-    /// @notice The title of the initiative
     string title;
-    /// @notice The detailed body of the initiative in markdown format
     string body;
-    /// @notice The current state of the initiative
     InitiativeState state;
-    /// @notice The address of the account that proposed this initiative
     address proposer;
-    /// @notice The timestamp when the initiative was created
     uint256 timestamp;
-    /// @notice The timestamp of the last activity on the initiative
-    /// @dev Used to determine if an initiative has become inactive and can be expired
     uint256 lastActivity;
   }
 
-  /// @notice Struct to store lock information for each lockup
+  /**
+   * @notice Struct to store lock information for each lockup
+   * 
+   * @param tokenAmount Amount of tokens locked
+   * @param lockDuration Total duration of the lock in intervals
+   * @param created Timestamp of when the lock was created
+   * @param withdrawn Flag indicating whether the locked tokens have been withdrawn
+   */
   struct LockInfo {
-    /// @dev Amount of tokens locked
     uint256 tokenAmount;
-    /// @dev Totel duration of the lock in intervals
     uint256 lockDuration;
-    /// @dev Timestamp of when the lock was created
     uint256 created;
-    /// @dev Flag indicating whether the locked tokens have been withdrawn
     bool withdrawn;
   }
 
@@ -180,15 +246,21 @@ contract Signals is Ownable, ReentrancyGuard {
     _;
   }
 
-  /// @notice Allows the owner to update the inactivity threshold
-  /// @param _newThreshold New inactivity threshold in seconds
+  /**
+   * @notice Allows the owner to update the inactivity threshold
+   * 
+   * @param _newThreshold New inactivity threshold in seconds
+   */
   function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
     activityTimeout = _newThreshold;
   }
 
-  /// @notice Proposes a new initiative
-  /// @param title Title of the initiative
-  /// @param body Body of the initiative
+  /**
+   * @notice Proposes a new initiative
+   * 
+   * @param title Title of the initiative
+   * @param body Body of the initiative
+   */
   function proposeInitiative(
     string memory title,
     string memory body
@@ -217,11 +289,14 @@ contract Signals is Ownable, ReentrancyGuard {
     return initiativeId;
   }
 
-  /// @notice Proposes a new initiative with locked tokens
-  /// @param title Title of the initiative
-  /// @param body Body of the initiative
-  /// @param amount Amount of tokens to lock
-  /// @param duration Duration for which tokens are locked (in intervals)
+  /**
+   * @notice Proposes a new initiative with locked tokens
+   * 
+   * @param title Title of the initiative
+   * @param body Body of the initiative
+   * @param amount Amount of tokens to lock
+   * @param duration Duration for which tokens are locked (in intervals)
+   */
   function proposeInitiativeWithLock(
     string memory title,
     string memory body,
@@ -232,11 +307,13 @@ contract Signals is Ownable, ReentrancyGuard {
     _addLock(id, msg.sender, amount, duration);
   }
 
-  /// @notice Allows a user to support an existing initiative with locked tokens
-  /// @param initiativeId ID of the initiative to support
-  /// @param amount Amount of tokens to lock
-  /// @param intervals Duration for which tokens are locked (in months)
-  // TODO: Rename this to increaseLock
+  /**
+   * @notice Allows a user to support an existing initiative with locked tokens
+   * 
+   * @param initiativeId ID of the initiative to support
+   * @param amount Amount of tokens to lock
+   * @param intervals Duration for which tokens are locked (in months)
+   */
   function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external exists(initiativeId) {
     _addLock(initiativeId, msg.sender, amount, intervals);
   }
