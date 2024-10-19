@@ -175,11 +175,20 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @dev {n} total initiatives
   uint256 public count = 0;
 
-  event WeightUpdated(
+  /**
+   * @notice Event emitted when a supporter supports an initiative
+   * 
+   * @param initiativeId ID of the initiative
+   * @param supporter Address of the supporter
+   * @param tokenAmount Amount of tokens locked
+   * @param lockDuration Duration for which tokens are locked (in intervals)
+   * @param timestamp Timestamp of when the support was made
+   */
+  event InitiativeSupported(
     uint256 indexed initiativeId,
     address indexed supporter,
     uint256 tokenAmount,
-    uint256 weightedDuration,
+    uint256 lockDuration,
     uint256 timestamp
   );
 
@@ -192,10 +201,10 @@ contract Signals is Ownable, ReentrancyGuard {
   );
 
   /// @notice Event emitted when an initiative is accepted
-  event InitiativeAccepted(uint256 indexed initiativeId);
+  event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
 
   /// @notice Event emitted when an initiative is expired
-  event InitiativeExpired(uint256 indexed initiativeId);
+  event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
 
   /// @notice Event emitted when a supporter withdraws their tokens
   event TokensWithdrawn(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
@@ -247,9 +256,9 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 initiativeId,
     address supporter,
     uint256 amount,
-    uint256 duration
+    uint256 lockDuration
   ) internal {
-    if (duration == 0 || duration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
+    if (lockDuration == 0 || lockDuration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
     if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
 
     Initiative storage initiative = initiatives[initiativeId];
@@ -262,7 +271,7 @@ contract Signals is Ownable, ReentrancyGuard {
     LockInfo memory lock = LockInfo({
       created: block.timestamp,
       tokenAmount: amount,
-      lockDuration: duration,
+      lockDuration: lockDuration,
       withdrawn: false
     });
 
@@ -277,9 +286,8 @@ contract Signals is Ownable, ReentrancyGuard {
     }
 
     _addPendingWithdrawal(msg.sender, initiativeId);
-
-    //TODO: Rename and redefine this event
-    emit WeightUpdated(
+    
+    emit InitiativeSupported(
       initiativeId,
       msg.sender,
       lock.tokenAmount,
@@ -416,16 +424,16 @@ contract Signals is Ownable, ReentrancyGuard {
    * @param title Title of the initiative
    * @param body Body of the initiative
    * @param amount Amount of tokens to lock
-   * @param duration Duration for which tokens are locked (in intervals)
+   * @param lockDuration Duration for which tokens are locked (in intervals)
    */
   function proposeInitiativeWithLock(
     string memory title,
     string memory body,
     uint256 amount,
-    uint256 duration
+    uint256 lockDuration
   ) external hasSufficientTokens hasValidInput(title, body) {
     uint256 id = _addInitiative(title, body);
-    _addLock(id, msg.sender, amount, duration);
+    _addLock(id, msg.sender, amount, lockDuration);
   }
 
   /**
@@ -433,10 +441,10 @@ contract Signals is Ownable, ReentrancyGuard {
    * 
    * @param initiativeId ID of the initiative to support
    * @param amount Amount of tokens to lock
-   * @param intervals Duration for which tokens are locked (in months)
+   * @param lockDuration Duration for which tokens are locked (in intervals)
    */
-  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external exists(initiativeId) {
-    _addLock(initiativeId, msg.sender, amount, intervals);
+  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external exists(initiativeId) {
+    _addLock(initiativeId, msg.sender, amount, lockDuration);
   }  
 
   function acceptInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
@@ -446,7 +454,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
     initiative.state = InitiativeState.Accepted;
 
-    emit InitiativeAccepted(initiativeId);
+    emit InitiativeAccepted(initiativeId, msg.sender);
   }
 
   function expireInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
@@ -458,7 +466,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
     initiative.state = InitiativeState.Expired;
 
-    emit InitiativeExpired(initiativeId);
+    emit InitiativeExpired(initiativeId, msg.sender);
   }
 
   function withdrawTokens(uint256 initiativeId) exists(initiativeId) public nonReentrant {
