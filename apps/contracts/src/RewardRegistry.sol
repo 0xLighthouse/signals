@@ -9,8 +9,7 @@ import './Incentives.sol';
 
 contract RewardRegistry is Ownable {
     using SafeERC20 for IERC20;
-
-    
+ 
     mapping(address => bool) public registry;
 
     event TokenAdded(address indexed token);

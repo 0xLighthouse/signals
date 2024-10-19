@@ -5,45 +5,79 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+
 import './Signals.sol';
 import './RewardRegistry.sol';
 
 contract Incentives is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    Signals public signalsContract;
+    RewardRegistry public rewardRegistry;
+    
     struct Incentive {
         uint256 initiativeId;
         IERC20 token;
         uint256 amount;
+        uint256 paid;
         uint256 expiresAt;
-        IncentiveTerms terms;
+        Conditions terms;
     }
 
-    enum IncentiveTerms {
+    enum Conditions {
         NONE,
         ACCEPTED_ON_OR_BEFORE_TIMESTAMP
     }
 
+    /// @notice [0]: protocolFee, [1]: voterRewards, [2]: treasuryShare
+    mapping(uint256 => uint256[3]) public allocations;
+    mapping(uint256 => address[3]) public receivers;
+
+
     mapping(uint256 => Incentive) public incentives;
+    
+    uint256 public version = 0;
+
     uint256 public incentiveCount;
 
-    Signals public signalsContract;
-    RewardRegistry public rewardRegistry;
-    address public protocolTreasury;
-    address public voterRewardsPool;
+    event IncentiveAdded(uint256 indexed incentiveId,
+        uint256 indexed initiativeId,
+        address indexed token,
+        uint256 amount,
+        Conditions terms,
+        uint256 expiresAt
+    );
 
-    uint256 public constant PROTOCOL_FEE = 3;
-    uint256 public constant VOTER_REWARD = 7;
-    uint256 public constant TREASURY_SHARE = 90;
+    event IncentivePaidOut(uint256 indexed incentiveId, 
+        uint256 protocolAmount, 
+        uint256 voterAmount, 
+        uint256 treasuryAmount
+    );
+    
+    event DistributionScheduleUpdated(uint256 scheduleId);
 
-    event IncentiveAdded(uint256 indexed incentiveId, uint256 indexed initiativeId, address indexed token, uint256 amount, IncentiveTerms terms, uint256 expiresAt);
-    event IncentivePaidOut(uint256 indexed incentiveId, uint256 protocolAmount, uint256 voterAmount, uint256 treasuryAmount);
+    function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
+        require(_allocations[0] + _allocations[1] + _allocations[2] == 100, "Total distribution must be 100%");
+        version++;
+        allocations[version] = _allocations;
+        receivers[version] = _receivers;
+        emit DistributionScheduleUpdated(version);
+    }
 
-    constructor(address _signalsContract, address _rewardRegistry, address _protocolTreasury, address _voterRewardsPool) {
+    constructor(
+        address _signalsContract,
+        address _rewardRegistry,
+        uint256[3] memory _allocations,
+        address[3] memory _receivers    
+    ) {
         signalsContract = Signals(_signalsContract);
         rewardRegistry = RewardRegistry(_rewardRegistry);
-        protocolTreasury = _protocolTreasury;
-        voterRewardsPool = _voterRewardsPool;
+        
+        _updateShares(_allocations, _receivers);
+    }
+
+    function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers) external onlyOwner {
+        _updateShares(_allocations, _receivers);
     }
 
     /**
@@ -60,16 +94,16 @@ contract Incentives is Ownable, ReentrancyGuard {
         address _token,
         uint256 _amount,
         uint256 _expiresAt,
-        IncentiveTerms _terms
+        Conditions _terms
     ) external payable {
-        if (_expiresAt == 0 && _terms == IncentiveTerms.NONE) {
-            _terms = IncentiveTerms.ACCEPTED_ON_OR_BEFORE_TIMESTAMP;
+        if (_expiresAt == 0 && _terms == Conditions.NONE) {
+            _terms = Conditions.ACCEPTED_ON_OR_BEFORE_TIMESTAMP;
         }
         _addIncentive(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
-    function _addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, IncentiveTerms _terms) internal {
-        require(rewardRegistry.isRegistered(_token), "Token not approved");
+    function _addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms) internal {
+        require(rewardRegistry.isRegistered(_token), "Token not registered for incentives");
         require(_initiativeId < signalsContract.totalInitiatives(), "Invalid initiative");
 
         IERC20 token = IERC20(_token);
@@ -77,22 +111,24 @@ contract Incentives is Ownable, ReentrancyGuard {
         require(token.allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance");
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
-
-        incentiveCount++;
+            
         incentives[incentiveCount] = Incentive({
             initiativeId: _initiativeId,
             token: token,
             amount: _amount,
+            paid: 0,
             expiresAt: _expiresAt,
             terms: _terms
         });
+
+        incentiveCount++;
 
         emit IncentiveAdded(incentiveCount, _initiativeId, _token, _amount, _terms, _expiresAt);
     }
 
     function payout(uint256 _incentiveId) external nonReentrant {
         Incentive storage incentive = incentives[_incentiveId];
-        require(incentive.amount > 0, "Incentive already paid out or doesn't exist");
+        require(incentive.paid > 0, "Incentive already paid out or doesn't exist");
         require(incentive.expiresAt == 0 || block.timestamp <= incentive.expiresAt, "Incentive expired");
 
         Signals.Initiative memory initiative = signalsContract.getInitiative(incentive.initiativeId);
@@ -101,15 +137,16 @@ contract Incentives is Ownable, ReentrancyGuard {
         IERC20 token = incentive.token;
         uint256 totalAmount = incentive.amount;
 
-        uint256 protocolAmount = (totalAmount * PROTOCOL_FEE) / 100;
-        uint256 voterAmount = (totalAmount * VOTER_REWARD) / 100;
+        uint256 protocolAmount = (totalAmount * allocations[version][0]) / 100;
+        uint256 voterAmount = (totalAmount * allocations[version][1]) / 100;
         uint256 treasuryAmount = totalAmount - protocolAmount - voterAmount;
 
-        token.safeTransfer(protocolTreasury, protocolAmount);
-        token.safeTransfer(voterRewardsPool, voterAmount);
-        token.safeTransfer(address(signalsContract), treasuryAmount);
+        // TODO: Check these transfers emit a transfer event
+        token.safeTransfer(receivers[version][0], protocolAmount);
+        token.safeTransfer(receivers[version][1], voterAmount);
+        token.safeTransfer(receivers[version][2], treasuryAmount);
 
-        incentive.amount = 0; // Mark as paid out
+        incentive.paid = incentive.amount; // Record the amount paid out
 
         emit IncentivePaidOut(_incentiveId, protocolAmount, voterAmount, treasuryAmount);
     }
