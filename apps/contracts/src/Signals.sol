@@ -158,7 +158,8 @@ contract Signals is Ownable, ReentrancyGuard {
     transferOwnership(owner_);
   }
 
-  modifier initiativeExists(uint256 initiativeId) {
+  /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
+  modifier exists(uint256 initiativeId) {
     if (initiativeId >= count) revert InitiativeNotFound();
     _;
   }
@@ -286,8 +287,7 @@ contract Signals is Ownable, ReentrancyGuard {
     );
   }
 
-  function acceptInitiative(uint256 initiativeId) external onlyOwner {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function acceptInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -297,8 +297,7 @@ contract Signals is Ownable, ReentrancyGuard {
     emit InitiativeAccepted(initiativeId);
   }
 
-  function expireInitiative(uint256 initiativeId) external {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function expireInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -310,7 +309,7 @@ contract Signals is Ownable, ReentrancyGuard {
     emit InitiativeExpired(initiativeId);
   }
 
-  function withdrawTokens(uint256 initiativeId) initiativeExists(initiativeId) public nonReentrant {
+  function withdrawTokens(uint256 initiativeId) exists(initiativeId) public nonReentrant {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
@@ -401,7 +400,7 @@ contract Signals is Ownable, ReentrancyGuard {
     delete _pendingWithdrawalIndex[supporter][initiativeId];
   }
 
-  function getInitiative(uint256 initiativeId) external view initiativeExists(initiativeId) returns (Initiative memory) {
+  function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
     return initiatives[initiativeId];
   }
 
@@ -409,11 +408,11 @@ contract Signals is Ownable, ReentrancyGuard {
     return IERC20(underlyingToken).balanceOf(account);
   }
 
-  function getSupporters(uint256 initiativeId) external view initiativeExists(initiativeId) returns (address[] memory) {
+  function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
     return supporters[initiativeId];
   }
 
-  function getWeight(uint256 initiativeId) external view initiativeExists(initiativeId) returns (uint256) {
+  function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
     uint256 totalCurrentWeight = 0;
     address[] memory _supporters = supporters[initiativeId];
     
@@ -433,7 +432,7 @@ contract Signals is Ownable, ReentrancyGuard {
   function getWeightAt(
     uint256 initiativeId,
     uint256 timestamp
-  ) external view initiativeExists(initiativeId) returns (uint256) {
+  ) external view exists(initiativeId) returns (uint256) {
     return _calculateWeightAt(initiativeId, timestamp);
   }
 
@@ -487,7 +486,7 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 initiativeId,
     address supporter,
     uint256 timestamp
-  ) external view initiativeExists(initiativeId) returns (uint256) {
+  ) external view exists(initiativeId) returns (uint256) {
     return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
   }
 
