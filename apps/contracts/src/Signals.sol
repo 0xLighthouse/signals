@@ -160,6 +160,9 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice (initiativeId => supporter[])
   mapping(uint256 => address[]) public supporters;
 
+  /// @dev (initiativeId => (supporter => bool))
+  mapping(uint256 => mapping(address => bool)) public isSupporter;
+
   /// @dev (supporter => id[])
   mapping(address => uint256[]) public pendingWithdrawals;
 
@@ -275,8 +278,9 @@ contract Signals is Ownable, ReentrancyGuard {
 
     initiative.lastActivity = lock.created;
 
-    if (!_isSupporter(initiativeId, msg.sender)) {
+    if (!isSupporter[initiativeId][msg.sender]) {
       supporters[initiativeId].push(msg.sender);
+      isSupporter[initiativeId][msg.sender] = true;
     }
 
     _addPendingWithdrawal(msg.sender, initiativeId);
@@ -288,17 +292,6 @@ contract Signals is Ownable, ReentrancyGuard {
       lock.lockDuration,
       block.timestamp
     );
-  }
-
-  // Find if a supporter is already listed (cpu is cheaper than storing a map)
-  function _isSupporter(uint256 initiativeId, address supporter) internal view returns (bool) {
-    address[] memory _supporters = supporters[initiativeId];
-    for (uint256 i = 0; i < _supporters.length; i++) {
-      if (_supporters[i] == supporter) {
-        return true;
-      }
-    }
-    return false;
   }
 
   function _markWithdrawnFromLocks(
