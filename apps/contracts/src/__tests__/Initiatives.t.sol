@@ -166,7 +166,7 @@ contract InitiativesTest is Test {
     assertEq(address(initiative.proposer), bob);
 
     // Check the weight
-    uint256 weight = _instance.getWeight(0);
+    uint256 weight = _instance.getWeightAt(0, block.timestamp);
 
     // The weight should be equal to the amount of tokens locked
     console.log('Current weight:', weight);

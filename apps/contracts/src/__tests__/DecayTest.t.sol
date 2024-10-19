@@ -68,13 +68,13 @@ contract DecayTest is Test {
     signalsContract.proposeInitiativeWithLock('Test Locks', 'Description 2', PROPOSAL_THRESHOLD, 6);
 
     // Check that the lock info is stored
-    uint256 weight = signalsContract.getWeight(0);
+    uint256 weight = signalsContract.getWeightAt(0, block.timestamp);
     assertEq(weight, PROPOSAL_THRESHOLD * 6);
 
     // Weight should decay linearly over 6 days
     for (uint256 i = 6; i > 0; i--) {
       skip(1 days);
-      weight = signalsContract.getWeight(0);
+      weight = signalsContract.getWeightAt(0, block.timestamp);
       assertEq(weight, PROPOSAL_THRESHOLD * (i - 1));
     }
 

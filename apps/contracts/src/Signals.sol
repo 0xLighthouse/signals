@@ -403,60 +403,77 @@ contract Signals is Ownable, ReentrancyGuard {
   function getWeight(uint256 initiativeId) external view returns (uint256) {
     if (initiativeId >= count) revert InitiativeNotFound();
     uint256 totalCurrentWeight = 0;
-<<<<<<< HEAD
     address[] memory _supporters = supporters[initiativeId];
     for (uint256 i = 0; i < _supporters.length; i++) {
       address supporter = _supporters[i];
-=======
-    address[] memory supporters = supporters[initiativeId];
-    for (uint256 i = 0; i < supporters.length; i++) {
-      address supporter = supporters[i];
->>>>>>> 76b2e4e (feat: Added decay curve parameters and multiple decay curve types)
-      LockInfo storage lockInfo = locks[initiativeId][supporter];
-      uint256 currentWeight = _calculateWeight(lockInfo, block.timestamp);
-      totalCurrentWeight += currentWeight;
+      LockInfo[] storage lockInfos = locks[initiativeId][supporter];
+      for (uint256 j = 0; j < lockInfos.length; j++) {
+        uint256 currentWeight = _calculateLockWeightAt(lockInfos[j], block.timestamp);
+        totalCurrentWeight += currentWeight;
+      }
     }
     return totalCurrentWeight;
   }
 
   function getWeightAt(
     uint256 initiativeId,
+    uint256 timestamp
+  ) external view returns (uint256) {
+    return _calculateWeightAt(initiativeId, timestamp);
+  }
+
+  function _calculateWeightAt(
+    uint256 initiativeId,
+    uint256 timestamp
+  ) internal view returns (uint256) {
+    address[] memory _supporters = supporters[initiativeId];
+
+    uint256 weight = 0;
+    for (uint256 i = 0; i < _supporters.length; i++) {
+        weight += _calculateWeightForSupporterAt(initiativeId, _supporters[i], timestamp);
+    }
+
+    return weight;
+  }
+
+  function _calculateWeightForSupporterAt(
+    uint256 initiativeId,
+    address supporter,
+    uint256 timestamp
+  ) internal view returns (uint256) {
+    LockInfo[] storage _locks = locks[initiativeId][supporter];
+
+    uint256 weight = 0;
+    for (uint256 i = 0; i < _locks.length; i++) {
+      weight += _calculateLockWeightAt(_locks[i], timestamp);
+    }
+    return weight;
+  }
+
+  function _calculateLockWeightAt(
+    LockInfo memory lock,
+    uint256 timestamp
+  ) internal view returns (uint256) {
+    uint256 elapsedIntervals = (timestamp - lock.created) / lockInterval;
+    if (elapsedIntervals >= lock.lockDuration || lock.withdrawn) {
+      return 0;
+    }
+
+    require(decayCurveType < 2, 'Invalid decayCurveType');
+    if (decayCurveType == 0) {
+      return DecayCurves.linear(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
+    } else {
+      return DecayCurves.exponential(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
+    }
+  }
+
+  function getWeightForSupporterAt(
+    uint256 initiativeId,
     address supporter,
     uint256 timestamp
   ) external view returns (uint256) {
     if (initiativeId >= count) revert InitiativeNotFound();
-    LockInfo storage lockInfo = locks[initiativeId][supporter];
-    return _calculateWeight(lockInfo, timestamp);
-  }
-
-  function _calculateLockWeight(uint256 amount, uint256 duration) private returns (uint256) {
-    return _calculateWeightAt(duration, amount, 0);
-  }
-
-  /// @notice Calculates the weight of the provided lockInfo for the current time
-  function _calculateWeight(
-    LockInfo storage lockInfo,
-    uint256 timestamp
-  ) private view returns (uint256) {
-    if (lockInfo.withdrawn) {
-      return 0;
-    }
-    uint256 elapsedIntervals = (timestamp - lockInfo.created) / lockInterval;
-    if (elapsedIntervals >= lockInfo.lockDuration) {
-      return 0;
-    }
-
-    return _calculateWeightAt(lockInfo.lockDuration, lockInfo.tokenAmount, elapsedIntervals);
-  }
-
-  function _calculateWeightAt(uint256 lockDuration, uint256 lockAmount, uint256 targetInterval) internal view returns (uint256) {
-    require(decayCurveType < 2, 'Invalid decayCurveType');
-
-    if (decayCurveType == 0) {
-      return DecayCurves.linear(lockDuration, lockAmount, targetInterval, decayCurveParameters);
-    } else {
-      return DecayCurves.exponential(lockDuration, lockAmount, targetInterval, decayCurveParameters);
-    }
+    return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
   }
 
   /// @notice Returns the address of the underlying token
