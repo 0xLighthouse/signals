@@ -158,6 +158,11 @@ contract Signals is Ownable, ReentrancyGuard {
     transferOwnership(owner_);
   }
 
+  modifier initiativeExists(uint256 initiativeId) {
+    if (initiativeId >= count) revert InitiativeNotFound();
+    _;
+  }
+
   modifier isNotInitialized() {
     require(acceptanceThreshold == 0, 'Already initialized');
     _;
@@ -305,8 +310,7 @@ contract Signals is Ownable, ReentrancyGuard {
     emit InitiativeExpired(initiativeId);
   }
 
-  function withdrawTokens(uint256 initiativeId) public nonReentrant {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function withdrawTokens(uint256 initiativeId) initiativeExists(initiativeId) public nonReentrant {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
@@ -397,8 +401,7 @@ contract Signals is Ownable, ReentrancyGuard {
     delete pendingWithdrawalIndex[supporter][initiativeId];
   }
 
-  function getInitiative(uint256 initiativeId) external view returns (Initiative memory) {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function getInitiative(uint256 initiativeId) external view initiativeExists(initiativeId) returns (Initiative memory) {
     return initiatives[initiativeId];
   }
 
@@ -406,30 +409,31 @@ contract Signals is Ownable, ReentrancyGuard {
     return IERC20(underlyingToken).balanceOf(account);
   }
 
-  function getSupporters(uint256 initiativeId) external view returns (address[] memory) {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function getSupporters(uint256 initiativeId) external view initiativeExists(initiativeId) returns (address[] memory) {
     return supporters[initiativeId];
   }
 
-  function getWeight(uint256 initiativeId) external view returns (uint256) {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  function getWeight(uint256 initiativeId) external view initiativeExists(initiativeId) returns (uint256) {
     uint256 totalCurrentWeight = 0;
     address[] memory _supporters = supporters[initiativeId];
+    
     for (uint256 i = 0; i < _supporters.length; i++) {
       address supporter = _supporters[i];
       LockInfo[] storage lockInfos = locks[initiativeId][supporter];
-      for (uint256 j = 0; j < lockInfos.length; j++) {
+      uint256 lockCount = lockInfos.length;
+      for (uint256 j = 0; j < lockCount; j++) {
         uint256 currentWeight = _calculateLockWeightAt(lockInfos[j], block.timestamp);
         totalCurrentWeight += currentWeight;
       }
     }
+
     return totalCurrentWeight;
   }
 
   function getWeightAt(
     uint256 initiativeId,
     uint256 timestamp
-  ) external view returns (uint256) {
+  ) external view initiativeExists(initiativeId) returns (uint256) {
     return _calculateWeightAt(initiativeId, timestamp);
   }
 
@@ -471,6 +475,7 @@ contract Signals is Ownable, ReentrancyGuard {
     }
 
     require(decayCurveType < 2, 'Invalid decayCurveType');
+
     if (decayCurveType == 0) {
       return DecayCurves.linear(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
     } else {
@@ -482,8 +487,7 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 initiativeId,
     address supporter,
     uint256 timestamp
-  ) external view returns (uint256) {
-    if (initiativeId >= count) revert InitiativeNotFound();
+  ) external view initiativeExists(initiativeId) returns (uint256) {
     return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
   }
 
