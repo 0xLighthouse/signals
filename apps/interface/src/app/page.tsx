@@ -4,6 +4,7 @@ import { Actions } from '@/components/containers/actions'
 import { FaucetBar } from '@/components/containers/faucet-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
+import { History } from '@/components/history'
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
           </div>
           <div className="px-4 py-8">
             <Actions />
+            <History />
             <FAQs />
             <Footer />
           </div>
