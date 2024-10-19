@@ -417,7 +417,7 @@ contract Signals is Ownable, ReentrancyGuard {
   function proposeInitiative(
     string memory title,
     string memory body
-  ) external hasSufficientTokens hasValidInput(title, body) {
+  ) external hasSufficientTokens(proposalThreshold) hasValidInput(title, body) {
     _addInitiative(title, body);
   }
 
@@ -434,7 +434,7 @@ contract Signals is Ownable, ReentrancyGuard {
     string memory body,
     uint256 amount,
     uint256 lockDuration
-  ) external hasSufficientTokens hasValidInput(title, body) {
+  ) external hasSufficientTokens(proposalThreshold) hasSufficientTokens(amount) hasValidInput(title, body) {
     uint256 id = _addInitiative(title, body);
     _addLock(id, msg.sender, amount, lockDuration);
   }
@@ -628,7 +628,8 @@ contract Signals is Ownable, ReentrancyGuard {
   /**
    * @notice Allows the owner to update the decay curve type and parameters
    * 
-   * @param _newThreshold New proposal threshold
+   * @param _decayCurveType New curve type (0 = linear, 1 = exponential)
+   * @param _decayCurveParameters New curve parameters
    */
   function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
     require(_decayCurveType < 2, 'Invalid decayCurveType');

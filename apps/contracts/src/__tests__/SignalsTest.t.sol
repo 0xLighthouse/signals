@@ -67,7 +67,7 @@ contract SignalsTest is Test {
     assertEq(_signalsContract.proposalCap(), _PROPOSAL_CAP);
     assertEq(_signalsContract.lockInterval(), _LOCK_INTERVAL);
     assertEq(_signalsContract.decayCurveType(), _DECAY_CURVE_TYPE);
-    assertEq(_signalsContract.totalProposals(), 0);
+    assertEq(_signalsContract.totalInitiatives(), 0);
   }
 
   /**
@@ -258,6 +258,10 @@ contract SignalsTest is Test {
     vm.startPrank(_alice);
     _token.approve(address(_signalsContract), 100 * 1e18);
     _signalsContract.proposeInitiativeWithLock('Initiative 1', 'Description 1', 100 * 1e18, 6);
+
+    // Add a second lock to the same initiative
+    _token.approve(address(_signalsContract), 75 * 1e18);
+    _signalsContract.supportInitiative(0, 75 * 1e18, 6);
 
     // Support another initiative
     _token.approve(address(_signalsContract), 150 * 1e18);
