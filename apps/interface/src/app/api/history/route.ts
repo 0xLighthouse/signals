@@ -58,8 +58,16 @@ export const GET = async (request: NextRequest) => {
     // toBlock: 'latest',
   })
 
-  console.log(logs)
-  console.log(logs)
-
-  return NextResponse.json([])
+  return NextResponse.json({
+    supported: logs.length,
+    locked: logs.reduce((acc, log) => acc + Number(log.args.tokenAmount) / 1e18, 0),
+    byInitiative: logs.reduce(
+      (acc, log) => {
+        acc[log.args.initiativeId?.toString() || ''] =
+          (acc[log.args.initiativeId?.toString() || ''] || 0) + Number(log.args.tokenAmount) / 1e18
+        return acc
+      },
+      {} as Record<string, number>,
+    ),
+  })
 }

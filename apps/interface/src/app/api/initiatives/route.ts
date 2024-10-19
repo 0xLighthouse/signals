@@ -55,12 +55,6 @@ export const GET = async () => {
     // toBlock: 'latest',
   })
 
-  console.log('logs')
-  console.log('logs')
-  console.log('logs')
-  console.log('logs')
-  console.log(logs)
-
   const initiatives = await Promise.all(
     logs.map(async (log) => {
       const weight = await readClient.readContract({
@@ -93,8 +87,6 @@ export const GET = async () => {
       }
     }),
   )
-
-  // console.log(initiatives)
 
   return NextResponse.json(initiatives)
 }

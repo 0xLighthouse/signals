@@ -134,11 +134,17 @@ export function InitiativeDrawer() {
   }, [address, amount])
 
   const handleApprove = async (amount: number) => {
+    // Signer get nonce
+    const nonce = await readClient.getTransactionCount({
+      address: address as `0x${string}`,
+    })
+
     const signer = createWalletClient({
       chain: hardhat,
       transport: custom(window.ethereum),
     })
     const { request } = await readClient.simulateContract({
+      nonce,
       account: address,
       address: ERC20_ADDRESS,
       abi: ABI,
