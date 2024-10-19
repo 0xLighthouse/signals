@@ -44,8 +44,8 @@ contract Incentives is Ownable, ReentrancyGuard {
         uint256 indexed initiativeId,
         address indexed token,
         uint256 amount,
-        Conditions terms,
-        uint256 expiresAt
+        uint256 expiresAt,
+        Conditions terms
     );
 
     event IncentivePaidOut(uint256 indexed incentiveId, 
@@ -96,9 +96,9 @@ contract Incentives is Ownable, ReentrancyGuard {
         uint256 _expiresAt,
         Conditions _terms
     ) external payable {
-        if (_expiresAt == 0 && _terms == Conditions.NONE) {
-            _terms = Conditions.ACCEPTED_ON_OR_BEFORE_TIMESTAMP;
-        }
+        // if (_expiresAt == 0 && _terms == Conditions.NONE) {
+        //     _terms = Conditions.ACCEPTED_ON_OR_BEFORE_TIMESTAMP;
+        // }
         _addIncentive(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
@@ -123,7 +123,7 @@ contract Incentives is Ownable, ReentrancyGuard {
 
         incentiveCount++;
 
-        emit IncentiveAdded(incentiveCount, _initiativeId, _token, _amount, _terms, _expiresAt);
+        emit IncentiveAdded(incentiveCount, _initiativeId, address(_token), _amount,_expiresAt, _terms);
     }
 
     function payout(uint256 _incentiveId) external nonReentrant {
