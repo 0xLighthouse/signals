@@ -61,6 +61,7 @@ export const FaucetBar = () => {
       const receipt = await readClient.waitForTransactionReceipt({
         hash: transactionHash,
         confirmations: 2,
+        pollingInterval: 2000,
       })
 
       toast(`Claimed ${symbol} tokens`)

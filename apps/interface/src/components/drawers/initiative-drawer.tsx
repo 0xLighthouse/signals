@@ -102,6 +102,7 @@ export function InitiativeDrawer() {
       const receipt = await readClient.waitForTransactionReceipt({
         hash: hash,
         confirmations: 2,
+        pollingInterval: 2000,
       })
       console.log('Transaction Receipt:', receipt)
 
@@ -151,6 +152,7 @@ export function InitiativeDrawer() {
     const receipt = await readClient.waitForTransactionReceipt({
       hash: hash,
       confirmations: 2,
+      pollingInterval: 2000,
     })
     console.log('Transaction Receipt:', receipt)
   }

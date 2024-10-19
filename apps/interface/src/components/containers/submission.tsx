@@ -48,6 +48,7 @@ export const Submission = () => {
       const receipt = await readClient.waitForTransactionReceipt({
         hash: transactionHash,
         confirmations: 2,
+        pollingInterval: 2000,
       })
       console.log('Transaction Receipt:', receipt)
     } catch (error) {
