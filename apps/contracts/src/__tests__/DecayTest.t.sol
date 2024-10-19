@@ -8,53 +8,7 @@ import {Signals} from '../Signals.sol';
 import {DecayCurves} from '../DecayCurves.sol';
 
 contract DecayTest is Test {
-  Signals _signalsContract;
-
-  MockERC20 _token;
-
-  address _deployer;
-  address _alice;
-  address _bob;
-
-  uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
-  uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
-  uint256 constant _LOCK_DURATION_CAP = 365 days; // 1 year
-  uint256 constant _PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
-  uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
-
-  uint256[] _decayCurveParameters = new uint256[](1);
-
-  function setUp() public {
-    _deployer = address(this);
-    _alice = address(0x1111);
-
-    // Deploy the mock ERC20 token
-    _token = new MockERC20();
-
-    // Deploy the Signals contract
-    _signalsContract = new Signals();
-
-    _decayCurveParameters[0] = 1e18;
-
-    // Initialize the Signals contract
-    _signalsContract.initialize(
-      _deployer,
-      address(_token),
-      _PROPOSAL_THRESHOLD,
-      _ACCEPTANCE_THRESHOLD,
-      _LOCK_DURATION_CAP,
-      _PROPOSAL_CAP,
-      _LOCK_INTERVAL,
-      _DECAY_CURVE_TYPE,
-      _decayCurveParameters
-    );
-
-    // Mint tokens to participants
-    // Distribute tokens to test addresses
-    deal(address(_token), _alice, _PROPOSAL_THRESHOLD); // Alice has 50k
-  }
-
+  
   /// @notice Test the linear decay curve
   function testLinearDecayCurve() public pure {
     uint256 lockDuration = 20;

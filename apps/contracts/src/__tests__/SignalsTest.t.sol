@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import 'forge-std/Test.sol';
 import 'forge-std/mocks/MockERC20.sol';
+import 'forge-std/console.sol';
 
 import {Signals} from '../Signals.sol';
 
@@ -288,7 +289,7 @@ contract SignalsTest is Test {
     uint256 balanceDifference = balanceAfter - balanceBefore;
 
     // Assert that the balance difference is equal to the withdrawn amount
-    assertEq(balanceDifference, 250 * 1e18);
+    assertEq(balanceDifference, 325 * 1e18);
 
     vm.stopPrank();
   }
@@ -443,18 +444,25 @@ contract SignalsTest is Test {
     // Attempt to withdraw tokens again (should fail)
     vm.expectRevert(Signals.NothingToWithdraw.selector);
     _signalsContract.withdrawAllTokens();
+    vm.stopPrank();
 
     // Fast forward time beyond inactivity threshold
     skip(61 days);
 
     // Expire the second initiative
-    // Withdraw tokens from the expired initiative
+    vm.startPrank(_deployer);
     _signalsContract.expireInitiative(1);
+    vm.stopPrank();
+
+    // Withdraw tokens from the expired initiative
+    vm.startPrank(_bob);
     _signalsContract.withdrawAllTokens();
+    vm.stopPrank();
 
     // Assert that the total balance difference equals the sum of both withdrawals
     uint256 finalBalance = _token.balanceOf(_bob);
     uint256 totalBalanceDifference = finalBalance - initialBalance;
-    assertEq(totalBalanceDifference, 2 * _PROPOSAL_THRESHOLD);    
+    assertEq(totalBalanceDifference, _PROPOSAL_THRESHOLD * 2);
   }
+  
 }

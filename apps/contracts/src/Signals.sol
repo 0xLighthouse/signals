@@ -163,11 +163,13 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @dev (initiativeId => (supporter => bool))
   mapping(uint256 => mapping(address => bool)) public isSupporter;
 
-  /// @dev (supporter => id[])
-  mapping(address => uint256[]) public pendingWithdrawals;
+  /// @dev (supporter => initiativeId[])
+  // Shows which initiatives a supporter has pending withdrawals for
+  mapping(address => uint256[]) public initiativesWithPendingWithdrawals;
 
-  /// @dev (supporter => (id => index))
-  mapping(address => mapping(uint256 => uint256)) private _pendingWithdrawalIndex;
+  /// @dev (supporter => (id => lock index))
+  // Shows the index of each pending withdrawal per initiative per supporter
+  mapping(address => mapping(uint256 => uint256[])) private _pendingWithdrawalIndex;
 
   /// @dev {n} total initiatives
   uint256 public count = 0;
@@ -274,6 +276,7 @@ contract Signals is Ownable, ReentrancyGuard {
       withdrawn: false
     });
 
+    _addPendingWithdrawal(msg.sender, initiativeId, locks[initiativeId][supporter].length);
     locks[initiativeId][supporter].push(lock);
 
     initiative.lastActivity = lock.created;
@@ -282,8 +285,6 @@ contract Signals is Ownable, ReentrancyGuard {
       supporters[initiativeId].push(msg.sender);
       isSupporter[initiativeId][msg.sender] = true;
     }
-
-    _addPendingWithdrawal(msg.sender, initiativeId);
     
     emit InitiativeSupported(
       initiativeId,
@@ -294,41 +295,41 @@ contract Signals is Ownable, ReentrancyGuard {
     );
   }
 
-  function _markWithdrawnFromLocks(
-    LockInfo[] storage _locks
-  ) internal returns (uint256 totalAmount) {
-    uint256 total = 0;
-    for (uint256 i = 0; i < _locks.length; i++) {
-      if (_locks[i].tokenAmount > 0 && !_locks[i].withdrawn) {
-        total += _locks[i].tokenAmount;
-        _locks[i].withdrawn = true;
+  function _addPendingWithdrawal(address supporter, uint256 initiativeId, uint256 lockIndex) internal {
+    // If the index doesn't yet show this initiative has a pending withdrawal, add it
+    if (_pendingWithdrawalIndex[supporter][initiativeId].length == 0) {
+      initiativesWithPendingWithdrawals[supporter].push(initiativeId);
+    }
+    _pendingWithdrawalIndex[supporter][initiativeId].push(lockIndex);
+  }
+
+  /// @notice Removes all pending withdrawals for the specified initiative, and returns the total token amount
+  /// plus the number of remaining withdrawals
+  function _removePendingWithdrawals(
+    address supporter,
+    uint256 initiativeId
+  ) internal returns (uint256 totalTokens, uint256 remainingInitiatives) {
+
+
+    uint256[] storage index = _pendingWithdrawalIndex[supporter][initiativeId];
+
+    uint256 totalAmount = 0;
+    uint256 remainingWithdrawals = 0;
+    for (uint256 i = index.length; i > 0; i--) {
+      LockInfo storage lock = locks[initiativeId][supporter][index[i-1]];
+      if (lock.tokenAmount > 0 && !lock.withdrawn) {
+        totalAmount += lock.tokenAmount;
+        lock.withdrawn = true;
+
+        // Remove from the index
+        index[i-1] = index[index.length - 1];
+        index.pop();
+      } else {
+        remainingWithdrawals++;
       }
     }
-    return total;
-  }
 
-  //TODO: Redo withdrawal tracking
-  function _addPendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    if (_pendingWithdrawalIndex[supporter][initiativeId] != 0) {
-      return;
-    }
-    pendingWithdrawals[supporter].push(initiativeId);
-    _pendingWithdrawalIndex[supporter][initiativeId] = pendingWithdrawals[supporter].length;
-  }
-
-  function _removePendingWithdrawal(address supporter, uint256 initiativeId) internal {
-    uint256 index = _pendingWithdrawalIndex[supporter][initiativeId];
-    if (index == 0) revert InitiativeNotFound();
-    index -= 1;
-
-    uint256 lastIndex = pendingWithdrawals[supporter].length - 1;
-    if (index != lastIndex) {
-      uint256 lastInitiativeId = pendingWithdrawals[supporter][lastIndex];
-      pendingWithdrawals[supporter][index] = lastInitiativeId;
-      _pendingWithdrawalIndex[supporter][lastInitiativeId] = index + 1;
-    }
-    pendingWithdrawals[supporter].pop();
-    delete _pendingWithdrawalIndex[supporter][initiativeId];
+    return (totalAmount, remainingWithdrawals);
   }
 
   function _calculateWeightAt(
@@ -470,12 +471,18 @@ contract Signals is Ownable, ReentrancyGuard {
     if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
 
-    LockInfo[] storage _locks = locks[initiativeId][msg.sender];
-    uint256 withdrawAmount = _markWithdrawnFromLocks(_locks);
-
+    (uint256 withdrawAmount, uint256 remaining) = _removePendingWithdrawals(msg.sender, initiativeId);
     if (withdrawAmount == 0) revert NothingToWithdraw();
 
-    _removePendingWithdrawal(msg.sender, initiativeId);
+    if (remaining == 0) {
+      for (uint256 i = 0; i < initiativesWithPendingWithdrawals[msg.sender].length; i++) {
+        if (initiativesWithPendingWithdrawals[msg.sender][i] == initiativeId) {
+          initiativesWithPendingWithdrawals[msg.sender][i] = initiativesWithPendingWithdrawals[msg.sender][initiativesWithPendingWithdrawals[msg.sender].length - 1];
+          initiativesWithPendingWithdrawals[msg.sender].pop();
+          break;
+        }
+      }
+    }
 
     if (!IERC20(underlyingToken).transfer(msg.sender, withdrawAmount))
       revert TokenTransferFailed();
@@ -483,40 +490,46 @@ contract Signals is Ownable, ReentrancyGuard {
     emit TokensWithdrawn(initiativeId, msg.sender, withdrawAmount);
   }
 
-  // TODO: Redo withdrawal tracking, then simplify iterating over pending withdrawals
   function withdrawAllTokens() external nonReentrant {
-    uint256[] storage initiativesToWithdraw = pendingWithdrawals[msg.sender];
-    uint256 totalInitiatives = initiativesToWithdraw.length;
+    uint256[] storage _initiatives = initiativesWithPendingWithdrawals[msg.sender];
+
+    // List of initiatives that had a withdraw for emitting events
+    uint256[2][] memory withdrewInitiatives = new uint256[2][](_initiatives.length);
+    uint256 eventCount = 0;
 
     uint256 totalToWithdraw = 0;
-    uint256 i = 0;
-    while (i < totalInitiatives) {
-      uint256 initiativeId = initiativesToWithdraw[i];
+    for (uint256 i = _initiatives.length; i > 0; i--) {
+      uint256 initiativeId = _initiatives[i-1];
+
       Initiative storage initiative = initiatives[initiativeId];
-      LockInfo[] storage _locks = locks[initiativeId][msg.sender];
+      if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
+      continue;
 
-      if (
-        initiative.state == InitiativeState.Accepted ||
-        initiative.state == InitiativeState.Expired
-      ) {
-        uint256 amountToWithdraw = _markWithdrawnFromLocks(_locks);
-        totalToWithdraw += amountToWithdraw;
+      (uint256 withdrawAmount, uint256 remaining) = _removePendingWithdrawals(msg.sender, initiativeId);
+      totalToWithdraw += withdrawAmount;
 
-        _removePendingWithdrawal(msg.sender, initiativeId);
-        totalInitiatives--;
+      if (withdrawAmount > 0) {
+        withdrewInitiatives[eventCount] = [initiativeId, withdrawAmount];
+        eventCount++;
+      }
 
-        if (!IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw))
-          revert TokenTransferFailed();
-
-        emit TokensWithdrawn(initiativeId, msg.sender, amountToWithdraw);
-      } else {
-        i++;
+      if (remaining == 0) {
+        // Remove from list of initiatives with pending withdrawals
+        _initiatives[i-1] = _initiatives[_initiatives.length - 1];
+        _initiatives.pop();
       }
     }
 
     if (totalToWithdraw == 0) {
       revert NothingToWithdraw();
     }
+
+    if (!IERC20(underlyingToken).transfer(msg.sender, totalToWithdraw))
+      revert TokenTransferFailed();
+
+      for (uint256 i = 0; i < eventCount; i++) {
+        emit TokensWithdrawn(withdrewInitiatives[i][0], msg.sender, withdrewInitiatives[i][1]);
+      }
   }
 
   /**
