@@ -133,12 +133,15 @@ contract IncentivesTest is Test {
     uint256 expiresAt = 0;
     Incentives.Conditions conditions = Incentives.Conditions.NONE;
 
-    // Add a 500 USDC bounty
-    _mUSDC.approve(address(_incentives), amount);
+    // Add a 2k USDC bounty
+    _mUSDC.approve(address(_incentives), amount * 4);
 
-    vm.expectEmit(true, true, true, true);
-    emit Incentives.IncentiveAdded(1, initiativeId, rewardToken, amount, expiresAt, conditions);
-    _incentives.addIncentive(initiativeId, rewardToken, amount, expiresAt, conditions);
+    // Add 4 incentives
+    for (uint256 i = 1; i <= 4; i++) {
+        vm.expectEmit();
+        emit Incentives.IncentiveAdded(i, initiativeId, rewardToken, amount, expiresAt, conditions);
+        _incentives.addIncentive(initiativeId, rewardToken, amount, expiresAt, conditions);
+    }
   }
 
   
