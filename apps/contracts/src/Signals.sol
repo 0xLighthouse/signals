@@ -255,7 +255,8 @@ contract Signals is Ownable, ReentrancyGuard {
     LockInfo memory lock = LockInfo({
       created: block.timestamp,
       tokenAmount: amount,
-      lockDuration: duration
+      lockDuration: duration,
+      withdrawn: false
     });
 
     //TODO: Do we need to check if exists first?
@@ -310,40 +311,50 @@ contract Signals is Ownable, ReentrancyGuard {
     if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
 
-    LockInfo storage lockInfo = locks[initiativeId][msg.sender];
-    if (lockInfo.tokenAmount == 0 || lockInfo.withdrawn) revert NothingToWithdraw();
+    LockInfo[] storage _locks = locks[initiativeId][msg.sender];
+    uint256 withdrawAmount = _markWithdrawnFromLocks(_locks);
 
-    uint256 amountToWithdraw = lockInfo.tokenAmount;
-
-    lockInfo.withdrawn = true;
+    if (withdrawAmount == 0) revert NothingToWithdraw();
 
     _removePendingWithdrawal(msg.sender, initiativeId);
 
-    if (!IERC20(underlyingToken).transfer(msg.sender, amountToWithdraw))
+    if (!IERC20(underlyingToken).transfer(msg.sender, withdrawAmount))
       revert TokenTransferFailed();
 
-    emit TokensWithdrawn(initiativeId, msg.sender, amountToWithdraw);
+    emit TokensWithdrawn(initiativeId, msg.sender, withdrawAmount);
   }
 
-  function withdrawAll() external nonReentrant {
+  function _markWithdrawnFromLocks(
+    LockInfo[] storage _locks
+  ) internal returns (uint256 totalAmount) {
+    uint256 total = 0;
+    for (uint256 i = 0; i < _locks.length; i++) {
+      if (_locks[i].tokenAmount > 0 && !_locks[i].withdrawn) {
+        total += _locks[i].tokenAmount;
+        _locks[i].withdrawn = true;
+      }
+    }
+    return total;
+  }
+
+  // TODO: Redo withdrawal tracking, then simplify iterating over pending withdrawals
+  function withdrawAllTokens() external nonReentrant {
     uint256[] storage initiativesToWithdraw = pendingWithdrawals[msg.sender];
     uint256 totalInitiatives = initiativesToWithdraw.length;
-    bool hasWithdrawn = false;
 
+    uint256 totalToWithdraw = 0;
     uint256 i = 0;
     while (i < totalInitiatives) {
       uint256 initiativeId = initiativesToWithdraw[i];
       Initiative storage initiative = initiatives[initiativeId];
-      LockInfo storage lockInfo = locks[initiativeId][msg.sender];
+      LockInfo[] storage _locks = locks[initiativeId][msg.sender];
 
       if (
-        (initiative.state == InitiativeState.Accepted ||
-          initiative.state == InitiativeState.Expired) &&
-        lockInfo.tokenAmount > 0 &&
-        !lockInfo.withdrawn
+        initiative.state == InitiativeState.Accepted ||
+        initiative.state == InitiativeState.Expired
       ) {
-        uint256 amountToWithdraw = lockInfo.tokenAmount;
-        lockInfo.withdrawn = true;
+        uint256 amountToWithdraw = _markWithdrawnFromLocks(_locks);
+        totalToWithdraw += amountToWithdraw;
 
         _removePendingWithdrawal(msg.sender, initiativeId);
         totalInitiatives--;
@@ -352,17 +363,17 @@ contract Signals is Ownable, ReentrancyGuard {
           revert TokenTransferFailed();
 
         emit TokensWithdrawn(initiativeId, msg.sender, amountToWithdraw);
-        hasWithdrawn = true;
       } else {
         i++;
       }
     }
 
-    if (!hasWithdrawn) {
+    if (totalToWithdraw == 0) {
       revert NothingToWithdraw();
     }
   }
 
+  //TODO: Redo withdrawal tracking
   function _addPendingWithdrawal(address supporter, uint256 initiativeId) internal {
     if (pendingWithdrawalIndex[supporter][initiativeId] != 0) {
       return;

@@ -281,7 +281,7 @@ contract SignalsTest is Test {
     uint256 balanceBefore = token.balanceOf(alice);
 
     // Withdraw all tokens
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     // Record the balance after withdrawal
     uint256 balanceAfter = token.balanceOf(alice);
@@ -411,11 +411,11 @@ contract SignalsTest is Test {
     vm.startPrank(bob);
 
     // Withdraw all tokens
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     // Attempt to withdraw again
     vm.expectRevert(Signals.NothingToWithdraw.selector);
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     vm.stopPrank();
   }
@@ -451,7 +451,7 @@ contract SignalsTest is Test {
     vm.startPrank(bob);
     uint256 initialBalance = token.balanceOf(bob);
     // Withdraw all tokens (should only withdraw from the accepted initiative)
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     // Record the balance after first withdrawal
     uint256 balanceAfterFirstWithdraw = token.balanceOf(bob);
@@ -464,7 +464,7 @@ contract SignalsTest is Test {
 
     // Attempt to withdraw tokens again (should fail)
     vm.expectRevert(Signals.NothingToWithdraw.selector);
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     // Fast forward time beyond inactivity threshold
     skip(61 days);
@@ -473,7 +473,7 @@ contract SignalsTest is Test {
     signalsContract.expireInitiative(1);
 
     // Withdraw tokens from the expired initiative
-    signalsContract.withdrawAll();
+    signalsContract.withdrawAllTokens();
 
     // Record the final balance
     uint256 finalBalance = token.balanceOf(bob);
