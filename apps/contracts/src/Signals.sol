@@ -154,17 +154,11 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice (initiativeId => Initiative)
   mapping(uint256 => Initiative) public initiatives;
 
-  /// @notice (initiativeId => weight)
-  mapping(uint256 => uint256) public weights;
-
   /// @notice (initiativeId => (supporter => LockInfo))
   mapping(uint256 => mapping(address => LockInfo[])) public locks;
 
   /// @notice (initiativeId => supporter[])
   mapping(uint256 => address[]) public supporters;
-
-  /// @notice (initiativeId => (supporter => bool))
-  mapping(uint256 => mapping(address => bool)) public isSupporter;
 
   /// @dev (supporter => id[])
   mapping(address => uint256[]) public pendingWithdrawals;
@@ -209,6 +203,9 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Event emitted when a supporter withdraws their tokens
   event TokensWithdrawn(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
 
+  /// @notice Event emitted when the decay curve is updated
+  event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
+
   /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
   modifier exists(uint256 initiativeId) {
     if (initiativeId >= count) revert InitiativeNotFound();
@@ -220,8 +217,8 @@ contract Signals is Ownable, ReentrancyGuard {
     _;
   }
 
-  modifier hasSufficientTokens() {
-    if (balanceOf(msg.sender) < proposalThreshold) revert InsufficientTokens();
+  modifier hasSufficientTokens(uint256 amount) {
+    if (IERC20(underlyingToken).balanceOf(msg.sender) < amount) revert InsufficientTokens();
     _;
   }
 
@@ -234,7 +231,7 @@ contract Signals is Ownable, ReentrancyGuard {
   function _addInitiative(
     string memory title,
     string memory body
-  ) internal hasValidInput(title, body) returns (uint256 id) {
+  ) internal hasValidInput(title, body) hasSufficientTokens(proposalThreshold) returns (uint256 id) {
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
       title: title,
@@ -257,9 +254,8 @@ contract Signals is Ownable, ReentrancyGuard {
     address supporter,
     uint256 amount,
     uint256 lockDuration
-  ) internal {
+  ) internal hasSufficientTokens(amount) {
     if (lockDuration == 0 || lockDuration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
-    if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
 
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
@@ -275,14 +271,12 @@ contract Signals is Ownable, ReentrancyGuard {
       withdrawn: false
     });
 
-    //TODO: Do we need to check if exists first?
     locks[initiativeId][supporter].push(lock);
 
     initiative.lastActivity = lock.created;
 
-    if (!isSupporter[initiativeId][msg.sender]) {
+    if (!_isSupporter(initiativeId, msg.sender)) {
       supporters[initiativeId].push(msg.sender);
-      isSupporter[initiativeId][msg.sender] = true;
     }
 
     _addPendingWithdrawal(msg.sender, initiativeId);
@@ -294,6 +288,17 @@ contract Signals is Ownable, ReentrancyGuard {
       lock.lockDuration,
       block.timestamp
     );
+  }
+
+  // Find if a supporter is already listed (cpu is cheaper than storing a map)
+  function _isSupporter(uint256 initiativeId, address supporter) internal view returns (bool) {
+    address[] memory _supporters = supporters[initiativeId];
+    for (uint256 i = 0; i < _supporters.length; i++) {
+      if (_supporters[i] == supporter) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function _markWithdrawnFromLocks(
@@ -343,7 +348,6 @@ contract Signals is Ownable, ReentrancyGuard {
     for (uint256 i = 0; i < _supporters.length; i++) {
         weight += _calculateWeightForSupporterAt(initiativeId, _supporters[i], timestamp);
     }
-
     return weight;
   }
 
@@ -371,7 +375,6 @@ contract Signals is Ownable, ReentrancyGuard {
     }
 
     require(decayCurveType < 2, 'Invalid decayCurveType');
-
     if (decayCurveType == 0) {
       return DecayCurves.linear(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
     } else {
@@ -524,26 +527,28 @@ contract Signals is Ownable, ReentrancyGuard {
   }
 
   /**
-   * @notice Allows the owner to update the inactivity threshold
+   * @notice Returns details about the specified initiative
    * 
-   * @param _newThreshold New inactivity threshold in seconds
+   * @param initiativeId The initiative to return
    */
-  function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
-    activityTimeout = _newThreshold;
-  }
-
   function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
     return initiatives[initiativeId];
   }
 
-  function balanceOf(address account) public view returns (uint256) {
-    return IERC20(underlyingToken).balanceOf(account);
-  }
-
+  /**
+   * @notice Returns a list of addresses which have supported this initiative
+   * 
+   * @param initiativeId The initiative to return supporters for
+   */
   function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
     return supporters[initiativeId];
   }
 
+  /**
+   * @notice Returns the current, real-time weight of the specified initiative
+   * 
+   * @param initiativeId The initiative to return the weight for
+   */
   function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
     uint256 totalCurrentWeight = 0;
     address[] memory _supporters = supporters[initiativeId];
@@ -561,6 +566,12 @@ contract Signals is Ownable, ReentrancyGuard {
     return totalCurrentWeight;
   }
 
+  /**
+   * @notice Returns the weight the initiative did/will have at a specific timestamp
+   * 
+   * @param initiativeId The initiative to return
+   * @param timestamp The timestamp to calculate the weight for
+   */
   function getWeightAt(
     uint256 initiativeId,
     uint256 timestamp
@@ -568,6 +579,12 @@ contract Signals is Ownable, ReentrancyGuard {
     return _calculateWeightAt(initiativeId, timestamp);
   }
 
+  /**
+   * @notice Returns the weight a supporter has provided/is providing for the specified initiative at a specific timestamp
+   * 
+   * @param initiativeId The initiative to return the weight for
+   * @param supporter The supporter to return the weight for
+   */
   function getWeightForSupporterAt(
     uint256 initiativeId,
     address supporter,
@@ -576,16 +593,53 @@ contract Signals is Ownable, ReentrancyGuard {
     return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
   }
 
-  /// @notice Returns the address of the underlying token
+  /**
+   * @notice Returns the address of the token being used for lockups
+   */
   function token() external view returns (address) {
     return underlyingToken;
   }
 
-  function totalProposals() external view returns (uint256) {
+  /**
+   * @notice Returns the total number of initiatives
+   */
+  function totalInitiatives() external view returns (uint256) {
     return count;
   }
 
+  /**
+   * @notice Returns the total number of supporters for the specified initiative
+   * 
+   * @param initiativeId The initiative to return the number of supporters for
+   */
   function totalSupporters(uint256 initiativeId) external view returns (uint256) {
     return supporters[initiativeId].length;
+  }
+
+  /**
+   * @notice Allows the owner to update the inactivity threshold
+   * 
+   * @param _newThreshold New inactivity threshold in seconds
+   */
+  function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
+    activityTimeout = _newThreshold;
+  }
+
+  /**
+   * @notice Allows the owner to update the decay curve type and parameters
+   * 
+   * @param _newThreshold New proposal threshold
+   */
+  function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
+    require(_decayCurveType < 2, 'Invalid decayCurveType');
+    if (_decayCurveType == 0) {
+      require(_decayCurveParameters.length == 1, 'Invalid decayCurveParameters');
+    } else if (_decayCurveType == 1) {
+      require(_decayCurveParameters.length == 1, 'Invalid decayCurveParameters');
+    }
+
+    decayCurveType = _decayCurveType;
+    decayCurveParameters = _decayCurveParameters;
+    emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
   }
 }
