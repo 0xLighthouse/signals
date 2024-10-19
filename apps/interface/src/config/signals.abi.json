@@ -4,7 +4,7 @@
     "name": "acceptInitiative",
     "inputs": [{ "name": "initiativeId", "type": "uint256", "internalType": "uint256" }],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -22,15 +22,15 @@
   },
   {
     "type": "function",
-    "name": "balanceOf",
-    "inputs": [{ "name": "account", "type": "address", "internalType": "address" }],
+    "name": "count",
+    "inputs": [],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "count",
-    "inputs": [],
+    "name": "decayCurveParameters",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
@@ -46,7 +46,7 @@
     "name": "expireInitiative",
     "inputs": [{ "name": "initiativeId", "type": "uint256", "internalType": "uint256" }],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -78,13 +78,6 @@
   },
   {
     "type": "function",
-    "name": "getTotalWeight",
-    "inputs": [{ "name": "initiativeId", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "getWeight",
     "inputs": [{ "name": "initiativeId", "type": "uint256", "internalType": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
@@ -93,6 +86,16 @@
   {
     "type": "function",
     "name": "getWeightAt",
+    "inputs": [
+      { "name": "initiativeId", "type": "uint256", "internalType": "uint256" },
+      { "name": "timestamp", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWeightForSupporterAt",
     "inputs": [
       { "name": "initiativeId", "type": "uint256", "internalType": "uint256" },
       { "name": "supporter", "type": "address", "internalType": "address" },
@@ -112,7 +115,8 @@
       { "name": "_maxLockIntervals", "type": "uint256", "internalType": "uint256" },
       { "name": "_proposalCap", "type": "uint256", "internalType": "uint256" },
       { "name": "_lockInterval", "type": "uint256", "internalType": "uint256" },
-      { "name": "_decayCurveType", "type": "uint256", "internalType": "uint256" }
+      { "name": "_decayCurveType", "type": "uint256", "internalType": "uint256" },
+      { "name": "_decayCurveParameters", "type": "uint256[]", "internalType": "uint256[]" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -129,6 +133,16 @@
       { "name": "timestamp", "type": "uint256", "internalType": "uint256" },
       { "name": "lastActivity", "type": "uint256", "internalType": "uint256" }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initiativesWithPendingWithdrawals",
+    "inputs": [
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -153,12 +167,13 @@
     "name": "locks",
     "inputs": [
       { "name": "", "type": "uint256", "internalType": "uint256" },
-      { "name": "", "type": "address", "internalType": "address" }
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [
-      { "name": "totalAmount", "type": "uint256", "internalType": "uint256" },
-      { "name": "weightedDuration", "type": "uint256", "internalType": "uint256" },
-      { "name": "timestamp", "type": "uint256", "internalType": "uint256" },
+      { "name": "tokenAmount", "type": "uint256", "internalType": "uint256" },
+      { "name": "lockDuration", "type": "uint256", "internalType": "uint256" },
+      { "name": "created", "type": "uint256", "internalType": "uint256" },
       { "name": "withdrawn", "type": "bool", "internalType": "bool" }
     ],
     "stateMutability": "view"
@@ -175,16 +190,6 @@
     "name": "owner",
     "inputs": [],
     "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "pendingWithdrawals",
-    "inputs": [
-      { "name": "", "type": "address", "internalType": "address" },
-      { "name": "", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -218,7 +223,7 @@
       { "name": "title", "type": "string", "internalType": "string" },
       { "name": "body", "type": "string", "internalType": "string" },
       { "name": "amount", "type": "uint256", "internalType": "uint256" },
-      { "name": "intervals", "type": "uint256", "internalType": "uint256" }
+      { "name": "lockDuration", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -227,6 +232,16 @@
     "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setDecayCurve",
+    "inputs": [
+      { "name": "_decayCurveType", "type": "uint256", "internalType": "uint256" },
+      { "name": "_decayCurveParameters", "type": "uint256[]", "internalType": "uint256[]" }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -243,7 +258,7 @@
     "inputs": [
       { "name": "initiativeId", "type": "uint256", "internalType": "uint256" },
       { "name": "amount", "type": "uint256", "internalType": "uint256" },
-      { "name": "intervals", "type": "uint256", "internalType": "uint256" }
+      { "name": "lockDuration", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -267,16 +282,16 @@
   },
   {
     "type": "function",
-    "name": "totalProposals",
+    "name": "totalInitiatives",
     "inputs": [],
-    "outputs": [{ "name": "totalProposals", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "totalSupporters",
     "inputs": [{ "name": "initiativeId", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "totalSupporters", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -295,14 +310,7 @@
   },
   {
     "type": "function",
-    "name": "weights",
-    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "withdrawAll",
+    "name": "withdrawAllTokens",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -316,9 +324,29 @@
   },
   {
     "type": "event",
+    "name": "DecayCurveUpdated",
+    "inputs": [
+      {
+        "name": "decayCurveType",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "decayCurveParameters",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "InitiativeAccepted",
     "inputs": [
-      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" }
+      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "actor", "type": "address", "indexed": true, "internalType": "address" }
     ],
     "anonymous": false
   },
@@ -326,7 +354,8 @@
     "type": "event",
     "name": "InitiativeExpired",
     "inputs": [
-      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" }
+      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "actor", "type": "address", "indexed": true, "internalType": "address" }
     ],
     "anonymous": false
   },
@@ -338,6 +367,18 @@
       { "name": "proposer", "type": "address", "indexed": true, "internalType": "address" },
       { "name": "title", "type": "string", "indexed": false, "internalType": "string" },
       { "name": "body", "type": "string", "indexed": false, "internalType": "string" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitiativeSupported",
+    "inputs": [
+      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "supporter", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "tokenAmount", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "lockDuration", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "timestamp", "type": "uint256", "indexed": false, "internalType": "uint256" }
     ],
     "anonymous": false
   },
@@ -357,23 +398,6 @@
       { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" },
       { "name": "supporter", "type": "address", "indexed": true, "internalType": "address" },
       { "name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256" }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "WeightUpdated",
-    "inputs": [
-      { "name": "initiativeId", "type": "uint256", "indexed": true, "internalType": "uint256" },
-      { "name": "supporter", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "totalAmount", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      {
-        "name": "weightedDuration",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      { "name": "timestamp", "type": "uint256", "indexed": false, "internalType": "uint256" }
     ],
     "anonymous": false
   },

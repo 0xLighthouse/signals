@@ -88,7 +88,7 @@ export const GET = async () => {
     }),
   )
 
-  console.log(initiatives)
+  // console.log(initiatives)
 
   return NextResponse.json(initiatives)
 }

@@ -43,9 +43,11 @@ export const Submission = () => {
       })
 
       console.log('Transaction Hash:', transactionHash)
+      console.log('Waiting for txn to be mined...')
 
       const receipt = await readClient.waitForTransactionReceipt({
         hash: transactionHash,
+        confirmations: 2,
       })
       console.log('Transaction Receipt:', receipt)
     } catch (error) {

@@ -97,9 +97,11 @@ export function InitiativeDrawer() {
       const hash = await signer.writeContract(request)
 
       console.log('Transaction Hash:', hash)
+      console.log('Waiting for txn to be mined...')
 
       const receipt = await readClient.waitForTransactionReceipt({
         hash: hash,
+        confirmations: 2,
       })
       console.log('Transaction Receipt:', receipt)
 
@@ -145,9 +147,10 @@ export function InitiativeDrawer() {
 
     const hash = await signer.writeContract(request)
     console.log('Transaction Hash:', hash)
-
+    console.log('Waiting for txn to be mined...')
     const receipt = await readClient.waitForTransactionReceipt({
       hash: hash,
+      confirmations: 2,
     })
     console.log('Transaction Receipt:', receipt)
   }

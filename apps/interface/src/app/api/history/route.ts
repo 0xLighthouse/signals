@@ -1,6 +1,6 @@
 import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { NextRequest, NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, getAddress, http } from 'viem'
 import { hardhat } from 'viem/chains'
 
 export interface NormalisedBond {
@@ -49,7 +49,7 @@ export const GET = async (request: NextRequest) => {
     },
     // Only get events which I have support for
     args: {
-      supporter: supporter as `0x${string}`,
+      supporter: getAddress(supporter) as `0x${string}`,
     },
     fromBlock:
       process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev'

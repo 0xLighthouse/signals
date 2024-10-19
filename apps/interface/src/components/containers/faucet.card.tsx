@@ -65,6 +65,7 @@ export const FaucetCard = () => {
       })
 
       console.log('Transaction Hash:', transactionHash)
+      console.log('Waiting for txn to be mined...')
 
       const receipt = await readClient.waitForTransactionReceipt({
         hash: transactionHash,
