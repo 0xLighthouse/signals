@@ -153,7 +153,7 @@ contract SignalsTest is Test {
     signalsContract.supportInitiative(0, 150 * 1e18, 6);
 
     // Check that the lock info is stored
-    (uint256 amount, uint256 duration, , bool withdrawn) = signalsContract.locks(0, bob);
+    (uint256 amount, uint256 duration, , bool withdrawn) = signalsContract.locks(0, bob, 0);
     assertEq(amount, 150 * 1e18);
     assertEq(duration, 6);
     assertEq(withdrawn, false);

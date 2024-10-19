@@ -74,14 +74,14 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 lastActivity;
   }
 
-  /// @notice Struct to store lock information for each supporter
+  /// @notice Struct to store lock information for each lockup
   struct LockInfo {
-    /// @dev Total amount of tokens locked by the supporter for this initiative
-    uint256 totalAmount;
-    /// @dev Weighted average duration of the lock in intervals
-    uint256 weightedDuration;
-    /// @dev Timestamp of the last update to this lock
-    uint256 timestamp;
+    /// @dev Amount of tokens locked
+    uint256 tokenAmount;
+    /// @dev Totel duration of the lock in intervals
+    uint256 lockDuration;
+    /// @dev Timestamp of when the lock was created
+    uint256 created;
     /// @dev Flag indicating whether the locked tokens have been withdrawn
     bool withdrawn;
   }
@@ -93,7 +93,7 @@ contract Signals is Ownable, ReentrancyGuard {
   mapping(uint256 => uint256) public weights;
 
   /// @notice (initiativeId => (supporter => LockInfo))
-  mapping(uint256 => mapping(address => LockInfo)) public locks;
+  mapping(uint256 => mapping(address => LockInfo[])) public locks;
 
   /// @notice (initiativeId => supporter[])
   mapping(uint256 => address[]) public supporters;
@@ -113,7 +113,7 @@ contract Signals is Ownable, ReentrancyGuard {
   event WeightUpdated(
     uint256 indexed initiativeId,
     address indexed supporter,
-    uint256 totalAmount,
+    uint256 tokenAmount,
     uint256 weightedDuration,
     uint256 timestamp
   );
@@ -187,6 +187,13 @@ contract Signals is Ownable, ReentrancyGuard {
     string memory title,
     string memory body
   ) external hasSufficientTokens hasValidInput(title, body) {
+    _addInitiative(title, body);
+  }
+
+  function _addInitiative (
+    string memory title,
+    string memory body
+  ) internal hasValidInput(title, body) returns (uint256 id) {
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
       title: title,
@@ -201,59 +208,22 @@ contract Signals is Ownable, ReentrancyGuard {
     count++;
 
     emit InitiativeProposed(initiativeId, msg.sender, title, body);
+    return initiativeId;
   }
 
   /// @notice Proposes a new initiative with locked tokens
   /// @param title Title of the initiative
   /// @param body Body of the initiative
   /// @param amount Amount of tokens to lock
-  /// @param intervals Duration for which tokens are locked (in months)
+  /// @param duration Duration for which tokens are locked (in intervals)
   function proposeInitiativeWithLock(
     string memory title,
     string memory body,
     uint256 amount,
-    uint256 intervals
+    uint256 duration
   ) external hasSufficientTokens hasValidInput(title, body) {
-    if (intervals == 0 || intervals > maxLockIntervals)
-      revert InvalidInput('Invalid lock interval');
-
-    if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
-      revert TokenTransferFailed();
-
-    Initiative memory newInitiative = Initiative({
-      state: InitiativeState.Proposed,
-      title: title,
-      body: body,
-      proposer: msg.sender,
-      timestamp: block.timestamp,
-      lastActivity: block.timestamp
-    });
-
-    uint256 initiativeId = count;
-    initiatives[initiativeId] = newInitiative;
-    count++;
-
-    _updateLockInfo(initiativeId, msg.sender, amount, intervals);
-
-    uint256 weight = _calculateLockWeight(amount, intervals);
-
-    weights[initiativeId] += weight;
-
-    if (!isSupporter[initiativeId][msg.sender]) {
-      supporters[initiativeId].push(msg.sender);
-      isSupporter[initiativeId][msg.sender] = true;
-    }
-
-    _addPendingWithdrawal(msg.sender, initiativeId);
-
-    emit InitiativeProposed(initiativeId, msg.sender, title, body);
-    emit WeightUpdated(
-      initiativeId,
-      msg.sender,
-      locks[initiativeId][msg.sender].totalAmount,
-      locks[initiativeId][msg.sender].weightedDuration,
-      block.timestamp
-    );
+    uint256 id = _addInitiative(title, body);
+    _addLock(id, msg.sender, amount, duration);
   }
 
   /// @notice Allows a user to support an existing initiative with locked tokens
@@ -262,10 +232,19 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @param intervals Duration for which tokens are locked (in months)
   // TODO: Rename this to increaseLock
   function supportInitiative(uint256 initiativeId, uint256 amount, uint256 intervals) external {
-    if (intervals == 0 || intervals > maxLockIntervals)
-      revert InvalidInput('Invalid lock interval');
+    _addLock(initiativeId, msg.sender, amount, intervals);
+  }
+
+  function _addLock(
+    uint256 initiativeId,
+    address supporter,
+    uint256 amount,
+    uint256 duration
+  ) internal {
     if (initiativeId >= count) revert InitiativeNotFound();
+    if (duration == 0 || duration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
     if (balanceOf(msg.sender) < amount) revert InsufficientTokens();
+
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -273,10 +252,16 @@ contract Signals is Ownable, ReentrancyGuard {
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
 
-    _updateLockInfo(initiativeId, msg.sender, amount, intervals);
+    LockInfo memory lock = LockInfo({
+      created: block.timestamp,
+      tokenAmount: amount,
+      lockDuration: duration
+    });
 
-    uint256 weight = _calculateLockWeight(amount, intervals);
-    weights[initiativeId] += weight;
+    //TODO: Do we need to check if exists first?
+    locks[initiativeId][supporter].push(lock);
+
+    initiative.lastActivity = lock.created;
 
     if (!isSupporter[initiativeId][msg.sender]) {
       supporters[initiativeId].push(msg.sender);
@@ -285,39 +270,14 @@ contract Signals is Ownable, ReentrancyGuard {
 
     _addPendingWithdrawal(msg.sender, initiativeId);
 
-    initiative.lastActivity = block.timestamp;
-
+    //TODO: Rename and redefine this event
     emit WeightUpdated(
       initiativeId,
       msg.sender,
-      locks[initiativeId][msg.sender].totalAmount,
-      locks[initiativeId][msg.sender].weightedDuration,
+      lock.tokenAmount,
+      lock.lockDuration,
       block.timestamp
     );
-  }
-
-  function _updateLockInfo(
-    uint256 initiativeId,
-    address supporter,
-    uint256 amount,
-    uint256 intervals
-  ) internal {
-    LockInfo storage lockInfo = locks[initiativeId][supporter];
-
-    console.log('totalAmount:', lockInfo.totalAmount);
-    console.log('weightedDuration:', lockInfo.weightedDuration);
-    console.log('amount:', amount);
-
-    uint256 totalAmount = lockInfo.totalAmount + amount;
-
-    console.log('totalAmount:', totalAmount);
-    uint256 newWeightedDuration = ((lockInfo.totalAmount * lockInfo.weightedDuration) +
-      (amount * intervals)) / totalAmount;
-    console.log('newWeightedDuration:', newWeightedDuration);
-
-    lockInfo.totalAmount = totalAmount;
-    lockInfo.weightedDuration = newWeightedDuration;
-    lockInfo.timestamp = block.timestamp;
   }
 
   function acceptInitiative(uint256 initiativeId) external onlyOwner {
@@ -351,9 +311,9 @@ contract Signals is Ownable, ReentrancyGuard {
       revert InvalidInitiativeState('Initiative not in a withdrawable state');
 
     LockInfo storage lockInfo = locks[initiativeId][msg.sender];
-    if (lockInfo.totalAmount == 0 || lockInfo.withdrawn) revert NothingToWithdraw();
+    if (lockInfo.tokenAmount == 0 || lockInfo.withdrawn) revert NothingToWithdraw();
 
-    uint256 amountToWithdraw = lockInfo.totalAmount;
+    uint256 amountToWithdraw = lockInfo.tokenAmount;
 
     lockInfo.withdrawn = true;
 
@@ -379,10 +339,10 @@ contract Signals is Ownable, ReentrancyGuard {
       if (
         (initiative.state == InitiativeState.Accepted ||
           initiative.state == InitiativeState.Expired) &&
-        lockInfo.totalAmount > 0 &&
+        lockInfo.tokenAmount > 0 &&
         !lockInfo.withdrawn
       ) {
-        uint256 amountToWithdraw = lockInfo.totalAmount;
+        uint256 amountToWithdraw = lockInfo.tokenAmount;
         lockInfo.withdrawn = true;
 
         _removePendingWithdrawal(msg.sender, initiativeId);
@@ -469,15 +429,11 @@ contract Signals is Ownable, ReentrancyGuard {
     return _calculateWeight(lockInfo, timestamp);
   }
 
-  function getTotalWeight(uint256 initiativeId) external view returns (uint256) {
-    if (initiativeId >= count) revert InitiativeNotFound();
-    return weights[initiativeId];
-  }
-
   function _calculateLockWeight(uint256 amount, uint256 duration) private returns (uint256) {
     return _calculateWeightAt(duration, amount, 0);
   }
 
+  /// @notice Calculates the weight of the provided lockInfo for the current time
   function _calculateWeight(
     LockInfo storage lockInfo,
     uint256 timestamp
@@ -485,12 +441,12 @@ contract Signals is Ownable, ReentrancyGuard {
     if (lockInfo.withdrawn) {
       return 0;
     }
-    uint256 elapsedIntervals = (timestamp - lockInfo.timestamp) / lockInterval;
-    if (elapsedIntervals >= lockInfo.weightedDuration) {
+    uint256 elapsedIntervals = (timestamp - lockInfo.created) / lockInterval;
+    if (elapsedIntervals >= lockInfo.lockDuration) {
       return 0;
     }
 
-    return _calculateWeightAt(lockInfo.weightedDuration, lockInfo.totalAmount, elapsedIntervals);
+    return _calculateWeightAt(lockInfo.lockDuration, lockInfo.tokenAmount, elapsedIntervals);
   }
 
   function _calculateWeightAt(uint256 lockDuration, uint256 lockAmount, uint256 targetInterval) internal view returns (uint256) {
