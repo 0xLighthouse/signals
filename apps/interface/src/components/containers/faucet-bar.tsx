@@ -77,11 +77,11 @@ export const FaucetBar = () => {
         </div>
         <div>
           <span className="text-2xl font-bold">{formatter(totalSupply)}</span>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Supply</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Circulating Supply</p>
         </div>
         <div>
-          <span className="text-2xl font-bold">{formatter(gas)}</span>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Gas (ETH)</p>
+          <span className="text-2xl font-bold">TODO</span>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">% Locked</p>
         </div>
       </div>
       <Button onClick={handleClaimTokens} className="ml-4">
