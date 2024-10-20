@@ -236,7 +236,7 @@ contract Signals is Ownable, ReentrancyGuard {
   function _addInitiative(
     string memory title,
     string memory body
-  ) internal hasValidInput(title, body) hasSufficientTokens(proposalThreshold) returns (uint256 id) {
+  ) internal hasSufficientTokens(proposalThreshold) returns (uint256 id) {
     Initiative memory newInitiative = Initiative({
       state: InitiativeState.Proposed,
       title: title,
