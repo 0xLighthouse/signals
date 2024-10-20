@@ -2,18 +2,20 @@ import { Separator } from '@/components/ui/separator'
 
 export function Footer() {
   return (
-    <div>
-      <div className="space-y-1">
-        <h4 className="text-sm font-medium leading-none">Signals</h4>
-        <p className="text-sm text-muted-foreground">
-          Pool feedback from the community to prioritize initiatives.
-        </p>
+    <div className="mt-20">
+      <div className="space-y-2">
+        <h4 className="text-md font-bold leading-none">Signals</h4>
+        <p className="text-sm text-muted-foreground">Real time community sentiment</p>
       </div>
       <Separator className="my-4" />
       <div className="flex h-5 items-center space-x-4 text-sm">
-        <div>Blog</div>
+        <div>
+          <a href="https://mirror.xyz/lighthousegov.eth">Blog</a>
+        </div>
         <Separator orientation="vertical" />
-        <div>Docs</div>
+        <div>
+          <a href="https://docs.lighthouse.cx/protocols/signals">Docs</a>
+        </div>
         <Separator orientation="vertical" />
         <div>
           <a href="https://github.com/0xLighthouse/signals">GitHub</a>

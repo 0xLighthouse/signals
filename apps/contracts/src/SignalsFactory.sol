@@ -44,8 +44,10 @@ contract SignalsFactory {
     uint256 lockInterval,
     uint256 decayCurveType,
     uint256[] memory decayCurveParameters
-  ) public payable returns  (address) {
+  ) public payable returns (address) {
     if (_owner == address(0)) revert InvalidOwnerAddress();
+
+    // TODO: Also init the Incentives contract from the factory
 
     // Initialize the new Signals contract
     Signals instance = new Signals();
