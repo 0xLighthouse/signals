@@ -2,15 +2,13 @@
 
 ## Getting Started
 
-* Ensure the standard foundry tools are available
+We use Foundry to build and test our smart contracts. Get it here:
 
-```shell
-curl -L https://foundry.paradigm.xyz | bash
-# Installs forge, anvil
-foundaryup
-```
+https://getfoundry.sh/
 
 * Copy `.envrc.example` to `.envrc` and set the correct environment variables
+
+Smart contract source code can be found in the `src` folder.
 
 ## Local development
 
@@ -26,7 +24,9 @@ anvil --mnemonic $DEPLOYER_TESTNET_SEED_PHRASE
 forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
 ```
 
-### Test
+### Tests
+
+Our tests are located in the `src/__tests__` directory. Once you've installed Foundry, you can run the unit tests by navigating to the `contracts` directory and calling:
 
 ```shell
 forge test
@@ -37,3 +37,4 @@ forge test
 ```shell
 forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
+
