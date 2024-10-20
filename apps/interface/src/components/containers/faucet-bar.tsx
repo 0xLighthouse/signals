@@ -9,6 +9,7 @@ import { hardhat } from 'viem/chains'
 import { createWalletClient, formatEther } from 'viem'
 import { toast } from 'sonner'
 import { useSignals } from '@/contexts/SignalsContext'
+import { useRewardsStore } from '@/stores/useRewardsStore'
 
 const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
   if (!address) throw new Error('Address not available.')
@@ -50,8 +51,20 @@ const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol:
 
 export const FaucetBar = () => {
   const { address } = useAccount()
-  const { name, symbol, totalSupply, balance } = useUnderlying()
+  const {
+    balance: usdcBalance,
+    fetch: fetchUSDC,
+    symbol: usdcSymbol,
+    formatter: formatUSDC,
+  } = useRewardsStore()
+  const { symbol: underlyingSymbol, totalSupply, balance: underlyingBalance } = useUnderlying()
   const { formatter } = useSignals()
+
+  useEffect(() => {
+    if (address) {
+      fetchUSDC(address)
+    }
+  }, [address, fetchUSDC])
 
   const [gas, setGas] = useState<number>(0)
 
@@ -82,12 +95,14 @@ export const FaucetBar = () => {
     <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 shadow-md rounded-lg">
       <div className="flex flex-1 justify-evenly text-center">
         <div>
-          <span className="text-2xl font-bold">{formatter(balance)}</span>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Balance ({symbol})</p>
+          <span className="text-2xl font-bold">{formatter(underlyingBalance)}</span>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Balance ({underlyingSymbol})
+          </p>
         </div>
         <div>
-          <span className="text-2xl font-bold">{formatter(totalSupply)}</span>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Circulating Supply</p>
+          <span className="text-2xl font-bold">{formatUSDC(usdcBalance)}</span>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Balance ({usdcSymbol})</p>
         </div>
         <div>
           <span className="text-2xl font-bold">TODO</span>
