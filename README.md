@@ -1,4 +1,5 @@
 # 📡 Signals
+
 #### A project for the RnDAO Arbitrum CollabTech Hackathon
 
 ***
@@ -26,19 +27,19 @@ Signals is not a voting or decision-making system. Initiatives that get the most
 
 * Signals operates completely on-chain, on the Arbitrum network. A community can deploy their own copy of the smart contract using our factory, and configure it to use any ERC20 token to control access and participation. The token could be a governance token, stablecoin, or even a specific token created specificially for the purpose of participating in this platform.
 
-- Community members who hold a minimum amount of the specified token are allowed to submit initiatives, containing a title and body.
+* Community members who hold a minimum amount of the specified token are allowed to submit initiatives, containing a title and body.
 
 * Any community member who holds any amount of the token can then "support" an initiative by locking up a portion of their tokens in favor of that initiative. Each supporter can decide for themselves how many tokens they are willing to lock up, and for how long. A longer lockup duration increases the weight of the supporter's contribution, meaning someone who locks up a small amount of tokens for a long time could have just as much impact as a whale who locks up a large amount of tokens for a small amount of time. As the name implies, tokens that have been locked up are transfered to the smart contract and can not be withdrawn until the lock expires or the initiative is closed.
 
-- Our user-friendly web interface shows all initiatives ordered by the weight each has received, surfacing at a glance which initiatives have the most support from the community.
+* Our user-friendly web interface shows all initiatives ordered by the weight each has received, surfacing at a glance which initiatives have the most support from the community.
 
 * The weight bonus gained from longer lockups decays over time, which keeps initiatives timely. An issue which gains a lot of support all at once rises much higher than an issue that gains small amounts of support over a long period of time.
 
-- Any initiative which receives a total amount of support exceeded a specified threshold can then be "accepted" by the community, in which case it is removed from the active initiatives list and all supporters are immediately refunded the tokens they have locked up in support of that initiative. It is up to the community to decide what action to take on accepted initiatives.
+* Any initiative which receives a total amount of support exceeded a specified threshold can then be "accepted" by the community, in which case it is removed from the active initiatives list and all supporters are immediately refunded the tokens they have locked up in support of that initiative. It is up to the community to decide what action to take on accepted initiatives.
 
 * Any initative which has not received any support after a specified period of inactivity (e.g. 60 days) is considered abandoned and can be "expired", which removes the initiative from the active initiatives list and refunds all supporters who have locked up tokens in support.
 
-- Once a token lock has reached the end of its lockup duration, the supporter can withdraw their tokens (removing support from the initiative) or leave their tokens deposited, which will continue to provide support for that initiative (but without any lockup bonus to the weight).
+* Once a token lock has reached the end of its lockup duration, the supporter can withdraw their tokens (removing support from the initiative) or leave their tokens deposited, which will continue to provide support for that initiative (but without any lockup bonus to the weight).
 
 ## Installation
 
@@ -52,4 +53,7 @@ Each of these folders has its own readme for more technical details.
 
 ## Usage
 
-You can see our live demo running at (URL). Contact us for test tokens, and you will be able to connect your wallet to start supporting initiatives!
+Visit [https://signals.testnet.lighthouse.cx/](https://signals.testnet.lighthouse.cx/) to explore the protocol.
+
+* Grab some testnet ETH at <https://www.alchemy.com/faucets/arbitrum-sepolia>
+* You can then use our built in faucet to claim some `SGNL` (our governance token) and `Mocked USDC` (our reward token) to use on the frontend.
