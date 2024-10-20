@@ -11,13 +11,13 @@ import '@openzeppelin/contracts/utils/Strings.sol';
 
 import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
-import {RewardRegistry} from '../RewardRegistry.sol';
+import {TokenRegistry} from '../TokenRegistry.sol';
 import {Incentives} from '../Incentives.sol';
 import {MockStable} from '../__mocks__/MockStable.m.sol';
 
 contract IncentivesTest is Test {
   Incentives _incentives;
-  RewardRegistry _registry;
+  TokenRegistry _registry;
   SignalsFactory _factory;
   MockERC20 _mToken;
   MockStable _mUSDC;
@@ -93,11 +93,11 @@ contract IncentivesTest is Test {
       _decayCurveParameters
     );
 
-    // Initialize RewardRegistry
-    _registry = new RewardRegistry();
+    // Initialize TokenRegistry
+    _registry = new TokenRegistry();
     vm.prank(_deployer);
-    _registry.register(address(_mToken)); // Allow token rewards
-    _registry.register(address(_mUSDC)); // Allow usdc rewards
+    _registry.allow(address(_mToken)); // Allow token rewards
+    _registry.allow(address(_mUSDC)); // Allow usdc rewards
 
 
     // Create incentives
@@ -123,9 +123,9 @@ contract IncentivesTest is Test {
     // Addresses have token and usdc balances
     assertEq(_mToken.balanceOf(_alice), 200_000 * 1e18);
     assertEq(_mUSDC.balanceOf(_alice), 200_000 * 1e6);
-    // RewardRegistry has token and usdc registered
-    assertEq(_registry.isRegistered(address(_mToken)), true);
-    assertEq(_registry.isRegistered(address(_mUSDC)), true);
+    // TokenRegistry has token and usdc registered
+    assertEq(_registry.isAllowed(address(_mToken)), true);
+    assertEq(_registry.isAllowed(address(_mUSDC)), true);
   }
 
   function testAddIncentive() public {

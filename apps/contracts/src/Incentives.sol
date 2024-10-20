@@ -9,13 +9,13 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import './Signals.sol';
-import './RewardRegistry.sol';
+import './TokenRegistry.sol';
 
 contract Incentives is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     Signals public signalsContract;
-    RewardRegistry public rewardRegistry;
+    TokenRegistry public registry;
     
     struct Incentive {
         uint256 initiativeId;
@@ -87,12 +87,12 @@ contract Incentives is Ownable, ReentrancyGuard {
 
     constructor(
         address _signalsContract,
-        address _rewardRegistry,
+        address _tokenRegistry,
         uint256[3] memory _allocations,
         address[3] memory _receivers    
     ) {
         signalsContract = Signals(_signalsContract);
-        rewardRegistry = RewardRegistry(_rewardRegistry);
+        registry = TokenRegistry(_tokenRegistry);
         
         _updateShares(_allocations, _receivers);
     }
@@ -177,7 +177,7 @@ contract Incentives is Ownable, ReentrancyGuard {
     }
 
     function _addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms) internal {
-        require(rewardRegistry.isRegistered(_token), "Token not registered for incentives");
+        require(registry.isAllowed(_token), "Token not registered for incentives");
         require(_initiativeId < signalsContract.totalInitiatives(), "Invalid initiative");
 
         IERC20 token = IERC20(_token);

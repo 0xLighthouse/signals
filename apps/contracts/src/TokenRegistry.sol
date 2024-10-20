@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import './Incentives.sol';
 
-contract RewardRegistry is Ownable {
+contract TokenRegistry is Ownable {
     using SafeERC20 for IERC20;
  
     mapping(address => bool) public registry;
@@ -15,19 +15,19 @@ contract RewardRegistry is Ownable {
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
     
-    function register(address _token) external onlyOwner {
+    function allow(address _token) external onlyOwner {
         require(!registry[_token], "Token already registered");
         registry[_token] = true;
         emit TokenAdded(_token);
     }
 
-    function disable(address _token) external onlyOwner {
+    function deny(address _token) external onlyOwner {
         require(registry[_token], "Token not approved");
         registry[_token] = false;
         emit TokenRemoved(_token);
     }
 
-    function isRegistered(address _token) external view returns (bool) {
+    function isAllowed(address _token) external view returns (bool) {
         return registry[_token];
     }
 }
