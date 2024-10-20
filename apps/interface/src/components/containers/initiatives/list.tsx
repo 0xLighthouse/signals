@@ -17,6 +17,10 @@ import { Chart } from './chart'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { useSignals } from '@/contexts/SignalsContext'
 import { timeAgoWords } from '@/lib/utils'
+import { useInitiativesStore } from '@/stores/useInitiativesStore'
+import { PuffLoader } from 'react-spinners'
+import { UITheme } from '@/config/theme'
+import { useTheme } from '@/contexts/ThemeContext'
 
 // import data from '@/config/proposals.json'
 // import { Money } from '@phosphor-icons/react'
@@ -25,26 +29,18 @@ import { timeAgoWords } from '@/lib/utils'
 //   createdAtTimestamp: new Date(idea.created_at).getTime(),
 // })) satisfies NormalisedInitiative[]
 
-export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archived' }) => {
+export const InitiativesList = () => {
+  const { theme } = useTheme()
   const { initiativesCount } = useSignals()
-  const [initiatives, setInitiatives] = useState<NormalisedInitiative[]>([]) // Ensure it's initialized as an empty array
+  const initiatives = useInitiativesStore((state) => state.initiatives)
+  const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   console.log('count initiatives', initiativesCount)
 
   useEffect(() => {
-    fetch('/api/initiatives')
-      .then((res) => res.json())
-      .then((data) => {
-        console.log('initiatives', data)
-        // Ensure data is an array before setting state
-        if (Array.isArray(data)) {
-          setInitiatives(data) // Update the state with the fetched data
-        } else {
-          console.error('Fetched data is not an array:', data) // Log an error if data is not an array
-        }
-      })
-      .catch((error) => console.error('Error fetching initiatives:', error)) // Handle errors
-  }, [])
+    if (fetchInitiatives) fetchInitiatives()
+  }, [fetchInitiatives])
 
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
@@ -61,6 +57,18 @@ export const InitiativesList = ({ type }: { type: 'active' | 'accepted' | 'archi
 
   const handleSupportInitiative = (id: number) => {
     console.log('support initiative', id)
+  }
+
+  if (isFetchingInitiatives) {
+    return (
+      <div className="flex justify-center items-center">
+        <PuffLoader
+          color={theme === UITheme.DARK ? '#fff' : '#000'}
+          size={38}
+          speedMultiplier={2.6}
+        />
+      </div>
+    )
   }
 
   return (

@@ -28,6 +28,7 @@ import { useAccount } from 'wagmi'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
+import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 const threshold = 30_000
 
@@ -42,8 +43,25 @@ export function InitiativeDrawer() {
   const [description, setDescription] = React.useState('')
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false) // Add state for drawer open
   const [hasAllowance, setHasAllowance] = React.useState(false)
+  const [isApproving, setIsApproving] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   const weight = amount ? amount * duration : 0
+
+  const resetFormState = () => {
+    setAmount(undefined)
+    setLockTokens(false)
+    setTitle('')
+    setDescription('')
+    setDuration(1)
+  }
+
+  const handleOnOpenChange = (open: boolean) => {
+    if (!open) resetFormState()
+    setIsDrawerOpen(open)
+  }
 
   const handleSubmit = async () => {
     console.log('Submit', {
@@ -59,6 +77,7 @@ export function InitiativeDrawer() {
     }
 
     try {
+      setIsSubmitting(true)
       // Signer get nonce
       const nonce = await readClient.getTransactionCount({
         address,
@@ -99,17 +118,27 @@ export function InitiativeDrawer() {
       console.log('Transaction Hash:', hash)
       console.log('Waiting for txn to be mined...')
 
-      const receipt = await readClient.waitForTransactionReceipt({
-        hash: hash,
-        confirmations: 2,
-        pollingInterval: 2000,
-      })
-      console.log('Transaction Receipt:', receipt)
+      // const receipt = await readClient.waitForTransactionReceipt({
+      //   hash: hash,
+      //   confirmations: 2,
+      //   pollingInterval: 2000,
+      // })
+      // console.log('Transaction Receipt:', receipt)
 
       setIsDrawerOpen(false)
+      setIsSubmitting(false)
+      resetFormState()
       toast('Initiative submitted!')
+      fetchInitiatives()
     } catch (error) {
       console.error('Error claiming tokens:', error)
+      // @ts-ignore
+      if (error?.message?.includes('User rejected the request')) {
+        toast('User rejected the request')
+      } else {
+        toast('Error submitting initiative :(')
+      }
+      setIsSubmitting(false)
     }
   }
 
@@ -134,93 +163,82 @@ export function InitiativeDrawer() {
   }, [address, amount])
 
   const handleApprove = async (amount: number) => {
-    // Signer get nonce
-    const nonce = await readClient.getTransactionCount({
-      address: address as `0x${string}`,
-    })
+    try {
+      setIsApproving(true)
+      // Signer get nonce
+      const nonce = await readClient.getTransactionCount({
+        address: address as `0x${string}`,
+      })
 
-    const signer = createWalletClient({
-      chain: hardhat,
-      transport: custom(window.ethereum),
-    })
-    const { request } = await readClient.simulateContract({
-      nonce,
-      account: address,
-      address: ERC20_ADDRESS,
-      abi: ABI,
-      functionName: 'approve',
-      args: [SIGNALS_PROTOCOL, amount * 1e18],
-    })
+      const signer = createWalletClient({
+        chain: hardhat,
+        transport: custom(window.ethereum),
+      })
+      const { request } = await readClient.simulateContract({
+        nonce,
+        account: address,
+        address: ERC20_ADDRESS,
+        abi: ABI,
+        functionName: 'approve',
+        args: [SIGNALS_PROTOCOL, amount * 1e18],
+      })
 
-    const hash = await signer.writeContract(request)
-    console.log('Transaction Hash:', hash)
-    console.log('Waiting for txn to be mined...')
-    const receipt = await readClient.waitForTransactionReceipt({
-      hash: hash,
-      confirmations: 2,
-      pollingInterval: 2000,
-    })
-    console.log('Transaction Receipt:', receipt)
+      const hash = await signer.writeContract(request)
+      console.log('Transaction Hash:', hash)
+      console.log('Waiting for txn to be mined...')
+      // const receipt = await readClient.waitForTransactionReceipt({
+      //   hash: hash,
+      //   confirmations: 2,
+      //   pollingInterval: 2000,
+      // })
+
+      // console.log('Transaction Receipt:', receipt)
+      setIsApproving(false)
+      toast('Tokens approved!')
+    } catch (error) {
+      console.error('Error during approval process:', error)
+      // @ts-ignore
+      if (error?.message?.includes('User rejected the request')) {
+        toast('User rejected the request')
+      } else {
+        toast('Error during approval process')
+      }
+      setIsApproving(false)
+    }
   }
 
   const meetsThreshold = balance && proposalThreshold && balance >= proposalThreshold
 
+  const resolveAction = () => {
+    console.log(!!title)
+    if (!hasAllowance && amount) {
+      return (
+        <Button onClick={() => handleApprove(amount)} isLoading={isApproving}>
+          {isApproving ? 'Confirming approval...' : 'Approve'}
+        </Button>
+      )
+    }
+    return (
+      <Button
+        disabled={(lockTokens && !amount) || !title || !description}
+        onClick={handleSubmit}
+        isLoading={isSubmitting}
+      >
+        {isSubmitting ? 'Submitting...' : 'Submit'}
+      </Button>
+    )
+  }
+
   return (
-    <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-      {' '}
-      {/* Control drawer open state */}
+    <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
         <Button onClick={() => setIsDrawerOpen(true)}>
-          {/* Open drawer on button click */}
           Propose Initiative &nbsp; <PlusIcon size={24} />
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="mx-auto w-full max-w-lg pt-8 pb-12">
-          <Card className="fixed top-200 right-10 w-[200px]">
-            <CardHeader>
-              <CardTitle>Propose new initiative</CardTitle>
-              <CardDescription>
-                <ol>
-                  <li>Come up with a sweet idea</li>
-                  <li>Write a compelling description</li>
-                  <li>Approve the protocol contract to store your tokens</li>
-                  <li>Submit your idea</li>
-                </ol>
-
-                {!hasAllowance && amount && (
-                  <strong>
-                    You need to <Button onClick={() => handleApprove(amount)}>approve</Button> the
-                    protocol to store your tokens.
-                  </strong>
-                )}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <DrawerHeader>
-            <DrawerTitle>Propose a new initiative</DrawerTitle>
-            <DrawerDescription>
-              This board requires your wallet to hold{' '}
-              <strong>
-                {formatter(proposalThreshold)} {symbol}
-              </strong>{' '}
-              tokens to propose an idea. You have{' '}
-              <strong>
-                {formatter(balance)} {symbol}
-              </strong>{' '}
-              tokens.
-              {meetsThreshold ? (
-                <strong>You have enough tokens to propose an idea.</strong>
-              ) : (
-                <strong>You do not have enough tokens to propose an idea.</strong>
-              )}
-              {lockTokens
-                ? `Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.`
-                : 'Your tokens will not be locked.'}
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 pb-0">
+        <div className="p-4 bg-white rounded-t-[10px] flex-1 overflow-y-auto flex flex-row">
+          <div className="flex flex-col w-3/5 p-8">
             <div className="my-2">
               <Label htmlFor="title">Title</Label>
               <Input
@@ -238,9 +256,9 @@ export function InitiativeDrawer() {
                 required
                 value={description} // Bind state to textarea
                 onChange={(e) => setDescription(e.target.value)} // Update state on change
+                style={{ resize: 'none', height: '200px' }} // Disable resize and set fixed height
               />
             </div>
-
             <div className="flex items-center py-4 gap-4">
               <Switch
                 id="lock-tokens"
@@ -249,7 +267,6 @@ export function InitiativeDrawer() {
               />
               <Label htmlFor="lock-tokens">Lock tokens</Label>
             </div>
-
             {lockTokens && (
               <div className="flex flex-col gap-8">
                 <div className="flex items-center">
@@ -286,43 +303,59 @@ export function InitiativeDrawer() {
                     <p className="ml-4">{`${duration} month${duration !== 1 ? 's' : ''}`}</p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <Label className="w-1/5 flex items-center">Weight</Label>
-                  <div className="w-4/5 flex items-center">
-                    <p>{weight}</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Label className="w-1/5 flex items-center">Threshold</Label>
-                  <div className="w-4/5 flex items-center">
-                    <p>{threshold}</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Label className="w-1/5 flex items-center">Weight</Label>
-                  <div className="w-4/5 flex items-center">
-                    <p>{(weight / threshold).toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Label className="w-1/5 flex items-center">Percentage</Label>
-                  <div className="w-4/5 flex items-center">
-                    <p>{((weight / threshold) * 100).toFixed(2)}%</p>
-                  </div>
-                </div>
               </div>
             )}
+
+            <div className="flex justify-end mt-8">{resolveAction()}</div>
           </div>
-          <DrawerFooter>
-            <div className="flex justify-end gap-2">
-              <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DrawerClose>
-              <Button disabled={lockTokens && !amount} onClick={handleSubmit}>
-                Submit
-              </Button>
-            </div>
-          </DrawerFooter>
+          <div className="flex flex-col w-2/5 p-8">
+            <DrawerHeader>
+              <DrawerTitle>Propose a new initiative</DrawerTitle>
+              <DrawerDescription>
+                This board requires your wallet to hold{' '}
+                <strong>
+                  {formatter(proposalThreshold)} {symbol}
+                </strong>{' '}
+                tokens to propose an idea. You have{' '}
+                <strong>
+                  {formatter(balance)} {symbol}
+                </strong>{' '}
+                tokens.
+                {meetsThreshold ? (
+                  <strong>You have enough tokens to propose an idea.</strong>
+                ) : (
+                  <strong>You do not have enough tokens to propose an idea.</strong>
+                )}
+                {lockTokens
+                  ? `Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.`
+                  : 'Your tokens will not be locked.'}
+              </DrawerDescription>
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center">Weight</Label>
+                <div className="w-4/5 flex items-center">
+                  <p>{weight}</p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center">Threshold</Label>
+                <div className="w-4/5 flex items-center">
+                  <p>{threshold}</p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center">Weight</Label>
+                <div className="w-4/5 flex items-center">
+                  <p>{(weight / threshold).toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center">Percentage</Label>
+                <div className="w-4/5 flex items-center">
+                  <p>{((weight / threshold) * 100).toFixed(2)}%</p>
+                </div>
+              </div>
+            </DrawerHeader>
+          </div>
         </div>
       </DrawerContent>
     </Drawer>

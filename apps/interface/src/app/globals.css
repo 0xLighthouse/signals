@@ -55,3 +55,18 @@ a {
     --radius: 0.5rem;
   }
 }
+
+/* apps/interface/src/app/globals.css */
+
+/* Weird thing in the DOM from the vaul library (drawer) that adds a bunch of white space when making the content scrollable */
+/* [data-vaul-drawer]::after {
+  content: none;
+  position: static;
+  background: none;
+  height: 0 !important;
+}
+
+.handle-class {
+  position: relative;
+  z-index: 60;
+} */

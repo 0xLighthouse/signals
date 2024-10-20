@@ -1,10 +1,10 @@
-import { Initiatives } from '@/components/containers/initiatives'
 import { TopNav } from '@/components/containers/topnav'
 import { Actions } from '@/components/containers/actions'
 import { FaucetBar } from '@/components/containers/faucet-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
 import { History } from '@/components/history'
+import { InitiativesList } from '@/components/containers/initiatives/list'
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-[800px_1fr]">
           <div className="px-4 py-8 space-y-6">
             <FaucetBar />
-            <Initiatives />
+            <InitiativesList />
           </div>
           <div className="px-4 py-8">
             <Actions />

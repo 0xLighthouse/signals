@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nextui-org/spinner": "^2.0.34",
     "@phosphor-icons/react": "^2.1.7",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -31,6 +32,7 @@
     "next-themes": "^0.3.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-spinners": "^0.14.1",
     "recharts": "^2.13.0",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.3",
@@ -38,7 +40,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.0",
     "viem": "2.21.19",
-    "wagmi": "^2.12.17"
+    "wagmi": "^2.12.17",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/luxon": "^3.4.2",
