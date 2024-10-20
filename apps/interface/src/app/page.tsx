@@ -1,5 +1,4 @@
 import { TopNav } from '@/components/containers/topnav'
-import { Actions } from '@/components/containers/actions'
 import { FaucetBar } from '@/components/containers/faucet-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
@@ -18,7 +17,6 @@ export default function Home() {
             <InitiativesList />
           </div>
           <div className="px-4 py-8">
-            <Actions />
             <History />
             <FAQs />
             <Footer />
