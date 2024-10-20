@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.28;
 
+import 'forge-std/console.sol';
+
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -20,10 +22,12 @@ contract Incentives is Ownable, ReentrancyGuard {
         IERC20 token;
         uint256 amount;
         uint256 paid;
+        uint256 refunded;
         uint256 expiresAt;
+        address contributor;
         Conditions terms;
     }
-
+    
     enum Conditions {
         NONE,
         ACCEPTED_ON_OR_BEFORE_TIMESTAMP
@@ -33,9 +37,13 @@ contract Incentives is Ownable, ReentrancyGuard {
     mapping(uint256 => uint256[3]) public allocations;
     mapping(uint256 => address[3]) public receivers;
 
-
     mapping(uint256 => Incentive) public incentives;
     
+    /// (address => (token => amount))
+    mapping(address => mapping(address => uint256)) public balances;
+
+    /// (initiativeId => incentiveId[])
+    mapping(uint256 => uint256[]) public incentivesByInitiative;
     uint256 public version = 0;
 
     uint256 public incentiveCount;
@@ -48,20 +56,33 @@ contract Incentives is Ownable, ReentrancyGuard {
         Conditions terms
     );
 
-    event IncentivePaidOut(uint256 indexed incentiveId, 
-        uint256 protocolAmount, 
+    event IncentivePaidOut(
+        uint256 indexed incentiveId,
+        uint256 protocolAmount,
         uint256 voterAmount, 
         uint256 treasuryAmount
     );
     
-    event DistributionScheduleUpdated(uint256 scheduleId);
+    event IncentivesUpdated(uint256 version);
+
+    event RewardClaimed(
+        uint256 indexed initiativeId, 
+        address indexed supporter, 
+        uint256 amount
+    );
+
+    event IncentiveRefunded(
+        uint256 indexed initiativeId, 
+        address indexed contributor, 
+        uint256 amount
+    );
 
     function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
         require(_allocations[0] + _allocations[1] + _allocations[2] == 100, "Total distribution must be 100%");
         version++;
         allocations[version] = _allocations;
         receivers[version] = _receivers;
-        emit DistributionScheduleUpdated(version);
+        emit IncentivesUpdated(version);
     }
 
     constructor(
@@ -78,6 +99,59 @@ contract Incentives is Ownable, ReentrancyGuard {
 
     function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers) external onlyOwner {
         _updateShares(_allocations, _receivers);
+    }
+
+    /**
+     * Quick and dirty greedy function to get all the incentives for an initiative
+     * and sum them by token address. This is not efficient and should be replaced
+     */
+    function getIncentives(uint256 _initiativeId) public view returns (address[] memory, uint256[] memory, uint256 expiredCount) {
+        uint256[] memory _incentiveIds = incentivesByInitiative[_initiativeId];
+    
+        // Using arrays to store tokens and their total amounts
+        address[] memory tokens = new address[](_incentiveIds.length);
+        uint256[] memory amounts = new uint256[](_incentiveIds.length);
+        uint256 _expiredCount = 0;
+        uint256 tokenCount = 0;
+
+        for (uint256 i = 0; i < _incentiveIds.length; i++) {
+            Incentive storage incentive = incentives[_incentiveIds[i]];
+
+            // If the incentive has expired, exclude it from the sum
+            if (incentive.expiresAt != 0 && block.timestamp > incentive.expiresAt) {
+                _expiredCount++;
+                continue;
+            }
+
+            address tokenAddress = address(incentive.token);            
+            bool found = false;        
+            for (uint256 j = 0; j < tokenCount; j++) {
+                if (tokens[j] == tokenAddress) {
+                    // Token found, accumulate the amount
+                    amounts[j] += incentive.amount;
+                    found = true;
+                    break;
+                }
+            }
+
+            // If the token was not found, add it to the tokens array
+            if (!found) {
+                tokens[tokenCount] = tokenAddress;
+                amounts[tokenCount] = incentive.amount;
+                tokenCount++;
+            }
+        }
+
+        // Create arrays with the actual size
+        address[] memory resultTokens = new address[](tokenCount);
+        uint256[] memory resultAmounts = new uint256[](tokenCount);
+
+        for (uint256 i = 0; i < tokenCount; i++) {
+            resultTokens[i] = tokens[i];
+            resultAmounts[i] = amounts[i];
+        }
+
+        return (resultTokens, resultAmounts, _expiredCount);
     }
 
     /**
@@ -117,37 +191,91 @@ contract Incentives is Ownable, ReentrancyGuard {
             token: token,
             amount: _amount,
             paid: 0,
+            refunded: 0,    
             expiresAt: _expiresAt,
+            contributor: msg.sender,
             terms: _terms
         });
+
+        // Store the incentive ID in the initiative's list of incentives
+        incentivesByInitiative[_initiativeId].push(incentiveCount);
 
         incentiveCount++;
 
         emit IncentiveAdded(incentiveCount, _initiativeId, address(_token), _amount,_expiresAt, _terms);
     }
 
-    function payout(uint256 _incentiveId) external nonReentrant {
-        Incentive storage incentive = incentives[_incentiveId];
-        require(incentive.paid > 0, "Incentive already paid out or doesn't exist");
-        require(incentive.expiresAt == 0 || block.timestamp <= incentive.expiresAt, "Incentive expired");
-
-        Signals.Initiative memory initiative = signalsContract.getInitiative(incentive.initiativeId);
-        require(initiative.state == Signals.InitiativeState.Accepted, "Initiative not accepted");
-
-        IERC20 token = incentive.token;
-        uint256 totalAmount = incentive.amount;
-
-        uint256 protocolAmount = (totalAmount * allocations[version][0]) / 100;
-        uint256 voterAmount = (totalAmount * allocations[version][1]) / 100;
-        uint256 treasuryAmount = totalAmount - protocolAmount - voterAmount;
-
-        // TODO: Check these transfers emit a transfer event
-        token.safeTransfer(receivers[version][0], protocolAmount);
-        token.safeTransfer(receivers[version][1], voterAmount);
-        token.safeTransfer(receivers[version][2], treasuryAmount);
-
-        incentive.paid = incentive.amount; // Record the amount paid out
-
-        emit IncentivePaidOut(_incentiveId, protocolAmount, voterAmount, treasuryAmount);
+    function _refundIncentive(Incentive storage _incentive) internal {
+        _incentive.refunded = _incentive.amount;
+        balances[_incentive.contributor][address(_incentive.token)] += _incentive.amount;
     }
+
+    function _distributeIncentives(uint256 _initiativeId) internal {
+        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getIncentives(_initiativeId);
+
+        if (expiredCount > 0) {
+            // TODO: Refund expired incentives
+        }
+
+        // Iterate through all the tokens for this initiative
+        for (uint256 i = 0; i < tokens.length; i++) {
+            address token = tokens[i];
+            uint256 amount = amounts[i];
+
+            // Update balances for the incentive based on the current splits to the receivers
+            uint256[3] memory _allocations = allocations[version];
+            address[3] memory _receivers = receivers[version];
+
+            uint256 protocolAmount = (amount * _allocations[0]) / 100;
+            uint256 voterAmount = (amount * _allocations[1]) / 100;
+            uint256 treasuryAmount = (amount * _allocations[2]) / 100;
+
+            balances[_receivers[0]][token] += protocolAmount;
+            balances[_receivers[1]][token] += voterAmount;
+            balances[_receivers[2]][token] += treasuryAmount;            
+        }
+    }
+
+    /**
+     * @notice Get the potential reward for a supporter for a given initiative.
+     * 
+     * @param _initiativeId The ID of the initiative.
+     * @param _supporter The address of the supporter.
+     * 
+     * @return The potential reward amount.
+     */
+    function getRewards(uint256 _initiativeId, address _supporter) external view returns (uint256) {
+        Incentive storage incentive = incentives[_initiativeId];
+        
+        
+        uint256 totalWeight = signalsContract.getWeight(_initiativeId);
+        if (totalWeight == 0) {
+            return 0; // Avoid division by zero
+        }
+
+        uint256 supporterWeight = signalsContract.getWeightForSupporterAt(_initiativeId, _supporter, block.timestamp);
+        if (supporterWeight == 0) {
+            return 0; // No rewards for this supporter
+        }
+
+        uint256 potentialReward = (incentive.amount * supporterWeight) / totalWeight;
+        return potentialReward;
+    }
+
+    // Functions to handle notifications from Signals contract
+    function handleInitiativeAccepted(uint256 _initiativeId) external nonReentrant {
+        require(msg.sender == address(signalsContract), "Only Signals contract can call this function");
+        
+        console.log("Initiative accepted", _initiativeId);
+        // Pay out relevant parties
+        _distributeIncentives(_initiativeId);
+    }
+
+    function handleInitiativeExpired(uint256 _initiativeId) external view {
+        require(msg.sender == address(signalsContract), "Only Signals contract can call this function");
+        // Additional logic if needed
+        // TODO: Flag any incentives for this initiative as ready to be refunded
+        console.log("Initiative expired", _initiativeId);
+    }
+
 }

@@ -2,8 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import 'forge-std/Test.sol';
 import 'forge-std/console.sol';
+
+import 'forge-std/Test.sol';
 import 'forge-std/StdUtils.sol';
 import 'forge-std/mocks/MockERC20.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
@@ -110,6 +111,10 @@ contract IncentivesTest is Test {
         _allocations, 
         _receivers
     );
+
+    // Set the Incentives contract in the Signals contract
+    vm.prank(_alice);
+    Signals(_instance).setIncentives(address(_incentives));
   }
 
   function testInitialState() public view {
@@ -123,7 +128,7 @@ contract IncentivesTest is Test {
     assertEq(_registry.isRegistered(address(_mUSDC)), true);
   }
 
-  function testCreateIncentive() public {
+  function testAddIncentive() public {
     vm.startPrank(_alice);
     Signals(_instance).proposeInitiative('Initiative 1', 'Description 1');
     
@@ -142,7 +147,17 @@ contract IncentivesTest is Test {
         emit Incentives.IncentiveAdded(i, initiativeId, rewardToken, amount, expiresAt, conditions);
         _incentives.addIncentive(initiativeId, rewardToken, amount, expiresAt, conditions);
     }
+
+    (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = _incentives.getIncentives(initiativeId);
+    
+    assertEq(tokens.length, 1);
+    assertEq(tokens[0], rewardToken);
+    assertEq(amounts[0], amount * 4);
+    assertEq(expiredCount, 0);
   }
+
+
+  
 
   
 

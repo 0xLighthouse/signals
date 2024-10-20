@@ -8,6 +8,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import './DecayCurves.sol';
+import './Incentives.sol';
 
 /**
  * @title Signals by Lighthouse <https://lighthouse.cx>
@@ -233,6 +234,10 @@ contract Signals is Ownable, ReentrancyGuard {
     _;
   }
 
+  /// @notice (Optional) Reference to the Incentives contract (can only be set once)
+  // TODO: Reconsider tradeoffs of this design pattern properly
+  Incentives public incentives;
+
   function _addInitiative(
     string memory title,
     string memory body
@@ -451,6 +456,12 @@ contract Signals is Ownable, ReentrancyGuard {
 
     initiative.state = InitiativeState.Accepted;
 
+    // Notify the Incentives contract
+    // TODO: Reconsider tradeoffs of this design pattern properly
+    if (address(incentives) != address(0)) {
+      incentives.handleInitiativeAccepted(initiativeId);
+    }
+
     emit InitiativeAccepted(initiativeId, msg.sender);
   }
 
@@ -462,6 +473,12 @@ contract Signals is Ownable, ReentrancyGuard {
       revert InvalidInitiativeState('Initiative not yet eligible for expiration');
 
     initiative.state = InitiativeState.Expired;
+
+    // Notify the Incentives contract
+    // TODO: Reconsider tradeoffs of this design pattern properly
+    if (address(incentives) != address(0)) {
+      incentives.handleInitiativeExpired(initiativeId);
+    }
 
     emit InitiativeExpired(initiativeId, msg.sender);
   }
@@ -648,5 +665,10 @@ contract Signals is Ownable, ReentrancyGuard {
     decayCurveType = _decayCurveType;
     decayCurveParameters = _decayCurveParameters;
     emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
+  }
+
+  /// @notice (Optional) Allows the owner to set the Incentives contract
+  function setIncentives(address _incentives) external onlyOwner {
+    incentives = Incentives(_incentives);
   }
 }
