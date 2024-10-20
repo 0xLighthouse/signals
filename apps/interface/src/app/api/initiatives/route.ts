@@ -18,7 +18,7 @@ export interface NormalisedInitiative {
 
 const publicClient = createPublicClient({
   chain: hardhat,
-  transport: http(process.env.RPC_URL!),
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 
 /**

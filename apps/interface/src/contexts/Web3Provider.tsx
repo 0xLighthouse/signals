@@ -3,13 +3,13 @@
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConnectKitProvider, getDefaultConfig } from 'connectkit'
-import { arbitrum, arbitrumSepolia, hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 const config = createConfig(
   getDefaultConfig({
-    chains: [hardhat, arbitrum, arbitrumSepolia],
+    chains: [hardhat, arbitrumSepolia],
     transports: {
-      [hardhat.id]: http(process.env.RPC_URL!),
+      [hardhat.id]: http(process.env.NEXT_PUBLIC_RPC_URL!),
     },
 
     // Required API Keys

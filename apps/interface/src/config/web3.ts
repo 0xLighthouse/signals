@@ -5,7 +5,7 @@ import signalsAbi from './signals.abi.json'
 
 export const readClient = createPublicClient({
   chain: hardhat,
-  transport: http(process.env.RPC_URL!),
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 
 export const ABI = [
@@ -28,7 +28,10 @@ export const ABI = [
 export const SIGNALS_ABI = [...signalsAbi]
 
 /**
- * The address of the mock ERC20 contract for testing...
+ * Critical addresses
  */
-export const ERC20_ADDRESS = '0xD00B87df994b17a27aBA4f04c7A7D77bE3b95e10'
-export const SIGNALS_PROTOCOL = '0xc4Aa97F06ed19301Fa0C34c67e1B39B8fF444980'
+export const ERC20_ADDRESS = process.env.NEXT_PUBLIC_GOV_TOKEN as `0x${string}`
+export const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_TOKEN as `0x${string}`
+export const SIGNALS_PROTOCOL = process.env.NEXT_PUBLIC_SIGNALS_PROTOCOL as `0x${string}`
+export const TOKEN_REGISTRY = process.env.NEXT_PUBLIC_TOKEN_REGISTRY as `0x${string}`
+export const INCENTIVES = process.env.NEXT_PUBLIC_INCENTIVES as `0x${string}`

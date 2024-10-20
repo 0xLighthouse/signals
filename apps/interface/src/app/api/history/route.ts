@@ -1,4 +1,4 @@
-import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { SIGNALS_PROTOCOL } from '@/config/web3'
 import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, getAddress, http } from 'viem'
 import { hardhat } from 'viem/chains'
@@ -9,7 +9,7 @@ export interface NormalisedBond {
 
 const publicClient = createPublicClient({
   chain: hardhat,
-  transport: http(process.env.RPC_URL!),
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 
 /**
