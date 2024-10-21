@@ -3,15 +3,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Chart } from './initiatives/chart'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
+import { InitiativeDetails } from '@/lib/curves'
 
-interface SubmissionLockDetailsProps {
+interface Props {
+  initiative?: InitiativeDetails
   weight: number
   amount?: number
   duration?: number
   threshold?: number | null
 }
 
-export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
+export const SubmissionLockDetails: React.FC<Props> = ({
+  initiative,
   amount,
   duration,
   weight,
@@ -53,7 +56,14 @@ export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
             </div>
           </>
         )}
-        <Chart amountInput={amount} durationInput={duration} acceptanceThreshold={threshold} />
+        <Chart
+          initiative={initiative}
+          acceptanceThreshold={threshold}
+          locks={[]}
+          chartInterval={1}
+          amountInput={amount}
+          durationInput={duration}
+        />
       </CardContent>
     </Card>
   )

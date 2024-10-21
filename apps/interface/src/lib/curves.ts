@@ -91,7 +91,10 @@ export function calculateWeight(
 }
 
 export function getDefaultEnd(locks: Lock[], lockInterval: number): number {
-  return locks.reduce((max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * lockInterval), 0)
+  return locks.reduce(
+    (max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * lockInterval),
+    0,
+  )
 }
 
 function _timeToLockInterval(lock: Lock, timestamp: number, lockInterval: number): number {
