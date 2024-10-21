@@ -5,7 +5,6 @@ import { FAQs } from '@/components/faqs'
 import { History } from '@/components/history'
 import { InitiativesList } from '@/components/containers/initiatives/list'
 import { FaucetActions } from '@/components/containers/faucet-actions'
-import { Chart } from '@/components/containers/initiatives/chart'
 
 export default function Home() {
   return (
@@ -17,7 +16,6 @@ export default function Home() {
           <div className="px-4 py-8 space-y-6">
             <FaucetBar />
             <InitiativesList />
-            <Chart />
           </div>
           <div className="px-4 py-8">
             <History />

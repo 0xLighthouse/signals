@@ -46,7 +46,7 @@ export function Chart() {
   const DECAY_RATE = 0.9
   const LOCK_INTERVAL = 60 * 60 // 1 hour
 
-  const createdAt = DateTime.fromISO('2024-10-21T00:00:00.000Z')
+  const createdAt = DateTime.fromISO('2024-10-22T00:00:00.000Z')
 
   const initiative: InitiativeDetails = {
     createdAt: createdAt.toUnixInteger(),
@@ -96,16 +96,9 @@ export function Chart() {
         />
         <ReferenceLine y={acceptanceThreshold} strokeDasharray="3 3" strokeWidth={2}>
           <Label
-            position="insideBottomLeft"
-            value="Acceptance threshold"
-            offset={10}
-            fill="hsl(var(--foreground))"
-          />
-          <Label
             position="insideTopLeft"
             value={acceptanceThreshold.toLocaleString()}
-            className="text-lg"
-            fill="hsl(var(--foreground))"
+            fill="red"
             offset={10}
             startOffset={100}
           />
