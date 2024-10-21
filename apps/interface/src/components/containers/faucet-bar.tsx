@@ -6,6 +6,7 @@ import { readClient } from '@/config/web3'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useRewardsStore } from '@/stores/useRewardsStore'
+import { useIsClient } from '@/hooks/useIsClient'
 
 export const FaucetBar = () => {
   const { address } = useAccount()
@@ -17,6 +18,8 @@ export const FaucetBar = () => {
   } = useRewardsStore()
   const { symbol: underlyingSymbol, totalSupply, balance: underlyingBalance } = useUnderlying()
   const { formatter } = useSignals()
+
+  const isClient = useIsClient()
 
   useEffect(() => {
     if (address) {
@@ -39,9 +42,8 @@ export const FaucetBar = () => {
   //     }
   //   }
   //   fetchGasBalance()
-  // }, [address])
 
-  if (!address) return null
+  if (!address || !isClient) return null
 
   return (
     <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 shadow-md rounded-lg">

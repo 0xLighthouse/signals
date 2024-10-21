@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
 import { createWalletClient, custom } from 'viem'
 import { hardhat } from 'viem/chains'
@@ -36,11 +36,14 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
+import { useIsClient } from '@/hooks/useIsClient'
 
 export function InitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
+
+  const isClient = useIsClient()
 
   const { isApproving, handleApprove } = useApproveTokens({
     actor: address,
@@ -157,7 +160,7 @@ export function InitiativeDrawer() {
     )
   }
 
-  if (!address) return null
+  if (!address || !isClient) return null
 
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
