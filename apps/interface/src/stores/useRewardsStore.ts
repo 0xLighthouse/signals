@@ -20,8 +20,9 @@ export const useRewardsStore = create<RewardsState>((set) => ({
   decimals: 0,
   totalSupply: 0,
   balance: 0,
-  formatter: (value: number | null) => {
-    return Math.ceil(value / 1e6)
+  formatter: (value?: number | null) => {
+    if (value == null) return null; // Handle null or undefined
+    return Math.ceil(value / 1e6);
   },
   isInitialized: false,
   fetch: async (address: `0x${string}`) => {
