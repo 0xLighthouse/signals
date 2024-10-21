@@ -6,9 +6,11 @@ import {
   LabelList,
   Line,
   LineChart,
+  AreaChart,
   ReferenceLine,
   XAxis,
   YAxis,
+  Area,
 } from 'recharts'
 
 import {
@@ -32,6 +34,20 @@ const chartConfig = {
     color: 'hsl(var(--chart-5))',
   },
 } satisfies ChartConfig
+
+/**
+ * Given a round number  eg. 1000000, 500000, 20000
+ * Normalise to 1M, 500k, 20k, etc
+ */
+const normaliseNumber = (value: number) => {
+  const suffixes = ['', 'k', 'M', 'B', 'T']
+  const suffixIndex = Math.floor(Math.log10(value) / 3)
+  const suffix = suffixes[suffixIndex]
+  // biome-ignore lint/style/useExponentiationOperator: <explanation>
+  const normalisedValue = value / Math.pow(10, suffixIndex * 3)
+  if (!normalisedValue) return ''
+  return `${normalisedValue}${suffix}`
+}
 
 const normaliseWeights = (weights: Weight) => {
   return weights.map((w) => ({
@@ -81,15 +97,7 @@ export function Chart() {
 
   return (
     <ChartContainer config={chartConfig}>
-      <LineChart
-        accessibilityLayer
-        data={normaliseWeights(weights)}
-        margin={{
-          top: 24,
-          left: 24,
-          right: 24,
-        }}
-      >
+      <AreaChart accessibilityLayer data={normaliseWeights(weights)}>
         <ChartTooltip
           cursor={false}
           content={<ChartTooltipContent indicator="line" nameKey="visitors" hideLabel />}
@@ -105,14 +113,11 @@ export function Chart() {
         </ReferenceLine>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" />
-        <YAxis />
-        <Line
+        <YAxis tickFormatter={normaliseNumber} />
+        <Area
           dataKey="weight"
           type="natural"
           strokeWidth={2}
-          dot={{
-            fill: 'var(--color-weight)',
-          }}
           activeDot={{
             r: 6,
           }}
@@ -125,8 +130,8 @@ export function Chart() {
             dataKey="x"
             formatter={(value: keyof typeof chartConfig) => chartConfig[value]?.label}
           />
-        </Line>
-      </LineChart>
+        </Area>
+      </AreaChart>
     </ChartContainer>
   )
 }
