@@ -101,6 +101,10 @@ contract Incentives is Ownable, ReentrancyGuard {
         _updateShares(_allocations, _receivers);
     }
 
+    function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory) {
+        return (version, allocations[_version], receivers[_version]);
+    }
+
     /**
      * Quick and dirty greedy function to get all the incentives for an initiative
      * and sum them by token address. This is not efficient and should be replaced

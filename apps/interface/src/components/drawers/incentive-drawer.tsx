@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, DollarSign } from 'lucide-react'
+import { CircleAlert, DollarSign, Eclipse } from 'lucide-react'
 import { toast } from 'sonner'
 import { ethers } from 'ethers'
 
@@ -15,13 +15,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAccount } from 'wagmi'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { TokenSelector } from '../token-selector'
 import { INCENTIVES, INCENTIVES_ABI, SIGNALS_PROTOCOL, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useCheckAllowance } from '@/hooks/useCheckAllowance'
+import { useIncentives } from '@/contexts/IncentivesContext'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -29,7 +30,9 @@ interface Props {
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
+  const { address: incentivesAddress, version, receivers, allocations } = useIncentives()
   const [amount, setAmount] = useState<number | null>(null)
+  const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -101,22 +104,51 @@ export function IncentiveDrawer({ initiative }: Props) {
     )
   }
 
+  useEffect(() => {
+    if (allocations && amount) {
+      const shares = []
+      for (const allocation of allocations) {
+        shares.push((amount * Number(allocation)) / 100)
+      }
+      setShares(shares)
+    }
+  }, [allocations, amount])
+
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
         <Button variant="outline" size="sm" onClick={() => setIsDrawerOpen(true)}>
-          <DollarSign className="mr-1 h-4 w-4" />
+          <Eclipse className="mr-1 h-4 w-4" />
           Add incentive
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[60%] lg:h-[35%]">
+      <DrawerContent>
         <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-col gap-4">
           <DrawerHeader>
-            <DrawerTitle>Propose a new incentive</DrawerTitle>
+            <DrawerTitle>Provide incentives</DrawerTitle>
             <Alert className="bg-blue-50 dark:bg-neutral-800">
               <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-              <AlertTitle>Please provide the amount you wish to incentivize.</AlertTitle>
-              <AlertDescription>Your incentive will be processed accordingly.</AlertDescription>
+              <AlertTitle>
+                Select a token you would like to contibute towards this initiative.
+              </AlertTitle>
+              <AlertDescription>
+                Any USDC you contribute will only be used once initiative is accepted.
+              </AlertDescription>
+              <div>
+                Based on this the boards current configuration. Your USDC incentive will be
+                distributed accordingly.
+                <ul>
+                  <li>
+                    <strong>Signals Protocol: {Number(allocations?.[0])}% </strong>
+                  </li>
+                  <li>
+                    <strong>Voter Rewards: {Number(allocations?.[1])}% </strong>
+                  </li>
+                  <li>
+                    <strong>Treasury: {Number(allocations?.[2])}% </strong>
+                  </li>
+                </ul>
+              </div>
             </Alert>
           </DrawerHeader>
           <div className="flex items-center">
@@ -147,6 +179,20 @@ export function IncentiveDrawer({ initiative }: Props) {
                 }}
               />
             </div>
+          </div>
+          <div>
+            Your USDC incentive will be distributed accordingly.
+            <ul>
+              <li>
+                Signals Protocol: ({receivers?.[0]}): {Number(shares?.[0])}
+              </li>
+              <li>
+                Voter Rewards: ({receivers?.[1]}): {Number(shares?.[1])}
+              </li>
+              <li>
+                Treasury: ({receivers?.[2]}): {Number(shares?.[2])}
+              </li>
+            </ul>
           </div>
           <div className="flex justify-end mt-8">{resolveAction()}</div>
         </div>

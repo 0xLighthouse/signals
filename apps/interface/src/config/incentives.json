@@ -44,6 +44,17 @@
   },
   {
     "type": "function",
+    "name": "config",
+    "inputs": [{ "name": "_version", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "", "type": "uint256", "internalType": "uint256" },
+      { "name": "", "type": "uint256[3]", "internalType": "uint256[3]" },
+      { "name": "", "type": "address[3]", "internalType": "address[3]" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getIncentives",
     "inputs": [{ "name": "_initiativeId", "type": "uint256", "internalType": "uint256" }],
     "outputs": [

@@ -1,15 +1,6 @@
 'use client'
 
-import {
-  CartesianGrid,
-  Label,
-  LabelList,
-  AreaChart,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-  Area,
-} from 'recharts'
+import { CartesianGrid, Label, AreaChart, ReferenceLine, XAxis, YAxis, Area } from 'recharts'
 
 import {
   ChartConfig,
@@ -19,7 +10,7 @@ import {
 } from '@/components/ui/chart'
 import { calculateWeight, getDefaultEnd, InitiativeDetails, Lock, Weight } from '@/lib/curves'
 import { DateTime } from 'luxon'
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export const description = 'A line chart with a custom label'
 
@@ -67,15 +58,15 @@ const normaliseWeights = (weights: Weight) => {
 interface chartItem {
   label: string
   existingBase: number
-  existingThreshold ?: number
-  inputBase ?: number
-  inputThreshold ?: number
+  existingThreshold?: number
+  inputBase?: number
+  inputThreshold?: number
 }
 
 type chartData = Array<chartItem>
 
 interface Props {
-  initiative: InitiativeDetails
+  initiative?: InitiativeDetails
   locks: Lock[]
   chartInterval: number
   acceptanceThreshold?: number | null
@@ -83,11 +74,20 @@ interface Props {
   durationInput?: number
 }
 
-export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, acceptanceThreshold, amountInput, durationInput }) => {
-  acceptanceThreshold = acceptanceThreshold || Infinity
+export const Chart: React.FC<Props> = ({
+  initiative,
+  locks,
+  chartInterval,
+  acceptanceThreshold,
+  amountInput,
+  durationInput,
+}) => {
+  acceptanceThreshold = acceptanceThreshold || Number.POSITIVE_INFINITY
   const [data, setData] = useState<chartData>([])
 
   useEffect(() => {
+    if (!initiative) return
+
     // Update chart if input data is provided
     let lockInput: Lock[] = []
     if (amountInput && durationInput) {
@@ -100,17 +100,24 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
     }
 
     const startTime: number = DateTime.now().toUnixInteger() - chartInterval * 2
-    const endTime: number = Math.max(getDefaultEnd(locks, initiative.lockInterval), getDefaultEnd(lockInput, initiative.lockInterval))
+    const endTime: number = Math.max(
+      getDefaultEnd(locks, initiative.lockInterval),
+      getDefaultEnd(lockInput, initiative.lockInterval),
+    )
 
-    const existingData = normaliseWeights(calculateWeight(initiative, locks, chartInterval, startTime, endTime))
-    const inputData = normaliseWeights(calculateWeight(initiative, lockInput, chartInterval, startTime, endTime))
+    const existingData = normaliseWeights(
+      calculateWeight(initiative, locks, chartInterval, startTime, endTime),
+    )
+    const inputData = normaliseWeights(
+      calculateWeight(initiative, lockInput, chartInterval, startTime, endTime),
+    )
 
-    let chartData: chartData = []
+    const chartData: chartData = []
     for (let i = 0; i < existingData.length; i++) {
       const existingWeight = existingData[i].y
       const inputWeight = inputData[i].y
 
-      let entry: chartItem = {
+      const entry: chartItem = {
         label: existingData[i].label,
         existingBase: 0,
       }
@@ -124,14 +131,16 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
         if (inputWeight > 0) {
           entry.inputThreshold = inputWeight
         }
-      } else { // Otherwise, all existing weight is below the threshold
+      } else {
+        // Otherwise, all existing weight is below the threshold
         entry.existingBase = existingWeight
 
         // If there is input weight, we need to split it
         if (inputWeight > 0) {
           if (existingWeight + inputWeight > acceptanceThreshold) {
             entry.inputBase = acceptanceThreshold - existingWeight
-            entry.inputThreshold = existingWeight + inputWeight - acceptanceThreshold - entry.inputBase
+            entry.inputThreshold =
+              existingWeight + inputWeight - acceptanceThreshold - entry.inputBase
           } else {
             entry.inputBase = inputWeight
           }
@@ -140,9 +149,9 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
 
       chartData.push(entry)
     }
-    
+
     setData(chartData)
-  }, [amountInput, durationInput])
+  }, [initiative, amountInput, durationInput])
 
   return (
     <ChartContainer config={chartConfig}>
@@ -151,19 +160,18 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
           cursor={false}
           content={<ChartTooltipContent indicator="line" nameKey="visitors" hideLabel />}
         />
-        <ReferenceLine y={acceptanceThreshold} strokeDasharray="3 3" strokeWidth={2}>
+        <ReferenceLine y={acceptanceThreshold} strokeWidth={3} strokeDasharray="3 3">
           <Label
-            position="insideTopLeft"
+            position={'left'}
             value={acceptanceThreshold}
-            fill="red"
-            offset={10}
-            startOffset={100}
+            fill="green"
+            // offset={10}
+            // startOffset={100}
           />
         </ReferenceLine>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" />
         <YAxis tickFormatter={normaliseNumber} />
-
         <Area
           dataKey="existingBase"
           type="natural"
@@ -171,8 +179,7 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
           activeDot={{
             r: 6,
           }}
-        >
-        </Area>
+        />
         <Area
           dataKey="existingThreshold"
           type="natural"
@@ -180,8 +187,7 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
           activeDot={{
             r: 6,
           }}
-        >
-        </Area>
+        />
         <Area
           dataKey="inputBase"
           type="natural"
@@ -189,8 +195,7 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
           activeDot={{
             r: 6,
           }}
-        >
-        </Area>
+        />
         <Area
           dataKey="inputThreshold"
           type="natural"
@@ -198,8 +203,7 @@ export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, accep
           activeDot={{
             r: 6,
           }}
-        >
-        </Area>
+        />
       </AreaChart>
     </ChartContainer>
   )
