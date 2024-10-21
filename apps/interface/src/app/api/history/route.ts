@@ -1,14 +1,14 @@
 import { SIGNALS_PROTOCOL } from '@/config/web3'
 import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, getAddress, http } from 'viem'
-import { hardhat } from 'viem/chains'
+import { hardhat, arbitrumSepolia } from 'viem/chains'
 
 export interface NormalisedBond {
   initiativeId: number
 }
 
 const publicClient = createPublicClient({
-  chain: hardhat,
+  chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
   transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 

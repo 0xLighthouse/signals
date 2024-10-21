@@ -6,7 +6,7 @@ import { useAccount } from 'wagmi'
 import { toast } from 'sonner'
 import { readClient, ERC20_ADDRESS, USDC_ADDRESS, ABI } from '@/config/web3'
 import { createWalletClient, custom } from 'viem'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { Separator } from '@/components/ui/separator'
 
 const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
@@ -14,7 +14,7 @@ const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol:
   try {
     const nonce = await readClient.getTransactionCount({ address })
     const signer = createWalletClient({
-      chain: hardhat,
+      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
       transport: custom(window.ethereum),
     })
 

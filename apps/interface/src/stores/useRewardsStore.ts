@@ -1,6 +1,6 @@
 import { ABI, USDC_ADDRESS } from '@/config/web3'
 import { createPublicClient, getContract, http } from 'viem'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { create } from 'zustand'
 
 interface RewardsState {
@@ -21,16 +21,13 @@ export const useRewardsStore = create<RewardsState>((set) => ({
   totalSupply: 0,
   balance: 0,
   formatter: (value?: number | null) => {
-    if (value == null) return null; // Handle null or undefined
-    return Math.ceil(value / 1e6);
+    if (value == null) return null // Handle null or undefined
+    return Math.ceil(value / 1e6)
   },
   isInitialized: false,
   fetch: async (address: `0x${string}`) => {
     const readClient = createPublicClient({
-      // TODO: We need to make this dynamic
-      // TODO: We need to make this dynamic
-      // TODO: We need to make this dynamic
-      chain: hardhat,
+      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
       transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
     })
 

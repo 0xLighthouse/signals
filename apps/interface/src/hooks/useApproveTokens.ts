@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createWalletClient, custom } from 'viem'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 import { readClient } from '@/config/web3'
 import { ABI } from '@/config/web3'
@@ -12,12 +12,7 @@ interface Props {
   tokenAddress?: `0x${string}`
 }
 
-export function useApproveTokens({
-  actor,
-  decimals,
-  spenderAddress,
-  tokenAddress,
-}: Props) {
+export function useApproveTokens({ actor, decimals, spenderAddress, tokenAddress }: Props) {
   const [isApproving, setIsApproving] = useState(false)
 
   const handleApprove = async (amount: number) => {
@@ -34,7 +29,7 @@ export function useApproveTokens({
       })
 
       const signer = createWalletClient({
-        chain: hardhat,
+        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
         transport: custom(window.ethereum),
       })
       const { request } = await readClient.simulateContract({

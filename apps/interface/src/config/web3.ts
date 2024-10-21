@@ -1,11 +1,11 @@
 import { createPublicClient, http, createWalletClient, custom, erc20Abi } from 'viem'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 import signalsAbi from './signals.abi.json'
 import incentivesAbi from './incentives.json'
 
 export const readClient = createPublicClient({
-  chain: hardhat,
+  chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
   transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 

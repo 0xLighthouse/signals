@@ -10,7 +10,7 @@ import { ABI, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { createWalletClient, custom } from 'viem'
 import { readClient } from '@/config/web3'
 import { useAccount } from 'wagmi'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 export const Submission = () => {
   const { address } = useAccount()
@@ -26,7 +26,7 @@ export const Submission = () => {
       })
 
       const signer = createWalletClient({
-        chain: hardhat,
+        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
         // Injected provider from MetaMask
         transport: custom(window.ethereum),
       })

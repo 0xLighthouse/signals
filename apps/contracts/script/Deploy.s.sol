@@ -12,6 +12,7 @@ import {Incentives} from '../src/Incentives.sol';
 
 /**
  * @notice forge script script/Deploy.s.sol --fork-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+ * @notice forge script script/Deploy.s.sol --fork-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY --verify
  */
 contract DevelopmentScript is Script {
   address _deployer;

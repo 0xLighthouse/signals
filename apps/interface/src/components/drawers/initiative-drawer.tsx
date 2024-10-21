@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
 import { createWalletClient, custom } from 'viem'
-import { hardhat } from 'viem/chains'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 
 import {
@@ -94,7 +94,7 @@ export function InitiativeDrawer() {
       const nonce = await readClient.getTransactionCount({ address })
 
       const signer = createWalletClient({
-        chain: hardhat,
+        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
         transport: custom(window.ethereum),
       })
 
