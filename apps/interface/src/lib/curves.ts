@@ -28,10 +28,7 @@ export function calculateWeight(
   if (!startsAt) startsAt = initiative.createdAt
   // If there is no end time, find the lock that lasts the longest and set that as the end time
   if (!endsAt) {
-    endsAt = locks.reduce(
-      (max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * initiative.lockInterval),
-      startsAt,
-    )
+    endsAt = getDefaultEnd(locks, initiative.lockInterval)
   }
 
   // Create the arrays to hold the x and y values
@@ -91,6 +88,10 @@ export function calculateWeight(
   }
 
   return xvals.map((key, i) => ({ x: key, y: yvals[i] }))
+}
+
+export function getDefaultEnd(locks: Lock[], lockInterval: number): number {
+  return locks.reduce((max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * lockInterval), 0)
 }
 
 function _timeToLockInterval(lock: Lock, timestamp: number, lockInterval: number): number {
