@@ -17,20 +17,28 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { calculateWeight, InitiativeDetails, Lock, Weight } from '@/lib/curves'
+import { calculateWeight, getDefaultEnd, InitiativeDetails, Lock, Weight } from '@/lib/curves'
 import { DateTime } from 'luxon'
 import { use, useEffect, useState } from 'react'
 
 export const description = 'A line chart with a custom label'
 
 const chartConfig = {
-  weight: {
-    label: 'Weight',
+  existingBase: {
+    label: 'Current Weight',
+    color: 'hsl(var(--chart-1))',
+  },
+  existingThreshold: {
+    label: 'Weight Exceeding Threshold',
     color: 'hsl(var(--chart-2))',
   },
-  lock: {
-    label: 'Lock',
-    color: 'hsl(var(--chart-5))',
+  inputBase: {
+    label: 'New Weight',
+    color: 'hsl(var(--chart-3))',
+  },
+  inputThreshold: {
+    label: 'New Weight Exceeding Threshold',
+    color: 'hsl(var(--chart-4))',
   },
 } satisfies ChartConfig
 
@@ -56,96 +64,84 @@ const normaliseWeights = (weights: Weight) => {
   }))
 }
 
+interface chartItem {
+  label: string
+  existingBase: number
+  existingThreshold ?: number
+  inputBase ?: number
+  inputThreshold ?: number
+}
+
+type chartData = Array<chartItem>
+
 interface Props {
+  initiative: InitiativeDetails
+  locks: Lock[]
+  chartInterval: number
   acceptanceThreshold?: number | null
   amountInput?: number
   durationInput?: number
 }
 
-export const Chart: React.FC<Props> = ({ amountInput, durationInput, acceptanceThreshold }) => {
-  console.log('[Chart] acceptanceThreshold:', acceptanceThreshold)
-  const [data, setData] = useState<Weight>([])
-  const DECAY_TYPE_LINEAR = 0
-  const DECAY_RATE = 0.9
-  const LOCK_INTERVAL = 60 * 60 // 1 hour
-  const CHART_INTERVAL = 60 * 60
-
-  const createdAt = DateTime.fromISO('2024-10-22T00:00:00.000Z')
-
-  const initiative: InitiativeDetails = {
-    createdAt: createdAt.toUnixInteger(),
-    lockInterval: LOCK_INTERVAL,
-    decayCurveType: DECAY_TYPE_LINEAR,
-    decayCurveParameters: [DECAY_RATE],
-  }
-
-  const locks: Lock[] = []
-  locks.push({
-    tokenAmount: 30_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ hours: 1 }).toUnixInteger(),
-    withdrawn: false,
-  })
-  locks.push({
-    tokenAmount: 40_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ hours: 3 }).toUnixInteger(),
-    withdrawn: false,
-  })
-  locks.push({
-    tokenAmount: 50_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ hours: 7 }).toUnixInteger(),
-    withdrawn: false,
-  })
-
-  const weights = calculateWeight(initiative, locks, LOCK_INTERVAL)
-
-  // Run on the first render
-  useEffect(() => {
-    // @ts-ignore
-    setData(normaliseWeights(weights))
-  }, [weights])
+export const Chart: React.FC<Props> = ({ initiative, locks, chartInterval, acceptanceThreshold, amountInput, durationInput }) => {
+  acceptanceThreshold = acceptanceThreshold || Infinity
+  const [data, setData] = useState<chartData>([])
 
   useEffect(() => {
-    const startTime = DateTime.now().toUnixInteger() - CHART_INTERVAL * 2
-
-    let existingData: Weight = calculateWeight(initiative, locks, CHART_INTERVAL, startTime)
-    let inputData: Weight = []
-
+    // Update chart if input data is provided
+    let lockInput: Lock[] = []
     if (amountInput && durationInput) {
-      //   const newLock: Lock = {
-      //     tokenAmount: amountInput,
-      //     lockDuration: durationInput,
-      //     createdAt: DateTime.now().toUnixInteger(),
-      //     withdrawn: false,
-      //   }
-      //   let lockWeight: Weight = calculateWeight(initiative, [newLock], CHART_INTERVAL, startTime)
-      //   if (newData.length > lockWeight.length) {
-      //     lockWeight = calculateWeight(
-      //       initiative,
-      //       [newLock],
-      //       CHART_INTERVAL,
-      //       startTime,
-      //       newData[newData.length - 1].x,
-      //     )
-      //   } else if (newData.length < lockWeight.length) {
-      //     newData = calculateWeight(
-      //       initiative,
-      //       locks,
-      //       CHART_INTERVAL,
-      //       startTime,
-      //       lockWeight[lockWeight.length - 1].x,
-      //     )
-      //   }
-      // }
-      //   let chartData: Array<{label: string, baseWeight: number, thresholdWeight?: number, inputBase?: number, inputThreshold?: number}> = []
-      //   for (let i = 0; i < newData.length; i++) {
-      //     newData[i].lock = lockWeight[i].y
-      //   }
-      //   // ---- comunte the new array
-      // setData(normaliseWeights(weights))
+      lockInput.push({
+        tokenAmount: amountInput,
+        lockDuration: durationInput,
+        createdAt: DateTime.now().toUnixInteger(),
+        withdrawn: false,
+      })
     }
+
+    const startTime: number = DateTime.now().toUnixInteger() - chartInterval * 2
+    const endTime: number = Math.max(getDefaultEnd(locks, initiative.lockInterval), getDefaultEnd(lockInput, initiative.lockInterval))
+
+    const existingData = normaliseWeights(calculateWeight(initiative, locks, chartInterval, startTime, endTime))
+    const inputData = normaliseWeights(calculateWeight(initiative, lockInput, chartInterval, startTime, endTime))
+
+    let chartData: chartData = []
+    for (let i = 0; i < existingData.length; i++) {
+      const existingWeight = existingData[i].y
+      const inputWeight = inputData[i].y
+
+      let entry: chartItem = {
+        label: existingData[i].label,
+        existingBase: 0,
+      }
+
+      // If the existing weight is above the acceptance threshold, we need to split it
+      if (existingWeight > acceptanceThreshold) {
+        entry.existingBase = acceptanceThreshold
+        entry.existingThreshold = existingWeight - acceptanceThreshold
+
+        // If there is input weight, it must all be above the threshold
+        if (inputWeight > 0) {
+          entry.inputThreshold = inputWeight
+        }
+      } else { // Otherwise, all existing weight is below the threshold
+        entry.existingBase = existingWeight
+
+        // If there is input weight, we need to split it
+        if (inputWeight > 0) {
+          if (existingWeight + inputWeight > acceptanceThreshold) {
+            entry.inputBase = acceptanceThreshold - existingWeight
+            entry.inputThreshold = existingWeight + inputWeight - acceptanceThreshold - entry.inputBase
+          } else {
+            entry.inputBase = inputWeight
+          }
+        }
+      }
+
+      chartData.push(entry)
+    }
+    
+    setData(chartData)
   }, [amountInput, durationInput])
 
   return (
@@ -169,38 +165,40 @@ export const Chart: React.FC<Props> = ({ amountInput, durationInput, acceptanceT
         <YAxis tickFormatter={normaliseNumber} />
 
         <Area
-          dataKey="lock"
+          dataKey="existingBase"
           type="natural"
           strokeWidth={2}
           activeDot={{
             r: 6,
           }}
         >
-          <LabelList
-            position="bottom"
-            offset={12}
-            className="fill-foreground"
-            fontSize={12}
-            dataKey="x"
-            formatter={(value: keyof typeof chartConfig) => chartConfig[value]?.label}
-          />
         </Area>
         <Area
-          dataKey="weight"
+          dataKey="existingThreshold"
           type="natural"
           strokeWidth={2}
           activeDot={{
             r: 6,
           }}
         >
-          <LabelList
-            position="bottom"
-            offset={12}
-            className="fill-foreground"
-            fontSize={12}
-            dataKey="x"
-            formatter={(value: keyof typeof chartConfig) => chartConfig[value]?.label}
-          />
+        </Area>
+        <Area
+          dataKey="inputBase"
+          type="natural"
+          strokeWidth={2}
+          activeDot={{
+            r: 6,
+          }}
+        >
+        </Area>
+        <Area
+          dataKey="inputThreshold"
+          type="natural"
+          strokeWidth={2}
+          activeDot={{
+            r: 6,
+          }}
+        >
         </Area>
       </AreaChart>
     </ChartContainer>
