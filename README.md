@@ -41,6 +41,10 @@ Signals is not a voting or decision-making system. Initiatives that get the most
 
 * Once a token lock has reached the end of its lockup duration, the supporter can withdraw their tokens (removing support from the initiative) or leave their tokens deposited, which will continue to provide support for that initiative (but without any lockup bonus to the weight).
 
+## Rewards
+
+Incentives can be a helpful way to encourage community members to participate. We have added a rewards system which allows anyone to deposit tokens into escrow, which get paid out to supporters of a particulare initiative if it is accepted. This allows groups or individuals who are passionate about a particular initiative to not only support it with their tokens, but also contribute money towards getting others to support the initative as well.
+
 ## Installation
 
 This repo contains an `apps/` directory which contains our source code. In this directory you will find:

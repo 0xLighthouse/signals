@@ -1,4 +1,5 @@
 # SIGNALS, a protocol for prioritising community objectives
+DRAFT
 
 **Created:** October 2, 2024\
 **Authors:**
@@ -68,47 +69,36 @@ Similarly, what happens to an initiative after it is actioned is up to the commu
 ## Weight calculation
 
 The default weight caclulation, at the time of staking, is:
-  $$
-  \text{Starting Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
-  $$
 
-  The lock duration is an integer representing the number of epochs, and must be greater than zero. It is not possible to specify partial epochs as part of the lockup duration.
+$$
+\text{Starting Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
+$$
+
+The lock duration is an integer representing the number of intervals, and must be greater than zero. It is not possible to specify partial epochs as part of the lockup duration.
+
+For example, if the lockup interval is set to 1 day and the user does a lockup for 10 days, they will get a 10x multiplier to their starting weight.
 
 ## Decay function
 
-The default decay function reduces the weight of staked tokens by 10% of the starting weight, every 1/10th of the lockup duration:
+We have included two default decay functions, linear and exponential.
 
-1. Calculate \( k \):
+The linear decay takes a multiplier (greater than 1) and finds the weight as:
 
-   \[
-   k = \left\lfloor \dfrac{10 \times (t - 1)}{D} \right\rfloor
-   \]
+$$
+\text{Current Weight (cW)} = \text{Starting Weight (W)}-\text{Passed Intervals (I)}*\text{Number of Tokens (T)}*\text{Multiplier (M)}
+$$
 
-2. Calculate \( V(t) \):
+The exponential decay takes a multiplier (less than 1) and finds the weight as:
 
-   \[
-   V(t) = \dfrac{W \times (10 - k)}{10}
-   \]
+$$
+\text{Current Weight (cW)} = \text{Starting Weight (W)}*\text{Multiplier (M)}^\text{Passed Intervals (I)}
+$$
 
-In Javascript, this could look like:
+By using intervals, it easier for stakers to coordinate, as all stakes will carry full weight for at least the first interval, and it is quite easy to figure out exactly how much weight will be left after a certain number of intervals have passed.
 
-```javascript
-let decay = 0;
-if (epochsElapsed > 1) {
-  decay = Math.floor((epochs - 1) * 10 / lockDuration);
-}
-let currentWeight = 0;
-if (decay < 10) {
-  currentWeight = Math.floor(startingWeight * (10 - decay) / 10);
-}
-return currentWeight;
-```
+## Reward system
 
-This behaviour makes it easier for stakers to coordinate, as all stakes will carry full weight for at least the first epoch, and it is quite easy to figure out exactly how much weight will be left after a certain number of epochs have passed.
-
-## Reward system [WIP]
-
-Supporters of a particular initiative can deposit tokens into the contract which are then distributed, as rewards, to all token holders who staked tokens in favour of the initiative once it is actioned.
+Supporters of a particular initiative can deposit tokens into the contract which are then distributed, as rewards, to all token holders who staked tokens in favour of the initiative once it is actioned. By default, a portion of the rewards go to the supporters of the initiative, while another portion goes to the treasury of the DAO itself. These rewards are only paid out if the initiative is accepted, which allows, for example, protocols to propose an integration with a DAO, and reward the DAO and its supporters if the integration proposal is accepted.
 
 ## Additional research questions
 
@@ -116,194 +106,11 @@ Supporters of a particular initiative can deposit tokens into the contract which
 - Explore if we can use Uniswap v4 to create a secondary market for these tokens/bonds.
 
 ## Protocol Overview
-
-### AMM contracts
-
-| Filename | Description |
-| --- | --- |
-| `Signals.sol` | Basic implementation of the SIGNALS protocol |
-| `SignalsFactory.sol` | Allows for creation of new initiatives |
+ - [Source code (Github)](https://github.com/0xLighthouse/signals)
+ - [Live demo](https://signals.testnet.lighthouse.cx/)
 
 ## References
 
 - [Curve contracts](https://github.com/curvefi/curve-dao-contracts)
 - [Aerodrome contracts](https://github.com/aerodrome-finance/contracts)
 - [Emergent Outcomes of the veToken Model](https://arxiv.org/abs/2311.17589)
-
-<!-- 
-## Appendix
-
-### Analague to existing practices
-
-In traditional product development, product owners gather feedback from stakeholders to shape priorities. However, on-chain organizations operate in networked environments where information is fragmented across multiple channels, making it challenging to collect and understand community priorities.
-
-Aligning community priorities can help set both short- and long-term strategies, serving as a vital measure of collective intent.
-
-## Objectives
-
-### Tailwinds
-
-* Smaller token holders may be more willing to lock tokens for ideas they strongly believe in, as their risk lies in opportunity cost.
-* Large token holders ("whales") may be less inclined to lock tokens for long periods, particularly if they have mercenary motives. This dampens larger voices.
-
-* **Reputation Benefits:** Proposers and supporters can be issued attestations or POAPs for accepted ideas.
-* **External Support:** Third parties can support initiatives in a trustless manner.
-
-### Headwinds
-
-* Introducing financial rewards could be risky, potentially incentivising unwanted behaviors. Reputation-based rewards are preferable.
-
-## Configuration
-
-* **Submissions Threshold:** Minimum tokens required to submit an idea.
-* **Acceptance Threshold:** Number of tokens (weighted) required to accept an idea.
-* **Lock Duration Cap:** Cap duration tokens may be locked for.
-* **Submission Cap:** Cap number of submissions within an epoch.
-
-## Feedback
-
-### Why Use SIGNALS?
-
-DAOs require web3-native tools for governance. Existing web2 forums, such as Discourse or Discord, are centralized, unstructured, and not machine-readable, making it difficult to efficiently aggregate and analyze community input.
-
-Participation is siloed across various platforms, making it difficult to aggregate and reflect individual contributions and reputation at the macro scale.
-
-Community engagement is fragmented across different platforms, making contributions difficult to track.
-
-SIGNALS provides a way for ideas to be formalized on-chain, increasing utility for governance tokens and enabling trustless external support.
-
-### How SIGNALS Differs
-
-While forums often get cluttered, SIGNALS enables the best ideas to surface quickly and allows contributors to back ideas they truly believe in. It acts as an additive tool for on-chain governance, similar to traditional product prioritization frameworks but adapted to web3 needs, emphasizing ideation and consensus-building.
-
-After locking, commitment weight decays over time based on a configurable decay function. The decay function can be tailored to the organization's needs, and options include:
-
-* **Exponential Decay:** Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.
-* **Linear Decay:** Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.
-* **Step Decay:** Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.
-
-## Technical Overview
-
-### Weight Calculation
-
-Code Context:
- • The function calculates how much weight (influence, stake, or value) remains for a user’s locked amount over time.
- • The intended model is exponential decay to reflect diminishing returns or influence as time progresses.
- • Due to practical constraints, the implementation uses a linear decay, multiplying the initial amount by the remaining duration.
-
-Premise: The longer tokens are locked, the greater the initial commitment weight. Commitment weight decays over time based on the duration.
-
-$$
-\text{Weight (W) = Number of Tokens (T) } \times \text{ Lock Duration (D)}
-$$
-
-$$
-W = T \times D
-$$
-
-Exploring decay functions:
-
-When locking, commitment weight decays over time based on a a configurable decay function:
-
-* **Exponential Decay:** ~~Weight decays exponentially over time, providing a rapid decrease in influence. For example, if tokens are locked for 3 months, the weight might decrease by half every month.~~
-
-> Too complex for the initial version.
-
-* **Step Decay:** ~~Weight decreases in steps after specific time intervals, allowing for more distinct phases of influence. For example, the weight could remain constant for the first month and then drop significantly after each subsequent month.~~
-
-> Too complex for the initial version.
-
-* **Linear Decay:** ~~Weight decreases at a constant rate over time, providing a more predictable reduction. For instance, if tokens are locked for 3 months, the weight could decrease by an equal amount each month until it reaches zero.~~
-
-> Boring.
-
-* **Differential decay**: Weight decreases at a rate proportional to the square root of the time passed since the lock. This provides a balance between the predictability of linear decay and the rapid decrease of exponential decay.
-
-### Graphing the Differential Decay Function
-
-Why? models processes where a quantity decreases at a rate proportional to its current value.
- • Recognizing the limitations of the programming environment helps understand why the decay model is simplified.
-
-To graph the equation
-$$
-\frac{dW}{dt} = -kW
-$$
- where  k  is a constant and  W  is the current weight, you’ll first need to solve this differential equation to find  W  as a function of  t . Once you have  W(t) , you can plot it using graphing software or a calculator.
-
-This is a separable first-order linear ordinary differential equation. Here’s how to solve it:
-
- 1. Separate Variables:
-
-$$
-\frac{dW}{W} = -k\,dt
-$$
-
- 2. Integrate Both Sides:
-
-$$
-\int \frac{1}{W}\,dW = \int -k\,dt
-$$
-
-$$
-\ln|W| = -k t + C
-$$
-
-Here,  C  is the constant of integration.
- 3. Solve for  W :
-Exponentiate both sides to eliminate the natural logarithm:
-
-$$
-W = e^{-k t + C} = e^C \cdot e^{-k t}
-$$
-
-Let
-
-$$
-W_0 = e^C
-$$
-
-(the initial weight when  t = 0 ) Then;
-
-$$
-W(t) = W_0 \, e^{-k t}
-$$
-
-## Graph the funcion
-
-Step 2: Choose Values for Constants
-
-To graph  W(t) , you need specific values for  W_0  and  k :
-
- • Initial Weight ( W_0 ): This is the weight at  t = 0 . Choose a positive value that makes sense for your context (e.g.,  W_0 = 100  units).
- • Decay Constant ( k ): This constant determines the rate of decay. Choose a positive value (e.g.,  k = 0.1 ).
-
-Step 3: Create Data Points
-
-Using the equation
-
-$$
-W(t) = W_0 \, e^{-k t}
-$$
-
-Calculate W for various values of t, to explore parameter space.
-
-Differential Equation:
-
-$$
-\frac{dW}{dt} = -kW
-$$
-
-Solution to the Differential Equation:
-
-$$
-W(t) = W_0 \, e^{-k t}
-$$
-
- • Where:
- •  `W(t)`: Weight at time  `t`.
- •  `W_0`: Initial weight at  `t = 0`.
- •  `k` : Positive decay constant.
-
-<https://www.desmos.com/calculator/slpil4yhlm>
-
- -->
