@@ -5,3 +5,6 @@ libs = ["lib"]
 auto_detect_solc = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[etherscan]
+arbitrumSepolia = { key = "${ARBISCAN_API_KEY}", chain = 421614 }
