@@ -10,6 +10,7 @@ import { useUnderlying } from './ContractContext'
 type ProtocolContextType = {
   initiativesCount: number | null
   proposalThreshold: number | null
+  meetsThreshold: boolean
   acceptanceThreshold: number | null
   formatter: (value?: number | null) => number
 }
@@ -32,11 +33,13 @@ interface Props {
 
 export const ProtocolProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
-  const { decimals } = useUnderlying()
+  const { decimals, balance } = useUnderlying()
 
   const [initiativesCount, setInitiativesCount] = useState<number | null>(null)
   const [proposalThreshold, setProposalThreshold] = useState<number | null>(null)
   const [acceptanceThreshold, setAcceptanceThreshold] = useState<number | null>(null)
+
+  const meetsThreshold = Boolean(balance && proposalThreshold && balance >= proposalThreshold)
 
   useEffect(() => {
     const fetchContractMetadata = async () => {
@@ -86,6 +89,7 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
         initiativesCount,
         proposalThreshold,
         acceptanceThreshold,
+        meetsThreshold,
       }}
     >
       {children}

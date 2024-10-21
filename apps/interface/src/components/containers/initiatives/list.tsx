@@ -21,6 +21,7 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
+import { UpvoteDrawer } from '@/components/drawers/upvote-drawer'
 
 // import data from '@/config/proposals.json'
 // import { Money } from '@phosphor-icons/react'
@@ -122,14 +123,7 @@ export const InitiativesList = () => {
                 <div className="flex gap-2 font-medium leading-none">
                   {item.weight}% reached <TrendingUp className="h-4 w-4" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSupportInitiative(item.initiativeId)}
-                >
-                  <ChevronUp className="mr-1 h-4 w-4" />
-                  Upvote
-                </Button>
+                {/* <UpvoteDrawer initiative={item} /> */}
               </CardFooter>
             </Card>
           ))}

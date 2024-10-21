@@ -23,5 +23,8 @@ export const History = () => {
       })
       .catch((error) => console.error('Error fetching history:', error)) // Handle errors
   }, [address])
+
+  if (!address) return null
+
   return <div>History</div>
 }

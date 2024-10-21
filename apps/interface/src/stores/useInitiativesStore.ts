@@ -1,13 +1,5 @@
+import type { NormalisedInitiative } from '@/app/api/initiatives/route';
 import { create } from 'zustand';
-
-interface NormalisedInitiative {
-  initiativeId: number;
-  title: string;
-  description: string;
-  createdAtTimestamp: number;
-  updatedAtTimestamp: number;
-  weight: number;
-}
 
 interface InitiativesState {
   initiatives: NormalisedInitiative[];

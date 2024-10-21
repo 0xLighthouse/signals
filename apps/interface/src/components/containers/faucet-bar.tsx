@@ -91,6 +91,8 @@ export const FaucetBar = () => {
     await claimTokens(ERC20_ADDRESS, address as `0x${string}`, 'SGNL')
   }
 
+  if (!address) return null
+
   return (
     <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 shadow-md rounded-lg">
       <div className="flex flex-1 justify-evenly text-center">
