@@ -6,7 +6,7 @@ const DECAY_TYPE_LINEAR = 0
 const LINEAR_DECAY_RATE = 1.2
 const DECAY_TYPE_EXPONENTIAL = 1
 const EXPONENTIAL_DECAY_RATE = 0.75
-const LOCK_INTERVAL = 60*60*24
+const LOCK_INTERVAL = 60 * 60 * 24
 
 /**
  * yarn jest apps/interface/src/lib/__tests__/curves.test.ts
@@ -105,7 +105,8 @@ describe('curves', () => {
 
     // On day 3, lock 1 should be at interval 2, lock 2 at interval 1, and lock 3 at interval 0
     // The weights start with the multiplier (10x)
-    const expected = 300_000 * Math.pow(EXPONENTIAL_DECAY_RATE, 2) + 400_000 * Math.pow(EXPONENTIAL_DECAY_RATE, 1) + 500_000
+    const expected =
+      300_000 * EXPONENTIAL_DECAY_RATE ** 2 + 400_000 * EXPONENTIAL_DECAY_RATE + 500_000
     expect(weights[3].y).toEqual(expected)
   })
 })
