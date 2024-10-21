@@ -106,7 +106,7 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
         <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-row gap-4">
           <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
-              <DrawerTitle>Propose a new initiative</DrawerTitle>
+              <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
                 <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
                 <AlertTitle>

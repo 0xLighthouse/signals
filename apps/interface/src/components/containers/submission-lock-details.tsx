@@ -1,6 +1,7 @@
 import { Label } from '@/components/ui/label'
 // Import Shadn UI card components
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Chart } from './initiatives/chart'
 
 interface SubmissionLockDetailsProps {
   weight: number
@@ -11,6 +12,9 @@ export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
   weight,
   threshold,
 }) => {
+  console.log('Weight:', weight)
+  console.log('Threshold:', threshold)
+
   return (
     <Card className="dark:bg-neutral-800">
       <CardHeader>
@@ -45,6 +49,7 @@ export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
             </div>
           </>
         )}
+        <Chart newLock={[100000, 6]} />
       </CardContent>
     </Card>
   )
