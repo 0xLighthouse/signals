@@ -45,7 +45,7 @@ Signals is not a voting or decision-making system. Initiatives that get the most
 This repo contains an `apps/` directory which contains our source code. In this directory you will find:
 
 1. `contracts`: Our solidity smart contracts
-2. `interface`: Our nest.js web UI for interacting with the contracts
+2. `interface`: Our next.js web UI for interacting with the contracts
 3. `simulations`: A start at running monte carlo simulations to prove the effectiveness of different weight curves (WIP)
 
 Each of these folders has its own readme for more technical details.
