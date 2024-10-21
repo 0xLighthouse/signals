@@ -123,7 +123,7 @@ export const InitiativesList = () => {
                 <div className="flex gap-2 font-medium leading-none">
                   {item.weight}% reached <TrendingUp className="h-4 w-4" />
                 </div>
-                {/* <UpvoteDrawer initiative={item} /> */}
+                <UpvoteDrawer initiative={item} />
               </CardFooter>
             </Card>
           ))}

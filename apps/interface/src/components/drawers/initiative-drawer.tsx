@@ -29,6 +29,7 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
+import { SwitchContainer } from '../ui/switch-container'
 
 export function InitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
@@ -37,7 +38,7 @@ export function InitiativeDrawer() {
   const { isApproving, handleApprove } = useApproveTokens(address)
 
   const [duration, setDuration] = useState(1)
-  const [amount, setAmount] = useState<number | undefined>(0)
+  const [amount, setAmount] = useState<number | null>(null)
   const [lockTokens, setLockTokens] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -51,7 +52,7 @@ export function InitiativeDrawer() {
   const hasAllowance = useCheckAllowance(address, amount)
 
   const resetFormState = () => {
-    setAmount(undefined)
+    setAmount(null)
     setLockTokens(false)
     setTitle('')
     setDescription('')
@@ -194,14 +195,14 @@ export function InitiativeDrawer() {
                 style={{ resize: 'none', height: '200px' }}
               />
             </div>
-            <div className="flex items-center py-4 my-2 gap-4 border border-neutral-200 bg-white rounded-md px-3 dark:border-neutral-800 dark:bg-neutral-800">
+            <SwitchContainer>
               <Switch
                 id="lock-tokens"
                 checked={lockTokens}
                 onCheckedChange={() => setLockTokens(!lockTokens)}
               />
               <Label htmlFor="lock-tokens">Lock tokens</Label>
-            </div>
+            </SwitchContainer>
             {lockTokens && (
               <div className="flex flex-col gap-8 my-2">
                 <div className="flex items-center">
@@ -212,10 +213,8 @@ export function InitiativeDrawer() {
                     <Input
                       id="amount"
                       type="number"
-                      value={amount}
-                      onChange={(e) =>
-                        setAmount(e.target.value ? Number(e.target.value) : undefined)
-                      }
+                      value={amount ?? ''}
+                      onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
                       min="0"
                     />
                     {lockTokens && !amount && (

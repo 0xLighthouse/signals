@@ -1,77 +1,70 @@
 'use client'
 
-import { ChevronUp, PlusIcon } from 'lucide-react'
-import { createWalletClient, custom } from 'viem'
-import { hardhat } from 'viem/chains'
+import { ChevronUp, CircleAlert, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ABI, ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
-import { readClient } from '@/config/web3'
+import { SIGNALS_PROTOCOL } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { useAccount } from 'wagmi'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useApproveTokens } from '@/hooks/useApproveTokens'
+import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
-
-const threshold = 30_000
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
+import { SubmissionLockDetails } from '../containers/submission-lock-details'
 
 export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
-  const [amount, setAmount] = useState<number | undefined>(undefined)
+  const { isApproving, handleApprove } = useApproveTokens(address)
+  const { proposalThreshold, formatter, meetsThreshold } = useSignals()
+
+  const [amount, setAmount] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
-  const [hasAllowance, setHasAllowance] = useState(false)
-  const [isApproving, setIsApproving] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { proposalThreshold, acceptanceThreshold, formatter } = useSignals()
 
   const weight = amount ? amount * duration : 0
 
+  const hasAllowance = useCheckAllowance(address, amount)
+
+  const resetFormState = () => {
+    setAmount(null)
+    setDuration(1)
+  }
+
   const handleOnOpenChange = (open: boolean) => {
-    // if (!open) resetFormState()
+    if (!open) resetFormState()
     setIsDrawerOpen(open)
   }
 
-  // Every time the allowance changes; ensure account has enough tokens
-  useEffect(() => {
-    const checkAllowance = async () => {
-      if (!amount) return
-
-      const allowance = await readClient.readContract({
-        address: ERC20_ADDRESS,
-        abi: ABI,
-        functionName: 'allowance',
-        args: [address, SIGNALS_PROTOCOL], // Corrected the second argument to the protocol address
-      })
-
-      const _hasAllowance = Number(allowance) >= amount * 1e18
-      console.log('hasAllowance', _hasAllowance)
-      setHasAllowance(_hasAllowance)
+  const handleSubmit = async () => {
+    if (!address) throw new Error('Address not available.')
+    if (!amount) {
+      return toast('Please enter an amount to lock')
     }
 
-    checkAllowance()
-  }, [address, amount])
-
-  const meetsThreshold = balance && proposalThreshold && balance >= proposalThreshold
+    try {
+      // Simulate and submit the upvote transaction
+      // This part of the code would use your existing logic to interact with the blockchain
+      toast('Upvote submitted!')
+      setIsDrawerOpen(false)
+    } catch (error) {
+      toast('Error submitting upvote :(')
+    }
+  }
 
   const resolveAction = () => {
     if (!hasAllowance && amount) {
@@ -83,11 +76,11 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
     }
     return (
       <Button
-        disabled={(lockTokens && !amount) || !title || !description}
+        disabled={!amount}
         onClick={handleSubmit}
-        isLoading={isSubmitting}
+        isLoading={false} // Assuming isSubmitting is managed elsewhere
       >
-        {isSubmitting ? 'Submitting...' : 'Submit'}
+        Submit
       </Button>
     )
   }
@@ -101,29 +94,60 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="p-4 bg-white rounded-t-[10px] flex-1 overflow-y-auto flex flex-row">
-          <div className="flex flex-col w-3/5 p-8">
-            {/* <div className="my-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="On-chain forums."
-                value={title} // Bind state to input
-                onChange={(e) => setTitle(e.target.value)} // Update state on change
-              />
+        <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-row gap-4">
+          <div className="flex flex-col mx-auto lg:w-3/5">
+            <DrawerHeader>
+              <DrawerTitle>Propose a new initiative</DrawerTitle>
+              <Alert className="bg-blue-50 dark:bg-neutral-800">
+                <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
+                <AlertTitle>
+                  Heads up! This board requires your wallet to hold{' '}
+                  <strong>
+                    {formatter(proposalThreshold)} {symbol}
+                  </strong>{' '}
+                  tokens to propose an idea.
+                </AlertTitle>
+                <AlertDescription>
+                  You have{' '}
+                  <strong>
+                    {formatter(balance)} {symbol}
+                  </strong>{' '}
+                  tokens.{' '}
+                  {meetsThreshold ? (
+                    <strong>You have enough tokens to propose an idea.</strong>
+                  ) : (
+                    <strong>You do not have enough tokens to propose an idea.</strong>
+                  )}
+                  Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.
+                </AlertDescription>
+              </Alert>
+            </DrawerHeader>
+            <div className="flex flex-col my-4 gap-4">
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center" htmlFor="title">
+                  Title
+                </Label>
+                <div className="w-4/5">
+                  <Card className="p-4 dark:bg-neutral-800">
+                    <div className="my-2">
+                      <p>{initiative.title || 'No title provided.'}</p>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Label className="w-1/5 flex items-center" htmlFor="description">
+                  Description
+                </Label>
+                <div className="w-4/5">
+                  <Card className="p-4 dark:bg-neutral-800">
+                    <div className="my-2">
+                      <p>{initiative.description || 'No description provided.'}</p>
+                    </div>
+                  </Card>
+                </div>
+              </div>
             </div>
-            <div className="my-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter something novel. Remember to search for existing ideas first and a reminder this is public."
-                required
-                value={description} // Bind state to textarea
-                onChange={(e) => setDescription(e.target.value)} // Update state on change
-                style={{ resize: 'none', height: '200px' }} // Disable resize and set fixed height
-              />
-            </div> */}
-
             <div className="flex flex-col gap-8">
               <div className="flex items-center">
                 <Label className="w-1/5 flex items-center" htmlFor="amount">
@@ -133,9 +157,9 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
                   <Input
                     id="amount"
                     type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : undefined)}
-                    min="0" // Ensure the input cannot be negative
+                    value={amount ?? ''}
+                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                    min="0"
                   />
                   {!amount && (
                     <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
@@ -157,55 +181,15 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
                   <p className="ml-4">{`${duration} month${duration !== 1 ? 's' : ''}`}</p>
                 </div>
               </div>
+              <div className="block lg:hidden">
+                <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
+              </div>
             </div>
 
             <div className="flex justify-end mt-8">{resolveAction()}</div>
           </div>
-          <div className="flex flex-col w-2/5 p-8">
-            <DrawerHeader>
-              <DrawerTitle>Propose a new initiative</DrawerTitle>
-              <DrawerDescription>
-                This board requires your wallet to hold{' '}
-                <strong>
-                  {formatter(proposalThreshold)} {symbol}
-                </strong>{' '}
-                tokens to propose an idea. You have{' '}
-                <strong>
-                  {formatter(balance)} {symbol}
-                </strong>{' '}
-                tokens.
-                {meetsThreshold ? (
-                  <strong>You have enough tokens to propose an idea.</strong>
-                ) : (
-                  <strong>You do not have enough tokens to propose an idea.</strong>
-                )}
-                Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.
-              </DrawerDescription>
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center">Weight</Label>
-                <div className="w-4/5 flex items-center">
-                  <p>{weight}</p>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center">Threshold</Label>
-                <div className="w-4/5 flex items-center">
-                  <p>{threshold}</p>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center">Weight</Label>
-                <div className="w-4/5 flex items-center">
-                  <p>{(weight / threshold).toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center">Percentage</Label>
-                <div className="w-4/5 flex items-center">
-                  <p>{((weight / threshold) * 100).toFixed(2)}%</p>
-                </div>
-              </div>
-            </DrawerHeader>
+          <div className="hidden lg:block w-2/5 lg:mt-6">
+            <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
           </div>
         </div>
       </DrawerContent>

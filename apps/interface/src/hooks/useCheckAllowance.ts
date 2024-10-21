@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { readClient } from '@/config/web3'
 import { ERC20_ADDRESS, ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 
-export function useCheckAllowance(address?: string, amount?: number) {
+export function useCheckAllowance(address?: string, amount?: number | null) {
   const [hasAllowance, setHasAllowance] = useState(false)
 
   useEffect(() => {
