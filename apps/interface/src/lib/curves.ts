@@ -2,7 +2,7 @@ export interface Lock {
   tokenAmount: number // amount of toekens, as a decimal
   lockDuration: number // duration of the lock in intervals
   createdAt: number // unix timestamp of when the lock was created
-  withdrawn: boolean // if the lock has been withdrawn
+  isWithdrawn: boolean // if the lock has been withdrawn
 }
 
 export interface InitiativeDetails {
@@ -40,26 +40,11 @@ export function calculateWeight(
   }
 
   for (const lock of locks) {
-    // Get the timestamp of the first x-axis tick after the lock was created
-    const firstTickTime = ((lock.createdAt - startsAt) % chartInterval) + lock.createdAt
 
-    // How many ticks is that from the start of the data?
-    const tickIndex = Math.floor((firstTickTime - startsAt) / chartInterval)
+    for (let i = 0; i < xvals.length; i++) {
+      if (lock.createdAt > xvals[i]) continue
 
-    // temp sanity check
-    if (xvals.length < tickIndex || xvals[tickIndex] !== firstTickTime) {
-      console.error('Error in calculateWeight: xvals and firstTickTime do not match')
-      console.log('xvals:', xvals)
-      console.log('firstTickTime:', firstTickTime)
-      console.log('tickIndex:', tickIndex)
-      console.log('xval length', xvals.length)
-      return []
-    }
-
-    for (let i = tickIndex; i < xvals.length; i++) {
-      // For the timestamp of each tick, find the corresponding lock interval
-      const lockInterval = _timeToLockInterval(lock, xvals[i], initiative.lockInterval)
-      // Find the weight value for that lock interval
+      const interval = Math.floor((xvals[i] - lock.createdAt) / initiative.lockInterval)
       let weightAtInterval = 0
       switch (initiative.decayCurveType) {
         case 0:
@@ -67,8 +52,8 @@ export function calculateWeight(
             initiative.decayCurveParameters,
             lock.tokenAmount,
             lock.lockDuration,
-            lockInterval,
-            lock.withdrawn,
+            interval,
+            lock.isWithdrawn,
           )
           break
         case 1:
@@ -76,8 +61,8 @@ export function calculateWeight(
             initiative.decayCurveParameters,
             lock.tokenAmount,
             lock.lockDuration,
-            lockInterval,
-            lock.withdrawn,
+            interval,
+            lock.isWithdrawn,
           )
           break
         default:
@@ -95,10 +80,6 @@ export function getDefaultEnd(locks: Lock[], lockInterval: number): number {
     (max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * lockInterval),
     0,
   )
-}
-
-function _timeToLockInterval(lock: Lock, timestamp: number, lockInterval: number): number {
-  return Math.floor((timestamp - lock.createdAt) / lockInterval)
 }
 
 function _linear(

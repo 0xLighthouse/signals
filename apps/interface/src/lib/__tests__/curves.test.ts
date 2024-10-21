@@ -27,7 +27,7 @@ describe('curves', () => {
       tokenAmount: 50_000, // Lock 50,000 Gov tokens
       lockDuration: 10,
       createdAt: createdAt.toUnixInteger(),
-      withdrawn: false,
+      isWithdrawn: false,
     })
 
     const weights = calculateWeight(initiative, locks, LOCK_INTERVAL)
@@ -52,7 +52,7 @@ describe('curves', () => {
       tokenAmount: 50_000, // Lock 50,000 Gov tokens
       lockDuration: 10,
       createdAt: createdAt.toUnixInteger(),
-      withdrawn: false,
+      isWithdrawn: false,
     })
 
     const weights = calculateWeight(initiative, locks, LOCK_INTERVAL)
@@ -77,19 +77,19 @@ describe('curves', () => {
       tokenAmount: 30_000, // Lock 50,000 Gov tokens
       lockDuration: 10,
       createdAt: createdAt.plus({ day: 1 }).toUnixInteger(),
-      withdrawn: false,
+      isWithdrawn: false,
     })
     locks.push({
       tokenAmount: 40_000, // Lock 50,000 Gov tokens
       lockDuration: 10,
       createdAt: createdAt.plus({ day: 2 }).toUnixInteger(),
-      withdrawn: false,
+      isWithdrawn: false,
     })
     locks.push({
       tokenAmount: 50_000, // Lock 50,000 Gov tokens
       lockDuration: 10,
       createdAt: createdAt.plus({ day: 3 }).toUnixInteger(),
-      withdrawn: false,
+      isWithdrawn: false,
     })
 
     const weights = calculateWeight(initiative, locks, LOCK_INTERVAL)
