@@ -9,3 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function timeAgoWords(timestamp: number) {
   return DateTime.fromSeconds(timestamp).toRelative()
 }
+
+export function flatten<T>(arr: T[][]): T[] {
+  return arr.flat()
+}
