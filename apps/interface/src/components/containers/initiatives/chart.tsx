@@ -4,8 +4,6 @@ import {
   CartesianGrid,
   Label,
   LabelList,
-  Line,
-  LineChart,
   AreaChart,
   ReferenceLine,
   XAxis,
@@ -21,6 +19,7 @@ import {
 } from '@/components/ui/chart'
 import { calculateWeight, InitiativeDetails, Lock, Weight } from '@/lib/curves'
 import { DateTime } from 'luxon'
+import { use, useEffect, useState } from 'react'
 
 export const description = 'A line chart with a custom label'
 
@@ -29,8 +28,8 @@ const chartConfig = {
     label: 'Weight',
     color: 'hsl(var(--chart-2))',
   },
-  other: {
-    label: 'Other',
+  lock: {
+    label: 'Lock',
     color: 'hsl(var(--chart-5))',
   },
 } satisfies ChartConfig
@@ -57,10 +56,19 @@ const normaliseWeights = (weights: Weight) => {
   }))
 }
 
-export function Chart() {
+interface Props {
+  acceptanceThreshold?: number | null
+  amountInput?: number
+  durationInput?: number
+}
+
+export const Chart: React.FC<Props> = ({ amountInput, durationInput, acceptanceThreshold }) => {
+  console.log('[Chart] acceptanceThreshold:', acceptanceThreshold)
+  const [data, setData] = useState<Weight>([])
   const DECAY_TYPE_LINEAR = 0
   const DECAY_RATE = 0.9
   const LOCK_INTERVAL = 60 * 60 // 1 hour
+  const CHART_INTERVAL = 60 * 60
 
   const createdAt = DateTime.fromISO('2024-10-22T00:00:00.000Z')
 
@@ -93,11 +101,56 @@ export function Chart() {
 
   const weights = calculateWeight(initiative, locks, LOCK_INTERVAL)
 
-  const acceptanceThreshold = 200_000
+  // Run on the first render
+  useEffect(() => {
+    // @ts-ignore
+    setData(normaliseWeights(weights))
+  }, [weights])
+
+  useEffect(() => {
+    const startTime = DateTime.now().toUnixInteger() - CHART_INTERVAL * 2
+
+    let existingData: Weight = calculateWeight(initiative, locks, CHART_INTERVAL, startTime)
+    let inputData: Weight = []
+
+    if (amountInput && durationInput) {
+      //   const newLock: Lock = {
+      //     tokenAmount: amountInput,
+      //     lockDuration: durationInput,
+      //     createdAt: DateTime.now().toUnixInteger(),
+      //     withdrawn: false,
+      //   }
+      //   let lockWeight: Weight = calculateWeight(initiative, [newLock], CHART_INTERVAL, startTime)
+      //   if (newData.length > lockWeight.length) {
+      //     lockWeight = calculateWeight(
+      //       initiative,
+      //       [newLock],
+      //       CHART_INTERVAL,
+      //       startTime,
+      //       newData[newData.length - 1].x,
+      //     )
+      //   } else if (newData.length < lockWeight.length) {
+      //     newData = calculateWeight(
+      //       initiative,
+      //       locks,
+      //       CHART_INTERVAL,
+      //       startTime,
+      //       lockWeight[lockWeight.length - 1].x,
+      //     )
+      //   }
+      // }
+      //   let chartData: Array<{label: string, baseWeight: number, thresholdWeight?: number, inputBase?: number, inputThreshold?: number}> = []
+      //   for (let i = 0; i < newData.length; i++) {
+      //     newData[i].lock = lockWeight[i].y
+      //   }
+      //   // ---- comunte the new array
+      // setData(normaliseWeights(weights))
+    }
+  }, [amountInput, durationInput])
 
   return (
     <ChartContainer config={chartConfig}>
-      <AreaChart accessibilityLayer data={normaliseWeights(weights)}>
+      <AreaChart accessibilityLayer data={data}>
         <ChartTooltip
           cursor={false}
           content={<ChartTooltipContent indicator="line" nameKey="visitors" hideLabel />}
@@ -105,7 +158,7 @@ export function Chart() {
         <ReferenceLine y={acceptanceThreshold} strokeDasharray="3 3" strokeWidth={2}>
           <Label
             position="insideTopLeft"
-            value={acceptanceThreshold.toLocaleString()}
+            value={acceptanceThreshold}
             fill="red"
             offset={10}
             startOffset={100}
@@ -114,6 +167,24 @@ export function Chart() {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" />
         <YAxis tickFormatter={normaliseNumber} />
+
+        <Area
+          dataKey="lock"
+          type="natural"
+          strokeWidth={2}
+          activeDot={{
+            r: 6,
+          }}
+        >
+          <LabelList
+            position="bottom"
+            offset={12}
+            className="fill-foreground"
+            fontSize={12}
+            dataKey="x"
+            formatter={(value: keyof typeof chartConfig) => chartConfig[value]?.label}
+          />
+        </Area>
         <Area
           dataKey="weight"
           type="natural"

@@ -20,6 +20,10 @@ export function Footer() {
         <div>
           <a href="https://github.com/0xLighthouse/signals">GitHub</a>
         </div>
+        <Separator orientation="vertical" />
+        <div>
+          <a href="https://github.com/0xLighthouse/signals/issues">Submit feedback</a>
+        </div>
       </div>
     </div>
   )

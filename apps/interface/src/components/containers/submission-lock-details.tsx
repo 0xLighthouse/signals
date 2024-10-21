@@ -5,15 +5,17 @@ import { Chart } from './initiatives/chart'
 
 interface SubmissionLockDetailsProps {
   weight: number
+  amount?: number
+  duration?: number
   threshold?: number | null
 }
 
 export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
+  amount,
+  duration,
   weight,
   threshold,
 }) => {
-  console.log('Weight:', weight)
-  console.log('Threshold:', threshold)
 
   return (
     <Card className="dark:bg-neutral-800">
@@ -49,7 +51,7 @@ export const SubmissionLockDetails: React.FC<SubmissionLockDetailsProps> = ({
             </div>
           </>
         )}
-        <Chart newLock={[100000, 6]} />
+        <Chart amountInput={amount} durationInput={duration} acceptanceThreshold={threshold} />
       </CardContent>
     </Card>
   )
