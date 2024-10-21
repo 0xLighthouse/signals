@@ -1,90 +1,97 @@
 export interface Lock {
-  tokenAmount: number
-  lockDuration: number
-  createdAt: number
-  withdrawn: boolean
+  tokenAmount: number // amount of toekens, as a decimal
+  lockDuration: number // duration of the lock in intervals
+  createdAt: number // unix timestamp of when the lock was created
+  withdrawn: boolean // if the lock has been withdrawn
 }
 
 export interface InitiativeDetails {
-  createdAt: number
-  lockInterval: number
-  decayCurveType: number
-  decayCurveParameters: number[]
+  createdAt: number // unix timestamp of when the initative was created
+  lockInterval: number // lock interval in seconds
+  decayCurveType: number // decay curve type
+  decayCurveParameters: number[] // decay curve parameters
 }
 
 // Weight is a list of chart points, in which key is the X-axis (unix timestamp) and value is the Y-axis (weight)
-export type Weight = Array<{ key: number; value: number }>
+export type Weight = Array<{ x: number; y: number }>
 
 // Populate initiative details and array of locks from the smart contract. Make sure all numbers are presented as decimals.
-// From and until are unix timestamps to show the range of the data requested (optional). Period is the interval between each point in the chart in seconds.
+// From and until are unix timestamps to show the range of the data requested (optional). ChartInterval is the difference in seconds between each point on the x-axis.
 export function calculateWeight(
   initiative: InitiativeDetails,
   locks: Lock[],
-  startsAt: number,
-  endsAt: number,
   chartInterval: number,
+  startsAt?: number,
+  endsAt?: number,
 ): Weight {
+  // If there is no start time, use the creation time of the initiative
   if (!startsAt) startsAt = initiative.createdAt
+  // If there is no end time, find the lock that lasts the longest and set that as the end time
+  if (!endsAt) {
+    endsAt = locks.reduce((max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * initiative.lockInterval), startsAt)
+  }
 
-  let intervals: number[] = [0]
-  let labels: number[] = [startsAt]
+  // Create the arrays to hold the x and y values
+  let xvals: number[] = []
+  let yvals: number[] = []
+  for (let i = startsAt; i <= endsAt; i += chartInterval) {
+    xvals.push(i)
+    yvals.push(0)
+  }
 
   for (const lock of locks) {
-    // Get the first period after the lock was created
-    let start = ((lock.createdAt - startsAt) % chartInterval) + lock.createdAt
+    // Get the timestamp of the first x-axis tick after the lock was created
+    const firstTickTime = ((lock.createdAt - startsAt) % chartInterval) + lock.createdAt
 
-    // How many periods is that from the start?
-    let startPeriod = (start - startsAt) / chartInterval
+    // How many ticks is that from the start of the data?
+    const tickIndex = Math.floor((firstTickTime - startsAt) / chartInterval)
 
-    // Make sure we have enough labels and intervals to start
-    for (let i = labels.length - 1; i <= startPeriod; i++) {
-      labels.push(startsAt + i * chartInterval)
-      intervals.push(0)
+    // temp sanity check
+    if (xvals.length < tickIndex || xvals[tickIndex] !== firstTickTime) {
+      console.error('Error in calculateWeight: xvals and firstTickTime do not match')
+      console.log('xvals:', xvals)
+      console.log('firstTickTime:', firstTickTime)
+      console.log('tickIndex:', tickIndex)
+      console.log('xval length', xvals.length)
+      return []
     }
 
-    let w = lock.tokenAmount * lock.lockDuration
-    for (let i = startPeriod; w > 0 && (endsAt ? labels[i] <= endsAt : true); i++) {
-      // Make sure we have enough to continue
-      if (labels.length <= i) {
-        labels.push(startsAt + i * chartInterval)
-        intervals.push(0)
-      }
-
-      // Get lock interval
-      let lockInterval = Math.floor((labels[i] - lock.createdAt) / chartInterval)
+    for (let i = tickIndex; i < xvals.length; i++) {
+      // For the timestamp of each tick, find the corresponding lock interval
+      const lockInterval = _timeToLockInterval(lock, xvals[i], initiative.lockInterval)
+      // Find the weight value for that lock interval
+      let weightAtInterval = 0
       switch (initiative.decayCurveType) {
         case 0:
-          w = _linear(
+          weightAtInterval = _linear(
             initiative.decayCurveParameters,
             lock.tokenAmount,
-            lockInterval,
             lock.lockDuration,
+            lockInterval,
             lock.withdrawn,
           )
           break
         case 1:
-          w = _exponential(
+          weightAtInterval = _exponential(
             initiative.decayCurveParameters,
             lock.tokenAmount,
-            lockInterval,
             lock.lockDuration,
+            lockInterval,
             lock.withdrawn,
           )
           break
         default:
           break
       }
-      intervals[i] += w
+      yvals[i] += weightAtInterval
     }
   }
 
-  // Fill in empties until until
-  for (let i = labels.length - 1; endsAt ? labels[i] <= endsAt : true; i++) {
-    labels.push(startsAt + i * chartInterval)
-    intervals.push(0)
-  }
+  return xvals.map((key, i) => ({ x: key, y: yvals[i] }))
+}
 
-  return labels.map((key, i) => ({ key, value: intervals[i] }))
+function _timeToLockInterval(lock: Lock, timestamp: number, lockInterval: number): number {
+  return Math.floor((timestamp - lock.createdAt) / lockInterval)
 }
 
 function _linear(
