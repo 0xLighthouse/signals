@@ -191,14 +191,14 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
                 </div>
               </div>
               <div className="block lg:hidden">
-                <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
+                <SubmissionLockDetails weight={weight} amount={amount} duration={duration} threshold={formatter(proposalThreshold)} />
               </div>
             </div>
 
             <div className="flex justify-end mt-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
-            <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
+            <SubmissionLockDetails weight={weight} amount={amount} duration={duration} threshold={formatter(proposalThreshold)} />
           </div>
         </div>
       </DrawerContent>
