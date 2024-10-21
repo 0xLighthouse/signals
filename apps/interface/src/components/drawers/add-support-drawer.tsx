@@ -3,7 +3,7 @@
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ERC20_ADDRESS, SIGNALS_PROTOCOL } from '@/config/web3'
+import { ERC20_ADDRESS, SIGNALS_ABI, readClient, SIGNALS_PROTOCOL } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { useAccount } from 'wagmi'
+import { custom, useAccount } from 'wagmi'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
@@ -25,8 +25,11 @@ import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
+import { createWalletClient } from 'viem'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
-export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative }) {
+export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
   const { isApproving, handleApprove } = useApproveTokens({
@@ -39,6 +42,9 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
   const [amount, setAmount] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   const weight = amount ? amount * duration : 0
 
@@ -66,12 +72,41 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
     }
 
     try {
-      // Simulate and submit the upvote transaction
-      // This part of the code would use your existing logic to interact with the blockchain
+      setIsSubmitting(true)
+      const nonce = await readClient.getTransactionCount({ address })
+
+      const signer = createWalletClient({
+        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
+        transport: custom(window.ethereum),
+      })
+
+      const { request } = await readClient.simulateContract({
+        account: address,
+        address: SIGNALS_PROTOCOL,
+        abi: SIGNALS_ABI,
+        functionName: 'supportInitiative',
+        nonce,
+        args: [initiative.initiativeId, amount * 1e18, duration],
+      })
+
+      const hash = await signer.writeContract(request)
+
+      const receipt = await readClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+        pollingInterval: 2000,
+      })
+      console.log('Receipt:', receipt)
+      setIsDrawerOpen(false)
+      setIsSubmitting(false)
+      resetFormState()
       toast('Upvote submitted!')
+      fetchInitiatives()
       setIsDrawerOpen(false)
     } catch (error) {
+      console.error(error)
       toast('Error submitting upvote :(')
+      setIsSubmitting(false)
     }
   }
 
@@ -84,11 +119,7 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
       )
     }
     return (
-      <Button
-        disabled={!amount}
-        onClick={handleSubmit}
-        isLoading={false} // Assuming isSubmitting is managed elsewhere
-      >
+      <Button disabled={!amount} onClick={handleSubmit} isLoading={isSubmitting}>
         Submit
       </Button>
     )

@@ -21,7 +21,7 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
-import { UpvoteDrawer } from '@/components/drawers/upvote-drawer'
+import { AddSupportDrawer } from '@/components/drawers/add-support-drawer'
 import { IncentiveDrawer } from '@/components/drawers/incentive-drawer'
 
 // import data from '@/config/proposals.json'
@@ -125,7 +125,7 @@ export const InitiativesList = () => {
                   {item.weight}% reached <TrendingUp className="h-4 w-4" />
                 </div>
                 <IncentiveDrawer initiative={item} />
-                <UpvoteDrawer initiative={item} />
+                <AddSupportDrawer initiative={item} />
               </CardFooter>
             </Card>
           ))}
