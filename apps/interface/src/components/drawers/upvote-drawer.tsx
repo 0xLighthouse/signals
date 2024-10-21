@@ -1,9 +1,9 @@
 'use client'
 
-import { ChevronUp, CircleAlert, PlusIcon } from 'lucide-react'
+import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { SIGNALS_PROTOCOL } from '@/config/web3'
+import { ERC20_ADDRESS, SIGNALS_PROTOCOL } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useAccount } from 'wagmi'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useState } from 'react'
@@ -29,7 +29,11 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
-  const { isApproving, handleApprove } = useApproveTokens(address)
+  const { isApproving, handleApprove } = useApproveTokens({
+    actor: address,
+    spenderAddress: SIGNALS_PROTOCOL,
+    tokenAddress: ERC20_ADDRESS,
+  })
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
 
   const [amount, setAmount] = useState<number | null>(null)
@@ -38,7 +42,12 @@ export function UpvoteDrawer({ initiative }: { initiative: NormalisedInitiative 
 
   const weight = amount ? amount * duration : 0
 
-  const hasAllowance = useCheckAllowance(address, amount)
+  const hasAllowance = useCheckAllowance({
+    actor: address,
+    amount,
+    spenderAddress: SIGNALS_PROTOCOL,
+    tokenAddress: ERC20_ADDRESS,
+  })
 
   const resetFormState = () => {
     setAmount(null)

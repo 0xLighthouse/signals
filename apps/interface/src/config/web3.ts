@@ -2,6 +2,7 @@ import { createPublicClient, http, createWalletClient, custom, erc20Abi } from '
 import { hardhat } from 'viem/chains'
 
 import signalsAbi from './signals.abi.json'
+import incentivesAbi from './incentives.json'
 
 export const readClient = createPublicClient({
   chain: hardhat,
@@ -26,6 +27,7 @@ export const ABI = [
 ]
 
 export const SIGNALS_ABI = [...signalsAbi]
+export const INCENTIVES_ABI = [...incentivesAbi]
 
 /**
  * Critical addresses

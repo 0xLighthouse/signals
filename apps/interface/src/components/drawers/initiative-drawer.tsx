@@ -6,7 +6,13 @@ import { createWalletClient, custom } from 'viem'
 import { hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 
-import { SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import {
+  ERC20_ADDRESS,
+  INCENTIVES,
+  SIGNALS_ABI,
+  SIGNALS_PROTOCOL,
+  USDC_ADDRESS,
+} from '@/config/web3'
 import { readClient } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,7 +41,12 @@ export function InitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
-  const { isApproving, handleApprove } = useApproveTokens(address)
+
+  const { isApproving, handleApprove } = useApproveTokens({
+    actor: address,
+    spenderAddress: SIGNALS_PROTOCOL,
+    tokenAddress: ERC20_ADDRESS,
+  })
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number | null>(null)
@@ -49,7 +60,12 @@ export function InitiativeDrawer() {
 
   const weight = amount ? amount * duration : 0
 
-  const hasAllowance = useCheckAllowance(address, amount)
+  const hasAllowance = useCheckAllowance({
+    actor: address,
+    amount,
+    spenderAddress: SIGNALS_PROTOCOL,
+    tokenAddress: ERC20_ADDRESS,
+  })
 
   const resetFormState = () => {
     setAmount(null)
@@ -82,8 +98,8 @@ export function InitiativeDrawer() {
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
 
-      const { request } = await readClient
-        .simulateContract({
+      try {
+        const { request } = await readClient.simulateContract({
           account: address,
           address: SIGNALS_PROTOCOL,
           abi: SIGNALS_ABI,
@@ -91,20 +107,26 @@ export function InitiativeDrawer() {
           nonce,
           args,
         })
-        .catch((err) => {
-          toast('Failed to simulate contract call', {
-            description: err.message,
-          })
-          return
+
+        const hash = await signer.writeContract(request)
+
+        const receipt = await readClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 2,
+          pollingInterval: 2000,
         })
-
-      const hash = await signer.writeContract(request)
-
-      setIsDrawerOpen(false)
-      setIsSubmitting(false)
-      resetFormState()
-      toast('Initiative submitted!')
-      fetchInitiatives()
+        console.log('Receipt:', receipt)
+        setIsDrawerOpen(false)
+        setIsSubmitting(false)
+        resetFormState()
+        toast('Initiative submitted!')
+        fetchInitiatives()
+      } catch (err) {
+        toast('Failed to simulate contract call', {
+          // @ts-ignore
+          description: err.message,
+        })
+      }
     } catch (error) {
       // @ts-ignore
       if (error?.message?.includes('User rejected the request')) {

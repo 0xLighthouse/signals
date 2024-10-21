@@ -3,14 +3,26 @@ import { createWalletClient, custom } from 'viem'
 import { hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 import { readClient } from '@/config/web3'
-import { ABI, ERC20_ADDRESS, SIGNALS_PROTOCOL } from '@/config/web3'
+import { ABI } from '@/config/web3'
 
-export function useApproveTokens(address?: `0x${string}`) {
+interface Props {
+  actor?: `0x${string}`
+  decimals?: number
+  spenderAddress?: string
+  tokenAddress?: `0x${string}`
+}
+
+export function useApproveTokens({
+  actor,
+  decimals,
+  spenderAddress,
+  tokenAddress,
+}: Props) {
   const [isApproving, setIsApproving] = useState(false)
 
   const handleApprove = async (amount: number) => {
-    if (!address) {
-      toast('Address is not available.')
+    if (!actor || !amount || !spenderAddress || !tokenAddress) {
+      toast('Missing required parameters.')
       return
     }
 
@@ -18,7 +30,7 @@ export function useApproveTokens(address?: `0x${string}`) {
       setIsApproving(true)
       // Signer get nonce
       const nonce = await readClient.getTransactionCount({
-        address: address,
+        address: actor,
       })
 
       const signer = createWalletClient({
@@ -27,11 +39,11 @@ export function useApproveTokens(address?: `0x${string}`) {
       })
       const { request } = await readClient.simulateContract({
         nonce,
-        account: address,
-        address: ERC20_ADDRESS,
+        account: actor,
+        address: tokenAddress,
         abi: ABI,
         functionName: 'approve',
-        args: [SIGNALS_PROTOCOL, amount * 1e18],
+        args: [spenderAddress, amount * 10 ** (decimals || 18)],
       })
 
       const hash = await signer.writeContract(request)

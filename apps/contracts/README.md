@@ -32,6 +32,12 @@ Our tests are located in the `src/__tests__` directory. Once you've installed Fo
 forge test
 ```
 
+#### Test specific file with args
+
+```shell
+forge test <file> -vvvv
+```
+
 ### Deploy
 
 ```shell

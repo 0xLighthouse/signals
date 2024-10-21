@@ -22,6 +22,7 @@ import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
 import { UpvoteDrawer } from '@/components/drawers/upvote-drawer'
+import { IncentiveDrawer } from '@/components/drawers/incentive-drawer'
 
 // import data from '@/config/proposals.json'
 // import { Money } from '@phosphor-icons/react'
@@ -123,6 +124,7 @@ export const InitiativesList = () => {
                 <div className="flex gap-2 font-medium leading-none">
                   {item.weight}% reached <TrendingUp className="h-4 w-4" />
                 </div>
+                <IncentiveDrawer initiative={item} />
                 <UpvoteDrawer initiative={item} />
               </CardFooter>
             </Card>

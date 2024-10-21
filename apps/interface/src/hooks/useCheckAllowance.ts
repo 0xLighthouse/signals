@@ -1,30 +1,42 @@
 import { useEffect, useState } from 'react'
 import { readClient } from '@/config/web3'
-import { ERC20_ADDRESS, ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { ABI } from '@/config/web3'
 
-export function useCheckAllowance(address?: string, amount?: number | null) {
+interface Props {
+  actor?: `0x${string}`
+  amount?: number | null
+  decimals?: number
+  spenderAddress?: `0x${string}`
+  tokenAddress?: `0x${string}`
+}
+
+export function useCheckAllowance({
+  actor,
+  amount,
+  decimals,
+  spenderAddress,
+  tokenAddress,
+}: Props) {
   const [hasAllowance, setHasAllowance] = useState(false)
 
   useEffect(() => {
     const checkAllowance = async () => {
-      if (!amount) return
-      if (!address) return
+      if (!amount || !actor || !spenderAddress || !tokenAddress) return
 
       const allowance = await readClient.readContract({
-        address: ERC20_ADDRESS,
+        address: tokenAddress,
         abi: ABI,
         functionName: 'allowance',
-        args: [address, SIGNALS_PROTOCOL],
+        args: [actor, spenderAddress],
       })
 
-      const _hasAllowance = Number(allowance) >= amount * 1e18
+      const _hasAllowance = Number(allowance) >= amount * 10 ** (decimals || 18)
       console.log('hasAllowance', _hasAllowance)
       setHasAllowance(_hasAllowance)
     }
 
     checkAllowance()
-  }, [address, amount])
+  }, [actor, amount, spenderAddress, tokenAddress, decimals])
 
   return hasAllowance
 }
-
