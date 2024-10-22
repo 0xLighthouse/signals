@@ -17,7 +17,7 @@ import {Incentives} from '../src/Incentives.sol';
 contract DevelopmentScript is Script {
   address _deployer;
   address _owner;
-  
+
   address _instance;
 
   MockERC20 _token;
@@ -31,12 +31,12 @@ contract DevelopmentScript is Script {
 
     _deployer = vm.addr(deployerPrivateKey);
     _owner = vm.addr(ownerPrivateKey);
-    
+
     // Log the deployer addresses
     console.log('----- Accounts -----');
     console.log('Deployer:', _deployer);
     console.log('Owner:', _owner);
-    
+
     // Deploy MockERC20 token and mint 1 million tokens
     console.log('----- Contracts -----');
     vm.broadcast(deployerPrivateKey);
@@ -59,7 +59,7 @@ contract DevelopmentScript is Script {
     console.log('FactoryContract', address(_factory));
 
     uint256[] memory params = new uint256[](1);
-    params[0] = 9e17;
+    params[0] = 11e17; // 1.1
 
     // Deploy a new Signals contract using the factory
     vm.broadcast(deployerPrivateKey);
@@ -67,10 +67,10 @@ contract DevelopmentScript is Script {
       _owner,
       address(_token),
       25_000 * 1e18, // 25k _proposalThreshold
-      100_000 * 1e18, // 100k _acceptanceThreshold
-      12, // lockDurationCap
+      1_000_000 * 1e18, // 1M _acceptanceThreshold
+      30, // lockDurationCap (30 days)
       5, // map active initiatives
-      1 hours, // decayInterval
+      1 days, // decayInterval
       0, // decayCurveType, linear
       params // decayCurveParameters
     );
@@ -84,24 +84,22 @@ contract DevelopmentScript is Script {
     vm.broadcast(deployerPrivateKey);
     MockStable usdc = new MockStable('Mocked USDC', 'USDC');
 
-
     console.log('USDCContract', address(usdc));
-    
+
     vm.broadcast(deployerPrivateKey);
     usdc.initialize(1_000_000 * 1e6);
 
     // Initialize TokenRegistry
     vm.broadcast(deployerPrivateKey);
     TokenRegistry registry = new TokenRegistry();
-    
+
     console.log('RegistryContract:', address(registry));
-    
+
     vm.broadcast(deployerPrivateKey);
     registry.allow(address(_token)); // Allow token rewards
 
     vm.broadcast(deployerPrivateKey);
     registry.allow(address(usdc)); // Allow usdc rewards
-
 
     // Create incentives
     uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
@@ -109,10 +107,10 @@ contract DevelopmentScript is Script {
 
     vm.broadcast(deployerPrivateKey);
     _incentives = new Incentives(
-        address(protocolAddress), 
-        address(registry), 
-        _allocations, 
-        _receivers
+      address(protocolAddress),
+      address(registry),
+      _allocations,
+      _receivers
     );
 
     console.log('IncentivesContract', address(_incentives));
