@@ -52,13 +52,13 @@ const mapInitiativeState = (state: number): string => {
 const protocol = getContract({
   address: SIGNALS_PROTOCOL,
   abi: SIGNALS_ABI,
-  client: readClient,
+  client: publicClient,
 })
 
 const incentives = getContract({
   address: INCENTIVES,
   abi: INCENTIVES_ABI,
-  client: readClient,
+  client: publicClient,
 })
 
 /**
@@ -78,6 +78,8 @@ export const GET = async () => {
 
   const ids = range(0, Number(initiativesCount) - 1)
 
+  console.log('initiativesCount', ids)
+
   const initiatives: NormalisedInitiative[] = []
   for await (const id of ids) {
     const _initiative = (await readClient.readContract({
@@ -96,7 +98,9 @@ export const GET = async () => {
 
     const supporters = await protocol.read.getSupporters([id])
 
-    const _incentives = await incentives.read.getIncentives([id])
+    const _incentives = await incentives.read.getIncentives([Number(id)])
+
+    const rewards = _incentives[1].reduce((acc: bigint, amount: bigint) => acc + amount, 0n)
 
     console.log(_incentives)
 
@@ -107,7 +111,7 @@ export const GET = async () => {
       weight: Number(weight) / 1e18,
       support: Number(weight) / Number(acceptanceThreshold),
       proposer: _initiative.proposer,
-      rewards: 0,
+      rewards: Number(rewards) / 1e6,
       supporters,
       createdAtTimestamp: Number(_initiative.timestamp),
       updatedAtTimestamp: Number(_initiative.lastActivity),
@@ -122,8 +126,6 @@ export const GET = async () => {
   // const allInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
 
   // console.log('allInitattractiveiatives', allInitiatives?.length)
-
-  console.log(JSON.stringify(initiatives, null, 2))
 
   return NextResponse.json(initiatives)
 }
