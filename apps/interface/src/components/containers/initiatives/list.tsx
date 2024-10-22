@@ -27,7 +27,7 @@ export const InitiativesList = () => {
 
   // Ensure initiatives is always an array before filtering
   const _initiativesSorted = initiatives.sort((a, b) =>
-    sortBy === 'support' ? a.support - b.support : b.createdAtTimestamp - a.createdAtTimestamp,
+    sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
   )
 
   if (isFetchingInitiatives) {

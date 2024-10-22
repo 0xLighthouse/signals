@@ -1,5 +1,11 @@
 import { kv } from '@vercel/kv'
-import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import {
+  INCENTIVES,
+  INCENTIVES_ABI,
+  readClient,
+  SIGNALS_ABI,
+  SIGNALS_PROTOCOL,
+} from '@/config/web3'
 import { NextResponse } from 'next/server'
 import { createPublicClient, getContract, http } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
@@ -12,6 +18,7 @@ export interface NormalisedInitiative {
   weight: number
   progress: number
   proposer: string
+  rewards: number
   /**
    * Percentage of the acceptance threshold express as a float
    */
@@ -45,6 +52,12 @@ const mapInitiativeState = (state: number): string => {
 const protocol = getContract({
   address: SIGNALS_PROTOCOL,
   abi: SIGNALS_ABI,
+  client: readClient,
+})
+
+const incentives = getContract({
+  address: INCENTIVES,
+  abi: INCENTIVES_ABI,
   client: readClient,
 })
 
@@ -83,6 +96,10 @@ export const GET = async () => {
 
     const supporters = await protocol.read.getSupporters([id])
 
+    const _incentives = await incentives.read.getIncentives([id])
+
+    console.log(_incentives)
+
     const data = {
       initiativeId: id,
       title: _initiative.title,
@@ -90,6 +107,7 @@ export const GET = async () => {
       weight: Number(weight) / 1e18,
       support: Number(weight) / Number(acceptanceThreshold),
       proposer: _initiative.proposer,
+      rewards: 0,
       supporters,
       createdAtTimestamp: Number(_initiative.timestamp),
       updatedAtTimestamp: Number(_initiative.lastActivity),
