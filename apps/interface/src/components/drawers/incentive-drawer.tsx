@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, DollarSign, Eclipse } from 'lucide-react'
+import { CircleAlert, Eclipse } from 'lucide-react'
 import { toast } from 'sonner'
 import { ethers } from 'ethers'
 
@@ -18,10 +18,18 @@ import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { TokenSelector } from '../token-selector'
-import { INCENTIVES, INCENTIVES_ABI, SIGNALS_PROTOCOL, USDC_ADDRESS } from '@/config/web3'
+import {
+  INCENTIVES,
+  INCENTIVES_ABI,
+  readClient,
+  SIGNALS_PROTOCOL,
+  USDC_ADDRESS,
+} from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
+import { createWalletClient, custom } from 'viem'
+import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -58,27 +66,54 @@ export function IncentiveDrawer({ initiative }: Props) {
     }
 
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const signer = provider.getSigner()
-      const incentivesContract = new ethers.Contract(INCENTIVES, INCENTIVES_ABI, signer)
+      setIsSubmitting(true)
+      const nonce = await readClient.getTransactionCount({ address })
 
-      const initiativeId = initiative.initiativeId
-      const rewardToken = USDC_ADDRESS
+      const signer = createWalletClient({
+        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
+        transport: custom(window.ethereum),
+      })
+
+      // Define the token address and other required parameters
+      const tokenAddress = USDC_ADDRESS // Replace with the selected token if dynamic
       const expiresAt = 0
-      const conditions = 0
+      const terms = 0
 
-      const tx = await incentivesContract.addIncentive(
-        initiativeId,
-        rewardToken,
-        ethers.utils.parseUnits(amount.toString(), 6), // Assuming USDC with 6 decimals
-        expiresAt,
-        conditions,
-      )
+      const { request } = await readClient.simulateContract({
+        account: address,
+        address: INCENTIVES,
+        abi: INCENTIVES_ABI,
+        functionName: 'addIncentive',
+        nonce,
+        args: [
+          initiative.initiativeId,
+          tokenAddress,
+          ethers.utils.parseUnits(amount.toString(), 18),
+          expiresAt,
+          terms,
+        ],
+      })
 
-      await tx.wait()
+      const hash = await signer.writeContract(request)
+
+      const receipt = await readClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+        pollingInterval: 2000,
+      })
+      console.log('Receipt:', receipt)
+      setIsDrawerOpen(false)
+      resetFormState()
       toast('Incentive added successfully!')
     } catch (error) {
-      toast('Error adding incentive :(')
+      console.error(error)
+      // @ts-ignore
+      if (error?.message?.includes('User rejected the request')) {
+        toast('User rejected the request')
+      } else {
+        toast('Error submitting incentive :(')
+      }
+      setIsSubmitting(false)
     }
   }
 

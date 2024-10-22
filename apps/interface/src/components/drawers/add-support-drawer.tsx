@@ -102,11 +102,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       })
       console.log('Receipt:', receipt)
       setIsDrawerOpen(false)
-      setIsSubmitting(false)
       resetFormState()
       toast('Upvote submitted!')
       fetchInitiatives()
-      setIsDrawerOpen(false)
     } catch (error) {
       console.error(error)
       toast('Error submitting upvote :(')

@@ -60,6 +60,7 @@ export function InitiativeDrawer() {
     setTitle('')
     setDescription('')
     setDuration(1)
+    setIsSubmitting(false)
   }
 
   const handleOnOpenChange = (open: boolean) => {
@@ -85,34 +86,29 @@ export function InitiativeDrawer() {
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
 
-      try {
-        const { request } = await readClient.simulateContract({
-          account: address,
-          address: SIGNALS_PROTOCOL,
-          abi: SIGNALS_ABI,
-          functionName,
-          nonce,
-          args,
-        })
+      const { request } = await readClient.simulateContract({
+        account: address,
+        address: SIGNALS_PROTOCOL,
+        abi: SIGNALS_ABI,
+        functionName,
+        nonce,
+        args,
+      })
 
-        const hash = await signer.writeContract(request)
+      const hash = await signer.writeContract(request)
 
-        const receipt = await readClient.waitForTransactionReceipt({
-          hash,
-          confirmations: 2,
-          pollingInterval: 2000,
-        })
-        console.log('Receipt:', receipt)
-        setIsDrawerOpen(false)
-        setIsSubmitting(false)
-        resetFormState()
-        toast('Initiative submitted!')
-        fetchInitiatives()
-      } catch (err) {
-        console.error(err)
-        toast('Failed to submit initiative')
-      }
+      const receipt = await readClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+        pollingInterval: 2000,
+      })
+      console.log('Receipt:', receipt)
+      setIsDrawerOpen(false)
+      resetFormState()
+      toast('Initiative submitted!')
+      fetchInitiatives()
     } catch (error) {
+      console.error(error)
       // @ts-ignore
       if (error?.message?.includes('User rejected the request')) {
         toast('User rejected the request')
