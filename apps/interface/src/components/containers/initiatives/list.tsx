@@ -23,22 +23,12 @@ export const InitiativesList = () => {
     if (!isInitialized) fetchInitiatives()
   }, [isInitialized, fetchInitiatives])
 
-  const [sortBy, setSortBy] = useState("'trending'")
-  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState('support')
 
-  // TODO: break out the ideas/feedbacks list into a separate component
   // Ensure initiatives is always an array before filtering
-  const _initiativesSorted = initiatives
-    .filter((o) => o.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) =>
-      sortBy === "'trending'"
-        ? b.createdAtTimestamp - a.createdAtTimestamp
-        : b.initiativeId - a.initiativeId,
-    )
-
-  const handleSupportInitiative = (id: number) => {
-    console.log('support initiative', id)
-  }
+  const _initiativesSorted = initiatives.sort((a, b) =>
+    sortBy === 'support' ? a.support - b.support : b.createdAtTimestamp - a.createdAtTimestamp,
+  )
 
   if (isFetchingInitiatives) {
     return (

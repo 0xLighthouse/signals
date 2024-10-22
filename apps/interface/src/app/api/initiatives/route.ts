@@ -1,7 +1,7 @@
 import { kv } from '@vercel/kv'
 import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, getContract, http } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { range } from '@/lib/utils'
 
@@ -12,6 +12,10 @@ export interface NormalisedInitiative {
   weight: number
   progress: number
   proposer: string
+  /**
+   * Percentage of the acceptance threshold express as a float
+   */
+  support: number
   supporters: string[]
   createdAtTimestamp: number
   updatedAtTimestamp: number
@@ -34,11 +38,23 @@ const publicClient = createPublicClient({
 
 const ns = `${process.env.NEXT_PUBLIC_SIGNALS_PROTOCOL}-v1`
 
+const mapInitiativeState = (initiative: InitiativeState): string => {
+  return initiative.state === 1n ? 'active' : initiative.state === 2n ? 'accepted' : 'archived'
+}
+
+const protocol = getContract({
+  address: SIGNALS_PROTOCOL,
+  abi: SIGNALS_ABI,
+  client: readClient,
+})
+
 /**
  * GET /api/initiatives
  */
 export const GET = async () => {
   const initiativesKey = `${ns}-initiatives`
+
+  const acceptanceThreshold = await protocol.read.acceptanceThreshold()
 
   const initiativesCount = await readClient.readContract({
     address: SIGNALS_PROTOCOL,
@@ -65,28 +81,19 @@ export const GET = async () => {
       args: [id],
     })
 
+    const supporters = await protocol.read.getSupporters([id])
+
     const data = {
       initiativeId: id,
       title: _initiative.title,
       description: _initiative.body,
       weight: Number(weight) / 1e18,
-      progress: 0,
+      support: Number(weight) / Number(acceptanceThreshold),
       proposer: _initiative.proposer,
-      supporters: [
-        '0xAbC1234567890dEf1234567890AbC1234567890A',
-        '0xBcD234567890eFg1234567890BcD234567890B1',
-        '0xCdE345678901fGh1234567890CdE345678901C2',
-        '0xDeF456789012gHi1234567890DeF456789012D3',
-        '0xEfG567890123hIj1234567890EfG567890123E4',
-        '0xFfG678901234iJk1234567890FfG678901234F5',
-        '0x1234567890AbC1234567890dEf1234567890A6',
-        '0x234567890BcD234567890eFg1234567890B1A7',
-        '0x345678901CdE345678901fGh1234567890C2B8',
-        '0x456789012DeF456789012gHi1234567890D3C9',
-      ],
+      supporters,
       createdAtTimestamp: Number(_initiative.timestamp),
       updatedAtTimestamp: Number(_initiative.lastActivity),
-      status: _initiative.state,
+      status: mapInitiativeState(_initiative),
     } as unknown as NormalisedInitiative
     initiatives.push(data)
   }
@@ -96,7 +103,7 @@ export const GET = async () => {
   // // Retrieve the entire list of initiatives from the cache
   // const allInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
 
-  // console.log('allInitiatives', allInitiatives?.length)
+  // console.log('allInitattractiveiatives', allInitiatives?.length)
 
   return NextResponse.json(initiatives)
 }

@@ -160,7 +160,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
           className="flex flex-col items-center min-w-[80px]"
         >
           <ChevronUp className="h-6 w-6 -mt-1" />
-          <span className="text-xs">{weight}</span>
+          <span className="text-xs">{initiative.support}%</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent>
