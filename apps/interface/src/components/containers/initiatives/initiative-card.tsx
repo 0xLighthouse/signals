@@ -36,12 +36,12 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
       <div className="flex w-full">
         <CardHeader className="w-3/5 p-6 pb-0">
           <CardTitle>{initiative.title}</CardTitle>
-          <CardDescription className="flex items-center">
+          <CardDescription className="flex items-center text-xs">
             Proposed by
-            <Avatar className="ml-2 mr-1">
+            <Avatar className="ml-1 mr-1">
               <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
             </Avatar>
-            {proposerName}
+            {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
           </CardDescription>
           <div>
             <p className="line-clamp-4 break-all">{initiative.description}</p>
@@ -63,7 +63,9 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
               : undefined
           }
         />
-        <CardDescription>{timeAgoWords(initiative.createdAtTimestamp)}</CardDescription>
+        <CardDescription className="text-xs">
+          Last active,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
+        </CardDescription>
       </div>
     </Card>
   )
