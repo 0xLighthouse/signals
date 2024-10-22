@@ -31,9 +31,7 @@ export function generateTicks(
     throw new Error('Lock interval is not set')
   }
 
-  const startTime: number = DateTime.now().toUnixInteger() - chartInterval * 2 // We give a small buffer to the start time
-
-  console.log('[generateTicks] ---- END TIME ----')
+  const startTime: number = DateTime.now().toUnixInteger()
   const endTime: number = Math.max(
     getDefaultEnd(existingData, initiative.lockInterval),
     getDefaultEnd(newLock, initiative.lockInterval),
