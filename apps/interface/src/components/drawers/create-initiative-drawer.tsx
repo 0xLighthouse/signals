@@ -36,13 +36,13 @@ export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedI
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const {
-    proposalThreshold,
     acceptanceThreshold,
+    proposalThreshold,
     formatter,
     meetsThreshold,
     lockInterval,
     decayCurveType,
-    decayCurveParameters
+    decayCurveParameters,
   } = useSignals()
 
   const [duration, setDuration] = useState(1)
@@ -211,8 +211,7 @@ export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedI
                   setLockTokens(!lockTokens)
                   setAmount(0)
                   setDuration(1)
-                }
-                }
+                }}
               />
               <Label htmlFor="lock-tokens">Also lock tokens to add support</Label>
             </SwitchContainer>
@@ -250,6 +249,14 @@ export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedI
                     <p className="ml-4">{`${duration} day${duration !== 1 ? 's' : ''}`}</p>
                   </div>
                 </div>
+                <div className="block lg:hidden">
+                  <SubmissionLockDetails
+                    weight={weight}
+                    threshold={formatter(acceptanceThreshold)}
+                    initiative={undefined}
+                    existingLocks={[]}
+                  />
+                </div>
               </div>
             )}
 
@@ -257,16 +264,16 @@ export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedI
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
             <SubmissionLockDetails
+              amount={amount}
+              duration={duration}
               threshold={formatter(acceptanceThreshold)}
               initiative={{
                 createdAt: DateTime.now().toSeconds(),
                 lockInterval,
                 decayCurveType,
-                decayCurveParameters
+                decayCurveParameters,
               }}
               existingLocks={[]}
-              amount={amount}
-              duration={duration}
               proposeNewInitiative={true}
               supportInitiative={lockTokens}
             />

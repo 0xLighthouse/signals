@@ -5,14 +5,14 @@ import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { Lock } from '@/lib/curves'
+import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 
 interface Props {
   initiative: InitiativeDetails | undefined
   amount?: number | null
   duration?: number
   threshold?: number | null
-  existingLocks: Lock[]
+  existingLocks: InitiativeSupportedEvent[]
   proposeNewInitiative?: boolean
   supportInitiative?: boolean
 }
@@ -37,44 +37,40 @@ export const SubmissionLockDetails: React.FC<Props> = ({
         {proposeNewInitiative && (
           <Alert className="bg-blue-50 dark:bg-neutral-800">
             <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-            <AlertTitle>
-              You will add a new initative.
-            </AlertTitle>
+            <AlertTitle>You will add a new initative.</AlertTitle>
           </Alert>
         )}
         {supportInitiative && (
           <Alert className="bg-blue-50 dark:bg-neutral-800">
             <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
             <AlertTitle>
-              You will lock {amount} ({symbol}) for {duration} day{(duration !== 1 ? "s" : "")}.
+              You will lock {amount} ({symbol}) for {duration} day{duration !== 1 ? 's' : ''}.
             </AlertTitle>
           </Alert>
         )}
       </CardHeader>
       {supportInitiative && (
-      <CardContent>
-        <div className="flex items-center mb-2">
-          <Label className="w-3/4 flex items-center">Weight to contribute:</Label>
-          <div className="w-3/4 flex items-center">
-            <p>{weight}</p>
+        <CardContent>
+          <div className="flex items-center mb-2">
+            <Label className="w-3/4 flex items-center">Weight to contribute:</Label>
+            <div className="w-3/4 flex items-center">
+              <p>{weight}</p>
+            </div>
           </div>
-        </div>
           <div className="flex items-center">
-            <Label className="w-3/4 flex items-center">
-              Progress towards acceptance:
-            </Label>
+            <Label className="w-3/4 flex items-center">Progress towards acceptance:</Label>
             <div className="w-3/4 flex items-center">
               <p>+{((weight / (threshold || 1)) * 100).toFixed(2)}%</p>
             </div>
           </div>
-        <Chart
-          initiative={initiative}
-          acceptanceThreshold={threshold}
-          existingLocks={existingLocks}
-          amountInput={amount}
-          durationInput={duration}
-        />
-      </CardContent>
+          <Chart
+            initiative={initiative}
+            acceptanceThreshold={threshold}
+            existingLocks={existingLocks}
+            amountInput={amount}
+            durationInput={duration}
+          />
+        </CardContent>
       )}
     </Card>
   )

@@ -19,7 +19,7 @@ import { custom, useAccount } from 'wagmi'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
@@ -27,15 +27,14 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { createWalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-
-import { Lock } from '@/lib/curves'
-import { DateTime } from 'luxon'
+import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
   const {
     acceptanceThreshold,
+    proposalThreshold,
     formatter,
     meetsThreshold,
     lockInterval,
@@ -47,6 +46,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [existingLocks, setExistingLocks] = useState<InitiativeSupportedEvent[] | undefined>(
+    undefined,
+  )
 
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
@@ -127,10 +129,22 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
     )
   }
 
-  const existingLocks: Lock[] = []
-  const createdAt = DateTime.fromSeconds(initiative.createdAtTimestamp)
+  useEffect(() => {
+    if (existingLocks) {
+      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('locks')
+          console.log('locks')
+          console.log('locks')
+          console.log('locks')
+          console.log('locks', data)
+          setExistingLocks(data)
+        })
+        .catch((error) => console.error('Error fetching locks:', error)) // Handle errors
+    }
+  }, [])
 
-  //TODO: Dynamically calculate the time unit (day, hour, etc) in the below from the lockInterval
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
@@ -255,12 +269,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 decayCurveType,
                 decayCurveParameters,
               }}
-              existingLocks={[
-              ]}
               amount={amount}
               duration={duration}
               threshold={formatter(acceptanceThreshold)}
               supportInitiative={true}
+              existingLocks={existingLocks}
+              weight={weight}
             />
           </div>
         </div>

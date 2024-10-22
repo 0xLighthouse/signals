@@ -13,6 +13,7 @@ import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
+import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 
 export const description = 'A line chart with a custom label'
 
@@ -21,7 +22,7 @@ const chartConfig = {
     label: 'Current Weight',
     color: 'hsl(var(--chart-1))',
   },
-   inputBase: {
+  inputBase: {
     label: 'New Weight',
     color: 'hsl(var(--chart-3))',
   },
@@ -29,7 +30,7 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  existingLocks: Lock[]
+  existingLocks: InitiativeSupportedEvent[]
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number
@@ -87,10 +88,15 @@ export const Chart: React.FC<Props> = ({
           cursor={false}
           content={<ChartTooltipContent indicator="line" nameKey="label" hideLabel />}
         />
-        <ReferenceLine y={acceptanceThreshold || 0} strokeWidth={3} strokeDasharray="3 3">
+        <ReferenceLine
+          y={acceptanceThreshold || 0}
+          strokeWidth={2}
+          strokeDasharray="3 3"
+          stroke="green"
+        >
           <Label
             position={'left'}
-            value={acceptanceThreshold || 0}
+            value={normaliseNumber(acceptanceThreshold || 0)}
             fill="green"
             // offset={10}
             // startOffset={100}
@@ -98,7 +104,10 @@ export const Chart: React.FC<Props> = ({
         </ReferenceLine>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" />
-        <YAxis tickFormatter={normaliseNumber} domain={(acceptanceThreshold ? [0,acceptanceThreshold * 1.2] : [0,1_000_000])} />
+        <YAxis
+          tickFormatter={normaliseNumber}
+          domain={acceptanceThreshold ? [0, acceptanceThreshold * 1.2] : [0, 1_000_000]}
+        />
         <Area
           dataKey="existingBase"
           name="Current Weight"
