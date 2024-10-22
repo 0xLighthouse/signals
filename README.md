@@ -59,5 +59,5 @@ Each of these folders has its own readme for more technical details.
 
 Visit [https://signals.testnet.lighthouse.cx/](https://signals.testnet.lighthouse.cx/) to explore the protocol.
 
-* Grab some testnet ETH at <https://www.alchemy.com/faucets/arbitrum-sepolia>
+* Grab some testnet ETH at <https://docs.arbitrum.io/for-devs/dev-tools-and-resources/chain-info#faucets>
 * You can then use our built in faucet to claim some `SGNL` (our governance token) and `Mocked USDC` (our reward token) to use on the frontend.
