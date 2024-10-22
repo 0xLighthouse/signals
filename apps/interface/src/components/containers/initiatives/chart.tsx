@@ -49,8 +49,6 @@ export const Chart: React.FC<Props> = ({
   useEffect(() => {
     if (!initiative || !acceptanceThreshold) return
 
-    console.log('() RENDER')
-
     const options: ChartOptions = {
       initiative,
       acceptanceThreshold,
@@ -66,12 +64,12 @@ export const Chart: React.FC<Props> = ({
       isWithdrawn: false,
     }))
 
-    console.log('options', options)
-    console.log('locks', _locks)
-    console.log('newLock', {
-      amountInput,
-      durationInput,
-    })
+    // console.log('options', options)
+    // console.log('locks', _locks)
+    // console.log('newLock', {
+    //   amountInput,
+    //   durationInput,
+    // })
 
     // Update chart if input data is provided
     const chartData =
@@ -101,13 +99,7 @@ export const Chart: React.FC<Props> = ({
           strokeDasharray="3 3"
           stroke="green"
         >
-          <Label
-            position={'left'}
-            value={normaliseNumber(acceptanceThreshold || 0)}
-            fill="green"
-            // offset={10}
-            // startOffset={100}
-          />
+          <Label position={'left'} value={normaliseNumber(acceptanceThreshold || 0)} fill="green" />
         </ReferenceLine>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" />
