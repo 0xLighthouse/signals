@@ -40,7 +40,9 @@ const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
           </Avatar>
           {proposerName}
         </CardDescription>
-        <div>{initiative.description}</div>
+        <div>
+          <p className="line-clamp-4 break-all">{initiative.description}</p>
+        </div>
         <div>
           <CardDescription>{timeAgoWords(initiative.createdAtTimestamp)}</CardDescription>
         </div>
