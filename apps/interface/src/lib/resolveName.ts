@@ -29,7 +29,7 @@ export const resolveName = async (address: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: '18311a20fdaea4352af3fbc7c3e77139f',
+      Authorization: process.env.NEXT_PUBLIC_AIRSTACK_API_KEY,
     },
     body: JSON.stringify({
       query: `
