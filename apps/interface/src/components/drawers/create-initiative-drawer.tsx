@@ -251,7 +251,6 @@ export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedI
                 </div>
                 <div className="block lg:hidden">
                   <SubmissionLockDetails
-                    weight={weight}
                     threshold={formatter(acceptanceThreshold)}
                     initiative={undefined}
                     existingLocks={[]}
