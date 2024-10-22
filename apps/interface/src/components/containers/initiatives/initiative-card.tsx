@@ -16,11 +16,12 @@ interface Props {
   isLast: boolean
 }
 
-const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
+export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
   const proposerName = useAsyncProp(
     resolveName(initiative.proposer),
     shortAddress(initiative.proposer),
   )
+
   return (
     <Card
       className={cn(
@@ -67,5 +68,3 @@ const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
     </Card>
   )
 }
-
-export default InitiativeCard

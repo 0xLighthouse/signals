@@ -8,9 +8,7 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
-import InitiativeCard from './initiative-card'
-import { Card } from '@/components/ui/card'
-import { InitiativeDrawer } from '@/components/drawers/initiative-drawer'
+import { InitiativeCard } from './initiative-card'
 
 export const InitiativesList = () => {
   const { theme } = useTheme()
@@ -56,9 +54,6 @@ export const InitiativesList = () => {
 
   return (
     <div className="">
-      {/* <Card className="rounded-b-none border-b-0 py-4 px-6 bg-neutral-50">
-        <h2 className="text-2xl font-semibold">Initiatives</h2>
-      </Card> */}
       <ScrollArea className="w-full mb-24">
         <div>
           {_initiativesSorted.map((item, index) => (

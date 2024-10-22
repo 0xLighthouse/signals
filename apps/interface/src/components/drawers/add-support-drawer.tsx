@@ -122,9 +122,15 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
-        <Button variant="outline" full size="md" onClick={() => setIsDrawerOpen(true)}>
-          <ChevronUp className="mr-1 h-5 w-5" />
-          <span className="text-xs">{weight}</span>
+        <Button
+          variant="outline"
+          full
+          size="md"
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex flex-col items-center"
+        >
+          <ChevronUp className="h-5 w-5" />
+          <span className="text-xs mt-1">{weight}</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent>
