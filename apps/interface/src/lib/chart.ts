@@ -38,6 +38,11 @@ export function generateTicks(
 
   const ticks: ChartTick[] = []
 
+  let hasExistingThreshold = false
+  let hasInputBase = false
+  let hasInputThreshold = false
+
+
   for (let i = 0; i < normalisedExistingData.length; i++) {
     const existingWeight = normalisedExistingData[i].y
     const inputWeight = normalisedInputData[i].y
@@ -51,10 +56,12 @@ export function generateTicks(
     if (existingWeight > acceptanceThreshold) {
       tick.existingBase = acceptanceThreshold
       tick.existingThreshold = existingWeight - acceptanceThreshold
+      hasExistingThreshold = true
 
       // If there is input weight, it must all be above the threshold
       if (inputWeight > 0) {
         tick.inputThreshold = inputWeight
+        hasInputThreshold = true
       }
 
     } else {
@@ -68,13 +75,23 @@ export function generateTicks(
         if (inputWeight > remainingThreshold) {
           tick.inputBase = remainingThreshold
           tick.inputThreshold = inputWeight - remainingThreshold
+          hasInputBase = true
+          hasInputThreshold = true
         } else {
           tick.inputBase = inputWeight
+          hasInputBase = true
         }
       }
     }
 
     ticks.push(tick)
+  }
+
+  // Fill in zeros for all areas we have
+  for (let i = 0; i < ticks.length; i++) {
+    if (hasExistingThreshold) ticks[i].existingThreshold = ticks[i].existingThreshold || 0
+    if (hasInputBase) ticks[i].inputBase = ticks[i].inputBase || 0
+    if (hasInputThreshold) ticks[i].inputThreshold = ticks[i].inputThreshold || 0
   }
 
   return ticks
