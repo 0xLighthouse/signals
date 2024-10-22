@@ -8,7 +8,7 @@ import { InitiativeDetails } from '@/lib/curves'
 interface Props {
   initiative?: InitiativeDetails
   weight: number
-  amount?: number
+  amount?: number | null
   duration?: number
   threshold?: number | null
 }

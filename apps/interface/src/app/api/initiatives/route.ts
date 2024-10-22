@@ -135,5 +135,11 @@ export const GET = async () => {
   // Retrieve the entire list of initiatives from the cache
   const allInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
 
-  return NextResponse.json(allInitiatives)
+  return NextResponse.json(
+    allInitiatives?.map((initiative) => ({
+      ...initiative,
+      id: initiative.initiativeId,
+      status: 'active',
+    })),
+  )
 }

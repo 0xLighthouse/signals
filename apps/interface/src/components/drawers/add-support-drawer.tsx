@@ -128,9 +128,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
-        <Button variant="outline" size="sm" onClick={() => setIsDrawerOpen(true)}>
+        <Button variant="outline" full size="md" onClick={() => setIsDrawerOpen(true)}>
           <ChevronUp className="mr-1 h-4 w-4" />
-          Upvote
+          <span className="text-xs">{weight}</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent>

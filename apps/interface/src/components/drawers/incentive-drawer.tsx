@@ -117,9 +117,9 @@ export function IncentiveDrawer({ initiative }: Props) {
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
-        <Button variant="outline" size="sm" onClick={() => setIsDrawerOpen(true)}>
+        <Button variant="outline" full size="md" onClick={() => setIsDrawerOpen(true)}>
           <Eclipse className="mr-1 h-4 w-4" />
-          Add incentive
+          <span className="text-xs">{initiative.weight.toFixed(0)}</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent>

@@ -13,3 +13,8 @@ export function timeAgoWords(timestamp: number) {
 export function flatten<T>(arr: T[][]): T[] {
   return arr.flat()
 }
+
+export const shortAddress = (address?: string): string => {
+  if (!address) return ''
+  return `${address?.slice(0, 5)}...${address?.slice(37)}`
+}
