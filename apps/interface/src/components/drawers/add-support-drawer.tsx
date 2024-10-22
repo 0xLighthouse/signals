@@ -21,7 +21,6 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
@@ -32,11 +31,6 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
-  const { isApproving, handleApprove } = useApproveTokens({
-    actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
-    tokenAddress: ERC20_ADDRESS,
-  })
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
 
   const [amount, setAmount] = useState<number | null>(null)
@@ -44,16 +38,16 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
-
-  const weight = amount ? amount * duration : 0
-
-  const hasAllowance = useCheckAllowance({
-    actor: address,
+  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
+    actor: address,
     spenderAddress: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
   })
+
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
+
+  const weight = amount ? amount * duration : 0
 
   const resetFormState = () => {
     setAmount(null)

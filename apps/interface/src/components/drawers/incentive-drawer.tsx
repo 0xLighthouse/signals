@@ -20,7 +20,6 @@ import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { TokenSelector } from '../token-selector'
 import { INCENTIVES, INCENTIVES_ABI, SIGNALS_PROTOCOL, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
 
@@ -36,15 +35,9 @@ export function IncentiveDrawer({ initiative }: Props) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { isApproving, handleApprove } = useApproveTokens({
-    actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
-    tokenAddress: USDC_ADDRESS,
-  })
-
-  const hasAllowance = useCheckAllowance({
-    actor: address,
+  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
+    actor: address,
     spenderAddress: SIGNALS_PROTOCOL,
     tokenAddress: USDC_ADDRESS,
   })

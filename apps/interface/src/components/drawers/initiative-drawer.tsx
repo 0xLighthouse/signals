@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
@@ -26,7 +26,6 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
@@ -36,12 +35,6 @@ export function InitiativeDrawer() {
   const { address } = useAccount()
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
 
-  const { isApproving, handleApprove } = useApproveTokens({
-    actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
-    tokenAddress: ERC20_ADDRESS,
-  })
-
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number | null>(null)
   const [lockTokens, setLockTokens] = useState(false)
@@ -50,16 +43,16 @@ export function InitiativeDrawer() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
-
-  const weight = amount ? amount * duration : 0
-
-  const hasAllowance = useCheckAllowance({
-    actor: address,
+  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
+    actor: address,
     spenderAddress: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
   })
+
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
+
+  const weight = amount ? amount * duration : 0
 
   const resetFormState = () => {
     setAmount(null)
