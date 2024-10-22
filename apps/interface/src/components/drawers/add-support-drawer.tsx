@@ -134,8 +134,8 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="overflow-y-auto">
-          <div className="flex flex-col mx-auto lg:w-3/5 p-8">
+        <div className="overflow-y-auto flex p-8 space-x-8">
+          <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
               <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
@@ -236,7 +236,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
               </div>
             </div>
 
-            <div className="flex justify-end mt-8">{resolveAction()}</div>
+            <div className="flex justify-end py-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
             <SubmissionLockDetails
