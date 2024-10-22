@@ -102,8 +102,8 @@ export const GET = async (request: NextRequest) => {
   // Retrieve the entire list of initiatives from the cache
   const allHistory = await kv.get<InitiativeSupported[]>(historyKey)
 
-  console.log('----- ALL HISTORY -----')
-  console.log(allHistory)
+  // console.log('----- ALL HISTORY -----')
+  // console.log(allHistory)
 
   if (allHistory?.length === 0) {
     return NextResponse.json({

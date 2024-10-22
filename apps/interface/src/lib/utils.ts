@@ -24,6 +24,10 @@ export const resolveAvatar = (address?: string, size?: string | number) => {
   return `https://cdn.stamp.fyi/avatar/${address}${size ? `?s=${size}` : ''}`
 }
 
+export const range = (start: number, end: number) => {
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
+
 /**
  * Given a round number  eg. 1000000, 500000, 20000
  * Normalise to 1M, 500k, 20k, etc
