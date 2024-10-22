@@ -2,7 +2,6 @@ import { TopNav } from '@/components/containers/topnav'
 import { FaucetBar } from '@/components/containers/faucet-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
-import { History } from '@/components/history'
 import { InitiativesList } from '@/components/containers/initiatives/list'
 import { FaucetActions } from '@/components/containers/faucet-actions'
 
@@ -18,7 +17,7 @@ export default function Home() {
             <InitiativesList />
           </div>
           <div className="px-4 py-8">
-            <History />
+            {/* <History /> */}
             <FAQs />
             <FaucetActions />
             <Footer />
