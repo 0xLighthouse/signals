@@ -30,6 +30,7 @@ import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { UsdcIcon } from '../icons/usdc'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -152,7 +153,7 @@ export function IncentiveDrawer({ initiative }: Props) {
           onClick={() => setIsDrawerOpen(true)}
           className="flex flex-col items-center min-w-[80px]"
         >
-          <Eclipse className="h-4 w-4" />
+          <UsdcIcon className="h-5 w-5" />
           <span className="text-xs mt-1">{initiative.rewards.toFixed(0)}</span>
         </Button>
       </DrawerTrigger>
