@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv'
 import {
   INCENTIVES,
   INCENTIVES_ABI,
@@ -99,7 +98,7 @@ export const GET = async () => {
     const supporters = await protocol.read.getSupporters([id])
 
     const _incentives = await incentives.read.getIncentives([Number(id)])
-
+    // @ts-ignore
     const rewards = _incentives[1].reduce((acc: bigint, amount: bigint) => acc + amount, 0n)
 
     console.log(_incentives)
