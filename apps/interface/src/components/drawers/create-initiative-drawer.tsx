@@ -30,7 +30,7 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 
-export function InitiativeDrawer() {
+export function CreateInitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
@@ -245,6 +245,7 @@ export function InitiativeDrawer() {
                     weight={weight}
                     threshold={formatter(proposalThreshold)}
                     initiative={undefined}
+                    existingLocks={[]}
                   />
                 </div>
               </div>
@@ -257,6 +258,7 @@ export function InitiativeDrawer() {
               weight={weight}
               threshold={formatter(proposalThreshold)}
               initiative={undefined}
+              existingLocks={[]}
             />
           </div>
         </div>
