@@ -9,8 +9,8 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { ABI, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { createWalletClient, custom } from 'viem'
 import { readClient } from '@/config/web3'
-import { useAccount } from 'wagmi'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useAccount } from '@/hooks/useAccount'
 
 export const Submission = () => {
   const { address } = useAccount()

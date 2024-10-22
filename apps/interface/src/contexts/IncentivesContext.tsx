@@ -1,9 +1,9 @@
 'use client'
 
 import { INCENTIVES, INCENTIVES_ABI, readClient } from '@/config/web3'
+import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
-import { useAccount } from 'wagmi'
 
 interface ContextValues {
   address: string

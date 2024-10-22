@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useAccount } from 'wagmi'
 import { toast } from 'sonner'
 import { readClient, ERC20_ADDRESS, USDC_ADDRESS, ABI } from '@/config/web3'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { Separator } from '@/components/ui/separator'
+import { useAccount } from '@/hooks/useAccount'
 
 const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
   if (!address) throw new Error('Address not available.')

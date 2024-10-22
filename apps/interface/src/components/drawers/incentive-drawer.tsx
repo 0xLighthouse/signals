@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAccount } from 'wagmi'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
@@ -23,6 +22,7 @@ import { INCENTIVES, INCENTIVES_ABI, SIGNALS_PROTOCOL, USDC_ADDRESS } from '@/co
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { useIncentives } from '@/contexts/IncentivesContext'
+import { useAccount } from '@/hooks/useAccount'
 
 interface Props {
   initiative: NormalisedInitiative

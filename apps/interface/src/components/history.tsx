@@ -1,7 +1,7 @@
 'use client'
 
+import { useAccount } from '@/hooks/useAccount'
 import { useEffect } from 'react'
-import { useAccount } from 'wagmi'
 
 export const History = () => {
   const { address } = useAccount()

@@ -6,13 +6,7 @@ import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 
-import {
-  ERC20_ADDRESS,
-  INCENTIVES,
-  SIGNALS_ABI,
-  SIGNALS_PROTOCOL,
-  USDC_ADDRESS,
-} from '@/config/web3'
+import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { readClient } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,7 +22,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useAccount } from 'wagmi'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
@@ -36,14 +29,12 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useCheckAllowance } from '@/hooks/useCheckAllowance'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
-import { useIsClient } from '@/hooks/useIsClient'
+import { useAccount } from '@/hooks/useAccount'
 
 export function InitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const { proposalThreshold, formatter, meetsThreshold } = useSignals()
-
-  const isClient = useIsClient()
 
   const { isApproving, handleApprove } = useApproveTokens({
     actor: address,
@@ -160,7 +151,7 @@ export function InitiativeDrawer() {
     )
   }
 
-  if (!address || !isClient) return null
+  if (!address) return null
 
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>

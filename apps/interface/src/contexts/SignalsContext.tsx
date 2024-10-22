@@ -3,8 +3,8 @@
 import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
-import { useAccount } from 'wagmi'
 import { useUnderlying } from './ContractContext'
+import { useAccount } from '@/hooks/useAccount'
 
 // Types for contract metadata
 type ProtocolContextType = {

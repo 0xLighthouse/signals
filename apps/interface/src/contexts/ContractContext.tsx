@@ -1,9 +1,9 @@
 'use client'
 
 import { ABI, ERC20_ADDRESS, readClient } from '@/config/web3'
+import { useAccount } from '@/hooks/useAccount'
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { getContract } from 'viem'
-import { useAccount } from 'wagmi'
 
 // Types for contract metadata
 interface ContractContextType {
