@@ -11,6 +11,7 @@ import {
 import { calculateWeight, getDefaultEnd, InitiativeDetails, Lock, Weight } from '@/lib/curves'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
+import { normaliseNumber } from '@/lib/utils'
 
 export const description = 'A line chart with a custom label'
 
@@ -32,20 +33,6 @@ const chartConfig = {
     color: 'hsl(var(--chart-4))',
   },
 } satisfies ChartConfig
-
-/**
- * Given a round number  eg. 1000000, 500000, 20000
- * Normalise to 1M, 500k, 20k, etc
- */
-const normaliseNumber = (value: number) => {
-  const suffixes = ['', 'k', 'M', 'B', 'T']
-  const suffixIndex = Math.floor(Math.log10(value) / 3)
-  const suffix = suffixes[suffixIndex]
-  // biome-ignore lint/style/useExponentiationOperator: <explanation>
-  const normalisedValue = value / Math.pow(10, suffixIndex * 3)
-  if (!normalisedValue) return ''
-  return `${normalisedValue}${suffix}`
-}
 
 const normaliseWeights = (weights: Weight) => {
   return weights.map((w) => ({
