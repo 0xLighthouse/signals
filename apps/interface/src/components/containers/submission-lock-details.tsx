@@ -60,7 +60,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
           initiative={initiative}
           acceptanceThreshold={threshold}
           existingLocks={existingLocks}
-          chartInterval={60 * 60}
+          chartInterval={60 * 60 * 24 * 7} // 1 day
           amountInput={amount}
           durationInput={duration}
         />

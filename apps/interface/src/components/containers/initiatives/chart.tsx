@@ -63,6 +63,10 @@ export const Chart: React.FC<Props> = ({
 
     console.log('options', options)
     console.log('locks', existingLocks)
+    console.log('newLock', {
+      amountInput,
+      durationInput,
+    })
 
     // Update chart if input data is provided
     const chartData =
@@ -100,7 +104,8 @@ export const Chart: React.FC<Props> = ({
         <YAxis tickFormatter={normaliseNumber} />
         <Area
           dataKey="existingBase"
-          type="natural"
+          type="monotone"
+          stackId="1"
           strokeWidth={2}
           activeDot={{
             r: 6,
@@ -108,7 +113,8 @@ export const Chart: React.FC<Props> = ({
         />
         <Area
           dataKey="existingThreshold"
-          type="natural"
+          type="monotone"
+          stackId="1"
           strokeWidth={2}
           activeDot={{
             r: 6,
@@ -116,7 +122,8 @@ export const Chart: React.FC<Props> = ({
         />
         <Area
           dataKey="inputBase"
-          type="natural"
+          type="monotone"
+          stackId="1"
           strokeWidth={2}
           activeDot={{
             r: 6,
@@ -124,7 +131,8 @@ export const Chart: React.FC<Props> = ({
         />
         <Area
           dataKey="inputThreshold"
-          type="natural"
+          type="monotone"
+          stackId="1"
           strokeWidth={2}
           activeDot={{
             r: 6,

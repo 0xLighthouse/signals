@@ -288,13 +288,13 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 {
                   tokenAmount: 30_000, // Lock 50,000 Gov tokens
                   lockDuration: 10,
-                  createdAt: createdAt.plus({ day: 1 }).toUnixInteger(),
+                  createdAt: createdAt.minus({ day: 1 }).toUnixInteger(),
                   isWithdrawn: false,
                 },
                 {
                   tokenAmount: 50_000, // Lock 50,000 Gov tokens
                   lockDuration: 10,
-                  createdAt: createdAt.plus({ day: 3 }).toUnixInteger(),
+                  createdAt: createdAt.minus({ day: 3 }).toUnixInteger(),
                   isWithdrawn: false,
                 },
               ]}
