@@ -34,7 +34,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
         <Alert className="bg-blue-50 dark:bg-neutral-800">
           <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
           <AlertTitle>
-            You will be locking {amount} ({symbol}) for {duration} days.
+            You will lock {amount} ({symbol}) for {duration} day{(duration !== 1 ? "s" : "")}.
           </AlertTitle>
         </Alert>
       </CardHeader>

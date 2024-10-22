@@ -154,25 +154,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
               <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
                 <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-                <AlertTitle>
-                  Heads up! This board requires your wallet to hold{' '}
-                  <strong>
-                    {formatter(proposalThreshold)} {symbol}
-                  </strong>{' '}
-                  tokens to propose an idea.
-                </AlertTitle>
                 <AlertDescription>
                   You have{' '}
                   <strong>
                     {formatter(balance)} {symbol}
                   </strong>{' '}
-                  tokens.{' '}
-                  {meetsThreshold ? (
-                    <strong>You have enough tokens to propose an idea.</strong>
-                  ) : (
-                    <strong>You do not have enough tokens to propose an idea.</strong>
-                  )}
-                  Your tokens will be locked for {duration} day{duration !== 1 ? 's' : ''}.
+                  tokens which can be used to support this initiative.{' '}
                 </AlertDescription>
               </Alert>
             </DrawerHeader>
