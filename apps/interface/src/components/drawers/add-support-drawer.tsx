@@ -130,25 +130,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   const existingLocks: Lock[] = []
   const createdAt = DateTime.fromSeconds(initiative.createdAtTimestamp)
 
-  existingLocks.push({
-    tokenAmount: 30_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ day: 1 }).toUnixInteger(),
-    isWithdrawn: false,
-  })
-  existingLocks.push({
-    tokenAmount: 40_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ day: 2 }).toUnixInteger(),
-    isWithdrawn: false,
-  })
-  existingLocks.push({
-    tokenAmount: 50_000, // Lock 50,000 Gov tokens
-    lockDuration: 10,
-    createdAt: createdAt.plus({ day: 3 }).toUnixInteger(),
-    isWithdrawn: false,
-  })
-
+  //TODO: Dynamically calculate the time unit (day, hour, etc) in the below from the lockInterval
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
       <DrawerTrigger asChild>
@@ -190,7 +172,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   ) : (
                     <strong>You do not have enough tokens to propose an idea.</strong>
                   )}
-                  Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.
+                  Your tokens will be locked for {duration} day{duration !== 1 ? 's' : ''}.
                 </AlertDescription>
               </Alert>
             </DrawerHeader>
@@ -252,10 +234,11 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                     defaultValue={[1]}
                     step={1}
                     min={1}
-                    max={12}
+                    //TODO: Populate max from (maxLockDuration) in the smart contract
+                    max={30}
                     onValueChange={(value) => setDuration(value[0])}
                   />
-                  <p className="ml-4">{`${duration} month${duration !== 1 ? 's' : ''}`}</p>
+                  <p className="ml-4">{`${duration} day${duration !== 1 ? 's' : ''}`}</p>
                 </div>
               </div>
               {/* <div className="block lg:hidden">

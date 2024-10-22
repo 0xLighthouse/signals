@@ -24,12 +24,12 @@ export function calculateWeight(
   startsAt?: number,
   endsAt?: number,
 ): Weight {
-  // Add relevant guards
-  // if (!initiative.lockInterval) throw new Error('Lock interval is not set')
-  // if (!initiative.decayCurveType) throw new Error('Decay curve type is not set')
-  // if (!initiative.decayCurveParameters) throw new Error('Decay curve parameters are not set')
-  // if (!initiative.createdAt) throw new Error('Initiative creation time is not set')
-
+  if (!initiative.lockInterval || initiative.lockInterval === 0) {
+    throw new Error('Lock interval is not set')
+  }
+  if (!initiative.decayCurveParameters || initiative.decayCurveParameters.length === 0) {
+    throw new Error('Decay curve parameters is not set')
+  }
   // If there is no start time, use the creation time of the initiative
   if (!startsAt) startsAt = initiative.createdAt
   // If there is no end time, find the lock that lasts the longest and set that as the end time

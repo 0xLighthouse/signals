@@ -34,33 +34,31 @@ export const SubmissionLockDetails: React.FC<Props> = ({
         <Alert className="bg-blue-50 dark:bg-neutral-800">
           <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
           <AlertTitle>
-            You will be locking {amount} ({symbol}) for {duration} XXXXX.
+            You will be locking {amount} ({symbol}) for {duration} days.
           </AlertTitle>
         </Alert>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center">
-          <Label className="w-1/5 flex items-center">Weight</Label>
-          <div className="w-4/5 flex items-center">
+        <div className="flex items-center mb-2">
+          <Label className="w-3/4 flex items-center">Weight to contribute:</Label>
+          <div className="w-3/4 flex items-center">
             <p>{weight}</p>
           </div>
         </div>
         {threshold && threshold > 0 && (
           <div className="flex items-center">
-            <Label className="w-1/5 flex items-center">
-              Your contribution towards the acceptance threshold
+            <Label className="w-3/4 flex items-center">
+              Progress towards acceptance:
             </Label>
-            <div className="w-4/5 flex items-center">
-              <p>{((weight / threshold) * 100).toFixed(2)}%</p>
+            <div className="w-3/4 flex items-center">
+              <p>+{((weight / threshold) * 100).toFixed(2)}%</p>
             </div>
           </div>
         )}
         <Chart
-          // @ts-ignore TODO: WILL FIX THIS SOON
           initiative={initiative}
           acceptanceThreshold={threshold}
           existingLocks={existingLocks}
-          chartInterval={60 * 60 * 24 * 7} // 1 day
           amountInput={amount}
           durationInput={duration}
         />
