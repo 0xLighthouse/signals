@@ -4,13 +4,14 @@ import { create } from 'zustand';
 interface InitiativesState {
   initiatives: NormalisedInitiative[];
   isFetching: boolean;
+  isInitialized: boolean;
   fetchInitiatives: () => Promise<void>;
-  // refreshInitiatives: () => Promise<void>;
 }
 
 export const useInitiativesStore = create<InitiativesState>((set) => ({
   initiatives: [],
   isFetching: false,
+  isInitialized: false,
   fetchInitiatives: async () => {
     try {
       set({ isFetching: true })
@@ -24,7 +25,7 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
     } catch (error) {
       console.error('Error fetching initiatives:', error)
     } finally {
-      set({ isFetching: false })
+      set({ isFetching: false, isInitialized: true })
     }
   },
 }));

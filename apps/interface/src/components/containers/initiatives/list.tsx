@@ -18,12 +18,12 @@ export const InitiativesList = () => {
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
-
-  console.log('count initiatives', initiativesCount)
+  const isInitialized = useInitiativesStore((state) => state.isInitialized)
+  console.log('count initiatives', initiativesCount, initiatives)
 
   useEffect(() => {
-    if (fetchInitiatives) fetchInitiatives()
-  }, [fetchInitiatives])
+    if (!isInitialized) fetchInitiatives()
+  }, [isInitialized, fetchInitiatives])
 
   const [sortBy, setSortBy] = useState("'trending'")
   const [searchTerm, setSearchTerm] = useState('')
