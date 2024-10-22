@@ -134,8 +134,8 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-row gap-4">
-          <div className="flex flex-col mx-auto lg:w-3/5">
+        <div className="overflow-y-auto">
+          <div className="flex flex-col mx-auto lg:w-3/5 p-8">
             <DrawerHeader>
               <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
@@ -170,7 +170,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 <div className="w-4/5">
                   <Card className="p-4 dark:bg-neutral-800">
                     <div className="my-2">
-                      <p>{initiative.title || 'No title provided.'}</p>
+                      <p className="line-clamp break-all">
+                        {initiative.title || 'No title provided.'}
+                      </p>
                     </div>
                   </Card>
                 </div>
@@ -182,7 +184,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 <div className="w-4/5">
                   <Card className="p-4 dark:bg-neutral-800">
                     <div className="my-2">
-                      <p>{initiative.description || 'No description provided.'}</p>
+                      <p className="line-clamp break-all">
+                        {initiative.description || 'No description provided.'}
+                      </p>
                     </div>
                   </Card>
                 </div>
