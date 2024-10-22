@@ -7,9 +7,9 @@ export interface Lock {
 
 export interface InitiativeDetails {
   createdAt: number // unix timestamp of when the initative was created
-  lockInterval: number // lock interval in seconds
-  decayCurveType: number // decay curve type
-  decayCurveParameters: number[] // decay curve parameters
+  lockInterval: number | null // lock interval in seconds
+  decayCurveType: number | null // decay curve type
+  decayCurveParameters: number[] | null // decay curve parameters
 }
 
 // Weight is a list of chart points, in which key is the X-axis (unix timestamp) and value is the Y-axis (weight)
@@ -32,15 +32,14 @@ export function calculateWeight(
   }
 
   // Create the arrays to hold the x and y values
-  let xvals: number[] = []
-  let yvals: number[] = []
+  const xvals: number[] = []
+  const yvals: number[] = []
   for (let i = startsAt; i <= endsAt; i += chartInterval) {
     xvals.push(i)
     yvals.push(0)
   }
 
   for (const lock of locks) {
-
     for (let i = 0; i < xvals.length; i++) {
       if (lock.createdAt > xvals[i]) continue
 
@@ -102,6 +101,6 @@ function _exponential(
   withdrawn: boolean,
 ): number {
   if (duration <= interval && withdrawn) return 0
-  let w = amount * duration * Math.pow(parameters[0], interval)
+  const w = amount * duration * Math.pow(parameters[0], interval)
   return Math.max(w, amount)
 }

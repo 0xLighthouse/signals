@@ -19,15 +19,26 @@ const normaliseWeights = (weights: Weight) => {
 
 export function generateTicks(
   existingData: Lock[],
-  {initiative, acceptanceThreshold, chartInterval}: { initiative: InitiativeDetails, acceptanceThreshold: number, chartInterval: number },
-  newLock: Lock[] = []
+  {
+    initiative,
+    acceptanceThreshold,
+    chartInterval,
+  }: { initiative: InitiativeDetails; acceptanceThreshold: number; chartInterval: number },
+  newLock: Lock[] = [],
 ): ChartTick[] {
+  console.log('[generateTicks] ---- START ----')
+  if (!initiative.lockInterval || initiative.lockInterval === 0) {
+    throw new Error('Lock interval is not set')
+  }
 
   const startTime: number = DateTime.now().toUnixInteger() - chartInterval * 2 // We give a small buffer to the start time
+
+  console.log('[generateTicks] ---- END TIME ----')
   const endTime: number = Math.max(
     getDefaultEnd(existingData, initiative.lockInterval),
     getDefaultEnd(newLock, initiative.lockInterval),
   )
+  console.log('[generateTicks] ---- END TIME ----')
 
   const normalisedExistingData = normaliseWeights(
     calculateWeight(initiative, existingData, chartInterval, startTime, endTime),
@@ -35,6 +46,10 @@ export function generateTicks(
   const normalisedInputData = normaliseWeights(
     calculateWeight(initiative, newLock, chartInterval, startTime, endTime),
   )
+
+  console.log('[generateTicks] ---- NORMALISED DATA ----')
+  console.log(normalisedExistingData.length)
+  console.log(normalisedInputData.length)
 
   const ticks: ChartTick[] = []
   for (let i = 0; i < normalisedExistingData.length; i++) {
@@ -47,6 +62,9 @@ export function generateTicks(
     }
     ticks.push(tick)
   }
+
+  console.log('[generateTicks] ---- TICKS ----')
+  console.log(ticks.length)
 
   // NOTE: The following is for segmenting portions above and below the threshold line into separate areas.
   // The library we are using right now doesn't look very good that way, so we are using a more simple version for now but may return to this later.
@@ -105,6 +123,8 @@ export function generateTicks(
   //   if (hasInputBase) ticks[i].inputBase = ticks[i].inputBase || 0
   //   if (hasInputThreshold) ticks[i].inputThreshold = ticks[i].inputThreshold || 0
   // }
+
+  console.log('[generateTicks] ---- END ----')
 
   return ticks
 }

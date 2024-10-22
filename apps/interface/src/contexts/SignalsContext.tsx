@@ -12,6 +12,9 @@ type ProtocolContextType = {
   proposalThreshold: number | null
   meetsThreshold: boolean
   acceptanceThreshold: number | null
+  lockInterval: number | null
+  decayCurveType: number | null
+  decayCurveParameters: number[] | null
   formatter: (value?: number | null) => number
 }
 
@@ -38,7 +41,9 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
   const [initiativesCount, setInitiativesCount] = useState<number | null>(null)
   const [proposalThreshold, setProposalThreshold] = useState<number | null>(null)
   const [acceptanceThreshold, setAcceptanceThreshold] = useState<number | null>(null)
-
+  const [lockInterval, setLockInterval] = useState<number | null>(null)
+  const [decayCurveType, setDecayCurveType] = useState<number | null>(null)
+  const [decayCurveParameters, setDecayCurveParameters] = useState<number[] | null>(null)
   const meetsThreshold = Boolean(balance && proposalThreshold && balance >= proposalThreshold)
 
   useEffect(() => {
@@ -53,20 +58,40 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
         })
 
         // Fetch contract data in parallel using Promise.all
-        const [proposalThreshold, acceptanceThreshold, count] = await Promise.all([
+        const [
+          proposalThreshold,
+          acceptanceThreshold,
+          count,
+          lockInterval,
+          decayCurveType,
+          decayCurveParameters,
+        ] = await Promise.all([
           protocol.read.proposalThreshold(),
           protocol.read.acceptanceThreshold(),
           protocol.read.count(),
+          protocol.read.lockInterval(),
+          protocol.read.decayCurveType(),
+          protocol.read.decayCurveParameters([0]),
         ])
 
+        console.log('----- SIGNALS CONTEXT -----')
         console.log('proposalThreshold', proposalThreshold)
         console.log('acceptanceThreshold', acceptanceThreshold)
         console.log('count', count)
+        console.log('lockInterval', lockInterval)
+        console.log('decayCurveType', decayCurveType)
+        console.log('decayCurveParameters', [decayCurveParameters])
 
         // Update state with fetched metadata
         setInitiativesCount(Number(count))
         setProposalThreshold(Number(proposalThreshold))
         setAcceptanceThreshold(Number(acceptanceThreshold))
+        setLockInterval(Number(lockInterval))
+        setDecayCurveType(Number(decayCurveType))
+        // TODO: Fix this
+        // TODO: Fix this
+        // TODO: Fix this
+        setDecayCurveParameters([Number(decayCurveParameters) / 1e18])
       } catch (error) {
         console.error('Error fetching contract metadata:', error)
       }
@@ -90,6 +115,9 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
         proposalThreshold,
         acceptanceThreshold,
         meetsThreshold,
+        lockInterval,
+        decayCurveType,
+        decayCurveParameters,
       }}
     >
       {children}

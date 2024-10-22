@@ -28,10 +28,20 @@ import { createWalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
+import { Lock } from '@/lib/curves'
+import { DateTime } from 'luxon'
+
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
-  const { proposalThreshold, formatter, meetsThreshold } = useSignals()
+  const {
+    proposalThreshold,
+    formatter,
+    meetsThreshold,
+    lockInterval,
+    decayCurveType,
+    decayCurveParameters,
+  } = useSignals()
 
   const [amount, setAmount] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -118,6 +128,28 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       </Button>
     )
   }
+
+  const existingLocks: Lock[] = []
+  const createdAt = DateTime.fromSeconds(initiative.createdAtTimestamp)
+
+  existingLocks.push({
+    tokenAmount: 30_000, // Lock 50,000 Gov tokens
+    lockDuration: 10,
+    createdAt: createdAt.plus({ day: 1 }).toUnixInteger(),
+    isWithdrawn: false,
+  })
+  existingLocks.push({
+    tokenAmount: 40_000, // Lock 50,000 Gov tokens
+    lockDuration: 10,
+    createdAt: createdAt.plus({ day: 2 }).toUnixInteger(),
+    isWithdrawn: false,
+  })
+  existingLocks.push({
+    tokenAmount: 50_000, // Lock 50,000 Gov tokens
+    lockDuration: 10,
+    createdAt: createdAt.plus({ day: 3 }).toUnixInteger(),
+    isWithdrawn: false,
+  })
 
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
@@ -225,22 +257,47 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   <p className="ml-4">{`${duration} month${duration !== 1 ? 's' : ''}`}</p>
                 </div>
               </div>
-              <div className="block lg:hidden">
+              {/* <div className="block lg:hidden">
                 <SubmissionLockDetails
-                  initiative={initiative}
+                  initiative={{
+                    createdAt: initiative.createdAtTimestamp,
+                    lockInterval,
+                    decayCurveType,
+                    decayCurveParameters,
+                  }}
+                  existingLocks={existingLocks}
                   weight={weight}
                   amount={amount}
                   duration={duration}
                   threshold={formatter(proposalThreshold)}
                 />
-              </div>
+              </div> */}
             </div>
 
             <div className="flex justify-end py-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
             <SubmissionLockDetails
-              initiative={initiative}
+              initiative={{
+                createdAt: initiative.createdAtTimestamp,
+                lockInterval,
+                decayCurveType,
+                decayCurveParameters,
+              }}
+              existingLocks={[
+                {
+                  tokenAmount: 30_000, // Lock 50,000 Gov tokens
+                  lockDuration: 10,
+                  createdAt: createdAt.plus({ day: 1 }).toUnixInteger(),
+                  isWithdrawn: false,
+                },
+                {
+                  tokenAmount: 50_000, // Lock 50,000 Gov tokens
+                  lockDuration: 10,
+                  createdAt: createdAt.plus({ day: 3 }).toUnixInteger(),
+                  isWithdrawn: false,
+                },
+              ]}
               weight={weight}
               amount={amount}
               duration={duration}

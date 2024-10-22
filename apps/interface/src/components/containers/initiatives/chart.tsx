@@ -37,7 +37,7 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  locks: Lock[]
+  existingLocks: Lock[]
   chartInterval: number
   acceptanceThreshold?: number | null
   amountInput?: number | null
@@ -46,7 +46,7 @@ interface Props {
 
 export const Chart: React.FC<Props> = ({
   initiative,
-  locks,
+  existingLocks,
   chartInterval,
   acceptanceThreshold,
   amountInput,
@@ -57,12 +57,17 @@ export const Chart: React.FC<Props> = ({
   useEffect(() => {
     if (!initiative || !acceptanceThreshold) return
 
+    console.log('() RENDER')
+
     const options = { initiative, acceptanceThreshold, chartInterval }
+
+    console.log('options', options)
+    console.log('locks', existingLocks)
 
     // Update chart if input data is provided
     const chartData =
       amountInput && durationInput
-        ? generateTicks(locks, options, [
+        ? generateTicks(existingLocks, options, [
             {
               tokenAmount: amountInput,
               lockDuration: durationInput,
@@ -70,10 +75,9 @@ export const Chart: React.FC<Props> = ({
               isWithdrawn: false,
             },
           ])
-        : generateTicks(locks, options)
-
+        : generateTicks(existingLocks, options)
     setData(chartData)
-  }, [initiative, locks, amountInput, durationInput, acceptanceThreshold, chartInterval])
+  }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold, chartInterval])
 
   return (
     <ChartContainer config={chartConfig}>
