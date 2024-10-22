@@ -1,4 +1,5 @@
 # SIGNALS, a protocol for prioritising community objectives
+
 DRAFT
 
 **Created:** October 2, 2024\
@@ -106,8 +107,9 @@ Supporters of a particular initiative can deposit tokens into the contract which
 - Explore if we can use Uniswap v4 to create a secondary market for these tokens/bonds.
 
 ## Protocol Overview
- - [Source code (Github)](https://github.com/0xLighthouse/signals)
- - [Live demo](https://signals.testnet.lighthouse.cx/)
+
+- [Source code (Github)](https://github.com/0xLighthouse/signals)
+- [Live demo](https://signals.testnet.lighthouse.cx/)
 
 ## References
 

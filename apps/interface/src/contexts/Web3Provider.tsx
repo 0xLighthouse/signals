@@ -5,11 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConnectKitProvider, getDefaultConfig } from 'connectkit'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
+const chain = process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia
+
 const config = createConfig(
   getDefaultConfig({
-    chains: [hardhat, arbitrumSepolia],
+    chains: [chain],
     transports: {
       [hardhat.id]: http(process.env.NEXT_PUBLIC_RPC_URL!),
+      [arbitrumSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL!),
     },
 
     // Required API Keys
