@@ -23,7 +23,7 @@ export const AvatarGroup: FC<AvatarGroupProps> = ({ avatars, max = 4 }) => {
         </Avatar>
       ))}
       {extraCount > 0 && (
-        <Avatar className="bg-neutral-500 dark:bg-neutral-700 flex items-center justify-center h-5 w-5">
+        <Avatar className="bg-neutral-500 dark:bg-neutral-700 flex items-center justify-center h-[1.37rem] w-[1.37rem]">
           <span className="text-xs text-white">+{extraCount}</span>
         </Avatar>
       )}

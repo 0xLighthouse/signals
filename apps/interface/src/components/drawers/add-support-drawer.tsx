@@ -127,10 +127,10 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
           full
           size="md"
           onClick={() => setIsDrawerOpen(true)}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center min-w-[80px]"
         >
-          <ChevronUp className="h-5 w-5" />
-          <span className="text-xs mt-1">{weight}</span>
+          <ChevronUp className="h-6 w-6 -mt-1" />
+          <span className="text-xs">{weight}</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent>
