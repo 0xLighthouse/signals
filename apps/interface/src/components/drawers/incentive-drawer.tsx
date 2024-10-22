@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Eclipse } from 'lucide-react'
+import { ArrowRight, CircleAlert, Eclipse } from 'lucide-react'
 import { toast } from 'sonner'
 import { ethers } from 'ethers'
 
@@ -31,6 +31,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { UsdcIcon } from '../icons/usdc'
+import { ArrowArcRight } from '@phosphor-icons/react'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -38,7 +39,7 @@ interface Props {
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
-  const { address: incentivesAddress, version, receivers, allocations } = useIncentives()
+  const { allocations } = useIncentives()
   const [amount, setAmount] = useState<number | null>(null)
   const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -47,8 +48,9 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
+    spenderAddress: INCENTIVES,
     tokenAddress: USDC_ADDRESS,
+    decimals: 6,
   })
 
   const resetFormState = () => {
@@ -89,7 +91,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         args: [
           initiative.initiativeId,
           tokenAddress,
-          ethers.utils.parseUnits(amount.toString(), 18),
+          ethers.utils.parseUnits(amount.toString(), 6),
           expiresAt,
           terms,
         ],
@@ -160,30 +162,17 @@ export function IncentiveDrawer({ initiative }: Props) {
       <DrawerContent>
         <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-col gap-4">
           <DrawerHeader>
-            <DrawerTitle>Provide incentives</DrawerTitle>
+            <DrawerTitle>Contribute incentives</DrawerTitle>
             <Alert className="bg-blue-50 dark:bg-neutral-800">
               <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
               <AlertTitle>
-                Select a token you would like to contibute towards this initiative.
+                Contribute incentives to help this initiative gain support. Incentives will be
+                distributed based on your communities configured distribution schedule outlined
+                below.
               </AlertTitle>
               <AlertDescription>
                 Any USDC you contribute will only be used once initiative is accepted.
               </AlertDescription>
-              <div>
-                Based on this the boards current configuration. Your USDC incentive will be
-                distributed accordingly.
-                <ul>
-                  <li>
-                    <strong>Signals Protocol: {Number(allocations?.[0])}% </strong>
-                  </li>
-                  <li>
-                    <strong>Voter Rewards: {Number(allocations?.[1])}% </strong>
-                  </li>
-                  <li>
-                    <strong>Treasury: {Number(allocations?.[2])}% </strong>
-                  </li>
-                </ul>
-              </div>
             </Alert>
           </DrawerHeader>
           <div className="flex items-center">
@@ -199,7 +188,7 @@ export function IncentiveDrawer({ initiative }: Props) {
                 min="0"
               />
               {!amount && (
-                <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
+                <Label className="text-red-500 mt-2">Please enter an amount to contribute</Label>
               )}
             </div>
           </div>
@@ -215,20 +204,39 @@ export function IncentiveDrawer({ initiative }: Props) {
               />
             </div>
           </div>
-          <div>
-            Your USDC incentive will be distributed accordingly.
-            <ul>
-              <li>
-                Signals Protocol: ({receivers?.[0]}): {Number(shares?.[0])}
-              </li>
-              <li>
-                Voter Rewards: ({receivers?.[1]}): {Number(shares?.[1])}
-              </li>
-              <li>
-                Treasury: ({receivers?.[2]}): {Number(shares?.[2])}
-              </li>
-            </ul>
+          <div className="flex items-center">
+            <Label className="w-1/5 flex items-center" htmlFor="token">
+              Allocations
+            </Label>
+            <div className="w-4/5 text-xs">
+              <div className="flex flex-row gap-2">
+                <div className="flex items-center gap-2">{amount} USDC</div>
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="w-3 h-3" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs">
+                    {Number(allocations?.[0])}% - {Number(shares?.[0])} USDC
+                  </span>
+                  <span className="text-xs">
+                    {Number(allocations?.[1])}% - {Number(shares?.[1])} USDC
+                  </span>
+                  <span className="text-xs">
+                    {Number(allocations?.[2])}% - {Number(shares?.[2])} USDC
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="w-3 h-3" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs">Protocol fee</span>
+                  <span className="text-xs">Distributed to supporters</span>
+                  <span className="text-xs">Distributed to treasury</span>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div className="flex justify-end mt-8">{resolveAction()}</div>
         </div>
       </DrawerContent>

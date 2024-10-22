@@ -233,7 +233,8 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   <Input
                     id="amount"
                     type="number"
-                    value={amount ?? ''}
+                    value={amount ?? undefined}
+                    defaultValue={0}
                     onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
                     min="0"
                   />
