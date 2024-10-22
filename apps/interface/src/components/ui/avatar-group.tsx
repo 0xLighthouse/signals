@@ -2,11 +2,15 @@ import { FC } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from './avatar'
 
 interface AvatarGroupProps {
-  avatars: string[] // Array of avatar image URLs
+  avatars?: string[] | undefined // Array of avatar image URLs
   max?: number // Maximum number of avatars to display before showing "+X"
 }
 
 export const AvatarGroup: FC<AvatarGroupProps> = ({ avatars, max = 4 }) => {
+  if (!avatars) {
+    return null
+  }
+
   const displayedAvatars = avatars.slice(0, max)
   const extraCount = avatars.length - max
 

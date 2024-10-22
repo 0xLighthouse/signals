@@ -68,17 +68,19 @@ interface Props {
   locks: Lock[]
   chartInterval: number
   acceptanceThreshold?: number | null
-  amountInput?: number
+  amountInput?: number | null
   durationInput?: number
 }
 
-
 const generateTicks = (
   existingData: Lock[],
-  {initiative, acceptanceThreshold, chartInterval}: { initiative: InitiativeDetails, acceptanceThreshold: number, chartInterval: number },
-  newLock: Lock[] = []
+  {
+    initiative,
+    acceptanceThreshold,
+    chartInterval,
+  }: { initiative: InitiativeDetails; acceptanceThreshold: number; chartInterval: number },
+  newLock: Lock[] = [],
 ): SignalsTickItem[] => {
-
   const startTime: number = DateTime.now().toUnixInteger() - chartInterval * 2
   const endTime: number = Math.max(
     getDefaultEnd(existingData, initiative.lockInterval),
@@ -112,7 +114,6 @@ const generateTicks = (
       if (inputWeight > 0) {
         tick.inputThreshold = inputWeight
       }
-
     } else {
       // Otherwise, all existing weight is below the threshold
       tick.existingBase = existingWeight
@@ -121,8 +122,7 @@ const generateTicks = (
       if (inputWeight > 0) {
         if (existingWeight + inputWeight > acceptanceThreshold) {
           tick.inputBase = acceptanceThreshold - existingWeight
-          tick.inputThreshold =
-            existingWeight + inputWeight - acceptanceThreshold - tick.inputBase
+          tick.inputThreshold = existingWeight + inputWeight - acceptanceThreshold - tick.inputBase
         } else {
           tick.inputBase = inputWeight
         }
@@ -148,20 +148,20 @@ export const Chart: React.FC<Props> = ({
   useEffect(() => {
     if (!initiative || !acceptanceThreshold) return
 
-    const options = {initiative, acceptanceThreshold, chartInterval}
+    const options = { initiative, acceptanceThreshold, chartInterval }
 
     // Update chart if input data is provided
-    const chartData = amountInput && durationInput ?
-      generateTicks(locks, options, [
-        {
-          tokenAmount: amountInput,
-          lockDuration: durationInput,
-          createdAt: DateTime.now().toUnixInteger(),
-          withdrawn: false,
-        }
-      ])
-      :
-      generateTicks(locks, options)
+    const chartData =
+      amountInput && durationInput
+        ? generateTicks(locks, options, [
+            {
+              tokenAmount: amountInput,
+              lockDuration: durationInput,
+              createdAt: DateTime.now().toUnixInteger(),
+              withdrawn: false,
+            },
+          ])
+        : generateTicks(locks, options)
 
     setData(chartData)
   }, [initiative, locks, amountInput, durationInput, acceptanceThreshold, chartInterval])

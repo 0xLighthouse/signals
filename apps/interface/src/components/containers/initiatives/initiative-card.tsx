@@ -54,8 +54,14 @@ const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
         </div>
       </div>
       <div className="flex justify-between p-6">
-        {/* <CardDescription>{initiative.supporters.length} supporters</CardDescription> */}
-        <AvatarGroup avatars={initiative.supporters.map((address) => resolveAvatar(address))} />
+        <CardDescription>{initiative.supporters.length} supporters</CardDescription>
+        <AvatarGroup
+          avatars={
+            initiative.supporters.length > 0
+              ? initiative.supporters.map((address) => resolveAvatar(address) as string)
+              : undefined
+          }
+        />
         <CardDescription>{timeAgoWords(initiative.createdAtTimestamp)}</CardDescription>
       </div>
     </Card>

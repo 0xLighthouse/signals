@@ -245,7 +245,11 @@ export function InitiativeDrawer() {
                   </div>
                 </div>
                 <div className="block lg:hidden">
-                  <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
+                  <SubmissionLockDetails
+                    weight={weight}
+                    threshold={formatter(proposalThreshold)}
+                    initiative={undefined}
+                  />
                 </div>
               </div>
             )}
@@ -253,7 +257,11 @@ export function InitiativeDrawer() {
             <div className="flex justify-end mt-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
-            <SubmissionLockDetails weight={weight} threshold={formatter(proposalThreshold)} />
+            <SubmissionLockDetails
+              weight={weight}
+              threshold={formatter(proposalThreshold)}
+              initiative={undefined}
+            />
           </div>
         </div>
       </DrawerContent>

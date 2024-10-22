@@ -4,9 +4,10 @@ import { Chart } from './initiatives/chart'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
+import { NormalisedInitiative } from '@/app/api/initiatives/route'
 
 interface Props {
-  initiative?: InitiativeDetails
+  initiative: InitiativeDetails | NormalisedInitiative | undefined
   weight: number
   amount?: number | null
   duration?: number
@@ -57,6 +58,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
           </>
         )}
         <Chart
+          // @ts-ignore TODO: WILL FIX THIS SOON
           initiative={initiative}
           acceptanceThreshold={threshold}
           locks={[]}
