@@ -139,6 +139,18 @@ export const GET = async () => {
     allInitiatives?.map((initiative) => ({
       ...initiative,
       id: initiative.initiativeId,
+      supporters: [
+        '0xAbC1234567890dEf1234567890AbC1234567890A',
+        '0xBcD234567890eFg1234567890BcD234567890B1',
+        '0xCdE345678901fGh1234567890CdE345678901C2',
+        '0xDeF456789012gHi1234567890DeF456789012D3',
+        '0xEfG567890123hIj1234567890EfG567890123E4',
+        '0xFfG678901234iJk1234567890FfG678901234F5',
+        '0x1234567890AbC1234567890dEf1234567890A6',
+        '0x234567890BcD234567890eFg1234567890B1A7',
+        '0x345678901CdE345678901fGh1234567890C2B8',
+        '0x456789012DeF456789012gHi1234567890D3C9',
+      ],
       status: 'active',
     })),
   )

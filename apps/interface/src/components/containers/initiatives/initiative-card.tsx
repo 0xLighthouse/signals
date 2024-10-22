@@ -7,6 +7,7 @@ import { AddSupportDrawer } from '@/components/drawers/add-support-drawer'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
+import { AvatarGroup } from '@/components/ui/avatar-group'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -23,7 +24,7 @@ const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
   return (
     <Card
       className={cn(
-        'flex',
+        'flex flex-col',
         isFirst
           ? 'rounded-t-lg rounded-b-none border-b-0 '
           : isLast
@@ -31,27 +32,31 @@ const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
             : 'rounded-none border-b-0',
       )}
     >
-      <CardHeader className="w-3/5 p-6">
-        <CardTitle>{initiative.title}</CardTitle>
-        <CardDescription className="flex items-center">
-          Proposed by
-          <Avatar className="ml-2 mr-1">
-            <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
-          </Avatar>
-          {proposerName}
-        </CardDescription>
-        <div>
-          <p className="line-clamp-4 break-all">{initiative.description}</p>
+      <div className="flex w-full">
+        <CardHeader className="w-3/5 p-6 pb-0">
+          <CardTitle>{initiative.title}</CardTitle>
+          <CardDescription className="flex items-center">
+            Proposed by
+            <Avatar className="ml-2 mr-1">
+              <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
+            </Avatar>
+            {proposerName}
+          </CardDescription>
+          <div>
+            <p className="line-clamp-4 break-all">{initiative.description}</p>
+          </div>
+        </CardHeader>
+        <div className="w-2/5 p-6 pb-0 flex justify-end items-center">
+          <div className="flex gap-1 h-[80px]">
+            <IncentiveDrawer initiative={initiative} />
+            <AddSupportDrawer initiative={initiative} />
+          </div>
         </div>
-        <div>
-          <CardDescription>{timeAgoWords(initiative.createdAtTimestamp)}</CardDescription>
-        </div>
-      </CardHeader>
-      <div className="w-2/5 p-6 flex justify-end items-center">
-        <div className="flex gap-1 h-[80px]">
-          <IncentiveDrawer initiative={initiative} />
-          <AddSupportDrawer initiative={initiative} />
-        </div>
+      </div>
+      <div className="flex justify-between p-6">
+        {/* <CardDescription>{initiative.supporters.length} supporters</CardDescription> */}
+        <AvatarGroup avatars={initiative.supporters.map((address) => resolveAvatar(address))} />
+        <CardDescription>{timeAgoWords(initiative.createdAtTimestamp)}</CardDescription>
       </div>
     </Card>
   )

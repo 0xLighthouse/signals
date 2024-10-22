@@ -109,10 +109,8 @@ export function InitiativeDrawer() {
         toast('Initiative submitted!')
         fetchInitiatives()
       } catch (err) {
-        toast('Failed to simulate contract call', {
-          // @ts-ignore
-          description: err.message,
-        })
+        console.error(err)
+        toast('Failed to submit initiative')
       }
     } catch (error) {
       // @ts-ignore
