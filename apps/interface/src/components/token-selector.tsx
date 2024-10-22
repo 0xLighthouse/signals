@@ -14,12 +14,13 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { UsdcIcon } from './icons/usdc'
 
 const tokens = [
   {
     value: 'usdc',
     label: 'USDC',
-    icon: <DollarSign />,
+    icon: <UsdcIcon />,
   },
 ]
 
@@ -50,7 +51,10 @@ export function TokenSelector({ onTokenSelect }: Props) {
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value ? tokens.find((token) => token.value === value)?.label : 'Select token...'}
+          <div className="flex items-center gap-2">
+            {value ? tokens.find((token) => token.value === value)?.icon : undefined}
+            {value ? tokens.find((token) => token.value === value)?.label : 'Select token...'}
+          </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -66,13 +70,13 @@ export function TokenSelector({ onTokenSelect }: Props) {
                   value={token.value}
                   onSelect={handleSelect} // Use the new handleSelect function
                 >
-                  {token.icon}
-                  <Check
+                  <div className="mr-2">{token.icon}</div>
+                  {/* <Check
                     className={cn(
                       'mr-2 h-4 w-4',
                       value === token.value ? 'opacity-100' : 'opacity-0',
                     )}
-                  />
+                  /> */}
                   {token.label}
                 </CommandItem>
               ))}
