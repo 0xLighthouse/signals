@@ -90,6 +90,17 @@ export const FaucetActions = () => {
         <Button variant="outline" onClick={handleClaimTokens} isLoading={isLoadingTokens}>
           Get SGNL
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            window.open(
+              'https://docs.arbitrum.io/for-devs/dev-tools-and-resources/chain-info#faucets',
+              '_blank',
+            )
+          }}
+        >
+          Get ETH
+        </Button>
       </div>
     </div>
   )
