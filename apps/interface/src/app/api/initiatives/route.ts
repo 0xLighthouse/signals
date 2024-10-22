@@ -38,8 +38,8 @@ const publicClient = createPublicClient({
 
 const ns = `${process.env.NEXT_PUBLIC_SIGNALS_PROTOCOL}-v1`
 
-const mapInitiativeState = (initiative: InitiativeState): string => {
-  return initiative.state === 1n ? 'active' : initiative.state === 2n ? 'accepted' : 'archived'
+const mapInitiativeState = (state: number): string => {
+  return state === 0 ? 'active' : state === 1 ? 'accepted' : 'archived'
 }
 
 const protocol = getContract({
@@ -93,7 +93,7 @@ export const GET = async () => {
       supporters,
       createdAtTimestamp: Number(_initiative.timestamp),
       updatedAtTimestamp: Number(_initiative.lastActivity),
-      status: mapInitiativeState(_initiative),
+      status: mapInitiativeState(Number(_initiative.state)),
     } as unknown as NormalisedInitiative
     initiatives.push(data)
   }
@@ -104,6 +104,8 @@ export const GET = async () => {
   // const allInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
 
   // console.log('allInitattractiveiatives', allInitiatives?.length)
+
+  console.log(JSON.stringify(initiatives, null, 2))
 
   return NextResponse.json(initiatives)
 }
