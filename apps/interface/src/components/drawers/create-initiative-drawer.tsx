@@ -32,7 +32,7 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 
-export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedInitiative }) {
+export function CreateInitiativeDrawer() {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
   const {
