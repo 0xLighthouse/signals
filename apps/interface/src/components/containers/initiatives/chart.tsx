@@ -59,8 +59,15 @@ export const Chart: React.FC<Props> = ({
       minTimeWindow: 60 * 60 * 24 * 7,
     }
 
+    const _locks = existingLocks.map((lock) => ({
+      tokenAmount: lock.tokenAmount,
+      lockDuration: lock.lockDuration,
+      createdAt: lock.timestamp,
+      isWithdrawn: false,
+    }))
+
     console.log('options', options)
-    console.log('locks', existingLocks)
+    console.log('locks', _locks)
     console.log('newLock', {
       amountInput,
       durationInput,
@@ -69,7 +76,7 @@ export const Chart: React.FC<Props> = ({
     // Update chart if input data is provided
     const chartData =
       amountInput && durationInput
-        ? generateTicks(existingLocks, options, [
+        ? generateTicks(_locks, options, [
             {
               tokenAmount: amountInput,
               lockDuration: durationInput,
@@ -77,7 +84,7 @@ export const Chart: React.FC<Props> = ({
               isWithdrawn: false,
             },
           ])
-        : generateTicks(existingLocks, options)
+        : generateTicks(_locks, options)
     setData(chartData)
   }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold])
 

@@ -32,15 +32,8 @@ import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
-  const {
-    acceptanceThreshold,
-    proposalThreshold,
-    formatter,
-    meetsThreshold,
-    lockInterval,
-    decayCurveType,
-    decayCurveParameters,
-  } = useSignals()
+  const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
+    useSignals()
 
   const [amount, setAmount] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -130,20 +123,23 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   }
 
   useEffect(() => {
-    if (existingLocks) {
+    if (existingLocks === undefined) {
       fetch(`/api/locks?initiativeId=${initiative.initiativeId}`)
         .then((res) => res.json())
         .then((data) => {
-          console.log('locks')
-          console.log('locks')
-          console.log('locks')
-          console.log('locks')
-          console.log('locks', data)
           setExistingLocks(data)
         })
         .catch((error) => console.error('Error fetching locks:', error)) // Handle errors
     }
-  }, [])
+  }, [initiative.initiativeId, existingLocks])
+
+  useEffect(() => {
+    if (existingLocks && existingLocks.length > 0) {
+      console.log('Has this user supported this initiative before?')
+      console.log('Has this user supported this initiative before?')
+      console.log('Has this user supported this initiative before?')
+    }
+  }, [existingLocks])
 
   return (
     <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
@@ -242,7 +238,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   <p className="ml-4">{`${duration} day${duration !== 1 ? 's' : ''}`}</p>
                 </div>
               </div>
-              {/* <div className="block lg:hidden">
+              <div className="block lg:hidden">
                 <SubmissionLockDetails
                   initiative={{
                     createdAt: initiative.createdAtTimestamp,
@@ -250,13 +246,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                     decayCurveType,
                     decayCurveParameters,
                   }}
-                  existingLocks={existingLocks}
-                  weight={weight}
+                  existingLocks={existingLocks || []}
                   amount={amount}
                   duration={duration}
-                  threshold={formatter(proposalThreshold)}
+                  threshold={formatter(acceptanceThreshold)}
                 />
-              </div> */}
+              </div>
             </div>
 
             <div className="flex justify-end py-8">{resolveAction()}</div>
@@ -273,8 +268,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
               duration={duration}
               threshold={formatter(acceptanceThreshold)}
               supportInitiative={true}
-              existingLocks={existingLocks}
-              weight={weight}
+              existingLocks={existingLocks || []}
             />
           </div>
         </div>
