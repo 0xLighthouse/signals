@@ -35,7 +35,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   const { address } = useAccount()
   const { balance, symbol } = useUnderlying()
   const {
-    proposalThreshold,
+    acceptanceThreshold,
     formatter,
     meetsThreshold,
     lockInterval,
@@ -256,23 +256,11 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 decayCurveParameters,
               }}
               existingLocks={[
-                {
-                  tokenAmount: 30_000, // Lock 50,000 Gov tokens
-                  lockDuration: 10,
-                  createdAt: createdAt.minus({ day: 1 }).toUnixInteger(),
-                  isWithdrawn: false,
-                },
-                {
-                  tokenAmount: 50_000, // Lock 50,000 Gov tokens
-                  lockDuration: 10,
-                  createdAt: createdAt.minus({ day: 3 }).toUnixInteger(),
-                  isWithdrawn: false,
-                },
               ]}
-              weight={weight}
               amount={amount}
               duration={duration}
-              threshold={formatter(proposalThreshold)}
+              threshold={formatter(acceptanceThreshold)}
+              supportInitiative={true}
             />
           </div>
         </div>

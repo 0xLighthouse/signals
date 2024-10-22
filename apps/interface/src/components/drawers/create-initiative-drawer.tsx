@@ -5,6 +5,7 @@ import { CircleAlert, PlusIcon } from 'lucide-react'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { toast } from 'sonner'
+import { DateTime } from 'luxon'
 
 import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { readClient } from '@/config/web3'
@@ -25,15 +26,24 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
+import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 
-export function CreateInitiativeDrawer() {
+export function CreateInitiativeDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { balance, symbol } = useUnderlying()
   const { address } = useAccount()
-  const { proposalThreshold, formatter, meetsThreshold } = useSignals()
+  const {
+    proposalThreshold,
+    acceptanceThreshold,
+    formatter,
+    meetsThreshold,
+    lockInterval,
+    decayCurveType,
+    decayCurveParameters
+  } = useSignals()
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number | null>(null)
@@ -51,8 +61,6 @@ export function CreateInitiativeDrawer() {
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
-
-  const weight = amount ? amount * duration : 0
 
   const resetFormState = () => {
     setAmount(null)
@@ -172,9 +180,6 @@ export function CreateInitiativeDrawer() {
                   ) : (
                     <strong>You do not have enough tokens to propose an idea.</strong>
                   )}
-                  {lockTokens
-                    ? ` Your tokens will be locked for ${duration} month${duration !== 1 ? 's' : ''}.`
-                    : ' Your tokens will not be locked.'}
                 </AlertDescription>
               </Alert>
             </DrawerHeader>
@@ -182,7 +187,7 @@ export function CreateInitiativeDrawer() {
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="On-chain forums."
+                placeholder='For example, "On-chain forums"'
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -191,7 +196,7 @@ export function CreateInitiativeDrawer() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Enter something novel. Remember to search for existing ideas first and a reminder this is public."
+                placeholder="Include details of your initiative. Remember to search for existing ideas first."
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -202,9 +207,14 @@ export function CreateInitiativeDrawer() {
               <Switch
                 id="lock-tokens"
                 checked={lockTokens}
-                onCheckedChange={() => setLockTokens(!lockTokens)}
+                onCheckedChange={() => {
+                  setLockTokens(!lockTokens)
+                  setAmount(0)
+                  setDuration(1)
+                }
+                }
               />
-              <Label htmlFor="lock-tokens">Lock tokens</Label>
+              <Label htmlFor="lock-tokens">Also lock tokens to add support</Label>
             </SwitchContainer>
             {lockTokens && (
               <div className="flex flex-col gap-8 my-2">
@@ -234,19 +244,11 @@ export function CreateInitiativeDrawer() {
                       defaultValue={[1]}
                       step={1}
                       min={1}
-                      max={12}
+                      max={30}
                       onValueChange={(value) => setDuration(value[0])}
                     />
-                    <p className="ml-4">{`${duration} month${duration !== 1 ? 's' : ''}`}</p>
+                    <p className="ml-4">{`${duration} day${duration !== 1 ? 's' : ''}`}</p>
                   </div>
-                </div>
-                <div className="block lg:hidden">
-                  <SubmissionLockDetails
-                    weight={weight}
-                    threshold={formatter(proposalThreshold)}
-                    initiative={undefined}
-                    existingLocks={[]}
-                  />
                 </div>
               </div>
             )}
@@ -255,10 +257,18 @@ export function CreateInitiativeDrawer() {
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
             <SubmissionLockDetails
-              weight={weight}
-              threshold={formatter(proposalThreshold)}
-              initiative={undefined}
+              threshold={formatter(acceptanceThreshold)}
+              initiative={{
+                createdAt: DateTime.now().toSeconds(),
+                lockInterval,
+                decayCurveType,
+                decayCurveParameters
+              }}
               existingLocks={[]}
+              amount={amount}
+              duration={duration}
+              proposeNewInitiative={true}
+              supportInitiative={lockTokens}
             />
           </div>
         </div>
