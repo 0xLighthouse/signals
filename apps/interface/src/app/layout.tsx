@@ -11,6 +11,8 @@ import './globals.css'
 import { TokenProvider } from '@/contexts/ContractContext'
 import { ProtocolProvider } from '@/contexts/SignalsContext'
 import { IncentivesProvider } from '@/contexts/IncentivesContext'
+import { SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/containers/app-sidebar'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -43,7 +45,12 @@ export default function RootLayout({
           <Web3Provider>
             <TokenProvider>
               <ProtocolProvider>
-                <IncentivesProvider>{children}</IncentivesProvider>
+                <IncentivesProvider>
+                  <SidebarProvider defaultOpen={false}>
+                    <AppSidebar />
+                    {children}
+                  </SidebarProvider>
+                </IncentivesProvider>
               </ProtocolProvider>
               <Toaster />
             </TokenProvider>

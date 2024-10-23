@@ -8,7 +8,7 @@ import { FaucetActions } from '@/components/containers/faucet-actions'
 
 export default function Home() {
   return (
-    <div>
+    <main className="w-full">
       <TopNav />
       <div className="container mx-auto max-w-7xl">
         {/* <AlertDemo /> */}
@@ -25,6 +25,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
