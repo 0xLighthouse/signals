@@ -78,6 +78,7 @@ export const GET = async () => {
   const ids = range(0, Number(initiativesCount) - 1)
 
   console.log('initiativesCount', ids)
+  console.log('SIGNALS_PROTOCOL_ADDRESS', SIGNALS_PROTOCOL)
 
   const initiatives: NormalisedInitiative[] = []
   for await (const id of ids) {
