@@ -199,7 +199,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   Title
                 </Label>
                 <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-800">
+                  <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
                     <div className="my-2">
                       <p className="line-clamp break-words">
                         {initiative.title || 'No title provided.'}
@@ -213,7 +213,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   Description
                 </Label>
                 <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-800">
+                  <Card className="p-4 dark:bg-neutral-800 dark:bg-neutral-900 border-none shadow-none">
                     <div className="my-2">
                       <p className="line-clamp break-words">
                         {initiative.description || 'No description provided.'}
