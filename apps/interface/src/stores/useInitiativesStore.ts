@@ -15,7 +15,10 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
   fetchInitiatives: async () => {
     try {
       set({ isFetching: true })
-      const response = await fetch(`/api/initiatives?ts=${Date.now()}`)
+      const response = await fetch('/api/initiatives', {
+        // https://nextjs.org/docs/app/api-reference/functions/fetch#optionsnextrevalidate
+        cache: 'no-store',
+      })
       const data = await response.json()
       if (Array.isArray(data)) {
         set({ initiatives: data })

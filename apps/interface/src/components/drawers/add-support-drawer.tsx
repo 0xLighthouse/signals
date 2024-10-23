@@ -140,7 +140,11 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
 
   useEffect(() => {
     if (existingLocks === undefined) {
-      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`)
+      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`, {
+        next: {
+          revalidate: 60, // 1 min
+        },
+      })
         .then((res) => res.json())
         .then((data) => {
           setExistingLocks(data)
