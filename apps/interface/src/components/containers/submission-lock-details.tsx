@@ -6,9 +6,12 @@ import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+import { AvatarGroup } from '../ui/avatar-group'
+import { resolveAvatar } from '@/lib/utils'
 
 interface Props {
   initiative: InitiativeDetails | undefined
+  supporters?: string[]
   amount?: number | null
   duration?: number
   threshold?: number | null
@@ -23,6 +26,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   duration,
   threshold,
   existingLocks,
+  supporters = [],
   proposeNewInitiative = false,
   supportInitiative = false,
 }) => {
@@ -51,6 +55,20 @@ export const SubmissionLockDetails: React.FC<Props> = ({
       </CardHeader>
       {supportInitiative && (
         <CardContent>
+          {supporters?.length > 0 && (
+            <div className="flex items-center mb-2">
+              <Label className="w-3/4 flex items-center">Supporters:</Label>
+              <div className="w-3/4 flex items-center">
+                <AvatarGroup
+                  avatars={
+                    supporters?.length > 0
+                      ? supporters.map((address) => resolveAvatar(address) as string)
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          )}
           <div className="flex items-center mb-2">
             <Label className="w-3/4 flex items-center">Weight to contribute:</Label>
             <div className="w-3/4 flex items-center">

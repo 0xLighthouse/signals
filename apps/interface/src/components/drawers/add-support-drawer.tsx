@@ -266,10 +266,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                     decayCurveType,
                     decayCurveParameters,
                   }}
-                  existingLocks={existingLocks || []}
+                  supporters={initiative.supporters}
                   amount={amount}
                   duration={duration}
                   threshold={formatter(acceptanceThreshold)}
+                  supportInitiative={true}
+                  existingLocks={existingLocks || []}
                 />
               </div>
             </div>
@@ -284,6 +286,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 decayCurveType,
                 decayCurveParameters,
               }}
+              supporters={initiative.supporters}
               amount={amount}
               duration={duration}
               threshold={formatter(acceptanceThreshold)}
