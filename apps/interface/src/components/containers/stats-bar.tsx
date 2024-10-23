@@ -31,31 +31,39 @@ export const StatsBar = () => {
     <div className="flex items-center justify-between p-4 bg-white dark:border-neutral-700 dark:bg-neutral-900 rounded-lg border">
       <div className="flex flex-1 justify-evenly text-center">
         <div>
-          <span className="text-xl font-bold">{normaliseNumber(formatter(underlyingBalance))}</span>
+          <span className="text-xl font-bold">
+            {normaliseNumber(formatter(underlyingBalance)) || '-'}
+          </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Balance ({underlyingSymbol})
+            Balance {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
         <div>
           {/* @ts-ignore */}
-          <span className="text-xl font-bold">{normaliseNumber(formatUSDC(usdcBalance))}</span>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Balance ({usdcSymbol})</p>
+          <span className="text-xl font-bold">
+            {normaliseNumber(formatUSDC(usdcBalance) ?? 0) || '-'}
+          </span>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Balance {usdcSymbol ? `(${usdcSymbol})` : ''}
+          </p>
         </div>
         <div>
           <Separator orientation="vertical" />
         </div>
         <div>
-          <span className="text-xl font-bold">{normaliseNumber(formatter(proposalThreshold))}</span>
+          <span className="text-xl font-bold">
+            {normaliseNumber(formatter(proposalThreshold)) || '-'}
+          </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Proposal threshold ({underlyingSymbol})
+            Proposal threshold {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
         <div>
           <span className="text-xl font-bold">
-            {normaliseNumber(formatter(acceptanceThreshold))}
+            {normaliseNumber(formatter(acceptanceThreshold)) || '-'}
           </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Acceptance threshold ({underlyingSymbol})
+            Acceptance threshold {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
       </div>
