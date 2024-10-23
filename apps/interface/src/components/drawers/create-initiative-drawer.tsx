@@ -30,10 +30,12 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
+import { useModal } from 'connectkit'
 
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
+  const { setOpen } = useModal()
   const {
     acceptanceThreshold,
     proposalThreshold,
@@ -68,6 +70,15 @@ export function CreateInitiativeDrawer() {
     setDescription('')
     setDuration(1)
     setIsSubmitting(false)
+  }
+
+  const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.preventDefault()
+    if (!address) {
+      setOpen(true)
+      return
+    }
+    setIsDrawerOpen(true)
   }
 
   const handleOnOpenChange = (open: boolean) => {
@@ -146,8 +157,6 @@ export function CreateInitiativeDrawer() {
     )
   }
 
-  if (!address) return null
-
   return (
     <Drawer
       dismissible={!isSubmitting && !isApproving}
@@ -155,7 +164,7 @@ export function CreateInitiativeDrawer() {
       onOpenChange={handleOnOpenChange}
     >
       <DrawerTrigger asChild>
-        <Button variant="icon" size="icon" onClick={() => setIsDrawerOpen(true)}>
+        <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
           <PlusIcon size={18} />
         </Button>
       </DrawerTrigger>
