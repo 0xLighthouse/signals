@@ -177,7 +177,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-col gap-4">
+        <div className="p-8 flex-1 overflow-y-auto flex flex-col gap-4">
           <DrawerHeader>
             <DrawerTitle>Contribute incentives</DrawerTitle>
             <Alert className="bg-blue-50 dark:bg-neutral-800">

@@ -160,7 +160,7 @@ export function CreateInitiativeDrawer() {
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="p-8 rounded-t-[10px] flex-1 overflow-y-auto flex flex-row gap-4">
+        <div className="overflow-y-auto flex p-8 space-x-8">
           <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
               <DrawerTitle>Propose a new initiative</DrawerTitle>
@@ -255,15 +255,24 @@ export function CreateInitiativeDrawer() {
                 </div>
                 <div className="block lg:hidden">
                   <SubmissionLockDetails
+                    amount={amount}
+                    duration={duration}
                     threshold={formatter(acceptanceThreshold)}
-                    initiative={undefined}
+                    initiative={{
+                      createdAt: DateTime.now().toSeconds(),
+                      lockInterval,
+                      decayCurveType,
+                      decayCurveParameters,
+                    }}
                     existingLocks={[]}
+                    proposeNewInitiative={true}
+                    supportInitiative={lockTokens}
                   />
                 </div>
               </div>
             )}
 
-            <div className="flex justify-end mt-8">{resolveAction()}</div>
+            <div className="flex justify-end py-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
             <SubmissionLockDetails
