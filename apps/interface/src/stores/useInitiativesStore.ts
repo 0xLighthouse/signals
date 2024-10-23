@@ -1,11 +1,11 @@
-import type { NormalisedInitiative } from '@/app/api/initiatives/route';
-import { create } from 'zustand';
+import type { NormalisedInitiative } from '@/app/api/initiatives/route'
+import { create } from 'zustand'
 
 interface InitiativesState {
-  initiatives: NormalisedInitiative[];
-  isFetching: boolean;
-  isInitialized: boolean;
-  fetchInitiatives: () => Promise<void>;
+  initiatives: NormalisedInitiative[]
+  isFetching: boolean
+  isInitialized: boolean
+  fetchInitiatives: () => Promise<void>
 }
 
 export const useInitiativesStore = create<InitiativesState>((set) => ({
@@ -15,12 +15,12 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
   fetchInitiatives: async () => {
     try {
       set({ isFetching: true })
-      const response = await fetch('/api/initiatives');
-      const data = await response.json();
+      const response = await fetch(`/api/initiatives?ts=${Date.now()}`)
+      const data = await response.json()
       if (Array.isArray(data)) {
-        set({ initiatives: data });
+        set({ initiatives: data })
       } else {
-        console.error('Fetched data is not an array:', data);
+        console.error('Fetched data is not an array:', data)
       }
     } catch (error) {
       console.error('Error fetching initiatives:', error)
@@ -28,4 +28,4 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
       set({ isFetching: false, isInitialized: true })
     }
   },
-}));
+}))
