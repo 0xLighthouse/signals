@@ -95,13 +95,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         abi: INCENTIVES_ABI,
         functionName: 'addIncentive',
         nonce,
-        args: [
-          initiative.initiativeId,
-          tokenAddress,
-          ethers.utils.parseUnits(amount.toString(), 6),
-          expiresAt,
-          terms,
-        ],
+        args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
       })
 
       const hash = await signer.writeContract(request)
