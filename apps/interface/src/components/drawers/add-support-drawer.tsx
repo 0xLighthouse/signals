@@ -158,7 +158,11 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   }, [existingLocks])
 
   return (
-    <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
+    <Drawer
+      dismissible={!isSubmitting && !isApproving}
+      open={isDrawerOpen}
+      onOpenChange={handleOnOpenChange}
+    >
       <DrawerTrigger asChild>
         <Button
           variant="outline"

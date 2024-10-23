@@ -149,7 +149,11 @@ export function CreateInitiativeDrawer() {
   if (!address) return null
 
   return (
-    <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
+    <Drawer
+      dismissible={!isSubmitting && !isApproving}
+      open={isDrawerOpen}
+      onOpenChange={handleOnOpenChange}
+    >
       <DrawerTrigger asChild>
         <Button onClick={() => setIsDrawerOpen(true)}>
           Propose Initiative &nbsp; <PlusIcon size={24} />

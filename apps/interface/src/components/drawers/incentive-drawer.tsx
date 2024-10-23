@@ -159,7 +159,11 @@ export function IncentiveDrawer({ initiative }: Props) {
   }, [allocations, amount])
 
   return (
-    <Drawer open={isDrawerOpen} onOpenChange={handleOnOpenChange}>
+    <Drawer
+      dismissible={!isSubmitting && !isApproving}
+      open={isDrawerOpen}
+      onOpenChange={handleOnOpenChange}
+    >
       <DrawerTrigger asChild>
         <Button
           variant="outline"
