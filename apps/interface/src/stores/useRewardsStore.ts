@@ -7,8 +7,8 @@ interface RewardsState {
   name?: string
   symbol?: string
   decimals?: number
-  totalSupply?: number
-  balance?: number
+  totalSupply: number
+  balance: number
   isInitialized: boolean
   formatter: (value?: number | null) => number | null
   fetch: (address: `0x${string}`) => Promise<void>
@@ -51,8 +51,8 @@ export const useRewardsStore = create<RewardsState>((set) => ({
       name: String(name),
       symbol: String(symbol),
       decimals: Number(decimals),
-      totalSupply: Number(totalSupply),
-      balance: Number(balance),
+      totalSupply: Number(totalSupply ?? 0),
+      balance: Number(balance ?? 0),
       isInitialized: true,
     })
   },

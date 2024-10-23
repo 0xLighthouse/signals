@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, CircleAlert, Eclipse } from 'lucide-react'
+import { ArrowRight, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { ethers } from 'ethers'
 
@@ -18,20 +18,14 @@ import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { TokenSelector } from '../token-selector'
-import {
-  INCENTIVES,
-  INCENTIVES_ABI,
-  readClient,
-  SIGNALS_PROTOCOL,
-  USDC_ADDRESS,
-} from '@/config/web3'
+import { INCENTIVES, INCENTIVES_ABI, readClient, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
 import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { UsdcIcon } from '../icons/usdc'
-import { ArrowArcRight } from '@phosphor-icons/react'
+import { useRewardsStore } from '@/stores/useRewardsStore'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -40,6 +34,7 @@ interface Props {
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
   const { allocations } = useIncentives()
+  const { fetch: fetchUSDC } = useRewardsStore()
   const [amount, setAmount] = useState<number | null>(null)
   const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -108,6 +103,7 @@ export function IncentiveDrawer({ initiative }: Props) {
       setIsDrawerOpen(false)
       resetFormState()
       toast('Incentive added successfully!')
+      fetchUSDC(address)
     } catch (error) {
       console.error(error)
       // @ts-ignore

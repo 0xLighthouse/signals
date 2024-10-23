@@ -26,14 +26,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 
 export function CreateInitiativeDrawer() {
-  const { balance, symbol } = useUnderlying()
+  const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
   const {
     acceptanceThreshold,
@@ -115,6 +114,7 @@ export function CreateInitiativeDrawer() {
       resetFormState()
       toast('Initiative submitted!')
       fetchInitiatives()
+      fetchContractMetadata()
     } catch (error) {
       console.error(error)
       // @ts-ignore

@@ -31,7 +31,7 @@ import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
-  const { balance, symbol } = useUnderlying()
+  const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
     useSignals()
 
@@ -100,6 +100,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       resetFormState()
       toast('Upvote submitted!')
       fetchInitiatives()
+      fetchContractMetadata()
     } catch (error) {
       console.error(error)
       toast('Error submitting upvote :(')
