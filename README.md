@@ -4,6 +4,8 @@
 
 ***
 
+[![Watch the video](video-preview.png) Click here to watch our video.](https://www.youtube.com/watch?v=JKchm2MFXWA)
+
 ## Description
 
 **Existing on-chain voting systems have many weaknesses.** Popular systems for submitting proposals to be voted on are quite rigid and initimidating, which results in a lot of emphasis being put on preparing the perfect proposal before submission. Many voters won't give honest feedback until it comes time to take an official vote, which makes it hard for proposers to know which initiatives would receive support and which details should be included. Whales and influencers can hold outsized sway over voting, undermining the democratic process.
