@@ -15,7 +15,7 @@ import { ThemeToggle } from '../ui/theme-toggle'
 export function AppSidebar() {
   // const { state, open, setOpen, openMobile, setOpenMobile, toggleSidebar } = useSidebar()
   return (
-    <Sidebar side="right">
+    <Sidebar side="right" className="dark:border-neutral-500">
       <SidebarHeader className="p-0">
         <div className="flex items-center justify-end gap-2 border-b border-neutral-200 dark:border-neutral-500 p-2">
           <ThemeToggle />
@@ -25,7 +25,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <FAQs />
-          <FaucetActions />
+          <FaucetActions vertical />
           <Footer />
         </SidebarGroup>
       </SidebarContent>

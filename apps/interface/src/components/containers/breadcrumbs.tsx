@@ -36,7 +36,7 @@ export const Breadcrumbs: React.FC = () => {
           </BreadcrumbLink>
         </BreadcrumbItem>
         {name && symbol && (
-          <div className="inline-flex md:inline-flex items-center gap-1.5">
+          <div className="hidden sm:inline-flex items-center gap-1.5">
             <BreadcrumbSeparator>
               <Slash />
             </BreadcrumbSeparator>

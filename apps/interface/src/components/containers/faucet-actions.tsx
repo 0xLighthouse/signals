@@ -8,6 +8,7 @@ import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
+import { cn } from '@/lib/utils'
 
 const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
   if (!address) throw new Error('Address not available.')
@@ -50,7 +51,7 @@ const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol:
   }
 }
 
-export const FaucetActions = () => {
+export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
@@ -76,13 +77,13 @@ export const FaucetActions = () => {
   if (!address) return null
 
   return (
-    <div className="mt-20">
+    <div className="mt-10 md:mt-20">
       <div className="space-y-2">
         <h4 className="text-md font-bold leading-none">Faucet</h4>
         <p className="text-sm text-muted-foreground">Claim your test tokens</p>
       </div>
       <Separator className="my-4" />
-      <div className="flex h-5 mt-4 items-center space-x-4 text-sm">
+      <div className={cn('flex gap-2', vertical && 'flex-col')}>
         <Button variant="outline" onClick={handleClaimUSDC} isLoading={isLoadingUSDC}>
           Get USDC
         </Button>

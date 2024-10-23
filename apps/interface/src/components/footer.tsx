@@ -3,7 +3,7 @@ import { HomeLogo } from './ui/home-logo'
 
 export function Footer() {
   return (
-    <div className="mt-20">
+    <div className="mt-10 md:mt-20">
       <div className="space-y-2">
         <div className="flex items-center">
           <h4 className="text-xl font-bold leading-none">Signals Protocol</h4>

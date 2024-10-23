@@ -155,8 +155,8 @@ export function CreateInitiativeDrawer() {
       onOpenChange={handleOnOpenChange}
     >
       <DrawerTrigger asChild>
-        <Button onClick={() => setIsDrawerOpen(true)}>
-          Propose Initiative &nbsp; <PlusIcon size={24} />
+        <Button variant="icon" size="icon" onClick={() => setIsDrawerOpen(true)}>
+          <PlusIcon size={18} />
         </Button>
       </DrawerTrigger>
       <DrawerContent>

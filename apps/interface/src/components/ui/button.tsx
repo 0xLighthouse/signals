@@ -23,13 +23,15 @@ const buttonVariants = cva(
         ghost:
           'hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-700 dark:hover:text-neutral-50',
         link: 'text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-50',
+        icon: 'rounded-full bg-neutral-900 text-neutral-50 hover:bg-neutral-900/90 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-50/90 p-2 flex items-center justify-center cursor-pointer',
       },
       size: {
         default: 'h-10 px-4 py-2',
         sm: 'h-9 rounded-md px-3',
         md: 'h-10 rounded-md px-6',
         lg: 'h-11 rounded-md px-8',
-        icon: 'h-10 w-10',
+        // Clear default size for icon
+        icon: '', //h-10 w-10
       },
       full: {
         true: 'h-full dark:h-full',
