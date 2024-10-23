@@ -1,5 +1,5 @@
 import { TopNav } from '@/components/containers/topnav'
-import { FaucetBar } from '@/components/containers/faucet-bar'
+import { StatsBar } from '@/components/containers/stats-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
 import { InitiativesList } from '@/components/containers/initiatives/list'
@@ -14,7 +14,7 @@ export default function Home() {
         {/* <AlertDemo /> */}
         <div className="grid grid-cols-1 md:grid-cols-[800px_1fr]">
           <div className="px-4 py-8 space-y-6">
-            <FaucetBar />
+            <StatsBar />
             <InitiativesList />
           </div>
           <div className="px-4 py-8">

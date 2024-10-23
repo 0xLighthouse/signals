@@ -8,7 +8,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'
 import { normaliseNumber } from '@/lib/utils'
 
-export const FaucetBar = () => {
+export const StatsBar = () => {
   const { address } = useAccount()
   const {
     balance: usdcBalance,
