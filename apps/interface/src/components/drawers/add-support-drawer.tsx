@@ -22,15 +22,17 @@ import { useSignals } from '@/contexts/SignalsContext'
 import { useEffect, useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
+import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { createWalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+import { useModal } from 'connectkit'
 
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
+  const { setOpen } = useModal()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
     useSignals()
@@ -59,7 +61,20 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
     setDuration(1)
   }
 
+  const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.preventDefault()
+    if (!address) {
+      setOpen(true)
+      return
+    }
+    setIsDrawerOpen(true)
+  }
+
   const handleOnOpenChange = (open: boolean) => {
+    if (!address) {
+      setIsDrawerOpen(false)
+      return
+    }
     if (!open) resetFormState()
     setIsDrawerOpen(open)
   }
@@ -149,7 +164,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
           variant="outline"
           full
           size="md"
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={handleTriggerDrawer}
           className="flex flex-col items-center min-w-[80px]"
         >
           <ChevronUp className="h-6 w-6 -mt-1" />

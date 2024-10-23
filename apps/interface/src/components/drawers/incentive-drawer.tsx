@@ -26,6 +26,8 @@ import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
+import { cn } from '@/lib/utils'
+import { useModal } from 'connectkit'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -33,6 +35,7 @@ interface Props {
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
+  const { setOpen } = useModal()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
   const [amount, setAmount] = useState<number | null>(null)
@@ -50,6 +53,15 @@ export function IncentiveDrawer({ initiative }: Props) {
 
   const resetFormState = () => {
     setAmount(null)
+  }
+
+  const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.preventDefault()
+    if (!address) {
+      setOpen(true)
+      return
+    }
+    setIsDrawerOpen(true)
   }
 
   const handleOnOpenChange = (open: boolean) => {
@@ -148,7 +160,7 @@ export function IncentiveDrawer({ initiative }: Props) {
           variant="outline"
           full
           size="md"
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={handleTriggerDrawer}
           className="flex flex-col items-center min-w-[80px]"
         >
           <UsdcIcon className="h-5 w-5" />
