@@ -50,9 +50,9 @@ export const Breadcrumbs: React.FC = () => {
         </BreadcrumbSeparator>
         <BreadcrumbItem>
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1">
+            <DropdownMenuTrigger className="flex items-center gap-1 text-neutral-800 dark:text-neutral-200 font-bold">
               {shortAddress(SIGNALS_PROTOCOL)}
-              <ChevronDownIcon />
+              <ChevronDownIcon size={16} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
