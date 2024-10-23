@@ -1,4 +1,4 @@
-# 📡 Signals
+# 📡 Signals: Discover community sentiment
 
 #### A project for the RnDAO Arbitrum CollabTech Hackathon
 
@@ -49,9 +49,9 @@ Incentives can be a helpful way to encourage community members to participate. W
 
 This repo contains an `apps/` directory which contains our source code. In this directory you will find:
 
-1. `contracts`: Our solidity smart contracts
-2. `interface`: Our next.js web UI for interacting with the contracts
-3. `simulations`: A start at running monte carlo simulations to prove the effectiveness of different weight curves (WIP)
+1. `contracts`: Our solidity smart contracts [Docs](apps/contracts/README.md)
+2. `interface`: Our next.js web UI for interacting with the contracts [Docs](apps/interface/README.md)
+3. `simulations`: A start at running monte carlo simulations to prove the effectiveness of different weight curves (WIP - ignore for now)
 
 Each of these folders has its own readme for more technical details.
 

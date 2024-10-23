@@ -44,9 +44,23 @@ forge test <file> -vvvv
 forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
+# Deploying a new contract
+
+To aid in the deployment of new contracts (to create a new space), we have created a factory contract which will deploy the contract for you. Simply call the `create` method and provide the required default parameters (most can be changed by the owner after deployment):
+
+**owner:** The address that will own the new contract
+**underlyingToken:** The address of the governance token that will be used for lockups
+**proposalThreshold:** The minimum token balance required in order to submit an initiative
+**acceptanceThreshold:** How much support an initiative must have before it can be accepted
+**lockDurationCap:** The maximum duration that funds can be locked (specified in interval)
+**proposalCap:** The maximum number of proposals
+**lockInterval:** The duration of one lock interval, in seconds
+**decayCurveType:** Decay curve type (see below)
+**decayCurveParameters:** Decay curve parameters (see below)
+
 # Interacting with the contract
 
-The following public methods are available:
+Once the contract is deploywed, the following public methods are available:
 
 | Method | Returns | Description |
 |--------|---------|-------------|
