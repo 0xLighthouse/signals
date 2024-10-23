@@ -144,10 +144,15 @@ export function IncentiveDrawer({ initiative }: Props) {
   }
 
   useEffect(() => {
-    if (allocations && amount) {
+    if (allocations) {
       const shares = []
-      for (const allocation of allocations) {
-        shares.push((amount * Number(allocation)) / 100)
+      if (amount) {
+        for (const allocation of allocations) {
+          shares.push((amount * Number(allocation)) / 100)
+        }
+      } else {
+        // Reset shares if amount is zero or cleared
+        shares.length = 0
       }
       setShares(shares)
     }
@@ -218,23 +223,23 @@ export function IncentiveDrawer({ initiative }: Props) {
             </Label>
             <div className="w-4/5 text-xs">
               <div className="flex flex-row gap-2">
-                <div className="flex items-center gap-2">{amount} USDC</div>
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="w-3 h-3" />
-                </div>
+                {amount != null && (
+                  <>
+                    <div className="flex items-center gap-2">{amount} USDC</div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </>
+                )}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs">
-                    {Number(allocations?.[0])}% - {Number(shares?.[0])} USDC
-                  </span>
-                  <span className="text-xs">
-                    {Number(allocations?.[1])}% - {Number(shares?.[1])} USDC
-                  </span>
-                  <span className="text-xs">
-                    {Number(allocations?.[2])}% - {Number(shares?.[2])} USDC
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="w-3 h-3" />
+                  {allocations?.map((allocation, index) => {
+                    const shareValue = shares?.[index] ? `- ${Number(shares[index])} USDC` : ''
+                    return (
+                      <span className="text-xs" key={allocation}>
+                        {Number(allocation)}% {shareValue}
+                      </span>
+                    )
+                  })}
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-xs">Protocol fee</span>
