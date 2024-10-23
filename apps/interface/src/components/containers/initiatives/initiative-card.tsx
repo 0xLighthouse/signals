@@ -44,7 +44,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
             {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
           </CardDescription>
           <div>
-            <p className="line-clamp-4 break-all">{initiative.description}</p>
+            <p className="line-clamp-4 break-words">{initiative.description}</p>
           </div>
         </CardHeader>
         <div className="w-2/5 p-6 pb-0 flex justify-end items-center">
