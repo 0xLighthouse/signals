@@ -33,12 +33,12 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
             : 'rounded-none border-b-0',
       )}
     >
-      <div className="flex w-full">
-        <CardHeader className="w-3/5 p-6 pb-0">
+      <div className="flex flex-col md:flex-row w-full">
+        <CardHeader className="md:w-3/5 p-6 pb-0">
           <CardTitle>{initiative.title}</CardTitle>
           <CardDescription className="flex items-center text-xs">
-            Proposed by
-            <Avatar className="ml-1 mr-1">
+            <span className="hidden sm:block">Proposed by</span>
+            <Avatar className="sm:ml-1 mr-1">
               <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
             </Avatar>
             {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
@@ -47,7 +47,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
             <p className="line-clamp-4 break-words">{initiative.description}</p>
           </div>
         </CardHeader>
-        <div className="w-2/5 p-6 pb-0 flex justify-end items-center">
+        <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-1 h-[80px]">
             <IncentiveDrawer initiative={initiative} />
             <AddSupportDrawer initiative={initiative} />
