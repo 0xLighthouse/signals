@@ -183,8 +183,8 @@ contract SignalsTest is Test {
     assertEq(uint(initiative.state), uint(Signals.InitiativeState.Accepted));
   }
 
-  /// Test that only owner can accept initiatives
-  function testAcceptInitiativeOnlyOwner() public {
+  /// Test that only the owner can accept an initiative
+  function testOnlyOwnerCanAccept() public {
     // Propose an initiative
     vm.startPrank(_alice);
     _token.approve(address(_signalsContract), 100 * 1e18);
@@ -195,7 +195,7 @@ contract SignalsTest is Test {
     _signalsContract.acceptInitiative(0);
   }
 
-  /// Test withdrawing tokens after initiative is accepted
+  /// Test redeeming tokens after initiative is accepted
   function testRedemptions() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
@@ -222,8 +222,8 @@ contract SignalsTest is Test {
     // _signalsContract.redeem(1);
   }
 
-  /// Test withdrawing tokens before initiative is accepted (should fail)
-  function testredeemBeforeAcceptance() public {
+  /// Test redeeming tokens before initiative is accepted (should fail)
+  function testCannotRedeemBeforeAcceptance() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), 200 * 1e18);
@@ -238,8 +238,8 @@ contract SignalsTest is Test {
     vm.stopPrank();
   }
 
-  /// Test withdrawAll function
-  function testWithdrawAll() public {
+  /// Test redeeming multiple escrow locks
+  function testRedeemMany() public {
     // Propose an initiative with lock
     vm.startPrank(_alice);
     _token.approve(address(_signalsContract), 100 * 1e18);
@@ -352,8 +352,8 @@ contract SignalsTest is Test {
     _signalsContract.setInactivityThreshold(30 days);
   }
 
-  // Test that users cannot withdraw tokens twice using withdrawAll
-  function testWithdrawAllCannotWithdrawTwice() public {
+  // Test that users cannot redeem tokens twice
+  function testCannotRedeemTwice() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), 200 * 1e18);
@@ -368,13 +368,12 @@ contract SignalsTest is Test {
     _signalsContract.redeem(1);
 
     // Attempt to withdraw again
-    // FIXME: This assertion is not working as expected
-    // vm.expectRevert(Signals.NothingToWithdraw.selector);
-    // _signalsContract.withdrawAllTokens();
+    vm.expectRevert(Signals.InvalidRedemption.selector);
+    _signalsContract.redeem(1);
   }
 
-  /// Test that withdrawAll only withdraws from initiatives in withdrawable state
-  function testWithdrawAllPartialWithdrawal() public {
+  /// Test that redeeming multiple escrow locks only withdraws from initiatives in withdrawable state
+  function testRedeemManyPartialWithdrawal() public {
     // Propose initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), _PROPOSAL_THRESHOLD);

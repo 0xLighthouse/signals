@@ -78,7 +78,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   error InsufficientTokens();
   error InvalidInitiativeState(string message);
   error TokenTransferFailed();
-  error NothingToWithdraw();
+  error InvalidRedemption();
   error InitiativeNotFound();
 
   /// @notice Minimum tokens required to propose an initiative
@@ -453,7 +453,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   }
 
   function redeem(uint256 tokenId) public nonReentrant {
-    require(!locks[tokenId].withdrawn, 'Already withdrawn');
+    require(!locks[tokenId].withdrawn, InvalidRedemption());
     require(ownerOf(tokenId) == msg.sender, 'Not token owner');
 
     LockInfo storage lock = locks[tokenId];
@@ -604,7 +604,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     incentives = Incentives(_incentives);
   }
 
-  // TODO: EIP-1153: Transient Storage
+  // TODO: EIP-1153: Transient Storage?
   function getPositionsForInitiative(
     uint256 initiativeId
   ) external view returns (uint256[] memory) {
