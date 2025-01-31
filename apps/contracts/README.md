@@ -72,7 +72,7 @@ Once the contract is deploywed, the following public methods are available:
  | supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) | | Lock up tokens in support of an existing initiative |
  | acceptInitiative(uint256 initiativeId) | | Once an initiative has received enough support, accept the initiative (owner only for now) |
  | expireInitiative(uint256 initiativeId) | | Once an initiative has been inactive for a long enough time, expire the initiative (owner only for now) |
- | withdrawTokens(uint256 initiativeId) | | Submit an initiative ID, and any tokens the sender has locked up for that initiative which are now free for withdrawal will be withdrawn |
+
  | withdrawAllTokens() | | For all initiatives, tokens the sender has locked up for that initiative which are now free for withdrawal will be withdrawn |
  | getInitiative(uint256 initiativeId) | Initiative struct | Metadata for the specified initative (title, body, created date, etc) |
  | getSupporters(uint256 initiativeId) | List of addresses | Returns a list of all addresses which have supported this initiative |

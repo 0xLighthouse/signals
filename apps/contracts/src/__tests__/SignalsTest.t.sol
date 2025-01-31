@@ -196,7 +196,7 @@ contract SignalsTest is Test {
   }
 
   /// Test withdrawing tokens after initiative is accepted
-  function testWithdrawToken() public {
+  function testRedemptions() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), 200 * 1e18);
@@ -210,7 +210,7 @@ contract SignalsTest is Test {
     // Withdraw tokens
     vm.startPrank(_bob);
     uint256 initialBalance = _token.balanceOf(_bob);
-    _signalsContract.withdrawToken(1);
+    _signalsContract.redeem(1);
 
     // Check token balance after withdrawal
     uint256 finalBalance = _token.balanceOf(_bob);
@@ -219,11 +219,11 @@ contract SignalsTest is Test {
     // Check that tokens cannot be withdrawn again
     // FIXME: This assertion is not working as expected
     // vm.expectRevert(Signals.TokenDoesNotExist.selector);
-    // _signalsContract.withdrawToken(1);
+    // _signalsContract.redeem(1);
   }
 
   /// Test withdrawing tokens before initiative is accepted (should fail)
-  function testWithdrawTokenBeforeAcceptance() public {
+  function testredeemBeforeAcceptance() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), 200 * 1e18);
@@ -233,7 +233,7 @@ contract SignalsTest is Test {
     vm.expectRevert(
       abi.encodeWithSignature('InvalidInitiativeState(string)', 'Initiative not withdrawable')
     );
-    _signalsContract.withdrawToken(1);
+    _signalsContract.redeem(1);
 
     vm.stopPrank();
   }
@@ -262,9 +262,9 @@ contract SignalsTest is Test {
     uint256 balanceBefore = _token.balanceOf(_alice);
 
     // Withdraw tokens
-    _signalsContract.withdrawToken(1); // veBond 1
-    _signalsContract.withdrawToken(2); // veBond 2
-    _signalsContract.withdrawToken(3); // veBond 3
+    _signalsContract.redeem(1); // veBond 1
+    _signalsContract.redeem(2); // veBond 2
+    _signalsContract.redeem(3); // veBond 3
 
     uint256 balanceAfter = _token.balanceOf(_alice);
     uint256 balanceDifference = balanceAfter - balanceBefore;
@@ -309,7 +309,7 @@ contract SignalsTest is Test {
   }
 
   /// Test withdrawing tokens after initiative is expired
-  function testWithdrawTokenAfterExpiration() public {
+  function testredeemAfterExpiration() public {
     // Propose an initiative with lock
     vm.startPrank(_bob);
     _token.approve(address(_signalsContract), 200 * 1e18);
@@ -327,7 +327,7 @@ contract SignalsTest is Test {
     vm.startPrank(_bob);
 
     uint256 initialBalance = _token.balanceOf(_bob);
-    _signalsContract.withdrawToken(1);
+    _signalsContract.redeem(1);
 
     uint256 finalBalance = _token.balanceOf(_bob);
     assertEq(finalBalance, initialBalance + 200 * 1e18);
@@ -365,7 +365,7 @@ contract SignalsTest is Test {
 
     // Withdraw all tokens
     vm.startPrank(_bob);
-    _signalsContract.withdrawToken(1);
+    _signalsContract.redeem(1);
 
     // Attempt to withdraw again
     // FIXME: This assertion is not working as expected
@@ -403,7 +403,7 @@ contract SignalsTest is Test {
     uint256 initialBalance = _token.balanceOf(_bob);
 
     // Withdraw all tokens (should only withdraw from the accepted initiative)
-    _signalsContract.withdrawToken(1); // veBond 1
+    _signalsContract.redeem(1); // veBond 1
 
     // Record the balance after first withdrawal
     uint256 balanceAfterFirstWithdraw = _token.balanceOf(_bob);
@@ -415,7 +415,7 @@ contract SignalsTest is Test {
     vm.expectRevert(
       abi.encodeWithSignature('InvalidInitiativeState(string)', 'Initiative not withdrawable')
     );
-    _signalsContract.withdrawToken(2); // veBond 2
+    _signalsContract.redeem(2); // veBond 2
 
     // Fast forward time beyond inactivity threshold
     skip(61 days);
@@ -426,7 +426,7 @@ contract SignalsTest is Test {
 
     // Withdraw tokens from the expired initiative
     vm.startPrank(_bob);
-    _signalsContract.withdrawToken(2); // veBond 2
+    _signalsContract.redeem(2); // veBond 2
 
     // Assert that the total balance difference equals the sum of both withdrawals
     uint256 finalBalance = _token.balanceOf(_bob);

@@ -452,9 +452,9 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     emit InitiativeExpired(initiativeId, msg.sender);
   }
 
-  function withdrawToken(uint256 tokenId) public nonReentrant {
-    require(ownerOf(tokenId) == msg.sender, 'Not token owner');
+  function redeem(uint256 tokenId) public nonReentrant {
     require(!locks[tokenId].withdrawn, 'Already withdrawn');
+    require(ownerOf(tokenId) == msg.sender, 'Not token owner');
 
     LockInfo storage lock = locks[tokenId];
 
