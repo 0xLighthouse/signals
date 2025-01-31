@@ -169,8 +169,8 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   /// @notice Event emitted when an initiative is expired
   event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
 
-  /// @notice Event emitted when a supporter withdraws their tokens
-  event TokensWithdrawn(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
+  /// @notice Event emitted when some user redeems their tokens
+  event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
 
   /// @notice Event emitted when the decay curve is updated
   event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
@@ -469,7 +469,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
     if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert TokenTransferFailed();
 
-    emit TokensWithdrawn(lock.initiativeId, msg.sender, amount);
+    emit Redeemed(tokenId, msg.sender, amount);
   }
 
   /**
