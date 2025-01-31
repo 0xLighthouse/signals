@@ -260,7 +260,11 @@ contract SignalsTest is Test {
     // Record the balance before withdrawal
     vm.startPrank(_alice);
     uint256 balanceBefore = _token.balanceOf(_alice);
-    _signalsContract.withdrawToken(1);
+
+    // Withdraw tokens
+    _signalsContract.withdrawToken(1); // veBond 1
+    _signalsContract.withdrawToken(2); // veBond 2
+    _signalsContract.withdrawToken(3); // veBond 3
 
     uint256 balanceAfter = _token.balanceOf(_alice);
     uint256 balanceDifference = balanceAfter - balanceBefore;
@@ -399,17 +403,19 @@ contract SignalsTest is Test {
     uint256 initialBalance = _token.balanceOf(_bob);
 
     // Withdraw all tokens (should only withdraw from the accepted initiative)
-    _signalsContract.withdrawToken(1);
+    _signalsContract.withdrawToken(1); // veBond 1
 
     // Record the balance after first withdrawal
     uint256 balanceAfterFirstWithdraw = _token.balanceOf(_bob);
     uint256 balanceDifference = balanceAfterFirstWithdraw - initialBalance;
     assertEq(balanceDifference, _PROPOSAL_THRESHOLD);
 
-    // Attempt to withdraw tokens again (should fail)
-    // FIXME: This assertion is not working as expected
-    // vm.expectRevert(Signals.NothingToWithdraw.selector);
-    // _signalsContract.withdrawAllTokens();
+    // Attempt to withdraw the second lock...
+    vm.startPrank(_bob);
+    vm.expectRevert(
+      abi.encodeWithSignature('InvalidInitiativeState(string)', 'Initiative not withdrawable')
+    );
+    _signalsContract.withdrawToken(2); // veBond 2
 
     // Fast forward time beyond inactivity threshold
     skip(61 days);
@@ -420,7 +426,7 @@ contract SignalsTest is Test {
 
     // Withdraw tokens from the expired initiative
     vm.startPrank(_bob);
-    _signalsContract.withdrawToken(1);
+    _signalsContract.withdrawToken(2); // veBond 2
 
     // Assert that the total balance difference equals the sum of both withdrawals
     uint256 finalBalance = _token.balanceOf(_bob);

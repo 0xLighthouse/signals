@@ -3,6 +3,7 @@
 ## TODO
 
 - [ ] Use X96 for math
+- [ ] Consider `veBond` as how we can to call the receipt
 
 ## Getting Started
 
