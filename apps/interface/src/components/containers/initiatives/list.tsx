@@ -17,13 +17,14 @@ export const InitiativesList = () => {
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
   const isInitialized = useInitiativesStore((state) => state.isInitialized)
-  console.log('count initiatives', initiativesCount, initiatives)
 
   useEffect(() => {
     if (!isInitialized) fetchInitiatives()
   }, [isInitialized, fetchInitiatives])
 
   const [sortBy, setSortBy] = useState('support')
+
+  console.log('initiative-count', initiativesCount)
 
   // Ensure initiatives is always an array before filtering
   const _initiativesSorted = initiatives.sort((a, b) =>
