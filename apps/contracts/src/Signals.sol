@@ -11,6 +11,8 @@ import '@solady/tokens/ERC721.sol';
 import './DecayCurves.sol';
 import './Incentives.sol';
 
+import 'forge-std/console.sol';
+
 /**
  * @title Signals by Lighthouse <https://lighthouse.cx>
  *
@@ -254,7 +256,9 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
       revert TokenTransferFailed();
 
     uint256 tokenId = nextTokenId++;
+
     _mint(supporter, tokenId);
+
     locks[tokenId] = LockInfo({
       initiativeId: initiativeId,
       tokenAmount: amount,
@@ -262,6 +266,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
       created: block.timestamp,
       withdrawn: false
     });
+
     initiativeLocks[initiativeId].push(tokenId);
     supporterLocks[supporter].push(tokenId);
 
@@ -393,12 +398,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     string memory body,
     uint256 amount,
     uint256 lockDuration
-  )
-    external
-    hasSufficientTokens(proposalThreshold)
-    hasSufficientTokens(amount)
-    hasValidInput(title, body)
-  {
+  ) external hasSufficientTokens(proposalThreshold) hasValidInput(title, body) {
     uint256 id = _addInitiative(title, body);
     _addLock(id, msg.sender, amount, lockDuration);
   }
@@ -452,48 +452,24 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     emit InitiativeExpired(initiativeId, msg.sender);
   }
 
-  function withdrawTokens(uint256 tokenId) public nonReentrant {
+  function withdrawToken(uint256 tokenId) public nonReentrant {
     require(ownerOf(tokenId) == msg.sender, 'Not token owner');
+    require(!locks[tokenId].withdrawn, 'Already withdrawn');
+
     LockInfo storage lock = locks[tokenId];
-    require(!lock.withdrawn, 'Already withdrawn');
 
     Initiative storage initiative = initiatives[lock.initiativeId];
-    require(
-      initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired,
-      'Initiative not withdrawable'
-    );
+    if (
+      !(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)
+    ) revert InvalidInitiativeState('Initiative not withdrawable');
 
+    uint256 amount = lock.tokenAmount;
     lock.withdrawn = true;
     _burn(tokenId);
 
-    if (!IERC20(underlyingToken).transfer(msg.sender, lock.tokenAmount))
-      revert TokenTransferFailed();
+    if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert TokenTransferFailed();
 
-    emit TokensWithdrawn(lock.initiativeId, msg.sender, lock.tokenAmount);
-  }
-
-  function withdrawAllTokens() external nonReentrant {
-    uint256[] memory tokenIds = supporterLocks[msg.sender];
-    uint256 totalToWithdraw = 0;
-
-    for (uint256 i = 0; i < tokenIds.length; i++) {
-      uint256 tokenId = tokenIds[i];
-      if (ownerOf(tokenId) == msg.sender && !locks[tokenId].withdrawn) {
-        LockInfo storage lock = locks[tokenId];
-        if (
-          initiatives[lock.initiativeId].state == InitiativeState.Accepted ||
-          initiatives[lock.initiativeId].state == InitiativeState.Expired
-        ) {
-          totalToWithdraw += lock.tokenAmount;
-          lock.withdrawn = true;
-          _burn(tokenId);
-        }
-      }
-    }
-
-    if (totalToWithdraw == 0) revert NothingToWithdraw();
-    if (!IERC20(underlyingToken).transfer(msg.sender, totalToWithdraw))
-      revert TokenTransferFailed();
+    emit TokensWithdrawn(lock.initiativeId, msg.sender, amount);
   }
 
   /**
