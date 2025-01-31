@@ -477,6 +477,19 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   }
 
   /**
+   * @notice Returns the current discount for a given token ID
+   *
+   * @param tokenId The token ID to return the discount for
+   */
+  function currentDiscount(uint256 tokenId) public view returns (uint256) {
+    LockInfo memory lock = locks[tokenId];
+    uint256 timeElapsed = block.timestamp - lock.created;
+    uint256 timeTotal = lock.lockDuration * lockInterval;
+
+    return (lock.tokenAmount * (timeTotal - timeElapsed)) / timeTotal;
+  }
+
+  /**
    * @notice Returns details about the specified initiative
    *
    * @param initiativeId The initiative to return

@@ -4,6 +4,8 @@
 
 - [ ] Use X96 for all math, remove decimals / tokens from assumptions
 - [ ] Consider, `ERC-721a` (more gas efficient) or `ERC-1155` (more flexible)?
+- [ ] Allow lockers to list their tokens for sale `PurchaseBondHook` (ideally could be bought at a premium)
+- [ ] Allow lockers to sell their tokens for sale `SellBondHook` (ideally could be sold at a discount)
 
 ## Getting Started
 
