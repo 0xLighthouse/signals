@@ -51,7 +51,7 @@ contract InitiativesTest is Test {
     _factory = new SignalsFactory();
 
     // Ensure the caller is the owner
-      vm.prank(_deployer);
+    vm.prank(_deployer);
 
     uint256[] memory _decayCurveParameters = new uint256[](1); // 0.9
     _decayCurveParameters[0] = 9e17;

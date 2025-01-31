@@ -179,6 +179,12 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     _;
   }
 
+  /// @notice Mapping of owner address to their current active token IDs
+  mapping(address => uint256[]) private _currentHoldings;
+
+  /// @notice Mapping to track index of token in _currentHoldings array
+  mapping(uint256 => uint256) private _holdingsIndex;
+
   modifier isNotInitialized() {
     require(acceptanceThreshold == 0, 'Already initialized');
     _;
@@ -615,5 +621,51 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
   function getLocksForSupporter(address supporter) public view returns (uint256[] memory) {
     return supporterLocks[supporter];
+  }
+
+  function openPositions(address owner) public view returns (uint256[] memory) {
+    return _currentHoldings[owner];
+  }
+
+  function _mint(address to, uint256 tokenId) internal override {
+    super._mint(to, tokenId);
+    // Add to current holdings
+    _holdingsIndex[tokenId] = _currentHoldings[to].length;
+    _currentHoldings[to].push(tokenId);
+  }
+
+  function _burn(uint256 tokenId) internal override {
+    address owner = _ownerOf(tokenId);
+
+    // Remove from current holdings (swap and pop)
+    uint256 index = _holdingsIndex[tokenId];
+    uint256 lastTokenId = _currentHoldings[owner][_currentHoldings[owner].length - 1];
+
+    if (tokenId != lastTokenId) {
+      _currentHoldings[owner][index] = lastTokenId;
+      _holdingsIndex[lastTokenId] = index;
+    }
+    _currentHoldings[owner].pop();
+    delete _holdingsIndex[tokenId];
+
+    super._burn(tokenId);
+  }
+
+  function _transfer(address from, address to, uint256 tokenId) internal override {
+    // Remove from previous owner's holdings
+    uint256 index = _holdingsIndex[tokenId];
+    uint256 lastTokenId = _currentHoldings[from][_currentHoldings[from].length - 1];
+
+    if (tokenId != lastTokenId) {
+      _currentHoldings[from][index] = lastTokenId;
+      _holdingsIndex[lastTokenId] = index;
+    }
+    _currentHoldings[from].pop();
+
+    // Add to new owner's holdings
+    _holdingsIndex[tokenId] = _currentHoldings[to].length;
+    _currentHoldings[to].push(tokenId);
+
+    super._transfer(from, to, tokenId);
   }
 }

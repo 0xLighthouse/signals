@@ -261,10 +261,14 @@ contract SignalsTest is Test {
     vm.startPrank(_alice);
     uint256 balanceBefore = _token.balanceOf(_alice);
 
-    // Withdraw tokens
-    _signalsContract.redeem(1); // veBond 1
-    _signalsContract.redeem(2); // veBond 2
-    _signalsContract.redeem(3); // veBond 3
+    // List all NFTs owned by the alice
+    uint256[] memory nfts = _signalsContract.openPositions(_alice);
+    assertEq(nfts.length, 3);
+
+    // Iterate over the NFTs and redeem them
+    for (uint256 i = 0; i < nfts.length; i++) {
+      _signalsContract.redeem(nfts[i]);
+    }
 
     uint256 balanceAfter = _token.balanceOf(_alice);
     uint256 balanceDifference = balanceAfter - balanceBefore;
