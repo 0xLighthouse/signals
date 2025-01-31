@@ -2,8 +2,8 @@
 
 ## TODO
 
-- [ ] Use X96 for math
-- [ ] Consider `veBond` as how we can to call the receipt
+- [ ] Use X96 for all math, remove decimals / tokens from assumptions
+- [ ] Consider, `ERC-721a` (more gas efficient) or `ERC-1155` (more flexible)?
 
 ## Getting Started
 

@@ -5,6 +5,7 @@ import 'forge-std/console.sol';
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@solady/tokens/ERC721.sol';
 
@@ -17,7 +18,7 @@ import 'forge-std/console.sol';
  * @title Signals by Lighthouse <https://lighthouse.cx>
  *
  * @notice Manage community initiatives with governance tokens
- * @notice Locked positions are represented by transferrable ERC6909 tokens
+ * @notice Locked positions are represented by transferrable ERC721 tokens
  *         that can be traded and used to redeem the underlying tokens
  *         when the lock expires
  *
@@ -44,9 +45,6 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     uint256 timestamp;
     uint256 lastActivity;
   }
-
-  /// @notice ID of the token that represents locked tokens
-  uint256 public constant LOCK_TOKEN_ID = 1;
 
   /// @notice Possible initiative states
   enum InitiativeState {
@@ -203,12 +201,12 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
   constructor() ERC721() Ownable() {}
 
-  function name() public pure override returns (string memory) {
-    return 'Signal Lock Position';
+  function name() public view override returns (string memory) {
+    return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), ' Locked Support'));
   }
 
-  function symbol() public pure override returns (string memory) {
-    return 'SLP';
+  function symbol() public view override returns (string memory) {
+    return string(abi.encodePacked('sx', IERC20Metadata(underlyingToken).symbol()));
   }
 
   function tokenURI(uint256) public pure override returns (string memory) {
