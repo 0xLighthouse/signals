@@ -9,13 +9,14 @@ import '@v4-core/PoolManager.sol';
 import '@v4-core/interfaces/IPoolManager.sol';
 import '@v4-core/libraries/TickMath.sol';
 
+import '@v4-periphery/libraries/LiquidityAmounts.sol';
+
+import {StateLibrary} from '@v4-core/libraries/StateLibrary.sol';
 import {Currency} from '@v4-core/types/Currency.sol';
 import {PoolKey} from '@v4-core/types/PoolKey.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondAMM} from '../BondAMM.sol';
-
-import '@v4-periphery/libraries/LiquidityAmounts.sol';
 
 import {HookMiner} from './utils/HookMiner.sol';
 
@@ -34,10 +35,10 @@ import {HookMiner} from './utils/HookMiner.sol';
  * - [ ] Quote searchers to redeem bonds
  */
 contract BondAMMHookTest is Test {
+  using StateLibrary for IPoolManager;
+
   Signals _signalsContract;
   BondAMM _bondAmm;
-
-  // TODO: Explore if this was a Governor; if so, we should be testing with a Governor contract
   MockERC20 _someGovToken;
 
   address _deployer;
@@ -162,41 +163,34 @@ contract BondAMMHookTest is Test {
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
 
-  // function test_AddSingleSidedLiquidity() public {
-  //   uint256 amountUSDC = 1_000_000 * 1e6; // 1M USDC (6 decimals)
+  function test_AddSingleSidedLiquidity() public {
+    vm.startPrank(address(_charlie));
+    uint256 amountUSDC = 1_000_000 * 1e6; // 1M USDC (6 decimals)
 
-  //   // Mint USDC to test contract
-  //   deal(usdc, address(this), amountUSDC);
+    // Mint USDC to test contract
+    deal(usdc, address(_charlie), amountUSDC);
 
-  //   // Approve PoolManager to use USDC
-  //   IERC20(usdc).approve(address(poolManager), amountUSDC);
+    // Approve PoolManager to use USDC
+    IERC20(usdc).approve(address(poolManager), amountUSDC);
 
-  //     // Calculate liquidity amount based on the amount of USDC
-  //   uint160 sqrtPriceX96 = uint160(poolManager.getSlot0(poolKey).sqrtPriceX96);
+    // Define full-range liquidity parameters
+    int24 lowerTick = TickMath.MIN_TICK;
+    int24 upperTick = TickMath.MAX_TICK;
 
-  //   // Use a more focused price range instead of full range
-  //   int24 lowerTick = -60; // Approximately -0.5% from current price
-  //   int24 upperTick = 60;  // Approximately +0.5% from current price
+    // Add single-sided USDC liquidity at full range
+    poolManager.modifyLiquidity(
+      poolKey,
+      IPoolManager.ModifyLiquidityParams({
+        tickLower: lowerTick,
+        tickUpper: upperTick,
+        liquidityDelta: int128(int256(amountUSDC)),
+        salt: bytes32(0)
+      }),
+      abi.encode(0)
+    );
 
-  //   uint128 liquidity = LiquidityAmounts.getLiquidityForAmount1(
-  //       TickMath.getSqrtRatioAtTick(lowerTick),
-  //       TickMath.getSqrtRatioAtTick(upperTick),
-  //       amountUSDC
-  //   );
-
-  //   // Add liquidity with calculated amount
-  //   poolManager.addLiquidity(
-  //       IPoolManager.ModifyLiquidityParams({
-  //           poolKey: poolKey,
-  //           liquidityDelta: int128(liquidity),
-  //           tickLower: lowerTick,
-  //           tickUpper: upperTick
-  //       })
-  //   );
-
-  //   // Assert liquidity is added
-  //   (uint128 positionLiquidity, , ) = poolManager.getPosition(pool, address(this), lowerTick, upperTick);
-  //   assertGt(positionLiquidity, 0, 'Liquidity should be added');
-  //   assertEq(positionLiquidity, liquidity, 'Liquidity amount mismatch');
-  // }
+    // // Assert liquidity is added
+    // (uint128 liquidity, , , ) = poolManager.getLiquidity(poolKey, address(this), lowerTick, upperTick);
+    // assertGt(liquidity, 0, 'Liquidity should be added');
+  }
 }
