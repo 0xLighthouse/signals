@@ -9,6 +9,8 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@solady/tokens/ERC721.sol';
 
+import './interfaces/ISignals.sol';
+
 import './DecayCurves.sol';
 import './Incentives.sol';
 
@@ -52,23 +54,6 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     Accepted,
     Cancelled,
     Expired
-  }
-
-  /**
-   * @notice Struct to store lock information for each lockup
-   *
-   * @param initiativeId ID of the initiative
-   * @param tokenAmount Amount of tokens locked
-   * @param lockDuration Total duration of the lock in intervals
-   * @param created Timestamp of when the lock was created
-   * @param withdrawn Flag indicating whether the locked tokens have been withdrawn
-   */
-  struct LockInfo {
-    uint256 initiativeId;
-    uint256 tokenAmount;
-    uint256 lockDuration;
-    uint256 created;
-    bool withdrawn;
   }
 
   /// @notice Custom errors
@@ -115,7 +100,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   mapping(uint256 => Initiative) public initiatives;
 
   /// @notice Mapping from token ID to lock details
-  mapping(uint256 => LockInfo) public locks;
+  mapping(uint256 => ISignals.LockInfo) public locks;
 
   /// @notice Mapping from initiative ID to array of token IDs
   mapping(uint256 => uint256[]) public initiativeLocks;
@@ -263,7 +248,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
     _mint(supporter, tokenId);
 
-    locks[tokenId] = LockInfo({
+    locks[tokenId] = ISignals.LockInfo({
       initiativeId: initiativeId,
       tokenAmount: amount,
       lockDuration: lockDuration,
@@ -293,7 +278,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
     for (uint256 i = 0; i < tokenIds.length; i++) {
       uint256 tokenId = tokenIds[i];
-      LockInfo memory lock = locks[tokenId];
+      ISignals.LockInfo memory lock = locks[tokenId];
       if (!lock.withdrawn) {
         weight += _calculateLockWeightAt(lock, timestamp);
       }
@@ -312,7 +297,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
 
     for (uint256 i = 0; i < tokenIds.length; i++) {
       uint256 tokenId = tokenIds[i];
-      LockInfo memory lock = locks[tokenId];
+      ISignals.LockInfo memory lock = locks[tokenId];
       if (lock.initiativeId == initiativeId && !lock.withdrawn) {
         weight += _calculateLockWeightAt(lock, timestamp);
       }
@@ -322,7 +307,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   }
 
   function _calculateLockWeightAt(
-    LockInfo memory lock,
+    ISignals.LockInfo memory lock,
     uint256 timestamp
   ) internal view returns (uint256) {
     uint256 elapsedIntervals = (timestamp - lock.created) / lockInterval;
@@ -460,7 +445,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     require(!locks[tokenId].withdrawn, InvalidRedemption());
     require(ownerOf(tokenId) == msg.sender, 'Not token owner');
 
-    LockInfo storage lock = locks[tokenId];
+    ISignals.LockInfo storage lock = locks[tokenId];
 
     Initiative storage initiative = initiatives[lock.initiativeId];
     if (
@@ -476,13 +461,17 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     emit Redeemed(tokenId, msg.sender, amount);
   }
 
+  function getTokenMetadata(uint256 tokenId) public view returns (ISignals.LockInfo memory) {
+    return locks[tokenId];
+  }
+
   /**
    * @notice Returns the current discount for a given token ID
    *
    * @param tokenId The token ID to return the discount for
    */
   function currentDiscount(uint256 tokenId) public view returns (uint256) {
-    LockInfo memory lock = locks[tokenId];
+    ISignals.LockInfo memory lock = locks[tokenId];
     uint256 timeElapsed = block.timestamp - lock.created;
     uint256 timeTotal = lock.lockDuration * lockInterval;
 
