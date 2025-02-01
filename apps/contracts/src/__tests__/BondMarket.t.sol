@@ -34,7 +34,6 @@ import {BondHook} from '../BondHook.sol';
  */
 contract BondMarketTest is Test, Deployers {
   using CurrencyLibrary for Currency;
-  // using StateLibrary for IPoolManager;
 
   BondHook public hook;
   Signals _signalsContract;
@@ -112,8 +111,12 @@ contract BondMarketTest is Test, Deployers {
 
     // Deploy hook with correct flags
     uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+
+    console.log('HookAddress: %s', address(flags));
+
     deployCodeTo(
       "BondHook.sol",
+      // Note: [manager] exposed from the Deployers contract
       abi.encode(manager, address(_signalsContract)),
       address(flags)
     );
