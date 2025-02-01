@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 import 'forge-std/console.sol';
 import 'forge-std/StdUtils.sol';
-import 'forge-std/mocks/MockERC20.sol';
+
+import 'lib/solady/test/utils/mocks/MockERC20.sol';
+
 import '@openzeppelin/contracts/utils/Strings.sol';
 
 import {SignalsFactory} from '../SignalsFactory.sol';

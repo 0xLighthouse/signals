@@ -2,8 +2,9 @@
 pragma solidity ^0.8.26;
 
 import 'forge-std/Test.sol';
-import 'forge-std/mocks/MockERC20.sol';
 import 'forge-std/console.sol';
+
+import 'lib/solady/test/utils/mocks/MockERC20.sol';
 
 import {Signals} from '../Signals.sol';
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";

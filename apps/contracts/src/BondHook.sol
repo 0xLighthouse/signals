@@ -31,7 +31,8 @@ import 'forge-std/console.sol';
  * - Bonds can be redeemed for the underlying asset into the pool
  *    - revert when bond is not mature
  */
-contract BondAMM is BaseHook {
+contract BondHook is BaseHook {
+
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
   // using PoolIdLibrary for PoolKey;
   using StateLibrary for IPoolManager;

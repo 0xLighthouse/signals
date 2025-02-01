@@ -2,19 +2,22 @@
 pragma solidity 0.8.26;
 
 import 'forge-std/Test.sol';
-import 'forge-std/mocks/MockERC20.sol';
 import 'forge-std/console.sol';
+
+import 'lib/solady/test/utils/mocks/MockERC20.sol';
 
 import 'v4-core/PoolManager.sol';
 import 'v4-core/interfaces/IPoolManager.sol';
 import 'v4-core/libraries/TickMath.sol';
 
+import {Deployers} from "lib/v4-periphery/lib/v4-core/test/utils/Deployers.sol";
+
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-import {Currency} from 'v4-core/types/Currency.sol';
+import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
 
 import {Signals} from '../Signals.sol';
-import {BondAMM} from '../BondAMM.sol';
+import {BondHook} from '../BondHook.sol';
 
 /**
  * Selling locked bonds into a Uniswap V4 pool
@@ -30,12 +33,14 @@ import {BondAMM} from '../BondAMM.sol';
  * - [ ] Quote searchers to buy immature bonds from the Pool, LPs should get fees
  * - [ ] Quote searchers to redeem bonds
  */
-contract BondAMMHookTest is Test {
-  using StateLibrary for IPoolManager;
+contract BondMarketTest is Test, Deployers {
+  // using StateLibrary for IPoolManager;
 
   Signals _signalsContract;
-  BondAMM _bondAmm;
+  BondHook _bondHook;
+
   MockERC20 _someGovToken;
+  MockERC20 _usdc;
 
   address _deployer;
   address _alice;
@@ -54,31 +59,40 @@ contract BondAMMHookTest is Test {
   IPoolManager public poolManager;
   PoolKey public poolKey;
 
-  address public usdc;
-  address public govToken;
+  Currency usdcCurrency;
+  Currency govTokenCurrency;
 
   address public hook;
   address public pool;
 
-  uint24 public constant FEE = 3000; // 0.3% fee
+  uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
   function setUp() public {
+    // Actors...
     _deployer = address(this);
     _alice = address(0x1111);
     _bob = address(0x2222);
     _charlie = address(0x3333);
 
-    // Deploy the mock ERC20 token
-    _someGovToken = new MockERC20();
-    _someGovToken.initialize('SomeGovToken', 'SGT', 18);
+    // Deploy Uniswap V4 PoolManager and Router contracts
+    deployFreshManagerAndRouters();
 
-    // Deploy the Signals contract
+    // Deploy the mocked ERC20 token
+    _someGovToken = new MockERC20('Some Gov Token', 'GOV', 18);
+    govTokenCurrency = Currency.wrap(address(_someGovToken));
+
+    // Deploy the mock USDC token
+    _usdc = new MockERC20('USDC', 'USDC', 6);
+    usdcCurrency = Currency.wrap(address(_usdc));
+
+    /**
+     * Deploy a Signals board
+     * TODO: Wrap in a utility lib
+     */
     _signalsContract = new Signals();
-
     uint256[] memory _decayCurveParameters = new uint256[](1);
     _decayCurveParameters[0] = 9e17;
 
-    // Initialize the Signals contract
     _signalsContract.initialize(
       _deployer,
       address(_someGovToken),
@@ -91,60 +105,40 @@ contract BondAMMHookTest is Test {
       _decayCurveParameters
     );
 
-    // Mint tokens to participants
-    // Distribute tokens to test addresses
-    deal(address(_someGovToken), _alice, _PROPOSAL_THRESHOLD); // Alice has 50k
-    deal(address(_someGovToken), _bob, _PROPOSAL_THRESHOLD * 2); // Bob has 100k
-    deal(address(_someGovToken), _charlie, _PROPOSAL_THRESHOLD / 2); // Charlie has 25k
+    // Deploy hook with correct flags
+    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+    bytes memory hookBytecode = type(BondHook).creationCode;
+    bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
 
-    // Deploy mock tokens (if needed)
-    usdc = address(new MockERC20());
-    govToken = address(_someGovToken);
-
-    // Deploy the PoolManager
-    poolManager = new PoolManager(address(this));
-
-    // Define the hook's permissions
-    // Hooks.Permissions memory permissions = Hooks.Permissions({
-    //   beforeInitialize: false,
-    //   afterInitialize: false,
-    //   beforeAddLiquidity: false,
-    //   afterAddLiquidity: false,
-    //   beforeRemoveLiquidity: false,
-    //   afterRemoveLiquidity: false,
-    //   beforeSwap: true,
-    //   afterSwap: false,
-    //   beforeDonate: false,
-    //   afterDonate: false,
-    //   beforeSwapReturnDelta: false,
-    //   afterSwapReturnDelta: false,
-    //   afterAddLiquidityReturnDelta: false,
-    //   afterRemoveLiquidityReturnDelta: false
-    // });
+    deployCodeTo(
+        'BondHook.sol',
+        constructorArgs,
+        address(flags)
+    );
 
     // // Deploy hook with correct flags
-    // bytes memory hookBytecode = type(BondAMM).creationCode;
     // bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
     // hook = HookMiner.deploy(hookBytecode, constructorArgs, permissions);
 
-    // // Create the pool with proper PoolKey struct
-    // poolKey = PoolKey({
-    //   currency0: Currency.wrap(govToken),
-    //   currency1: Currency.wrap(usdc),
-    //   fee: FEE,
-    //   tickSpacing: 60, // Must match hook requirements
-    //   hooks: IHooks(hook)
-    // });
+    // Deploy our hook
+    hook = BondHook(address(flags));
 
-    // // Set price to 1:1, sqrt(1.0) * 2^96
-    // uint160 sqrtPriceX96 = 79228162514264337593543950336;
+    // Approve our TOKEN for spending on the swap router and modify liquidity router
+    // NOTE: These variables are exported from the `Deployers` contract
+    _someGovToken.approve(address(swapRouter), type(uint256).max);
+    _someGovToken.approve(address(modifyLiquidityRouter), type(uint256).max);
 
-    // // Initialize pool and get the pool ID
-    // poolManager.initialize(poolKey, sqrtPriceX96);
+    _usdc.approve(address(swapRouter), type(uint256).max);
+    _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
 
-    // // Approve tokens for pool operations
-    // MockERC20(govToken).approve(address(poolManager), type(uint256).max);
-    // MockERC20(usdc).approve(address(poolManager), type(uint256).max);
+    // Initialize the pool
+    (key, ) = initPool(
+        usdcCurrency, // Currency 0 = USDC
+        govTokenCurrency, // Currency 1 = GOV
+        hook, // Hook Contract
+        POOL_FEE, // Swap Fees, 0.3%
+        SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
+    );
   }
 
   function test_InitialState() public view {
