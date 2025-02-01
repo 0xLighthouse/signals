@@ -6,7 +6,7 @@ import 'forge-std/console.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import 'solady/utils/ReentrancyGuard.sol';
 
 import './Signals.sol';
 import './TokenRegistry.sol';
@@ -90,7 +90,7 @@ contract Incentives is Ownable, ReentrancyGuard {
     address _tokenRegistry,
     uint256[3] memory _allocations,
     address[3] memory _receivers
-  ) {
+  ) Ownable(msg.sender) {
     signalsContract = Signals(_signalsContract);
     registry = TokenRegistry(_tokenRegistry);
 

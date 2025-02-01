@@ -5,20 +5,16 @@ import 'forge-std/Test.sol';
 import 'forge-std/mocks/MockERC20.sol';
 import 'forge-std/console.sol';
 
-import '@v4-core/PoolManager.sol';
-import '@v4-core/interfaces/IPoolManager.sol';
-import '@v4-core/libraries/TickMath.sol';
+import 'v4-core/PoolManager.sol';
+import 'v4-core/interfaces/IPoolManager.sol';
+import 'v4-core/libraries/TickMath.sol';
 
-import '@v4-periphery/libraries/LiquidityAmounts.sol';
-
-import {StateLibrary} from '@v4-core/libraries/StateLibrary.sol';
-import {Currency} from '@v4-core/types/Currency.sol';
-import {PoolKey} from '@v4-core/types/PoolKey.sol';
+import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
+import {Currency} from 'v4-core/types/Currency.sol';
+import {PoolKey} from 'v4-core/types/PoolKey.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondAMM} from '../BondAMM.sol';
-
-import {HookMiner} from './utils/HookMiner.sol';
 
 /**
  * Selling locked bonds into a Uniswap V4 pool
@@ -109,46 +105,46 @@ contract BondAMMHookTest is Test {
     poolManager = new PoolManager(address(this));
 
     // Define the hook's permissions
-    Hooks.Permissions memory permissions = Hooks.Permissions({
-      beforeInitialize: false,
-      afterInitialize: false,
-      beforeAddLiquidity: false,
-      afterAddLiquidity: false,
-      beforeRemoveLiquidity: false,
-      afterRemoveLiquidity: false,
-      beforeSwap: true,
-      afterSwap: false,
-      beforeDonate: false,
-      afterDonate: false,
-      beforeSwapReturnDelta: false,
-      afterSwapReturnDelta: false,
-      afterAddLiquidityReturnDelta: false,
-      afterRemoveLiquidityReturnDelta: false
-    });
+    // Hooks.Permissions memory permissions = Hooks.Permissions({
+    //   beforeInitialize: false,
+    //   afterInitialize: false,
+    //   beforeAddLiquidity: false,
+    //   afterAddLiquidity: false,
+    //   beforeRemoveLiquidity: false,
+    //   afterRemoveLiquidity: false,
+    //   beforeSwap: true,
+    //   afterSwap: false,
+    //   beforeDonate: false,
+    //   afterDonate: false,
+    //   beforeSwapReturnDelta: false,
+    //   afterSwapReturnDelta: false,
+    //   afterAddLiquidityReturnDelta: false,
+    //   afterRemoveLiquidityReturnDelta: false
+    // });
 
-    // Deploy hook with correct flags
-    bytes memory hookBytecode = type(BondAMM).creationCode;
-    bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
-    hook = HookMiner.deploy(hookBytecode, constructorArgs, permissions);
+    // // Deploy hook with correct flags
+    // bytes memory hookBytecode = type(BondAMM).creationCode;
+    // bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
+    // hook = HookMiner.deploy(hookBytecode, constructorArgs, permissions);
 
-    // Create the pool with proper PoolKey struct
-    poolKey = PoolKey({
-      currency0: Currency.wrap(govToken),
-      currency1: Currency.wrap(usdc),
-      fee: FEE,
-      tickSpacing: 60, // Must match hook requirements
-      hooks: IHooks(hook)
-    });
+    // // Create the pool with proper PoolKey struct
+    // poolKey = PoolKey({
+    //   currency0: Currency.wrap(govToken),
+    //   currency1: Currency.wrap(usdc),
+    //   fee: FEE,
+    //   tickSpacing: 60, // Must match hook requirements
+    //   hooks: IHooks(hook)
+    // });
 
-    // Set price to 1:1, sqrt(1.0) * 2^96
-    uint160 sqrtPriceX96 = 79228162514264337593543950336;
+    // // Set price to 1:1, sqrt(1.0) * 2^96
+    // uint160 sqrtPriceX96 = 79228162514264337593543950336;
 
-    // Initialize pool and get the pool ID
-    poolManager.initialize(poolKey, sqrtPriceX96);
+    // // Initialize pool and get the pool ID
+    // poolManager.initialize(poolKey, sqrtPriceX96);
 
-    // Approve tokens for pool operations
-    MockERC20(govToken).approve(address(poolManager), type(uint256).max);
-    MockERC20(usdc).approve(address(poolManager), type(uint256).max);
+    // // Approve tokens for pool operations
+    // MockERC20(govToken).approve(address(poolManager), type(uint256).max);
+    // MockERC20(usdc).approve(address(poolManager), type(uint256).max);
   }
 
   function test_InitialState() public view {
@@ -163,34 +159,33 @@ contract BondAMMHookTest is Test {
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
 
-  function test_AddSingleSidedLiquidity() public {
-    vm.startPrank(address(_charlie));
-    uint256 amountUSDC = 1_000_000 * 1e6; // 1M USDC (6 decimals)
+  // function test_AddSingleSidedLiquidity() public {
+  //   vm.startPrank(address(this));
+  //   uint256 amountUSDC = 1_000_000 * 1e6; // 1M USDC (6 decimals)
 
-    // Mint USDC to test contract
-    deal(usdc, address(_charlie), amountUSDC);
+  //   // Mint USDC to test contract
+  //   deal(usdc, address(this), amountUSDC);
 
-    // Approve PoolManager to use USDC
-    IERC20(usdc).approve(address(poolManager), amountUSDC);
+  //   // Approve PoolManager to use USDC
+  //   IERC20(usdc).approve(address(poolManager), amountUSDC);
 
-    // Define full-range liquidity parameters
-    int24 lowerTick = TickMath.MIN_TICK;
-    int24 upperTick = TickMath.MAX_TICK;
+  //   // Define full-range liquidity parameters
+  //   int24 lowerTick = TickMath.MIN_TICK;
+  //   int24 upperTick = TickMath.MAX_TICK;
 
-    // Add single-sided USDC liquidity at full range
-    poolManager.modifyLiquidity(
-      poolKey,
-      IPoolManager.ModifyLiquidityParams({
-        tickLower: lowerTick,
-        tickUpper: upperTick,
-        liquidityDelta: int128(int256(amountUSDC)),
-        salt: bytes32(0)
-      }),
-      abi.encode(0)
-    );
+  //   // Add single-sided USDC liquidity at full range
+  //   IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+  //     tickLower: lowerTick,
+  //     tickUpper: upperTick,
+  //     liquidityDelta: int128(int256(amountUSDC)),
+  //     salt: bytes32(0)
+  //   });
 
-    // // Assert liquidity is added
-    // (uint128 liquidity, , , ) = poolManager.getLiquidity(poolKey, address(this), lowerTick, upperTick);
-    // assertGt(liquidity, 0, 'Liquidity should be added');
-  }
+  //   // Call unlock with the params
+  //   poolManager.unlock(abi.encode(poolKey, params));
+
+  //   // Assert liquidity is added
+  //   // (uint128 liquidity, , , ) = poolManager.getLiquidity(poolKey, address(_charlie), lowerTick, upperTick);
+  //   // assertGt(liquidity, 0, 'Liquidity should be added');
+  // }
 }

@@ -1,15 +1,23 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {BaseHook} from '@v4-periphery/base/hooks/BaseHook.sol';
-import {PoolKey} from '@v4-core/types/PoolKey.sol';
-import {Currency} from '@v4-core/types/Currency.sol';
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from '@v4-core/types/BeforeSwapDelta.sol';
-import {PoolId, PoolIdLibrary} from '@v4-core/types/PoolId.sol';
-import {Hooks} from '@v4-core/libraries/Hooks.sol';
-import {TickMath} from '@v4-core/libraries/TickMath.sol';
-import {StateLibrary} from '@v4-core/libraries/StateLibrary.sol';
-import {IPoolManager} from '@v4-core/interfaces/IPoolManager.sol';
+import {BaseHook} from 'v4-periphery/base/hooks/BaseHook.sol';
+import {ERC20} from 'solmate/src/tokens/ERC20.sol';
+
+import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
+import {PoolKey} from 'v4-core/types/PoolKey.sol';
+import {BalanceDeltaLibrary, BalanceDelta} from 'v4-core/types/BalanceDelta.sol';
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapDelta.sol';
+
+
+import {Hooks} from 'v4-core/libraries/Hooks.sol';
+// import {BaseHook} from 'v4-periphery/base/hooks/BaseHook.sol';
+// import {PoolId, PoolIdLibrary} from 'v4-core/types/PoolId.sol';
+// import {TickMath} from 'v4-core/libraries/TickMath.sol';
+import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
+
+// --- This is the correct import for the IPoolManager interface...
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 
 import {Signals} from './Signals.sol';
 import {ISignals} from './interfaces/ISignals.sol';
@@ -26,8 +34,8 @@ import 'forge-std/console.sol';
  */
 contract BondAMM is BaseHook {
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
-  using PoolIdLibrary for PoolKey;
-  // using StateLibrary for IPoolManager;
+  // using PoolIdLibrary for PoolKey;
+  using StateLibrary for IPoolManager;
 
   Signals public immutable signals;
 
@@ -37,7 +45,7 @@ contract BondAMM is BaseHook {
 
   constructor(IPoolManager _poolManager, address _signals) BaseHook(_poolManager) {
     signals = Signals(_signals);
-    poolManager = IPoolManager(_poolManager);
+    // poolManager = IPoolManager(_poolManager);
   }
 
   function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -49,7 +57,7 @@ contract BondAMM is BaseHook {
         afterAddLiquidity: false,
         beforeRemoveLiquidity: false,
         afterRemoveLiquidity: false,
-        beforeSwap: true,
+        beforeSwap: false,
         afterSwap: false,
         beforeDonate: false,
         afterDonate: false,
@@ -60,29 +68,6 @@ contract BondAMM is BaseHook {
       });
   }
 
-  /**
-   * WHat should be do before the bond is sold into the AMM?
-   */
-  function beforeSwap(
-    address sender,
-    PoolKey calldata key,
-    IPoolManager.SwapParams calldata params,
-    bytes calldata data
-  ) external override returns (bytes4, BeforeSwapDelta, uint24) {
-    // --- TODO: refactor as modifier
-    if (
-      Currency.unwrap(key.currency0) == address(signals) ||
-      Currency.unwrap(key.currency1) == address(signals)
-    ) {
-      // --- TODO: Revert if bond has reached maturity
-      // --- TODO: Revert if bond is not owned by sender
-      _handleBondSwap(sender, key, params, data);
-
-      // Transfer should happen after successful swap confirmation
-    }
-
-    return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
-  }
 
   function _handleBondSwap(
     address user,

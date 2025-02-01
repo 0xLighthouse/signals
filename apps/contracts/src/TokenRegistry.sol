@@ -18,8 +18,8 @@ contract TokenRegistry is AccessControl {
   event TokenRemoved(address indexed token);
 
   constructor() {
-    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    _setupRole(TOKEN_MANAGER_ROLE, msg.sender);
+    _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    _grantRole(TOKEN_MANAGER_ROLE, msg.sender);
   }
 
   function allow(address _token) external onlyRole(TOKEN_MANAGER_ROLE) {

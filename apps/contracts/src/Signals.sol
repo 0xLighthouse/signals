@@ -6,8 +6,9 @@ import 'forge-std/console.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import '@solady/tokens/ERC721.sol';
+
+import 'solady/utils/ReentrancyGuard.sol';
+import 'solady/tokens/ERC721.sol';
 
 import './interfaces/ISignals.sol';
 
@@ -190,7 +191,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   // TODO: Reconsider tradeoffs of this design pattern properly
   Incentives public incentives;
 
-  constructor() ERC721() Ownable() {}
+  constructor() ERC721() Ownable(msg.sender) {}
 
   function name() public view override returns (string memory) {
     return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), ' Locked Support'));

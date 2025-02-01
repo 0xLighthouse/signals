@@ -1,5 +1,5 @@
 [profile.default]
-optimizer_runs = 44444444
+optimizer_runs = 9999
 via_ir = true
 ffi = true
 solc = "0.8.26"

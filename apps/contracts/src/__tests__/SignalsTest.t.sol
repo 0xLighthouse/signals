@@ -6,6 +6,8 @@ import 'forge-std/mocks/MockERC20.sol';
 import 'forge-std/console.sol';
 
 import {Signals} from '../Signals.sol';
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 
 /// @title SignalsTest
 contract SignalsTest is Test {
@@ -184,14 +186,14 @@ contract SignalsTest is Test {
   }
 
   /// Test that only the owner can accept an initiative
-  function testOnlyOwnerCanAccept() public {
+  function test_OnlyOwnerCanAccept() public {
     // Propose an initiative
     vm.startPrank(_alice);
     _token.approve(address(_signalsContract), 100 * 1e18);
     _signalsContract.proposeInitiative('Initiative 1', 'Description 1');
 
     // Attempt to accept the initiative as a non-owner
-    vm.expectRevert('Ownable: caller is not the owner');
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _alice));
     _signalsContract.acceptInitiative(0);
   }
 
@@ -347,12 +349,10 @@ contract SignalsTest is Test {
     assertEq(_signalsContract.activityTimeout(), 30 days);
   }
 
-  /// Test that non-owners cannot update inactivity threshold
-  function testSetInactivityThresholdNonOwner() public {
-    vm.startPrank(_alice);
 
-    // Attempt to update the inactivity threshold as a non-owner
-    vm.expectRevert('Ownable: caller is not the owner');
+  function test_SetInactivityThresholdOnlyOwner() public {
+    vm.startPrank(_alice);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _alice));
     _signalsContract.setInactivityThreshold(30 days);
   }
 
