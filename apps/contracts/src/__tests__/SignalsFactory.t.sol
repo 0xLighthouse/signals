@@ -34,8 +34,7 @@ contract SignalsFactoryTest is Test {
     console.log('Alice:', _alice);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _mockToken = new MockERC20();
-    _mockToken.initialize('MockToken', 'MTK', 18);
+    _mockToken = new MockERC20('MockToken', 'MTK', 18);
     uint256 initialSupply = 1_000_000 * 10 ** 18;
     deal(address(_mockToken), _deployer, initialSupply);
 

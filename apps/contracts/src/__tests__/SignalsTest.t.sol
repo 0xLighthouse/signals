@@ -33,7 +33,7 @@ contract SignalsTest is Test {
     _charlie = address(0x3333);
 
     // Deploy the mock ERC20 token
-    _token = new MockERC20();
+    _token = new MockERC20('MockToken', 'MTK', 18);
 
     // Deploy the Signals contract
     _signalsContract = new Signals();

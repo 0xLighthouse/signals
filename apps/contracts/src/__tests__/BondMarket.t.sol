@@ -7,7 +7,6 @@ import 'forge-std/console.sol';
 import 'lib/solady/test/utils/mocks/MockERC20.sol';
 
 import 'v4-core/PoolManager.sol';
-import 'v4-core/interfaces/IPoolManager.sol';
 import 'v4-core/libraries/TickMath.sol';
 
 import {Deployers} from "lib/v4-periphery/lib/v4-core/test/utils/Deployers.sol";
@@ -19,7 +18,6 @@ import {PoolId} from 'v4-core/types/PoolId.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
-import {HookDeployer} from './utils/HookDeployer.sol';
 /**
  * Selling locked bonds into a Uniswap V4 pool
  *
@@ -35,10 +33,11 @@ import {HookDeployer} from './utils/HookDeployer.sol';
  * - [ ] Quote searchers to redeem bonds
  */
 contract BondMarketTest is Test, Deployers {
+  using CurrencyLibrary for Currency;
   // using StateLibrary for IPoolManager;
 
+  BondHook public hook;
   Signals _signalsContract;
-  BondHook _bondHook;
 
   MockERC20 _someGovToken;
   MockERC20 _usdc;
@@ -57,16 +56,11 @@ contract BondMarketTest is Test, Deployers {
   uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
   // --- Pool Config ---
-  IPoolManager public poolManager;
-
   PoolKey public poolKey;
   PoolId public poolId;
 
   Currency usdcCurrency;
   Currency govTokenCurrency;
-
-  address public hook;
-  address public pool;
 
   uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
@@ -108,12 +102,6 @@ contract BondMarketTest is Test, Deployers {
       _decayCurveParameters
     );
 
-    // Deploy hook with correct flags
-    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
-    bytes memory hookBytecode = type(BondHook).creationCode;
-    bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
-    hook = HookDeployer.deploy(hookBytecode, constructorArgs, flags);
-
     // Approve our TOKEN for spending on the swap router and modify liquidity router
     // NOTE: These variables are exported from the `Deployers` contract
     _someGovToken.approve(address(swapRouter), type(uint256).max);
@@ -122,17 +110,27 @@ contract BondMarketTest is Test, Deployers {
     _usdc.approve(address(swapRouter), type(uint256).max);
     _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
 
-    // Initialize the pool
-    (poolKey, poolId) = initPool(
-        usdcCurrency, // Currency 0 = USDC
-        govTokenCurrency, // Currency 1 = GOV
-        IHooks(hook), // Hook Contract
-        POOL_FEE, // Swap Fees, 0.3%
-        SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
+    // Deploy hook with correct flags
+    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+    deployCodeTo(
+      "BondHook.sol",
+      abi.encode(manager, address(_signalsContract)),
+      address(flags)
     );
 
-    console.log('Pool Key: %s', poolKey);
-    console.log('Pool ID: %s', poolId);
+    hook = BondHook(address(flags));
+
+    // Initialize the pool
+    // (poolKey, poolId) = initPool(
+    //     usdcCurrency, // Currency 0 = USDC
+    //     govTokenCurrency, // Currency 1 = GOV
+    //     IHooks(hook), // Hook Contract
+    //     POOL_FEE, // Swap Fees, 0.3%
+    //     SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
+    // );
+
+    // console.log('Pool Key: %s', poolKey);
+    // console.log('Pool ID: %s', poolId);
   }
 
   function test_InitialState() public view {
@@ -146,6 +144,8 @@ contract BondMarketTest is Test, Deployers {
     assertEq(_signalsContract.decayCurveType(), _DECAY_CURVE_TYPE);
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
+
+
 
   // function test_AddSingleSidedLiquidity() public {
   //   vm.startPrank(address(this));

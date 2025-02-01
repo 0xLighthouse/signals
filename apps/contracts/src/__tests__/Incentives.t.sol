@@ -52,13 +52,13 @@ contract IncentivesTest is Test {
     _treasuryAddress = address(0x6666);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _mToken = new MockERC20();
-    _mToken.initialize('MockToken', 'MTK', 18);
+    _mToken = new MockERC20('MockToken', 'MTK', 18);
+
     uint256 initialSupply = 1_000_000 * 1e18;
     deal(address(_mToken), _deployer, initialSupply);
 
     _mUSDC = new MockStable('MockUSDC', 'MUSDC');
-    _mUSDC.initialize(1_000_000 * 1e6);
+    // _mUSDC.initialize(1_000_000 * 1e6);
     deal(address(_mUSDC), _deployer, initialSupply);
 
     // Distribute tokens to test addresses

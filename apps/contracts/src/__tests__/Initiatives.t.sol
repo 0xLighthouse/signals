@@ -39,8 +39,7 @@ contract InitiativesTest is Test {
     _charlie = address(0x3333);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _someERC20 = new MockERC20();
-    _someERC20.initialize('MockToken', 'MTK', 18);
+    _someERC20 = new MockERC20('MockToken', 'MTK', 18);
     uint256 initialSupply = 1_000_000 * 1e18;
     deal(address(_someERC20), _deployer, initialSupply);
 
