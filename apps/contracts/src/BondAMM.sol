@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.8.28;
+pragma solidity 0.8.26;
 
 import {BaseHook} from '@v4-periphery/base/hooks/BaseHook.sol';
 import {PoolKey} from '@v4-core/types/PoolKey.sol';
