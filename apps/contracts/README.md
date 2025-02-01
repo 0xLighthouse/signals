@@ -2,6 +2,7 @@
 
 ## TODO
 
+- [ ] Simplify how new `Signals` boards are deployed
 - [ ] Use X96 for all math, remove decimals / tokens from assumptions
 - [ ] Consider, `ERC-721a` (more gas efficient) or `ERC-1155` (more flexible)?
 - [ ] Allow lockers to list their tokens for sale `PurchaseBondHook` (ideally could be bought at a premium)

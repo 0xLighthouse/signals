@@ -9,14 +9,30 @@ import '@v4-core/PoolManager.sol';
 import '@v4-core/interfaces/IPoolManager.sol';
 import '@v4-core/libraries/TickMath.sol';
 
-import {Currency} from "@v4-core/types/Currency.sol";
-import {PoolKey} from "@v4-core/types/PoolKey.sol";
+import {Currency} from '@v4-core/types/Currency.sol';
+import {PoolKey} from '@v4-core/types/PoolKey.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondAMM} from '../BondAMM.sol';
 
 import '@v4-periphery/libraries/LiquidityAmounts.sol';
 
+import {HookMiner} from './utils/HookMiner.sol';
+
+/**
+ * Selling locked bonds into a Uniswap V4 pool
+ *
+ * TODO:
+ * - [ ] Alice has 100k SGT
+ * - [ ] Bob provides 1MM SGT/USDC to the pool
+ * - [ ] Alice locks 50k against an initiative for 1 year
+ * - [ ] Variations:
+ *      - [ ] Price selling the bond into the pool at t0 (immediately)
+ *      - [ ] Price selling the bond into the pool at t3 (3/12)
+ *      - [ ] Sell the bond into the pool at t6 (6/12)
+ * - [ ] Quote searchers to buy immature bonds from the Pool, LPs should get fees
+ * - [ ] Quote searchers to redeem bonds
+ */
 contract BondAMMHookTest is Test {
   Signals _signalsContract;
   BondAMM _bondAmm;
@@ -91,18 +107,40 @@ contract BondAMMHookTest is Test {
     poolManager = new PoolManager(address(this));
 
     // Deploy our hook
-    hook = address(new BondAMM(poolManager, address(_signalsContract)));
+    // Define the hook's permissions
+    Hooks.Permissions memory permissions = Hooks.Permissions({
+      beforeInitialize: false,
+      afterInitialize: false,
+      beforeAddLiquidity: false,
+      afterAddLiquidity: false,
+      beforeRemoveLiquidity: false,
+      afterRemoveLiquidity: false,
+      beforeSwap: true,
+      afterSwap: false,
+      beforeDonate: false,
+      afterDonate: false,
+      beforeSwapReturnDelta: false,
+      afterSwapReturnDelta: false,
+      afterAddLiquidityReturnDelta: false,
+      afterRemoveLiquidityReturnDelta: false
+    });
+
+    // Deploy hook with correct flags
+    bytes memory hookBytecode = type(BondAMM).creationCode;
+    bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
+    hook = HookMiner.deploy(hookBytecode, constructorArgs, permissions);
 
     // Create the pool with proper PoolKey struct
     poolKey = PoolKey({
-        currency0: Currency.wrap(weth),
-        currency1: Currency.wrap(usdc),
-        fee: FEE,
-        tickSpacing: 60, // Must match hook requirements
-        hooks: IHooks(hook)
+      currency0: Currency.wrap(weth),
+      currency1: Currency.wrap(usdc),
+      fee: FEE,
+      tickSpacing: 60, // Must match hook requirements
+      hooks: IHooks(hook)
     });
 
-    uint160 sqrtPriceX96 = 79228162514264337593543950336; // Initial price 1:1
+    // Set price to 1:1, sqrt(1.0) * 2^96
+    uint160 sqrtPriceX96 = 79228162514264337593543950336;
 
     // Initialize pool and get the pool ID
     poolManager.initialize(poolKey, sqrtPriceX96);
