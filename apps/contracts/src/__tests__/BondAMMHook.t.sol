@@ -58,7 +58,8 @@ contract BondAMMHookTest is Test {
   PoolKey public poolKey;
 
   address public usdc;
-  address public weth;
+  address public govToken;
+
   address public hook;
   address public pool;
 
@@ -101,12 +102,11 @@ contract BondAMMHookTest is Test {
 
     // Deploy mock tokens (if needed)
     usdc = address(new MockERC20());
-    weth = address(new MockERC20());
+    govToken = address(_someGovToken);
 
     // Deploy the PoolManager
     poolManager = new PoolManager(address(this));
 
-    // Deploy our hook
     // Define the hook's permissions
     Hooks.Permissions memory permissions = Hooks.Permissions({
       beforeInitialize: false,
@@ -132,7 +132,7 @@ contract BondAMMHookTest is Test {
 
     // Create the pool with proper PoolKey struct
     poolKey = PoolKey({
-      currency0: Currency.wrap(weth),
+      currency0: Currency.wrap(govToken),
       currency1: Currency.wrap(usdc),
       fee: FEE,
       tickSpacing: 60, // Must match hook requirements
@@ -146,7 +146,7 @@ contract BondAMMHookTest is Test {
     poolManager.initialize(poolKey, sqrtPriceX96);
 
     // Approve tokens for pool operations
-    MockERC20(weth).approve(address(poolManager), type(uint256).max);
+    MockERC20(govToken).approve(address(poolManager), type(uint256).max);
     MockERC20(usdc).approve(address(poolManager), type(uint256).max);
   }
 
