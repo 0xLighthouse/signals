@@ -9,7 +9,6 @@ import {Signals} from '../Signals.sol';
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 
-/// @title SignalsTest
 contract SignalsTest is Test {
   Signals _signalsContract;
   MockERC20 _token;

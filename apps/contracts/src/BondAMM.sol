@@ -11,16 +11,15 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapD
 
 
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
+import 'v4-core/interfaces/IPoolManager.sol';
+
+import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
+import {Signals} from './Signals.sol';
+import {ISignals} from './interfaces/ISignals.sol';
+
 // import {BaseHook} from 'v4-periphery/base/hooks/BaseHook.sol';
 // import {PoolId, PoolIdLibrary} from 'v4-core/types/PoolId.sol';
 // import {TickMath} from 'v4-core/libraries/TickMath.sol';
-import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-
-// --- This is the correct import for the IPoolManager interface...
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-
-import {Signals} from './Signals.sol';
-import {ISignals} from './interfaces/ISignals.sol';
 
 import 'forge-std/console.sol';
 
