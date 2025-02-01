@@ -15,10 +15,11 @@ import {Deployers} from "lib/v4-periphery/lib/v4-core/test/utils/Deployers.sol";
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
+import {PoolId} from 'v4-core/types/PoolId.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
-
+import {HookDeployer} from './utils/HookDeployer.sol';
 /**
  * Selling locked bonds into a Uniswap V4 pool
  *
@@ -57,7 +58,9 @@ contract BondMarketTest is Test, Deployers {
 
   // --- Pool Config ---
   IPoolManager public poolManager;
+
   PoolKey public poolKey;
+  PoolId public poolId;
 
   Currency usdcCurrency;
   Currency govTokenCurrency;
@@ -109,19 +112,7 @@ contract BondMarketTest is Test, Deployers {
     uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
     bytes memory hookBytecode = type(BondHook).creationCode;
     bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
-
-    deployCodeTo(
-        'BondHook.sol',
-        constructorArgs,
-        address(flags)
-    );
-
-    // // Deploy hook with correct flags
-    // bytes memory constructorArgs = abi.encode(poolManager, address(_signalsContract));
-    // hook = HookMiner.deploy(hookBytecode, constructorArgs, permissions);
-
-    // Deploy our hook
-    hook = BondHook(address(flags));
+    hook = HookDeployer.deploy(hookBytecode, constructorArgs, flags);
 
     // Approve our TOKEN for spending on the swap router and modify liquidity router
     // NOTE: These variables are exported from the `Deployers` contract
@@ -132,13 +123,16 @@ contract BondMarketTest is Test, Deployers {
     _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
 
     // Initialize the pool
-    (key, ) = initPool(
+    (poolKey, poolId) = initPool(
         usdcCurrency, // Currency 0 = USDC
         govTokenCurrency, // Currency 1 = GOV
-        hook, // Hook Contract
+        IHooks(hook), // Hook Contract
         POOL_FEE, // Swap Fees, 0.3%
         SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
     );
+
+    console.log('Pool Key: %s', poolKey);
+    console.log('Pool ID: %s', poolId);
   }
 
   function test_InitialState() public view {
