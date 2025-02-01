@@ -130,7 +130,7 @@ contract BondMarketTest is Test, Deployers {
     );
     deployCodeTo(
         "PointsHook.sol",
-        abi.encode(manager, "Points Token", "TEST_POINTS"),
+        abi.encode(manager, address(_signalsContract)),
         address(flags)
     );
     // Deploy our hook

@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import {BaseHook} from "v4-periphery/base/hooks/BaseHook.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
@@ -12,15 +11,20 @@ import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 
-contract PointsHook is BaseHook, ERC20 {
+import {Signals} from './Signals.sol';
+
+contract PointsHook is BaseHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
 
+    Signals public immutable signals;
+
     constructor(
         IPoolManager _manager,
-        string memory _name,
-        string memory _symbol
-    ) BaseHook(_manager) ERC20(_name, _symbol, 18) {}
+        address _signals
+    ) BaseHook(_manager) {
+        signals = Signals(_signals);
+    }
 
     function getHookPermissions()
         public
@@ -72,8 +76,6 @@ contract PointsHook is BaseHook, ERC20 {
         uint256 ethSpendAmount = uint256(int256(-delta.amount0()));
         uint256 pointsForSwap = ethSpendAmount / 5;
 
-        // Mint the points including any referral points
-        _assignPoints(hookData, pointsForSwap);
 
         return (this.afterSwap.selector, 0);
     }
@@ -94,23 +96,10 @@ contract PointsHook is BaseHook, ERC20 {
         uint256 pointsForAddingLiquidity = uint256(int256(-delta.amount0()));
 
         // Mint the points including any referral points
-        _assignPoints(hookData, pointsForAddingLiquidity);
+
 
         return (this.afterAddLiquidity.selector, delta);
     }
 
-    function _assignPoints(bytes calldata hookData, uint256 points) internal {
-        // If no hookData is passed in, no points will be assigned to anyone
-        if (hookData.length == 0) return;
 
-        // Extract user address from hookData
-        address user = abi.decode(hookData, (address));
-
-        // If there is hookData but not in the format we're expecting and user address is zero
-        // nobody gets any points
-        if (user == address(0)) return;
-
-        // Mint points to the user
-        _mint(user, points);
-    }
 }
