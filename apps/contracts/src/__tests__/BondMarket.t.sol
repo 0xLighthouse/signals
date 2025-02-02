@@ -1,19 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import 'forge-std/Test.sol';
+import "forge-std/Test.sol";
 
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 
-import 'forge-std/console.sol';
+import {PoolManager} from "v4-core/PoolManager.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 
-import 'solmate/src/test/utils/mocks/MockERC20.sol';
+import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {SqrtPriceMath} from "v4-core/libraries/SqrtPriceMath.sol";
+
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
+
+import 'forge-std/console.sol';
 
 /**
  * Selling locked bonds into a Uniswap V4 pool
@@ -32,12 +39,9 @@ import {BondHook} from '../BondHook.sol';
 contract BondMarketTest is Test, Deployers {
   using CurrencyLibrary for Currency;
 
-  BondHook public bondhook;
-
+  // --- Contracts ---
   Signals _signalsContract;
-
-  MockERC20 _someGovToken;
-  MockERC20 _usdc;
+  BondHook public bondhook;
 
   // --- Signals Config ---
   uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
@@ -47,11 +51,15 @@ contract BondMarketTest is Test, Deployers {
   uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
   uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
-  // --- Pool Config ---
+  // --- Tokens ---
+  MockERC20 _someGovToken;
+  MockERC20 _usdc;
+
   Currency ethCurrency = Currency.wrap(address(0));
   Currency usdcCurrency;
   Currency govTokenCurrency;
 
+  // --- Pool Config ---
   uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
   function setUp() public {
@@ -105,17 +113,16 @@ contract BondMarketTest is Test, Deployers {
       address(flags)
     );
     bondhook = BondHook(address(flags));
+
     // Initialize the pool with the correct parameters
-    initPool(
+    // Note: writes [key] to the [Deployers] contract
+    (key, ) = initPool(
       ethCurrency, // Currency 0 = USDC
       govTokenCurrency, // Currency 1 = GOV
-      address(bondhook), // Hook Contract
-      uint24(POOL_FEE), // Swap Fees, 0.3%
-      uint160(SQRT_PRICE_1_1) // Initial Sqrt(P) value = 1
+      bondhook, // Hook Contract
+      POOL_FEE, // Swap Fees, 0.3%
+      SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
     );
-
-    // console.log('Pool Key: %s', poolKey);
-    // console.log('Pool ID: %s', poolId);
   }
 
   function test_InitialState() public view {
