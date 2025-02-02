@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
-import 'lib/solady/test/utils/mocks/MockERC20.sol';
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import {Signals} from '../Signals.sol';
 import {DecayCurves} from '../DecayCurves.sol';

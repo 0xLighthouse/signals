@@ -7,7 +7,7 @@ import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 
 import 'forge-std/console.sol';
 
-import 'lib/solady/test/utils/mocks/MockERC20.sol';
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';

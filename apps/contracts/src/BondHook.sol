@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {BaseHook} from 'v4-periphery/base/hooks/BaseHook.sol';
+import {BaseHook} from 'v4-periphery/src/base/hooks/BaseHook.sol';
 
 import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
