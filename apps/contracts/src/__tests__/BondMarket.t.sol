@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.26;
+pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
+
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+
 import 'forge-std/console.sol';
 
 import 'lib/solady/test/utils/mocks/MockERC20.sol';
 
-import 'v4-core/PoolManager.sol';
-import 'v4-core/libraries/TickMath.sol';
-
-import {Deployers} from "lib/v4-periphery/lib/v4-core/test/utils/Deployers.sol";
-
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
-import {PoolKey} from 'v4-core/types/PoolKey.sol';
-import {PoolId} from 'v4-core/types/PoolId.sol';
-
+import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
+import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
 
@@ -23,13 +19,13 @@ import {BondHook} from '../BondHook.sol';
  * Selling locked bonds into a Uniswap V4 pool
  *
  * TODO:
- * - [ ] Alice has 100k SGT
- * - [ ] Bob provides 1MM SGT/USDC to the pool
+ * - [ ] Alice has 100k GOV
+ * - [ ] Bob provides 1MM GOV/USDC to the pool
  * - [ ] Alice locks 50k against an initiative for 1 year
  * - [ ] Variations:
  *      - [ ] Price selling the bond into the pool at t0 (immediately)
  *      - [ ] Price selling the bond into the pool at t3 (3/12)
- *      - [ ] Sell the bond into the pool at t6 (6/12)
+ *      - [ ] Price selling the bond into the pool at t6 (6/12)
  * - [ ] Quote searchers to buy immature bonds from the Pool, LPs should get fees
  * - [ ] Quote searchers to redeem bonds
  */
@@ -43,11 +39,6 @@ contract BondMarketTest is Test, Deployers {
   MockERC20 _someGovToken;
   MockERC20 _usdc;
 
-  address _deployer;
-  address _alice;
-  address _bob;
-  address _charlie;
-
   // --- Signals Config ---
   uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
   uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
@@ -57,21 +48,13 @@ contract BondMarketTest is Test, Deployers {
   uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
   // --- Pool Config ---
-  PoolKey public poolKey;
-  PoolId public poolId;
-
+  Currency ethCurrency = Currency.wrap(address(0));
   Currency usdcCurrency;
   Currency govTokenCurrency;
 
   uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
   function setUp() public {
-    // Actors...
-    _deployer = address(this);
-    _alice = address(0x1111);
-    _bob = address(0x2222);
-    _charlie = address(0x3333);
-
     // Deploy Uniswap V4 PoolManager and Router contracts
     deployFreshManagerAndRouters();
 
@@ -92,7 +75,7 @@ contract BondMarketTest is Test, Deployers {
     _decayCurveParameters[0] = 9e17;
 
     _signalsContract.initialize(
-      _deployer,
+      address(this),
       address(_someGovToken),
       _PROPOSAL_THRESHOLD,
       _ACCEPTANCE_THRESHOLD,
@@ -116,29 +99,27 @@ contract BondMarketTest is Test, Deployers {
     console.log('HookAddress: %s', address(flags));
 
     deployCodeTo(
-      "BondHook.sol",
+      'BondHook.sol',
       // Note: [manager] exposed from the Deployers contract
       abi.encode(manager, address(_signalsContract)),
       address(flags)
     );
     bondhook = BondHook(address(flags));
-
-    // Deploy hook to an address that has the proper flags set
-    // Initialize the pool
-    // (poolKey, poolId) = initPool(
-    //     usdcCurrency, // Currency 0 = USDC
-    //     govTokenCurrency, // Currency 1 = GOV
-    //     IHooks(hook), // Hook Contract
-    //     POOL_FEE, // Swap Fees, 0.3%
-    //     SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
-    // );
+    // Initialize the pool with the correct parameters
+    initPool(
+      ethCurrency, // Currency 0 = USDC
+      govTokenCurrency, // Currency 1 = GOV
+      address(bondhook), // Hook Contract
+      uint24(POOL_FEE), // Swap Fees, 0.3%
+      uint160(SQRT_PRICE_1_1) // Initial Sqrt(P) value = 1
+    );
 
     // console.log('Pool Key: %s', poolKey);
     // console.log('Pool ID: %s', poolId);
   }
 
   function test_InitialState() public view {
-    assertEq(_signalsContract.owner(), address(_deployer));
+    assertEq(_signalsContract.owner(), address(this));
     assertEq(_signalsContract.token(), address(_someGovToken));
     assertEq(_signalsContract.proposalThreshold(), _PROPOSAL_THRESHOLD);
     assertEq(_signalsContract.acceptanceThreshold(), _ACCEPTANCE_THRESHOLD);
@@ -148,8 +129,6 @@ contract BondMarketTest is Test, Deployers {
     assertEq(_signalsContract.decayCurveType(), _DECAY_CURVE_TYPE);
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
-
-
 
   // function test_AddSingleSidedLiquidity() public {
   //   vm.startPrank(address(this));

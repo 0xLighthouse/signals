@@ -4,12 +4,6 @@
 [submodule "apps/contracts/lib/openzeppelin-contracts"]
 	path = apps/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "apps/contracts/lib/solady"]
-	path = apps/contracts/lib/solady
-	url = https://github.com/vectorized/solady
-[submodule "apps/contracts/lib/v4-core"]
-	path = apps/contracts/lib/v4-core
-	url = https://github.com/Uniswap/v4-core
 [submodule "apps/contracts/lib/v4-periphery"]
 	path = apps/contracts/lib/v4-periphery
 	url = https://github.com/Uniswap/v4-periphery
