@@ -31,7 +31,7 @@ import 'forge-std/console.sol';
  *
  * TODO:
  * - [ ] Alice has 100k GOV
- * - [ ] Bob provides 1MM GOV/USDC to the pool
+ * - [ ] Bob provides 1k ETH/GOV to the pool
  * - [ ] Alice locks 50k against an initiative for 1 year
  * - [ ] Variations:
  *      - [ ] Price selling the bond into the pool at t0 (immediately)
@@ -142,7 +142,7 @@ contract BondMarketTest is Test, Deployers {
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
 
-
+  // FIXME: This should be moved into a utility function
   function test_AddSingleSidedLiquidity() public {
 
     // Mind eth to self
