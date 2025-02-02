@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import {BaseHook} from 'v4-periphery/base/hooks/BaseHook.sol';
-import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 
 import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
@@ -12,11 +11,10 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapD
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 
 import {Hooks} from "v4-core/libraries/Hooks.sol";
-
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
+
 import {Signals} from './Signals.sol';
 import {ISignals} from './interfaces/ISignals.sol';
-
 
 import 'forge-std/console.sol';
 
