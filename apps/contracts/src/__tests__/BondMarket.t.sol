@@ -18,7 +18,6 @@ import {PoolId} from 'v4-core/types/PoolId.sol';
 
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
-import {PointsHook} from '../PointsHook.sol';
 
 /**
  * Selling locked bonds into a Uniswap V4 pool
@@ -38,7 +37,6 @@ contract BondMarketTest is Test, Deployers {
   using CurrencyLibrary for Currency;
 
   BondHook public bondhook;
-  PointsHook public pointsHook;
 
   Signals _signalsContract;
 
@@ -114,28 +112,18 @@ contract BondMarketTest is Test, Deployers {
     _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
 
     // Deploy hook with correct flags
-    // uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
-    // console.log('HookAddress: %s', address(flags));
-    // deployCodeTo(
-    //   "BondHook.sol",
-    //   // Note: [manager] exposed from the Deployers contract
-    //   abi.encode(manager, address(_signalsContract)),
-    //   address(flags)
-    // );
-    // bondhook = BondHook(address(flags));
+    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+    console.log('HookAddress: %s', address(flags));
+
+    deployCodeTo(
+      "BondHook.sol",
+      // Note: [manager] exposed from the Deployers contract
+      abi.encode(manager, address(_signalsContract)),
+      address(flags)
+    );
+    bondhook = BondHook(address(flags));
 
     // Deploy hook to an address that has the proper flags set
-    uint160 flags = uint160(
-        Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_SWAP_FLAG
-    );
-    deployCodeTo(
-        "PointsHook.sol",
-        abi.encode(manager, address(_signalsContract)),
-        address(flags)
-    );
-    // Deploy our hook
-    pointsHook = PointsHook(address(flags));
-
     // Initialize the pool
     // (poolKey, poolId) = initPool(
     //     usdcCurrency, // Currency 0 = USDC

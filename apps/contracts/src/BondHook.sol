@@ -50,7 +50,7 @@ contract BondHook is BaseHook {
         afterAddLiquidity: false,
         beforeRemoveLiquidity: false,
         afterRemoveLiquidity: false,
-        beforeSwap: false,
+        beforeSwap: true,
         afterSwap: false,
         beforeDonate: false,
         afterDonate: false,
@@ -66,7 +66,7 @@ contract BondHook is BaseHook {
     override
     returns (bytes4, BeforeSwapDelta, uint24)
     {
-        revert HookNotImplemented();
+        return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
     }
 
 
