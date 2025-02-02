@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 
 import {PoolManager} from "v4-core/PoolManager.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -14,11 +15,14 @@ import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {SqrtPriceMath} from "v4-core/libraries/SqrtPriceMath.sol";
 
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
+
+
 
 import 'forge-std/console.sol';
 
@@ -64,6 +68,7 @@ contract BondMarketTest is Test, Deployers {
 
   function setUp() public {
     // Deploy Uniswap V4 PoolManager and Router contracts
+    // Note: Providers [manager] and [swapRouter] to scope
     deployFreshManagerAndRouters();
 
     // Deploy the mocked ERC20 token
@@ -137,33 +142,48 @@ contract BondMarketTest is Test, Deployers {
     assertEq(_signalsContract.totalInitiatives(), 0);
   }
 
-  // function test_AddSingleSidedLiquidity() public {
-  //   vm.startPrank(address(this));
-  //   uint256 amountUSDC = 1_000_000 * 1e6; // 1M USDC (6 decimals)
 
-  //   // Mint USDC to test contract
-  //   deal(usdc, address(this), amountUSDC);
+  function test_AddSingleSidedLiquidity() public {
 
-  //   // Approve PoolManager to use USDC
-  //   IERC20(usdc).approve(address(poolManager), amountUSDC);
+    // Mind eth to self
+    vm.deal(address(this), 100 ether);
+    // Mint a bunch of GOV to ourselves
+    _someGovToken.mint(address(this), 1000 ether);
 
-  //   // Define full-range liquidity parameters
-  //   int24 lowerTick = TickMath.MIN_TICK;
-  //   int24 upperTick = TickMath.MAX_TICK;
+    // Set user address in hook data
+    bytes memory hookData = abi.encode(address(this));
 
-  //   // Add single-sided USDC liquidity at full range
-  //   IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
-  //     tickLower: lowerTick,
-  //     tickUpper: upperTick,
-  //     liquidityDelta: int128(int256(amountUSDC)),
-  //     salt: bytes32(0)
-  //   });
+    uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
+    uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
 
-  //   // Call unlock with the params
-  //   poolManager.unlock(abi.encode(poolKey, params));
+    console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
+    console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
 
-  //   // Assert liquidity is added
-  //   // (uint128 liquidity, , , ) = poolManager.getLiquidity(poolKey, address(_charlie), lowerTick, upperTick);
-  //   // assertGt(liquidity, 0, 'Liquidity should be added');
-  // }
+    uint256 ethToAdd = 0.1 ether;
+    uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
+        sqrtPriceAtTickLower,
+        SQRT_PRICE_1_1,
+        ethToAdd
+    );
+    uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
+        sqrtPriceAtTickLower,
+        SQRT_PRICE_1_1,
+        liquidityDelta
+    );
+
+    console.log('liquidityDelta: %s', liquidityDelta);
+    console.log('tokenToAdd: %s', tokenToAdd);
+
+    // Add liquidity
+    modifyLiquidityRouter.modifyLiquidity{value: ethToAdd}(
+        key,
+        IPoolManager.ModifyLiquidityParams({
+            tickLower: -60,
+            tickUpper: 60,
+            liquidityDelta: int256(uint256(liquidityDelta)),
+            salt: bytes32(0)
+        }),
+        hookData
+    );
+  }
 }
