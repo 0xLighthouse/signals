@@ -5,7 +5,8 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 import 'forge-std/console.sol';
 import 'forge-std/StdUtils.sol';
-import 'forge-std/mocks/MockERC20.sol';
+
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
@@ -33,8 +34,7 @@ contract SignalsFactoryTest is Test {
     console.log('Alice:', _alice);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _mockToken = new MockERC20();
-    _mockToken.initialize('MockToken', 'MTK', 18);
+    _mockToken = new MockERC20('MockToken', 'MTK', 18);
     uint256 initialSupply = 1_000_000 * 10 ** 18;
     deal(address(_mockToken), _deployer, initialSupply);
 

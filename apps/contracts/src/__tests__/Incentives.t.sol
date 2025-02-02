@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
 pragma solidity ^0.8.0;
 
 import 'forge-std/console.sol';
-
 import 'forge-std/Test.sol';
 import 'forge-std/StdUtils.sol';
-import 'forge-std/mocks/MockERC20.sol';
+
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
+
 import '@openzeppelin/contracts/utils/Strings.sol';
 
 import {SignalsFactory} from '../SignalsFactory.sol';
@@ -52,13 +52,13 @@ contract IncentivesTest is Test {
     _treasuryAddress = address(0x6666);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _mToken = new MockERC20();
-    _mToken.initialize('MockToken', 'MTK', 18);
+    _mToken = new MockERC20('MockToken', 'MTK', 18);
+
     uint256 initialSupply = 1_000_000 * 1e18;
     deal(address(_mToken), _deployer, initialSupply);
 
     _mUSDC = new MockStable('MockUSDC', 'MUSDC');
-    _mUSDC.initialize(1_000_000 * 1e6);
+    // _mUSDC.initialize(1_000_000 * 1e6);
     deal(address(_mUSDC), _deployer, initialSupply);
 
     // Distribute tokens to test addresses
@@ -106,9 +106,9 @@ contract IncentivesTest is Test {
 
     // Create a new Incentives contract bound to the Signals instance and Token Registry
     _incentives = new Incentives(
-        address(_instance), 
-        address(_registry), 
-        _allocations, 
+        address(_instance),
+        address(_registry),
+        _allocations,
         _receivers
     );
 
@@ -131,7 +131,7 @@ contract IncentivesTest is Test {
   function testAddIncentive() public {
     vm.startPrank(_alice);
     Signals(_instance).proposeInitiative('Initiative 1', 'Description 1');
-    
+
     uint256 initiativeId = 0;
     address rewardToken = address(_mUSDC);
     uint256 amount = 500 * 1e6;
@@ -149,7 +149,7 @@ contract IncentivesTest is Test {
     }
 
     (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = _incentives.getIncentives(initiativeId);
-    
+
     assertEq(tokens.length, 1);
     assertEq(tokens[0], rewardToken);
     assertEq(amounts[0], amount * 4);
@@ -157,13 +157,13 @@ contract IncentivesTest is Test {
   }
 
 
-  
-
-  
 
 
 
 
 
-  
+
+
+
+
 }

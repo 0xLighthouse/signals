@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
-import 'forge-std/mocks/MockERC20.sol';
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import {Signals} from '../Signals.sol';
 import {DecayCurves} from '../DecayCurves.sol';
 
 contract DecayTest is Test {
-  
+
   /// @notice Test the linear decay curve
   function testLinearDecayCurve() public pure {
     uint256 lockDuration = 20;

@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 import 'forge-std/console.sol';
 import 'forge-std/StdUtils.sol';
-import 'forge-std/mocks/MockERC20.sol';
+
+import 'solmate/src/test/utils/mocks/MockERC20.sol';
+
 import '@openzeppelin/contracts/utils/Strings.sol';
 
 import {SignalsFactory} from '../SignalsFactory.sol';
@@ -37,8 +39,7 @@ contract InitiativesTest is Test {
     _charlie = address(0x3333);
 
     // Deploy MockERC20 token and mint 1 million tokens
-    _someERC20 = new MockERC20();
-    _someERC20.initialize('MockToken', 'MTK', 18);
+    _someERC20 = new MockERC20('MockToken', 'MTK', 18);
     uint256 initialSupply = 1_000_000 * 1e18;
     deal(address(_someERC20), _deployer, initialSupply);
 
@@ -51,7 +52,7 @@ contract InitiativesTest is Test {
     _factory = new SignalsFactory();
 
     // Ensure the caller is the owner
-      vm.prank(_deployer);
+    vm.prank(_deployer);
 
     uint256[] memory _decayCurveParameters = new uint256[](1); // 0.9
     _decayCurveParameters[0] = 9e17;

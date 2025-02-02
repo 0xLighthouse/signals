@@ -2,9 +2,8 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-auto_detect_solc = true
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
-
-[etherscan]
-arbitrumSepolia = { key = "${ARBISCAN_API_KEY}", chain = 421614 }
+solc_version = '0.8.26'
+evm_version = "cancun"
+optimizer_runs = 9999
+via_ir = true
+ffi = true

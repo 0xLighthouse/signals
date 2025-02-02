@@ -1,12 +1,20 @@
 # Contracts
 
+## TODO
+
+- [ ] Simplify how new `Signals` boards are deployed
+- [ ] Use X96 for all math, remove decimals / tokens from assumptions
+- [ ] Consider, `ERC-721a` (more gas efficient) or `ERC-1155` (more flexible)?
+- [ ] Allow lockers to list their tokens for sale `PurchaseBondHook` (ideally could be bought at a premium)
+- [ ] Allow lockers to sell their tokens for sale `SellBondHook` (ideally could be sold at a discount)
+
 ## Getting Started
 
 We use Foundry to build and test our smart contracts. Get it here:
 
-https://getfoundry.sh/
+<https://getfoundry.sh/>
 
-* Copy `.envrc.example` to `.envrc` and set the correct environment variables
+- Copy `.envrc.example` to `.envrc` and set the correct environment variables
 
 Smart contract source code can be found in the `src` folder.
 
@@ -14,11 +22,11 @@ Smart contract source code can be found in the `src` folder.
 
 This allows experimenting with the contracts locally.
 
-* Grab `DEPLOYER_TESTNET_PRIVATE_KEY` from the anvil console
+- Grab `DEPLOYER_TESTNET_PRIVATE_KEY` from the anvil console
 
 ```shell
 # Start a local development node
-anvil --mnemonic $DEPLOYER_TESTNET_SEED_PHRASE 
+anvil --mnemonic $DEPLOYER_TESTNET_SEED_PHRASE
 
 # Setup Contracts
 forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
@@ -44,7 +52,7 @@ forge test <file> -vvvv
 forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-# Deploying a new contract
+#### Deploying a new contract
 
 To aid in the deployment of new contracts (to create a new space), we have created a factory contract which will deploy the contract for you. Simply call the `create` method and provide the required default parameters (most can be changed by the owner after deployment):
 
@@ -58,7 +66,7 @@ To aid in the deployment of new contracts (to create a new space), we have creat
 **decayCurveType:** Decay curve type (see below)
 **decayCurveParameters:** Decay curve parameters (see below)
 
-# Interacting with the contract
+### Interacting with the contract
 
 Once the contract is deploywed, the following public methods are available:
 
@@ -67,7 +75,7 @@ Once the contract is deploywed, the following public methods are available:
  | supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) | | Lock up tokens in support of an existing initiative |
  | acceptInitiative(uint256 initiativeId) | | Once an initiative has received enough support, accept the initiative (owner only for now) |
  | expireInitiative(uint256 initiativeId) | | Once an initiative has been inactive for a long enough time, expire the initiative (owner only for now) |
- | withdrawTokens(uint256 initiativeId) | | Submit an initiative ID, and any tokens the sender has locked up for that initiative which are now free for withdrawal will be withdrawn |
+
  | withdrawAllTokens() | | For all initiatives, tokens the sender has locked up for that initiative which are now free for withdrawal will be withdrawn |
  | getInitiative(uint256 initiativeId) | Initiative struct | Metadata for the specified initative (title, body, created date, etc) |
  | getSupporters(uint256 initiativeId) | List of addresses | Returns a list of all addresses which have supported this initiative |
@@ -78,7 +86,7 @@ Once the contract is deploywed, the following public methods are available:
  | setInactivityThreshold(uint256 newThreshold) | | Allows the owner to update the inactivity threshold (default: 60 days) |
  | setDecayCurve(uint256 decayCurveType, uint256[]  decayCurveParameters) | | Allows the owner to update the decay curve and parameters (see below) |
 
- # Decay curves
+### Decay curves
 
 The owner of the contract can specify what kind of decay curve is used to determine the rate at which lockup bonuses decay. There are two components to this setting:
 
@@ -91,14 +99,14 @@ The `curve parameters` is an array of integers which contain the values needed t
 
 All curve parameters which are meant to be fractional/decimal are expected to be provided as an integer with 1e18 representing 1.0. 9e17 would therefore be 0.9, 11e18 would be 1.1, etc.
 
-## Curve types
+#### Linear
 
-### Linear
 Curve type: `0`
 Curve parameters: `[x]`
 `x`: A multiplier to shape the angle of the curve. A default value of `1.0` (1e18) means the weight will decay at a linear rate, proportional to the length of the lockup. E.g. a lock up of 20 periods will lose 1/20th of its weight each period. A multiplier of 1.1 would see the weight decay slightly faster, losing 11/200ths each period.
 
-### Exponential
+#### Exponential
+
 Curve type: `1`
 Curve parameters: `[x]`
 `x`: A multiplier to shape the angle of the curve. A default value of `0.9` (9e17) means the weight will decay at an exponential rate, with the weight as of the previous period being multiplied by 0.9 for the next period.

@@ -1,78 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.28;
+pragma solidity 0.8.26;
 
 import 'forge-std/console.sol';
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+
+import 'solmate/src/utils/ReentrancyGuard.sol';
+import 'lib/solady/src/tokens/ERC721.sol';
+
+import './interfaces/ISignals.sol';
 
 import './DecayCurves.sol';
 import './Incentives.sol';
 
+import 'forge-std/console.sol';
+
 /**
  * @title Signals by Lighthouse <https://lighthouse.cx>
  *
- *                                        * .,
- *                                      * ,i:;,
- *                                    * 1 ;ti:
- *                                   * :;;t. i:..:
- *                                  * .i;i   .f;1i;          .,,.
- *                                 * i:f..., ;1. i1,,   ...::,::;,
- *                                * :ift:;;:ii,   i1,;::;1ii;,.::1:
- *                               * .Ct:   .:it     ;:      :;11i;;1;::.
- *                            * .:Ct.  .:i, :;     :i. .,;::;;;ii;;.,:;,
- * ,,,,,,,,,,,,,,,::,,::,:::;:;11:  ,11,  .,1i     ,1ii;;:,,,:;; ,i,  ;;;:,,,,,,,,,,,,,,:,:,,,,,,
- * ;;;;;:::::::::::::::::;;::ii,   ;1i ..,i, ,i     .,,;;,     :;  :;: .:;;;;;:::::::::::::::::::
- * ::::::::::::::::::::,::::;,   :f1, i;:t    i:     ,;:.,;i;;:,;t,  ,;;;:::,::::::::::::::::::::
- * ,:,:::::::::::::::::::;;,  ,;:;, .fi;::i.   ti;;ii:. .,;:;;:, ;f:.   ,;;;:::::::::::,,,,,,::::
- * :::::;:::::::::::::::::,;ii;.   .Lt  :11i1::ii:;:,:::;i;...,i: ,1;;::,,,,::::::::::::::,:::,:,
- * ,,,,,,,,,,,,,::::::::;;;:.     .Lf,   .::;;;1     .  ,;ti;iti1i,,,:::;;;::,::::,::::::::::::::
- * ::::::::::::::,,,,,::,,...,,,:it1i      ;1i,,1i:;::;:i: ,...;i..::::,,,,::::,,,:,,,,,,,,,,,,,,
- * ,::,,,,,,,:::::::::,::;;;;;itf;.i.     ;; ,ii,...            ti;:::;;;;;:::::::::::,,,:,,:::::
- * ,::::::::::,,,:,:::::,,.,,::, .1;    .i,   .;;,.        ..,:,:1:,:ii,...,,:,,,,,::::::::::::::
- * ,:::::::::::::::,,,,:,,:::,,::;i    :;,       .,::::,;;;;::.,;t,  .;ii;:::::::::::::::::,,,,,,
- * ,,,,,,,,,,,,,,,::::::::::,,,..i.  ;ti     :;:;..  ,if;:.      ;f;.   .,,,,,,,,,,,,,,,,,,::::::
- * ,:,,,::::::::::,,,,,:,,:::::i1. ,11,  , ,;:.,.::i.  .;,     .. ,f1;::::,,::::::::::::::::::::,
- * ,::,::::::::::::::::::::::,:,.:t1, ,:;:1;. ,,   ,;:   i;.,,;:::::1i;:,:::,,:,,,,,,,,,,,:,,,::,
- * ,,:::,,,,,,,,,::::::,::,:,,:;i11:,1:  .;i.;;,i,  .;1;i;1;,:t;:::,:ii;:,,::,,,,,,,,,,,,,,,,,,,,
- * :::::,,,,,,,,,,,,,,,,,,,,:::;ii, ::,;;:1i:t  .11;:,,,i1.:;;,  .;;,..,::,,,,,::,:,,,,,,,,,,,,::
- * .,,,,,,,::,,::::::::::::::;ii:,:ti,ti  ,;i,    :;:,  .:1;::::   :t;;;,,,,::::::::,,,,,,,,,,::,
- * :::::::::::::,,,,,,,,,:;;i;..,:11.tt    .1,      .:1;:,.    :i:    ,1fti;:::,,,,::::::::::::::
- * ,,,,,,,,,,,,,,,,,,,,,:,,,,,:::;: :L.      :i:;;..:;,          :i:,    ,;;;::,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,,,. .,;:,1t;:;.     ,t,,:;;      .      .1;;,     .,:,,,,,,,,,,,,,,,::,
- * ,,,,,,,,,,,,,:::,:,::,,,,,;;;;::i   .i:    .ii::::;;:::::::::.  .i::;i;::,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,::::;ii;;, 1. ....:;,,;;.        .,     :ti. .i,.,:::::::::::,:,:,,,,,,,,,
- * ,:,:::::,::,:::,,,,,,,::;:,. .i, :;::i;;1it1;,      ;::;:::;:.:f;  ,::,,,,,,....,,,,,:::::::::
- * ,,,,,,,,,,,,,,,,,,,,,,,.     1. ,i .;:: ;1i:,i:   .i:, ,:,.    ,Li.  ..,,,:,::::,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,,,:::1, .i  1.  ;.,;:  ;i:;t;iit;,::::;:,,t1:,,,,,,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,::::::::,:,:,,:i:  1. ;:.:i,i. ,i, :;ii:,,.     :1.   11:,,,,,,,,,,,,,,,,,,,,,,,,,
- * ::,,,,,,,,,,..........,,:;i, .i,.:;:;,  .;;,.:;;:,..,,::;,.,..1.   ;tt1;:,,,,,,,,,,,,,,,,,,,,,
- * .,,,,,:,,,,,:,:,:::::::;::,,:;:;:,;t,...  .;:::::::.  ...,:it1ii,,.  .:ii;::,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,,.....,i. :1,,:::;;.  .    ,:::,:::,. ,i..,;;.   .,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,...,,,,,,,,,,,,,.,,,:;: .i;       ,i:                  ,i   ,;;:,,,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,:;ii:..:;,          :;:,..              :i    :i;::,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,,. .:;:.          .   .,::;,    .. .,:::.:1:    ..,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,,;i;,         ,;:;11;;:,   ::,,:ii1:;i:;i,:1t;:,,...,,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,:;;;,         :1i.     :ii1;ii;i;;:,    .;;;. .:;i;;::::,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,..       ..,:;1;         .. .,:;;:...,,;;,:i;:.    ....,,,,,,,,,,,,,,,,,,
- * ,,,,,,,,,,,,,,,,,,,,,,,:,,,,:::::;;.                  .,::,,.   ,;;:::,,,,,,,,,,,,,,,,,,,,,,,,
- * ,,,,,..................,,,,,,,:::,                               .:::,,,,,,,,::::,,,,,,...,,..
- * ,,,,,,,,,,,,,,,,,,:,,,,,,,,,,,.                                     .,,,,,,,,,..,,,,,,,,,,,,,,
- *
- *
- *
- * @notice Managing community initiatives with ERC20 tokens
+ * @notice Manage community initiatives with governance tokens
+ * @notice Locked positions are represented by transferrable ERC721 tokens
+ *         that can be traded and used to redeem the underlying tokens
+ *         when the lock expires
  *
  * @author 1a35e1.eth <arnold@lighthouse.cx>
  * @author jkm.eth <james@lighthouse.cx>
- * @author Patakk (Artist) <https://patakk.tumblr.com/>
  */
-contract Signals is Ownable, ReentrancyGuard {
+contract Signals is ERC721, Ownable, ReentrancyGuard {
   /**
    * @notice Represents an initiative in the Signals contract
    * @dev Stores all relevant information about a single initiative
-   * 
+   *
    * @param title The title of the initiative
    * @param body The detailed body of the initiative in markdown format
    * @param state The current state of the initiative
@@ -97,27 +57,12 @@ contract Signals is Ownable, ReentrancyGuard {
     Expired
   }
 
-  /**
-   * @notice Struct to store lock information for each lockup
-   * 
-   * @param tokenAmount Amount of tokens locked
-   * @param lockDuration Total duration of the lock in intervals
-   * @param created Timestamp of when the lock was created
-   * @param withdrawn Flag indicating whether the locked tokens have been withdrawn
-   */
-  struct LockInfo {
-    uint256 tokenAmount;
-    uint256 lockDuration;
-    uint256 created;
-    bool withdrawn;
-  }
-
   /// @notice Custom errors
   error InvalidInput(string message);
   error InsufficientTokens();
   error InvalidInitiativeState(string message);
   error TokenTransferFailed();
-  error NothingToWithdraw();
+  error InvalidRedemption();
   error InitiativeNotFound();
 
   /// @notice Minimum tokens required to propose an initiative
@@ -134,7 +79,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Interval used for lockup duration and calculating the decay curve
-   * 
+   *
    * Lockup durations are specified in the number of intervals, and the decay curve is also applied
    * per interval (e.g. interval of [1 day] means the weight of the lock would only be updated once per day
    */
@@ -155,29 +100,31 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice (initiativeId => Initiative)
   mapping(uint256 => Initiative) public initiatives;
 
-  /// @notice (initiativeId => (supporter => LockInfo))
-  mapping(uint256 => mapping(address => LockInfo[])) public locks;
+  /// @notice Mapping from token ID to lock details
+  mapping(uint256 => ISignals.LockInfo) public locks;
+
+  /// @notice Mapping from initiative ID to array of token IDs
+  mapping(uint256 => uint256[]) public initiativeLocks;
+
+  /// @notice Mapping from supporter to their token IDs
+  mapping(address => uint256[]) public supporterLocks;
 
   /// @notice (initiativeId => supporter[])
   mapping(uint256 => address[]) public supporters;
 
   /// @dev (initiativeId => (supporter => bool))
+  // Shows which initiatives a supporter has pending withdrawals for
   mapping(uint256 => mapping(address => bool)) public isSupporter;
 
-  /// @dev (supporter => initiativeId[])
-  // Shows which initiatives a supporter has pending withdrawals for
-  mapping(address => uint256[]) public initiativesWithPendingWithdrawals;
+  /// @notice Track locked tokens with NFTs
+  uint256 public nextTokenId = 1;
 
-  /// @dev (supporter => (id => lock index))
-  // Shows the index of each pending withdrawal per initiative per supporter
-  mapping(address => mapping(uint256 => uint256[])) private _pendingWithdrawalIndex;
-
-  /// @dev {n} total initiatives
-  uint256 public count = 0;
+  /// @notice Add back the initiative counter
+  uint256 public initiativeCount = 0;
 
   /**
    * @notice Event emitted when a supporter supports an initiative
-   * 
+   *
    * @param initiativeId ID of the initiative
    * @param supporter Address of the supporter
    * @param tokenAmount Amount of tokens locked
@@ -206,17 +153,23 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice Event emitted when an initiative is expired
   event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
 
-  /// @notice Event emitted when a supporter withdraws their tokens
-  event TokensWithdrawn(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
+  /// @notice Event emitted when some user redeems their tokens
+  event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
 
   /// @notice Event emitted when the decay curve is updated
   event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
 
   /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
   modifier exists(uint256 initiativeId) {
-    if (initiativeId >= count) revert InitiativeNotFound();
+    if (initiativeId >= initiativeCount) revert InitiativeNotFound();
     _;
   }
+
+  /// @notice Mapping of owner address to their current active token IDs
+  mapping(address => uint256[]) private _currentHoldings;
+
+  /// @notice Mapping to track index of token in _currentHoldings array
+  mapping(uint256 => uint256) private _holdingsIndex;
 
   modifier isNotInitialized() {
     require(acceptanceThreshold == 0, 'Already initialized');
@@ -238,6 +191,20 @@ contract Signals is Ownable, ReentrancyGuard {
   // TODO: Reconsider tradeoffs of this design pattern properly
   Incentives public incentives;
 
+  constructor() ERC721() Ownable(msg.sender) {}
+
+  function name() public view override returns (string memory) {
+    return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), ' Locked Support'));
+  }
+
+  function symbol() public view override returns (string memory) {
+    return string(abi.encodePacked('sx', IERC20Metadata(underlyingToken).symbol()));
+  }
+
+  function tokenURI(uint256) public pure override returns (string memory) {
+    return ''; // Return empty string for now
+  }
+
   function _addInitiative(
     string memory title,
     string memory body
@@ -251,9 +218,9 @@ contract Signals is Ownable, ReentrancyGuard {
       lastActivity: block.timestamp
     });
 
-    uint256 initiativeId = count;
+    uint256 initiativeId = initiativeCount;
     initiatives[initiativeId] = newInitiative;
-    count++;
+    initiativeCount++;
 
     emit InitiativeProposed(initiativeId, msg.sender, title, body);
     return initiativeId;
@@ -265,88 +232,59 @@ contract Signals is Ownable, ReentrancyGuard {
     uint256 amount,
     uint256 lockDuration
   ) internal hasSufficientTokens(amount) {
-    if (lockDuration == 0 || lockDuration > maxLockIntervals) revert InvalidInput('Invalid lock interval');
+    if (lockDuration == 0 || lockDuration > maxLockIntervals) {
+      revert InvalidInput('Invalid lock interval');
+    }
 
     Initiative storage initiative = initiatives[initiativeId];
-    if (initiative.state != InitiativeState.Proposed)
+
+    if (initiative.state != InitiativeState.Proposed) {
       revert InvalidInitiativeState('Initiative is not in Proposed state');
+    }
 
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
 
-    LockInfo memory lock = LockInfo({
-      created: block.timestamp,
+    uint256 tokenId = nextTokenId++;
+
+    _mint(supporter, tokenId);
+
+    locks[tokenId] = ISignals.LockInfo({
+      initiativeId: initiativeId,
       tokenAmount: amount,
       lockDuration: lockDuration,
+      created: block.timestamp,
       withdrawn: false
     });
 
-    _addPendingWithdrawal(msg.sender, initiativeId, locks[initiativeId][supporter].length);
-    locks[initiativeId][supporter].push(lock);
+    initiativeLocks[initiativeId].push(tokenId);
+    supporterLocks[supporter].push(tokenId);
 
-    initiative.lastActivity = lock.created;
+    initiative.lastActivity = block.timestamp;
 
-    if (!isSupporter[initiativeId][msg.sender]) {
-      supporters[initiativeId].push(msg.sender);
-      isSupporter[initiativeId][msg.sender] = true;
-    }
-    
-    emit InitiativeSupported(
-      initiativeId,
-      msg.sender,
-      lock.tokenAmount,
-      lock.lockDuration,
-      block.timestamp
-    );
-  }
-
-  function _addPendingWithdrawal(address supporter, uint256 initiativeId, uint256 lockIndex) internal {
-    // If the index doesn't yet show this initiative has a pending withdrawal, add it
-    if (_pendingWithdrawalIndex[supporter][initiativeId].length == 0) {
-      initiativesWithPendingWithdrawals[supporter].push(initiativeId);
-    }
-    _pendingWithdrawalIndex[supporter][initiativeId].push(lockIndex);
-  }
-
-  /// @notice Removes all pending withdrawals for the specified initiative, and returns the total token amount
-  /// plus the number of remaining withdrawals
-  function _removePendingWithdrawals(
-    address supporter,
-    uint256 initiativeId
-  ) internal returns (uint256 totalTokens, uint256 remainingInitiatives) {
-
-
-    uint256[] storage index = _pendingWithdrawalIndex[supporter][initiativeId];
-
-    uint256 totalAmount = 0;
-    uint256 remainingWithdrawals = 0;
-    for (uint256 i = index.length; i > 0; i--) {
-      LockInfo storage lock = locks[initiativeId][supporter][index[i-1]];
-      if (lock.tokenAmount > 0 && !lock.withdrawn) {
-        totalAmount += lock.tokenAmount;
-        lock.withdrawn = true;
-
-        // Remove from the index
-        index[i-1] = index[index.length - 1];
-        index.pop();
-      } else {
-        remainingWithdrawals++;
-      }
+    if (!isSupporter[initiativeId][supporter]) {
+      supporters[initiativeId].push(supporter);
+      isSupporter[initiativeId][supporter] = true;
     }
 
-    return (totalAmount, remainingWithdrawals);
+    emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, block.timestamp);
   }
 
   function _calculateWeightAt(
     uint256 initiativeId,
     uint256 timestamp
   ) internal view returns (uint256) {
-    address[] memory _supporters = supporters[initiativeId];
-
+    uint256[] memory tokenIds = initiativeLocks[initiativeId];
     uint256 weight = 0;
-    for (uint256 i = 0; i < _supporters.length; i++) {
-        weight += _calculateWeightForSupporterAt(initiativeId, _supporters[i], timestamp);
+
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      uint256 tokenId = tokenIds[i];
+      ISignals.LockInfo memory lock = locks[tokenId];
+      if (!lock.withdrawn) {
+        weight += _calculateLockWeightAt(lock, timestamp);
+      }
     }
+
     return weight;
   }
 
@@ -355,17 +293,22 @@ contract Signals is Ownable, ReentrancyGuard {
     address supporter,
     uint256 timestamp
   ) internal view returns (uint256) {
-    LockInfo[] storage _locks = locks[initiativeId][supporter];
-
+    uint256[] memory tokenIds = supporterLocks[supporter];
     uint256 weight = 0;
-    for (uint256 i = 0; i < _locks.length; i++) {
-      weight += _calculateLockWeightAt(_locks[i], timestamp);
+
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      uint256 tokenId = tokenIds[i];
+      ISignals.LockInfo memory lock = locks[tokenId];
+      if (lock.initiativeId == initiativeId && !lock.withdrawn) {
+        weight += _calculateLockWeightAt(lock, timestamp);
+      }
     }
+
     return weight;
   }
 
   function _calculateLockWeightAt(
-    LockInfo memory lock,
+    ISignals.LockInfo memory lock,
     uint256 timestamp
   ) internal view returns (uint256) {
     uint256 elapsedIntervals = (timestamp - lock.created) / lockInterval;
@@ -375,9 +318,21 @@ contract Signals is Ownable, ReentrancyGuard {
 
     require(decayCurveType < 2, 'Invalid decayCurveType');
     if (decayCurveType == 0) {
-      return DecayCurves.linear(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
+      return
+        DecayCurves.linear(
+          lock.lockDuration,
+          lock.tokenAmount,
+          elapsedIntervals,
+          decayCurveParameters
+        );
     } else {
-      return DecayCurves.exponential(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
+      return
+        DecayCurves.exponential(
+          lock.lockDuration,
+          lock.tokenAmount,
+          elapsedIntervals,
+          decayCurveParameters
+        );
     }
   }
 
@@ -409,7 +364,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Proposes a new initiative
-   * 
+   *
    * @param title Title of the initiative
    * @param body Body of the initiative
    */
@@ -422,7 +377,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Proposes a new initiative with locked tokens
-   * 
+   *
    * @param title Title of the initiative
    * @param body Body of the initiative
    * @param amount Amount of tokens to lock
@@ -433,23 +388,27 @@ contract Signals is Ownable, ReentrancyGuard {
     string memory body,
     uint256 amount,
     uint256 lockDuration
-  ) external hasSufficientTokens(proposalThreshold) hasSufficientTokens(amount) hasValidInput(title, body) {
+  ) external hasSufficientTokens(proposalThreshold) hasValidInput(title, body) {
     uint256 id = _addInitiative(title, body);
     _addLock(id, msg.sender, amount, lockDuration);
   }
 
   /**
    * @notice Allows a user to support an existing initiative with locked tokens
-   * 
+   *
    * @param initiativeId ID of the initiative to support
    * @param amount Amount of tokens to lock
    * @param lockDuration Duration for which tokens are locked (in intervals)
    */
-  function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external exists(initiativeId) {
+  function supportInitiative(
+    uint256 initiativeId,
+    uint256 amount,
+    uint256 lockDuration
+  ) external exists(initiativeId) {
     _addLock(initiativeId, msg.sender, amount, lockDuration);
-  }  
+  }
 
-  function acceptInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
+  function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -465,7 +424,7 @@ contract Signals is Ownable, ReentrancyGuard {
     emit InitiativeAccepted(initiativeId, msg.sender);
   }
 
-  function expireInitiative(uint256 initiativeId) exists(initiativeId) external onlyOwner payable {
+  function expireInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
     Initiative storage initiative = initiatives[initiativeId];
     if (initiative.state != InitiativeState.Proposed)
       revert InvalidInitiativeState('Initiative is not in Proposed state');
@@ -483,105 +442,82 @@ contract Signals is Ownable, ReentrancyGuard {
     emit InitiativeExpired(initiativeId, msg.sender);
   }
 
-  function withdrawTokens(uint256 initiativeId) exists(initiativeId) public nonReentrant {
-    Initiative storage initiative = initiatives[initiativeId];
-    if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
-      revert InvalidInitiativeState('Initiative not in a withdrawable state');
+  function redeem(uint256 tokenId) public nonReentrant {
+    require(!locks[tokenId].withdrawn, InvalidRedemption());
+    require(ownerOf(tokenId) == msg.sender, 'Not token owner');
 
-    (uint256 withdrawAmount, uint256 remaining) = _removePendingWithdrawals(msg.sender, initiativeId);
-    if (withdrawAmount == 0) revert NothingToWithdraw();
+    ISignals.LockInfo storage lock = locks[tokenId];
 
-    if (remaining == 0) {
-      for (uint256 i = 0; i < initiativesWithPendingWithdrawals[msg.sender].length; i++) {
-        if (initiativesWithPendingWithdrawals[msg.sender][i] == initiativeId) {
-          initiativesWithPendingWithdrawals[msg.sender][i] = initiativesWithPendingWithdrawals[msg.sender][initiativesWithPendingWithdrawals[msg.sender].length - 1];
-          initiativesWithPendingWithdrawals[msg.sender].pop();
-          break;
-        }
-      }
-    }
+    Initiative storage initiative = initiatives[lock.initiativeId];
+    if (
+      !(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)
+    ) revert InvalidInitiativeState('Initiative not withdrawable');
 
-    if (!IERC20(underlyingToken).transfer(msg.sender, withdrawAmount))
-      revert TokenTransferFailed();
+    uint256 amount = lock.tokenAmount;
+    lock.withdrawn = true;
+    _burn(tokenId);
 
-    emit TokensWithdrawn(initiativeId, msg.sender, withdrawAmount);
+    if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert TokenTransferFailed();
+
+    emit Redeemed(tokenId, msg.sender, amount);
   }
 
-  function withdrawAllTokens() external nonReentrant {
-    uint256[] storage _initiatives = initiativesWithPendingWithdrawals[msg.sender];
+  function getTokenMetadata(uint256 tokenId) public view returns (ISignals.LockInfo memory) {
+    return locks[tokenId];
+  }
 
-    // List of initiatives that had a withdraw for emitting events
-    uint256[2][] memory withdrewInitiatives = new uint256[2][](_initiatives.length);
-    uint256 eventCount = 0;
+  /**
+   * @notice Returns the current discount for a given token ID
+   *
+   * @param tokenId The token ID to return the discount for
+   */
+  function currentDiscount(uint256 tokenId) public view returns (uint256) {
+    ISignals.LockInfo memory lock = locks[tokenId];
+    uint256 timeElapsed = block.timestamp - lock.created;
+    uint256 timeTotal = lock.lockDuration * lockInterval;
 
-    uint256 totalToWithdraw = 0;
-    for (uint256 i = _initiatives.length; i > 0; i--) {
-      uint256 initiativeId = _initiatives[i-1];
-
-      Initiative storage initiative = initiatives[initiativeId];
-      if (initiative.state != InitiativeState.Accepted && initiative.state != InitiativeState.Expired)
-      continue;
-
-      (uint256 withdrawAmount, uint256 remaining) = _removePendingWithdrawals(msg.sender, initiativeId);
-      totalToWithdraw += withdrawAmount;
-
-      if (withdrawAmount > 0) {
-        withdrewInitiatives[eventCount] = [initiativeId, withdrawAmount];
-        eventCount++;
-      }
-
-      if (remaining == 0) {
-        // Remove from list of initiatives with pending withdrawals
-        _initiatives[i-1] = _initiatives[_initiatives.length - 1];
-        _initiatives.pop();
-      }
-    }
-
-    if (totalToWithdraw == 0) {
-      revert NothingToWithdraw();
-    }
-
-    if (!IERC20(underlyingToken).transfer(msg.sender, totalToWithdraw))
-      revert TokenTransferFailed();
-
-      for (uint256 i = 0; i < eventCount; i++) {
-        emit TokensWithdrawn(withdrewInitiatives[i][0], msg.sender, withdrewInitiatives[i][1]);
-      }
+    return (lock.tokenAmount * (timeTotal - timeElapsed)) / timeTotal;
   }
 
   /**
    * @notice Returns details about the specified initiative
-   * 
+   *
    * @param initiativeId The initiative to return
    */
-  function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
+  function getInitiative(
+    uint256 initiativeId
+  ) external view exists(initiativeId) returns (Initiative memory) {
     return initiatives[initiativeId];
   }
 
   /**
    * @notice Returns a list of addresses which have supported this initiative
-   * 
+   *
    * @param initiativeId The initiative to return supporters for
    */
-  function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
+  function getSupporters(
+    uint256 initiativeId
+  ) external view exists(initiativeId) returns (address[] memory) {
     return supporters[initiativeId];
   }
 
   /**
    * @notice Returns the current, real-time weight of the specified initiative
-   * 
+   *
    * @param initiativeId The initiative to return the weight for
    */
   function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
     uint256 totalCurrentWeight = 0;
     address[] memory _supporters = supporters[initiativeId];
-    
+
     for (uint256 i = 0; i < _supporters.length; i++) {
       address supporter = _supporters[i];
-      LockInfo[] storage lockInfos = locks[initiativeId][supporter];
-      uint256 lockCount = lockInfos.length;
+      uint256 lockCount = supporterLocks[supporter].length;
       for (uint256 j = 0; j < lockCount; j++) {
-        uint256 currentWeight = _calculateLockWeightAt(lockInfos[j], block.timestamp);
+        uint256 currentWeight = _calculateLockWeightAt(
+          locks[supporterLocks[supporter][j]],
+          block.timestamp
+        );
         totalCurrentWeight += currentWeight;
       }
     }
@@ -591,7 +527,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Returns the weight the initiative did/will have at a specific timestamp
-   * 
+   *
    * @param initiativeId The initiative to return
    * @param timestamp The timestamp to calculate the weight for
    */
@@ -604,7 +540,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Returns the weight a supporter has provided/is providing for the specified initiative at a specific timestamp
-   * 
+   *
    * @param initiativeId The initiative to return the weight for
    * @param supporter The supporter to return the weight for
    */
@@ -627,12 +563,12 @@ contract Signals is Ownable, ReentrancyGuard {
    * @notice Returns the total number of initiatives
    */
   function totalInitiatives() external view returns (uint256) {
-    return count;
+    return initiativeCount;
   }
 
   /**
    * @notice Returns the total number of supporters for the specified initiative
-   * 
+   *
    * @param initiativeId The initiative to return the number of supporters for
    */
   function totalSupporters(uint256 initiativeId) external view returns (uint256) {
@@ -641,7 +577,7 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Allows the owner to update the inactivity threshold
-   * 
+   *
    * @param _newThreshold New inactivity threshold in seconds
    */
   function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
@@ -650,11 +586,14 @@ contract Signals is Ownable, ReentrancyGuard {
 
   /**
    * @notice Allows the owner to update the decay curve type and parameters
-   * 
+   *
    * @param _decayCurveType New curve type (0 = linear, 1 = exponential)
    * @param _decayCurveParameters New curve parameters
    */
-  function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
+  function setDecayCurve(
+    uint256 _decayCurveType,
+    uint256[] calldata _decayCurveParameters
+  ) external onlyOwner {
     require(_decayCurveType < 2, 'Invalid decayCurveType');
     if (_decayCurveType == 0) {
       require(_decayCurveParameters.length == 1, 'Invalid decayCurveParameters');
@@ -670,5 +609,66 @@ contract Signals is Ownable, ReentrancyGuard {
   /// @notice (Optional) Allows the owner to set the Incentives contract
   function setIncentives(address _incentives) external onlyOwner {
     incentives = Incentives(_incentives);
+  }
+
+  // TODO: EIP-1153: Transient Storage?
+  function getPositionsForInitiative(
+    uint256 initiativeId
+  ) external view returns (uint256[] memory) {
+    return initiativeLocks[initiativeId];
+  }
+
+  function getLockCountForSupporter(address supporter) public view returns (uint256) {
+    return supporterLocks[supporter].length;
+  }
+
+  function getLocksForSupporter(address supporter) public view returns (uint256[] memory) {
+    return supporterLocks[supporter];
+  }
+
+  function openPositions(address owner) public view returns (uint256[] memory) {
+    return _currentHoldings[owner];
+  }
+
+  function _mint(address to, uint256 tokenId) internal override {
+    super._mint(to, tokenId);
+    // Add to current holdings
+    _holdingsIndex[tokenId] = _currentHoldings[to].length;
+    _currentHoldings[to].push(tokenId);
+  }
+
+  function _burn(uint256 tokenId) internal override {
+    address owner = _ownerOf(tokenId);
+
+    // Remove from current holdings (swap and pop)
+    uint256 index = _holdingsIndex[tokenId];
+    uint256 lastTokenId = _currentHoldings[owner][_currentHoldings[owner].length - 1];
+
+    if (tokenId != lastTokenId) {
+      _currentHoldings[owner][index] = lastTokenId;
+      _holdingsIndex[lastTokenId] = index;
+    }
+    _currentHoldings[owner].pop();
+    delete _holdingsIndex[tokenId];
+
+    super._burn(tokenId);
+  }
+
+  function _transfer(address from, address to, uint256 tokenId) internal override {
+    // Remove from previous owner's holdings
+    uint256 index = _holdingsIndex[tokenId];
+    uint256 lastTokenId = _currentHoldings[from][_currentHoldings[from].length - 1];
+
+    if (tokenId != lastTokenId) {
+      _currentHoldings[from][index] = lastTokenId;
+      _holdingsIndex[lastTokenId] = index;
+    }
+    _currentHoldings[from].pop();
+
+    // Add to new owner's holdings
+    _holdingsIndex[tokenId] = _currentHoldings[to].length;
+    _currentHoldings[to].push(tokenId);
+
+    super._transfer(from, to, tokenId);
   }
 }

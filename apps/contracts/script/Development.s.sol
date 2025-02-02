@@ -87,31 +87,29 @@ contract DevelopmentScript is Script {
     Signals protocol = Signals(protocolAddress);
 
     console.log('SignalsContract', address(protocolAddress));
-    console.log('Total proposals', protocol.count());
+    console.log('Total proposals', protocol.totalInitiatives());
     console.log('Proposal threshold', protocol.proposalThreshold());
     console.log('Acceptance threshold', protocol.acceptanceThreshold());
 
     vm.broadcast(_deployer);
     MockStable usdc = new MockStable('Mocked USDC', 'USDC');
 
-
     console.log('USDCContract', address(usdc));
-    
+
     vm.broadcast(_deployer);
     usdc.initialize(1_000_000 * 1e6);
 
     // Initialize TokenRegistry
     vm.broadcast(_deployer);
     TokenRegistry registry = new TokenRegistry();
-    
+
     console.log('RegistryContract', address(registry));
-    
+
     vm.broadcast(_deployer);
     registry.allow(address(_token)); // Allow token rewards
 
     vm.broadcast(_deployer);
     registry.allow(address(usdc)); // Allow usdc rewards
-
 
     // Create incentives
     uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
@@ -119,10 +117,10 @@ contract DevelopmentScript is Script {
 
     vm.broadcast(_deployer);
     _incentives = new Incentives(
-        address(protocolAddress), 
-        address(registry), 
-        _allocations, 
-        _receivers
+      address(protocolAddress),
+      address(registry),
+      _allocations,
+      _receivers
     );
 
     console.log('IncentivesContract', address(_incentives));
