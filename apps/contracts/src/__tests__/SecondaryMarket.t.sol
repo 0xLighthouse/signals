@@ -22,6 +22,7 @@ import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
 import {ISignals} from '../interfaces/ISignals.sol';
+import {SignalsHarness} from './utils/SignalsHarness.sol';
 
 import 'forge-std/console.sol';
 
@@ -39,28 +40,19 @@ import 'forge-std/console.sol';
  * - [ ] Quote searchers to buy immature bonds from the Pool, LPs should get fees
  * - [ ] Quote searchers to redeem bonds
  */
-contract BondMarketTest is Test, Deployers {
+contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
   using CurrencyLibrary for Currency;
 
   // --- Contracts ---
   Signals _signalsContract;
   BondHook public bondhook;
 
-  // --- Signals Config ---
-  uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
-  uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
-  uint256 constant _LOCK_DURATION_CAP = 365 days; // 1 year
-  uint256 constant _PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
-  uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
-
   // --- Tokens ---
-  MockERC20 _someGovToken;
   MockERC20 _usdc;
 
-  Currency ethCurrency = Currency.wrap(address(0));
+  // tokens expressed as Currency
   Currency usdcCurrency;
-  Currency govTokenCurrency;
+  Currency tokenCurrency;
 
   // --- Pool Config ---
   uint24 public constant POOL_FEE = 3000; // 0.3% fee
@@ -70,40 +62,21 @@ contract BondMarketTest is Test, Deployers {
     // Note: Providers [manager] and [swapRouter] to scope
     deployFreshManagerAndRouters();
 
-    // Deploy the mocked ERC20 token
-    _someGovToken = new MockERC20('Some Gov Token', 'GOV', 18);
-    govTokenCurrency = Currency.wrap(address(_someGovToken));
+    // Deploy the Signals contract
+    bool dealTokens = true;
+    deploySignals(dealTokens);
 
-    // Deploy the mock USDC token
+    // Deploy a governance token
+    tokenCurrency = Currency.wrap(address(_token));
+
+    // Deploy some stablecoin
     _usdc = new MockERC20('USDC', 'USDC', 6);
     usdcCurrency = Currency.wrap(address(_usdc));
 
-    /**
-     * Deploy a Signals board
-     * TODO: Wrap in a utility lib
-     */
-    _signalsContract = new Signals();
-    uint256[] memory _decayCurveParameters = new uint256[](1);
-    _decayCurveParameters[0] = 9e17;
-
-    _signalsContract.initialize(
-      ISignals.SignalsConfig({
-        owner: address(this),
-        underlyingToken: address(_someGovToken),
-        proposalThreshold: _PROPOSAL_THRESHOLD,
-        acceptanceThreshold: _ACCEPTANCE_THRESHOLD,
-        maxLockIntervals: _LOCK_DURATION_CAP,
-        proposalCap: _PROPOSAL_CAP,
-        lockInterval: _LOCK_INTERVAL,
-        decayCurveType: _DECAY_CURVE_TYPE,
-        decayCurveParameters: _decayCurveParameters
-      })
-    );
-
     // Approve our TOKEN for spending on the swap router and modify liquidity router
     // NOTE: These variables are exported from the `Deployers` contract
-    _someGovToken.approve(address(swapRouter), type(uint256).max);
-    _someGovToken.approve(address(modifyLiquidityRouter), type(uint256).max);
+    _token.approve(address(swapRouter), type(uint256).max);
+    _token.approve(address(modifyLiquidityRouter), type(uint256).max);
 
     _usdc.approve(address(swapRouter), type(uint256).max);
     _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
@@ -120,35 +93,23 @@ contract BondMarketTest is Test, Deployers {
     );
     bondhook = BondHook(address(flags));
 
+    sortTokens(address(_usdc), address(_token));
+
     // Initialize the pool with the correct parameters
     // Note: writes [key] to the [Deployers] contract
     (key, ) = initPool(
-      ethCurrency, // Currency 0 = USDC
-      govTokenCurrency, // Currency 1 = GOV
+      usdcCurrency, // Currency0 = USDC
+      tokenCurrency, // Currency1 = GOV
       bondhook, // Hook Contract
       POOL_FEE, // Swap Fees, 0.3%
       SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
     );
   }
 
-  function test_InitialState() public view {
-    assertEq(_signalsContract.owner(), address(this));
-    assertEq(_signalsContract.token(), address(_someGovToken));
-    assertEq(_signalsContract.proposalThreshold(), _PROPOSAL_THRESHOLD);
-    assertEq(_signalsContract.acceptanceThreshold(), _ACCEPTANCE_THRESHOLD);
-    assertEq(_signalsContract.maxLockIntervals(), _LOCK_DURATION_CAP);
-    assertEq(_signalsContract.proposalCap(), _PROPOSAL_CAP);
-    assertEq(_signalsContract.lockInterval(), _LOCK_INTERVAL);
-    assertEq(_signalsContract.decayCurveType(), _DECAY_CURVE_TYPE);
-    assertEq(_signalsContract.totalInitiatives(), 0);
-  }
-
-  // FIXME: This should be moved into a utility function
   function test_AddSingleSidedLiquidity() public {
-    // Mind eth to self
-    vm.deal(address(this), 100 ether);
-    // Mint a bunch of GOV to ourselves
-    _someGovToken.mint(address(this), 1000 ether);
+    // Mind tokens to self
+    _token.mint(address(_deployer), 1_000_000 * 1e18);
+    _usdc.mint(address(_deployer), 1_000_000 * 1e6);
 
     // Set user address in hook data
     bytes memory hookData = abi.encode(address(this));
@@ -159,11 +120,12 @@ contract BondMarketTest is Test, Deployers {
     console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
     console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
 
-    uint256 ethToAdd = 0.1 ether;
+    uint256 usdcToAdd = 1_000_000 * 1e6;
+
     uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
       sqrtPriceAtTickLower,
       SQRT_PRICE_1_1,
-      ethToAdd
+      usdcToAdd
     );
     uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
       sqrtPriceAtTickLower,
@@ -175,7 +137,7 @@ contract BondMarketTest is Test, Deployers {
     console.log('tokenToAdd: %s', tokenToAdd);
 
     // Add liquidity
-    modifyLiquidityRouter.modifyLiquidity{value: ethToAdd}(
+    modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
       key,
       IPoolManager.ModifyLiquidityParams({
         tickLower: -60,

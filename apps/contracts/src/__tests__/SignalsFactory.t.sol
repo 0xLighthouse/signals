@@ -12,17 +12,12 @@ import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
 
 import {SignalsHarness} from './utils/SignalsHarness.sol';
-
 import {ISignals} from '../interfaces/ISignals.sol';
 
 contract SignalsFactoryTest is Test, SignalsHarness {
   SignalsFactory _factory;
 
   function setUp() public {
-    // bool dealTokens = true;
-    // deploySignals(dealTokens);
-
-    // Deploy the SignalsFactory contract
     _factory = new SignalsFactory();
   }
 

@@ -8,9 +8,9 @@ import {PoolKey} from 'v4-core/types/PoolKey.sol';
 import {BalanceDeltaLibrary, BalanceDelta} from 'v4-core/types/BalanceDelta.sol';
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapDelta.sol';
 
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
 
-import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 
 import {Signals} from './Signals.sol';
@@ -33,7 +33,6 @@ contract BondHook is BaseHook {
 
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
-
 
   constructor(IPoolManager _poolManager, address _signals) BaseHook(_poolManager) {
     signals = Signals(_signals);
@@ -59,14 +58,14 @@ contract BondHook is BaseHook {
       });
   }
 
-  function beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
-    external
-    override
-    returns (bytes4, BeforeSwapDelta, uint24)
-    {
-        return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
-    }
-
+  function beforeSwap(
+    address,
+    PoolKey calldata,
+    IPoolManager.SwapParams calldata,
+    bytes calldata
+  ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
+  }
 
   // function _handleBondSwap(
   //   address user,

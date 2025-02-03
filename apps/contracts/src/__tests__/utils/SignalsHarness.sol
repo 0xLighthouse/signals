@@ -106,4 +106,26 @@ contract SignalsHarness is Test {
       registry.allow(_tokens[i]);
     }
   }
+
+  function sortTokens(
+    address tokenA,
+    address tokenB
+  ) internal pure returns (address token0, address token1) {
+    require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');
+    if (tokenA < tokenB) {
+      token0 = tokenA;
+      token1 = tokenB;
+    } else {
+      token0 = tokenB;
+      token1 = tokenA;
+    }
+    console.log('--------------------------------');
+    console.log('tokenA: %s', tokenA);
+    console.log('tokenB: %s', tokenB);
+    console.log('--------------------------------');
+    console.log('token0: %s', token0);
+    console.log('token1: %s', token1);
+    console.log('--------------------------------');
+    require(token0 != address(0), 'ZERO_ADDRESS');
+  }
 }
