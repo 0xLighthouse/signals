@@ -11,35 +11,16 @@ import 'solmate/src/test/utils/mocks/MockERC20.sol';
 import {SignalsFactory} from '../SignalsFactory.sol';
 import {Signals} from '../Signals.sol';
 
-contract SignalsFactoryTest is Test {
+import {SignalsHarness} from './utils/SignalsHarness.sol';
+
+import {ISignals} from '../interfaces/ISignals.sol';
+
+contract SignalsFactoryTest is Test, SignalsHarness {
   SignalsFactory _factory;
-  MockERC20 _mockToken;
-
-  address _deployer;
-  address _alice;
-
-  uint256 constant _PROPOSAL_THRESHOLD = 50_000 * 1e18; // 50k
-  uint256 constant _ACCEPTANCE_THRESHOLD = 100_000 * 1e18; // 100k
-  uint256 constant _LOCK_DURATION_CAP = 365 days; // 1 year
-  uint256 constant _PROPOSAL_CAP = 100; // 100 proposals
-  uint256 constant _LOCK_INTERVAL = 1 days; // 1 day
-  uint256 constant _DECAY_CURVE_TYPE = 0; // Linear
 
   function setUp() public {
-    _deployer = address(this);
-    _alice = address(0x1111);
-
-    // Log the test addresses
-    console.log('Deployer:', _deployer);
-    console.log('Alice:', _alice);
-
-    // Deploy MockERC20 token and mint 1 million tokens
-    _mockToken = new MockERC20('MockToken', 'MTK', 18);
-    uint256 initialSupply = 1_000_000 * 10 ** 18;
-    deal(address(_mockToken), _deployer, initialSupply);
-
-    // Distribute tokens to test addresses
-    deal(address(_mockToken), _alice, 200_000 * 10 ** 18);
+    // bool dealTokens = true;
+    // deploySignals(dealTokens);
 
     // Deploy the SignalsFactory contract
     _factory = new SignalsFactory();
@@ -47,25 +28,26 @@ contract SignalsFactoryTest is Test {
 
   function testFactoryDeployment() public {
     // Ensure the caller is the owner
-      vm.prank(_deployer);
+    vm.prank(_deployer);
 
     uint256[] memory _decayCurveParameters = new uint256[](1);
     _decayCurveParameters[0] = 9e17;
 
     // Deploy a new instance using the factory
-    address instanceAddress = _factory.create(
-      _alice,
-      address(_mockToken),
-      _PROPOSAL_THRESHOLD,
-      _ACCEPTANCE_THRESHOLD,
-      _LOCK_DURATION_CAP,
-      _PROPOSAL_CAP,
-      _LOCK_INTERVAL,
-      _DECAY_CURVE_TYPE,
-      _decayCurveParameters
-    );
+    ISignals.SignalsConfig memory _defaultConfig = ISignals.SignalsConfig({
+      owner: _alice,
+      underlyingToken: address(_token),
+      proposalThreshold: defaultConfig.proposalThreshold,
+      acceptanceThreshold: defaultConfig.acceptanceThreshold,
+      maxLockIntervals: defaultConfig.maxLockIntervals,
+      proposalCap: defaultConfig.proposalCap,
+      lockInterval: defaultConfig.lockInterval,
+      decayCurveType: defaultConfig.decayCurveType,
+      decayCurveParameters: defaultConfig.decayCurveParameters
+    });
 
     // Check that the Signals contract was deployed
+    address instanceAddress = _factory.create(_defaultConfig);
     assertTrue(instanceAddress != address(0));
 
     // Load the Signals contract instance
@@ -76,12 +58,12 @@ contract SignalsFactoryTest is Test {
 
     // Verify the parameters were initialized correctly
     assertEq(_instance.owner(), _alice);
-    assertEq(_instance.underlyingToken(), address(_mockToken));
-    assertEq(_instance.acceptanceThreshold(), _ACCEPTANCE_THRESHOLD);
-    assertEq(_instance.maxLockIntervals(), _LOCK_DURATION_CAP);
-    assertEq(_instance.proposalCap(), _PROPOSAL_CAP);
-    assertEq(_instance.lockInterval(), _LOCK_INTERVAL);
-    assertEq(_instance.decayCurveType(), _DECAY_CURVE_TYPE);
+    assertEq(_instance.underlyingToken(), address(_token));
+    assertEq(_instance.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
+    assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
+    assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
+    assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
+    assertEq(_instance.decayCurveType(), defaultConfig.decayCurveType);
   }
 
   function testRevertsWithInvalidOwnerAddress() public {
@@ -93,15 +75,17 @@ contract SignalsFactoryTest is Test {
     _decayCurveParameters[0] = 9e17;
 
     _factory.create(
-      address(0), // --- invalid owner address
-      address(_mockToken),
-      _PROPOSAL_THRESHOLD,
-      _ACCEPTANCE_THRESHOLD,
-      _LOCK_DURATION_CAP,
-      _PROPOSAL_CAP,
-      _LOCK_INTERVAL,
-      _DECAY_CURVE_TYPE,
-      _decayCurveParameters
+      ISignals.SignalsConfig({
+        owner: address(0), // --- invalid owner address
+        underlyingToken: address(_token),
+        proposalThreshold: defaultConfig.proposalThreshold,
+        acceptanceThreshold: defaultConfig.acceptanceThreshold,
+        maxLockIntervals: defaultConfig.maxLockIntervals,
+        proposalCap: defaultConfig.proposalCap,
+        lockInterval: defaultConfig.lockInterval,
+        decayCurveType: defaultConfig.decayCurveType,
+        decayCurveParameters: defaultConfig.decayCurveParameters
+      })
     );
   }
 

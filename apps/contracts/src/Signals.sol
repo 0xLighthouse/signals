@@ -339,27 +339,17 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
   /**
    * @notice Permit initializing the contract exactly once
    */
-  function initialize(
-    address owner_,
-    address _underlyingToken,
-    uint256 _proposalThreshold,
-    uint256 _acceptanceThreshold,
-    uint256 _maxLockIntervals,
-    uint256 _proposalCap,
-    uint256 _lockInterval,
-    uint256 _decayCurveType,
-    uint256[] calldata _decayCurveParameters
-  ) external isNotInitialized {
-    underlyingToken = _underlyingToken;
-    proposalThreshold = _proposalThreshold;
-    acceptanceThreshold = _acceptanceThreshold;
-    maxLockIntervals = _maxLockIntervals;
-    proposalCap = _proposalCap;
-    lockInterval = _lockInterval;
-    decayCurveType = _decayCurveType;
-    decayCurveParameters = _decayCurveParameters;
+  function initialize(ISignals.SignalsConfig calldata config) external isNotInitialized {
+    underlyingToken = config.underlyingToken;
+    proposalThreshold = config.proposalThreshold;
+    acceptanceThreshold = config.acceptanceThreshold;
+    maxLockIntervals = config.maxLockIntervals;
+    proposalCap = config.proposalCap;
+    lockInterval = config.lockInterval;
+    decayCurveType = config.decayCurveType;
+    decayCurveParameters = config.decayCurveParameters;
 
-    transferOwnership(owner_);
+    transferOwnership(config.owner);
   }
 
   /**

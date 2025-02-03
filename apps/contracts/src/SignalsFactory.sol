@@ -23,48 +23,20 @@ contract SignalsFactory {
 
   /// @notice Creates a new Signals contract
   ///
-  ///   @param _owner Address of the owner of the new Signals contract
-  ///   @param _underlyingToken Address of the underlying token
-  ///   @param _proposalThreshold Minimum tokens required to propose an initiative
-  ///   @param _acceptanceThreshold Minimum tokens required to accept an initiative
-  ///   @param lockDurationCap Maximum lock duration allowed
-  ///   @param proposalCap Maximum number of proposals allowed
-  ///   @param lockInterval Interval at which the lock duration is applied
-  ///   @param decayCurveType Type of decay curve to be used
-  ///
   /// @return Address of the newly created Signals contract
   /// --------------------------------------------------------
-  function create(
-    address _owner,
-    address _underlyingToken,
-    uint256 _proposalThreshold,
-    uint256 _acceptanceThreshold,
-    uint256 lockDurationCap,
-    uint256 proposalCap,
-    uint256 lockInterval,
-    uint256 decayCurveType,
-    uint256[] memory decayCurveParameters
-  ) public payable returns (address) {
-    if (_owner == address(0)) revert InvalidOwnerAddress();
+  function create(ISignals.SignalsConfig calldata config) public payable returns (address) {
+    if (config.owner == address(0)) revert InvalidOwnerAddress();
 
     // TODO: Also init the Incentives contract from the factory
+    // TODO: Perform additional config checks here; So the board does not get bricked;
 
     // Initialize the new Signals contract
     Signals instance = new Signals();
-    instance.initialize(
-      _owner,
-      _underlyingToken,
-      _proposalThreshold,
-      _acceptanceThreshold,
-      lockDurationCap,
-      proposalCap,
-      lockInterval,
-      decayCurveType,
-      decayCurveParameters
-    );
+    instance.initialize(config);
 
     // Emit an event for the creation of the new contract
-    emit SignalsCreated(address(instance), _owner);
+    emit SignalsCreated(address(instance), config.owner);
 
     return address(instance);
   }

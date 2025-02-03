@@ -9,6 +9,7 @@ import {MockERC20} from '../src/__mocks__/MockERC20.m.sol'; // Add this line to 
 import {MockStable} from '../src/__mocks__/MockStable.m.sol';
 import {TokenRegistry} from '../src/TokenRegistry.sol';
 import {Incentives} from '../src/Incentives.sol';
+import {ISignals} from '../src/interfaces/ISignals.sol';
 
 /**
  * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
@@ -73,15 +74,17 @@ contract DevelopmentScript is Script {
     // Deploy a new Signals contract using the factory
     vm.broadcast(_deployer);
     address protocolAddress = _factory.create(
-      _alice,
-      address(_token),
-      50_000 * 1e18, // 50k _proposalThreshold
-      200_000 * 1e18, // 200k _acceptanceThreshold
-      12, // lockDurationCap
-      5, // map active initiatives
-      1 hours, // decayInterval
-      0, // decayCurveType, linear
-      params // decayCurveParameters
+      ISignals.SignalsConfig({
+        owner: _alice,
+        underlyingToken: address(_token),
+        proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold
+        acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
+        maxLockIntervals: 12, // lockDurationCap
+        proposalCap: 5, // map active initiatives
+        lockInterval: 1 hours, // decayInterval
+        decayCurveType: 0, // decayCurveType, linear
+        decayCurveParameters: params // decayCurveParameters
+      })
     );
 
     Signals protocol = Signals(protocolAddress);

@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
+import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
+import {LiquidityAmounts} from '@uniswap/v4-core/test/utils/LiquidityAmounts.sol';
 
-import {PoolManager} from "v4-core/PoolManager.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
+import {PoolManager} from 'v4-core/PoolManager.sol';
+import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
+import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
 
-import {Hooks} from "v4-core/libraries/Hooks.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {SqrtPriceMath} from "v4-core/libraries/SqrtPriceMath.sol";
+import {Hooks} from 'v4-core/libraries/Hooks.sol';
+import {TickMath} from 'v4-core/libraries/TickMath.sol';
+import {SqrtPriceMath} from 'v4-core/libraries/SqrtPriceMath.sol';
 
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from 'solmate/src/test/utils/mocks/MockERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {Signals} from '../Signals.sol';
 import {BondHook} from '../BondHook.sol';
-
-
+import {ISignals} from '../interfaces/ISignals.sol';
 
 import 'forge-std/console.sol';
 
@@ -88,15 +87,17 @@ contract BondMarketTest is Test, Deployers {
     _decayCurveParameters[0] = 9e17;
 
     _signalsContract.initialize(
-      address(this),
-      address(_someGovToken),
-      _PROPOSAL_THRESHOLD,
-      _ACCEPTANCE_THRESHOLD,
-      _LOCK_DURATION_CAP,
-      _PROPOSAL_CAP,
-      _LOCK_INTERVAL,
-      _DECAY_CURVE_TYPE,
-      _decayCurveParameters
+      ISignals.SignalsConfig({
+        owner: address(this),
+        underlyingToken: address(_someGovToken),
+        proposalThreshold: _PROPOSAL_THRESHOLD,
+        acceptanceThreshold: _ACCEPTANCE_THRESHOLD,
+        maxLockIntervals: _LOCK_DURATION_CAP,
+        proposalCap: _PROPOSAL_CAP,
+        lockInterval: _LOCK_INTERVAL,
+        decayCurveType: _DECAY_CURVE_TYPE,
+        decayCurveParameters: _decayCurveParameters
+      })
     );
 
     // Approve our TOKEN for spending on the swap router and modify liquidity router
@@ -144,7 +145,6 @@ contract BondMarketTest is Test, Deployers {
 
   // FIXME: This should be moved into a utility function
   function test_AddSingleSidedLiquidity() public {
-
     // Mind eth to self
     vm.deal(address(this), 100 ether);
     // Mint a bunch of GOV to ourselves
@@ -161,14 +161,14 @@ contract BondMarketTest is Test, Deployers {
 
     uint256 ethToAdd = 0.1 ether;
     uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
-        sqrtPriceAtTickLower,
-        SQRT_PRICE_1_1,
-        ethToAdd
+      sqrtPriceAtTickLower,
+      SQRT_PRICE_1_1,
+      ethToAdd
     );
     uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
-        sqrtPriceAtTickLower,
-        SQRT_PRICE_1_1,
-        liquidityDelta
+      sqrtPriceAtTickLower,
+      SQRT_PRICE_1_1,
+      liquidityDelta
     );
 
     console.log('liquidityDelta: %s', liquidityDelta);
@@ -176,14 +176,14 @@ contract BondMarketTest is Test, Deployers {
 
     // Add liquidity
     modifyLiquidityRouter.modifyLiquidity{value: ethToAdd}(
-        key,
-        IPoolManager.ModifyLiquidityParams({
-            tickLower: -60,
-            tickUpper: 60,
-            liquidityDelta: int256(uint256(liquidityDelta)),
-            salt: bytes32(0)
-        }),
-        hookData
+      key,
+      IPoolManager.ModifyLiquidityParams({
+        tickLower: -60,
+        tickUpper: 60,
+        liquidityDelta: int256(uint256(liquidityDelta)),
+        salt: bytes32(0)
+      }),
+      hookData
     );
   }
 }

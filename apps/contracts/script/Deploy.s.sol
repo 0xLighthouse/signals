@@ -9,6 +9,7 @@ import {MockERC20} from '../src/__mocks__/MockERC20.m.sol'; // Add this line to 
 import {MockStable} from '../src/__mocks__/MockStable.m.sol';
 import {TokenRegistry} from '../src/TokenRegistry.sol';
 import {Incentives} from '../src/Incentives.sol';
+import {ISignals} from '../src/interfaces/ISignals.sol';
 
 /**
  * @notice forge script script/Deploy.s.sol --fork-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
@@ -64,15 +65,17 @@ contract DevelopmentScript is Script {
     // Deploy a new Signals contract using the factory
     vm.broadcast(deployerPrivateKey);
     address protocolAddress = _factory.create(
-      _owner,
-      address(_token),
-      25_000 * 1e18, // 25k _proposalThreshold
-      1_000_000 * 1e18, // 1M _acceptanceThreshold
-      30, // lockDurationCap (30 days)
-      5, // map active initiatives
-      1 days, // decayInterval
-      0, // decayCurveType, linear
-      params // decayCurveParameters
+      ISignals.SignalsConfig({
+        owner: _owner,
+        underlyingToken: address(_token),
+        proposalThreshold: 25_000 * 1e18, // 25k _proposalThreshold
+        acceptanceThreshold: 1_000_000 * 1e18, // 1M _acceptanceThreshold
+        maxLockIntervals: 30, // lockDurationCap (30 days)
+        proposalCap: 5, // map active initiatives
+        lockInterval: 1 days, // decayInterval
+        decayCurveType: 0, // decayCurveType, linear
+        decayCurveParameters: params // decayCurveParameters
+      })
     );
 
     Signals protocol = Signals(protocolAddress);
