@@ -14,6 +14,7 @@ import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {BondHook} from '../../BondHook.sol';
 import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
 import {SortTokens} from '@uniswap/v4-core/test/utils/SortTokens.sol';
+import {Constants} from '@uniswap/v4-core/test/utils/Constants.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
 import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
 
@@ -29,9 +30,9 @@ contract SignalsHarness is Test, Deployers {
   MockERC20 internal _dai = new MockERC20('DAI', 'DAI', 18);
 
   // tokens expressed as Currency
-  Currency usdcCurrency = Currency.wrap(address(_usdc));
-  Currency tokenCurrency = Currency.wrap(address(_token));
-  Currency daiCurrency = Currency.wrap(address(_dai));
+  Currency tokenCurrency;
+  Currency usdcCurrency;
+  Currency daiCurrency;
 
   BondHook public bondhook;
 
@@ -83,6 +84,25 @@ contract SignalsHarness is Test, Deployers {
     deal(address(_token), _charlie, defaultConfig.proposalThreshold / 2);
   }
 
+  function _uniswapApprovals(MockERC20 token) internal returns (Currency currency) {
+    address[9] memory toApprove = [
+      address(swapRouter),
+      address(swapRouterNoChecks),
+      address(modifyLiquidityRouter),
+      address(modifyLiquidityNoChecks),
+      address(donateRouter),
+      address(takeRouter),
+      address(claimsRouter),
+      address(nestedActionRouter.executor()),
+      address(actionsRouter)
+    ];
+
+    for (uint256 i = 0; i < toApprove.length; i++) {
+      token.approve(toApprove[i], Constants.MAX_UINT256);
+    }
+    return Currency.wrap(address(token));
+  }
+
   // TODO: Needs review
   function deployStables() public returns (MockERC20 _mToken, MockStable _mUSDC) {
     // Deploy MockERC20 token and mint 1 million tokens
@@ -108,13 +128,19 @@ contract SignalsHarness is Test, Deployers {
   }
 
   function deployHooksAndLiquidity(Signals _signals) public {
-    // Approve our TOKEN for spending on the swap router and modify liquidity router
-    // NOTE: These variables are exported from the `Deployers` contract
-    _token.approve(address(swapRouter), type(uint256).max);
-    _token.approve(address(modifyLiquidityRouter), type(uint256).max);
+    // Set up uniswap approvals
+    usdcCurrency = _uniswapApprovals(_usdc);
+    tokenCurrency = _uniswapApprovals(_token);
+    daiCurrency = _uniswapApprovals(_dai);
 
-    _usdc.approve(address(swapRouter), type(uint256).max);
-    _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
+    console.log('USDC address: %s', Currency.unwrap(usdcCurrency));
+    console.log('GOV address: %s', Currency.unwrap(tokenCurrency));
+    console.log('DAI address: %s', Currency.unwrap(daiCurrency));
+
+    // Deal tokens to deployer
+    deal(address(_token), _deployer, 1_000_000 * 1e18);
+    deal(address(_usdc), _deployer, 1_000_000 * 1e6);
+    deal(address(_dai), _deployer, 1_000_000 * 1e18);
 
     // Deploy hook with correct flags
     uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
@@ -126,43 +152,40 @@ contract SignalsHarness is Test, Deployers {
     // Deploy the pools
     console.log('Deploying USDC/GOV pool....');
     _keyA = _deployPoolWithHook(usdcCurrency, tokenCurrency); // USDC/GOV
+
     console.log('Deploying DAI/GOV pool....');
     _keyB = _deployPoolWithHook(daiCurrency, tokenCurrency); // DAI/GOV
   }
 
   // Gotcha: currencies are sorted by address
   function _deployPoolWithHook(
-    Currency currency0,
-    Currency currency1
+    Currency currencyA,
+    Currency currencyB
   ) public returns (PoolKey memory _key) {
-
-    (currency0, currency1) =
-      SortTokens.sort(MockERC20(Currency.unwrap(currency0)), MockERC20(Currency.unwrap(currency1)));
-
-    (_key, ) = initPool(
-      currency0,
-      currency1,
-      bondhook, // Hook Contract
-      POOL_FEE, // Swap Fees, 0.3%
-      SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
+    Currency _currency0;
+    Currency _currency1;
+    (_currency0, _currency1) = SortTokens.sort(
+      MockERC20(Currency.unwrap(currencyA)),
+      MockERC20(Currency.unwrap(currencyB))
     );
 
-    console.log('Deployed pool...');
-    console.log('Adding liquidity...');
+    // print current decimals
+    console.log('currency0 decimals: %s', MockERC20(Currency.unwrap(_currency0)).decimals());
+    console.log('currency0 address: %s', Currency.unwrap(_currency0));
+    console.log('currency1 decimals: %s', MockERC20(Currency.unwrap(_currency1)).decimals());
+    console.log('currency1 address: %s', Currency.unwrap(_currency1));
 
-    // Add some liquidity
-    // modifyLiquidityRouter.modifyLiquidity(
-    //   _key,
-    //   IPoolManager.ModifyLiquidityParams({
-    //     tickLower: -60,
-    //     tickUpper: 60,
-    //     liquidityDelta: 100 ether,
-    //     salt: bytes32(0)
-    //   }),
-    //   ZERO_BYTES
-    // );
+    (_key, ) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
 
-    console.log('Liquidity added...');
+    // Adjust liquidity amounts based on token decimals
+    uint256 amount0 = MockERC20(Currency.unwrap(_currency0)).decimals() == 6
+      ? 100_000 * 1e6 // USDC amount (6 decimals)
+      : 100_000 ether; // GOV amount (18 decimals)
+    uint256 amount1 = MockERC20(Currency.unwrap(_currency1)).decimals() == 6
+      ? 100_000 * 1e6 // USDC amount (6 decimals)
+      : 100_000 ether; // GOV amount (18 decimals)
+
+    seedMoreLiquidity(_key, amount0, amount1);
 
     return _key;
   }
@@ -188,27 +211,5 @@ contract SignalsHarness is Test, Deployers {
     for (uint256 i = 0; i < _tokens.length; i++) {
       registry.allow(_tokens[i]);
     }
-  }
-
-  function sortTokens(
-    address tokenA,
-    address tokenB
-  ) internal pure returns (address token0, address token1) {
-    require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');
-    if (tokenA < tokenB) {
-      token0 = tokenA;
-      token1 = tokenB;
-    } else {
-      token0 = tokenB;
-      token1 = tokenA;
-    }
-    console.log('--------------------------------');
-    console.log('tokenA: %s', tokenA);
-    console.log('tokenB: %s', tokenB);
-    console.log('--------------------------------');
-    console.log('token0: %s', token0);
-    console.log('token1: %s', token1);
-    console.log('--------------------------------');
-    require(token0 != address(0), 'ZERO_ADDRESS');
   }
 }

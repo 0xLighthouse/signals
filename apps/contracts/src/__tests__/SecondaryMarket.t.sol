@@ -62,82 +62,18 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     deployHooksAndLiquidity(signals);
   }
 
-  // function test_liquidity() public {
-  //   // Get token balances of the deployer
-  //   uint256 govBalance = _token.balanceOf(address(this));
-  //   uint256 usdcBalance = _usdc.balanceOf(address(this));
-  //   uint256 daiBalance = _dai.balanceOf(address(this));
+  function test_LiquidityDeployed() public view {
+    // Get token balances of the deployer
+    uint256 govBalance = _token.balanceOf(address(this));
+    uint256 usdcBalance = _usdc.balanceOf(address(this));
+    uint256 daiBalance = _dai.balanceOf(address(this));
 
-  //   // Log current balances
-  //   console.log('GOV balance:', govBalance);
-  //   console.log('USDC balance:', usdcBalance);
-  //   console.log('DAI balance:', daiBalance);
-  //   // Get liquidity positions from the pool
-  //   // (uint160 sqrtPriceX96, int24 tick, , , , , ) = manager.getSlot0(_keyA);
-  //   // console.log('Current pool price (sqrt):', sqrtPriceX96);
-  //   // console.log('Current tick:', tick);
+    // Log current balances
+    console.log('GOV balance:', govBalance);
+    console.log('USDC balance:', usdcBalance);
+    console.log('DAI balance:', daiBalance);
 
-  //   // // Get position info for specific tick range
-  //   // bytes32 positionId = keccak256(
-  //   //   abi.encode(
-  //   //     address(this), // owner
-  //   //     -60, // tickLower
-  //   //     60 // tickUpper
-  //   //   )
-  //   // );
-
-  //   // (uint128 liquidity, , , , ) = manager.getPosition(_keyA, address(this), -60, 60);
-  //   // console.log('Liquidity in position:', liquidity);
-
-  //   // // Assert expected values
-  //   // assertGt(liquidity, 0, 'No liquidity found in position');
-  //   // assertGt(govBalance, 0, 'No GOV balance');
-  //   // assertGt(usdcBalance, 0, 'No USDC balance');
-  //   // assertGt(daiBalance, 0, 'No DAI balance');
-  // }
-
-  function test_AddSingleSidedLiquidity() public {
-    // Mint tokens to self
-    _token.mint(address(_deployer), 1_000_000 * 1e18);
-    _usdc.mint(address(_deployer), 1_000_000 * 1e6);
-
-    // Set user address in hook data
-    bytes memory hookData = abi.encode(address(this));
-
-    uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
-    uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
-
-    console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
-    console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
-
-    uint256 usdcToAdd = 1_000_000 * 1e6;
-
-    uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
-      sqrtPriceAtTickLower,
-      SQRT_PRICE_1_1,
-      usdcToAdd
-    );
-    uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
-      sqrtPriceAtTickLower,
-      SQRT_PRICE_1_1,
-      liquidityDelta
-    );
-
-    console.log('liquidityDelta: %s', liquidityDelta);
-    console.log('tokenToAdd: %s', tokenToAdd);
-
-    // Add liquidity
-    modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
-      _keyA,
-      IPoolManager.ModifyLiquidityParams({
-        tickLower: -60,
-        tickUpper: 60,
-        liquidityDelta: int256(uint256(liquidityDelta)),
-        salt: bytes32(0)
-      }),
-      hookData
-    );
-  //   // TODO: What is the current price?
+    // TODO: Get the current price of the pool
   }
 
   // lib/v4-periphery/src/interfaces/IV4Router.sol
