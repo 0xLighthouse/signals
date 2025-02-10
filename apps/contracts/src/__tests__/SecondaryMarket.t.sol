@@ -20,18 +20,22 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {Signals} from '../Signals.sol';
-import {BondHook} from '../BondHook.sol';
+
 import {ISignals} from '../interfaces/ISignals.sol';
 import {SignalsHarness} from './utils/SignalsHarness.sol';
 
 import 'forge-std/console.sol';
+
+import {IV4Router} from 'v4-periphery/src/interfaces/IV4Router.sol';
+import {PoolSwapTest} from 'v4-core/test/PoolSwapTest.sol';
 
 /**
  * Selling locked bonds into a Uniswap V4 pool
  *
  * TODO:
  * - [ ] Alice has 100k GOV
- * - [ ] Bob provides 1k ETH/GOV to the pool
+ * - [ ] Bob provides 1k USDC/GOV to the pool
+ * - [ ] Bob provides 1k USDT/GOV to the pool
  * - [ ] Alice locks 50k against an initiative for 1 year
  * - [ ] Variations:
  *      - [ ] Price selling the bond into the pool at t0 (immediately)
@@ -45,17 +49,6 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
 
   // --- Contracts ---
   Signals signals;
-  BondHook public bondhook;
-
-  // --- Tokens ---
-  MockERC20 _usdc;
-
-  // tokens expressed as Currency
-  Currency usdcCurrency;
-  Currency tokenCurrency;
-
-  // --- Pool Config ---
-  uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
   function setUp() public {
     // Deploy Uniswap V4 PoolManager and Router contracts
@@ -66,106 +59,109 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     bool dealTokens = true;
     signals = deploySignals(dealTokens);
 
-    // Deploy a governance token
-    tokenCurrency = Currency.wrap(address(_token));
-
-    // Deploy some stablecoin
-    _usdc = new MockERC20('USDC', 'USDC', 6);
-    usdcCurrency = Currency.wrap(address(_usdc));
-
-    // Approve our TOKEN for spending on the swap router and modify liquidity router
-    // NOTE: These variables are exported from the `Deployers` contract
-    _token.approve(address(swapRouter), type(uint256).max);
-    _token.approve(address(modifyLiquidityRouter), type(uint256).max);
-
-    _usdc.approve(address(swapRouter), type(uint256).max);
-    _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
-
-    // Deploy hook with correct flags
-    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
-    console.log('HookAddress: %s', address(flags));
-
-    deployCodeTo(
-      'BondHook.sol',
-      // Note: [manager] exposed from the Deployers contract
-      abi.encode(manager, address(signals)),
-      address(flags)
-    );
-    bondhook = BondHook(address(flags));
-
-    sortTokens(address(_usdc), address(_token));
-
-    // Initialize the pool with the correct parameters
-    // Note: writes [key] to the [Deployers] contract
-    (key, ) = initPool(
-      usdcCurrency, // Currency0 = USDC
-      tokenCurrency, // Currency1 = GOV
-      bondhook, // Hook Contract
-      POOL_FEE, // Swap Fees, 0.3%
-      SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
-    );
+    deployHooksAndLiquidity(signals);
   }
 
-  function test_AddSingleSidedLiquidity() public {
-    // Mind tokens to self
-    _token.mint(address(_deployer), 1_000_000 * 1e18);
-    _usdc.mint(address(_deployer), 1_000_000 * 1e6);
+  function test_liquidity() public {
+    // Get token balances of the deployer
+    uint256 govBalance = _token.balanceOf(address(this));
+    uint256 usdcBalance = _usdc.balanceOf(address(this));
+    uint256 daiBalance = _dai.balanceOf(address(this));
 
-    // Set user address in hook data
-    bytes memory hookData = abi.encode(address(this));
+    // Log current balances
+    console.log('GOV balance:', govBalance);
+    console.log('USDC balance:', usdcBalance);
+    console.log('DAI balance:', daiBalance);
+    // Get liquidity positions from the pool
+    // (uint160 sqrtPriceX96, int24 tick, , , , , ) = manager.getSlot0(_keyA);
+    // console.log('Current pool price (sqrt):', sqrtPriceX96);
+    // console.log('Current tick:', tick);
 
-    uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
-    uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
+    // // Get position info for specific tick range
+    // bytes32 positionId = keccak256(
+    //   abi.encode(
+    //     address(this), // owner
+    //     -60, // tickLower
+    //     60 // tickUpper
+    //   )
+    // );
 
-    console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
-    console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
+    // (uint128 liquidity, , , , ) = manager.getPosition(_keyA, address(this), -60, 60);
+    // console.log('Liquidity in position:', liquidity);
 
-    uint256 usdcToAdd = 1_000_000 * 1e6;
-
-    uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
-      sqrtPriceAtTickLower,
-      SQRT_PRICE_1_1,
-      usdcToAdd
-    );
-    uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
-      sqrtPriceAtTickLower,
-      SQRT_PRICE_1_1,
-      liquidityDelta
-    );
-
-    console.log('liquidityDelta: %s', liquidityDelta);
-    console.log('tokenToAdd: %s', tokenToAdd);
-
-    // Add liquidity
-    modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
-      key,
-      IPoolManager.ModifyLiquidityParams({
-        tickLower: -60,
-        tickUpper: 60,
-        liquidityDelta: int256(uint256(liquidityDelta)),
-        salt: bytes32(0)
-      }),
-      hookData
-    );
-
-    // TODO: What is the current price?
+    // // Assert expected values
+    // assertGt(liquidity, 0, 'No liquidity found in position');
+    // assertGt(govBalance, 0, 'No GOV balance');
+    // assertGt(usdcBalance, 0, 'No USDC balance');
+    // assertGt(daiBalance, 0, 'No DAI balance');
   }
+
+  // function test_AddSingleSidedLiquidity() public {
+  //   // Mint tokens to self
+  //   _token.mint(address(_deployer), 1_000_000 * 1e18);
+  //   _usdc.mint(address(_deployer), 1_000_000 * 1e6);
+
+  //   // Set user address in hook data
+  //   bytes memory hookData = abi.encode(address(this));
+
+  //   uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
+  //   uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
+
+  //   console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
+  //   console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
+
+  //   uint256 usdcToAdd = 1_000_000 * 1e6;
+
+  //   uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
+  //     sqrtPriceAtTickLower,
+  //     SQRT_PRICE_1_1,
+  //     usdcToAdd
+  //   );
+  //   uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
+  //     sqrtPriceAtTickLower,
+  //     SQRT_PRICE_1_1,
+  //     liquidityDelta
+  //   );
+
+  //   console.log('liquidityDelta: %s', liquidityDelta);
+  //   console.log('tokenToAdd: %s', tokenToAdd);
+
+  //   // Add liquidity
+  //   modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
+  //     key,
+  //     IPoolManager.ModifyLiquidityParams({
+  //       tickLower: -60,
+  //       tickUpper: 60,
+  //       liquidityDelta: int256(uint256(liquidityDelta)),
+  //       salt: bytes32(0)
+  //     }),
+  //     hookData
+  //   );
+
+  //   // TODO: What is the current price?
+  // }
 
   // lib/v4-periphery/src/interfaces/IV4Router.sol
 
   /**
    * [ ] Sell bond for UNI (exact output swap) single-hop pool [BOND -> UNI]
-   * [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
-   * [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]
+   * <https://8640p.slack.com/archives/C089L09UCFR/p1739202925580799>
    */
   function test_SellBondForExactOutput() public {
-    IV4Router.ExactOutputSingleParams({
-        poolKey: key,
-        zeroForOne: true,
-        amountOut: 1000,
-        amountInMaximum: 1000,
-        hookData: bytes("")
-    })
     // TODO: Sell bond into the pool
+
+    uint256 tokenId = 1;
+    uint256 amount = 1000;
+    bytes memory hookData = abi.encode(tokenId, amount);
+
+    swapRouter.swap(
+      key,
+      IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 0}),
+      PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+      hookData
+    );
   }
+
+  // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
+  // TOOD: [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]
 }

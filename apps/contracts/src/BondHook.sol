@@ -89,7 +89,8 @@ contract BondHook is BaseHook {
 
     // Get the current price of the underlying asset.
     // CurrencyLibrary.unwrap converts the currency type into its address form.
-    uint256 currentPrice = _getUnderlyingPrice(CurrencyLibrary.unwrap(key.currency0));
+    // uint256 currentPrice = _getUnderlyingPrice(CurrencyLibrary.unwrap(key.currency0));
+    uint256 currentPrice = 1e18;
 
     // For this example, apply a fixed discount of 20% (i.e. 2000 basis points out of 10000)
     uint256 discountRate = 2000; // 20%

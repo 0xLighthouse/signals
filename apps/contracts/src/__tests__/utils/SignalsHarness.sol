@@ -9,14 +9,36 @@ import {ISignals} from '../../interfaces/ISignals.sol';
 import {MockERC20} from 'solmate/src/test/utils/mocks/MockERC20.sol';
 import {MockStable} from '../../__mocks__/MockStable.m.sol';
 import {TokenRegistry} from '../../TokenRegistry.sol';
+import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
+import {Hooks} from 'v4-core/libraries/Hooks.sol';
+import {BondHook} from '../../BondHook.sol';
+import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
+import {PoolKey} from 'v4-core/types/PoolKey.sol';
+import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
 
-contract SignalsHarness is Test {
+contract SignalsHarness is Test, Deployers {
   address _deployer = address(this);
   address _alice = address(0x1111);
   address _bob = address(0x2222);
   address _charlie = address(0x3333);
 
+  // --- Tokens ---
   MockERC20 internal _token = new MockERC20('SomeGovToken', 'GOV', 18);
+  MockERC20 internal _usdc = new MockERC20('USDC', 'USDC', 6);
+  MockERC20 internal _dai = new MockERC20('DAI', 'DAI', 18);
+
+  // tokens expressed as Currency
+  Currency usdcCurrency = Currency.wrap(address(_usdc));
+  Currency tokenCurrency = Currency.wrap(address(_token));
+  Currency daiCurrency = Currency.wrap(address(_dai));
+
+  BondHook public bondhook;
+
+  // --- Pool Config ---
+  uint24 public constant POOL_FEE = 3000; // 0.3% fee
+
+  PoolKey _keyA; // USDC/GOV
+  PoolKey _keyB; // DAI/GOV
 
   ISignals.SignalsConfig public defaultConfig =
     ISignals.SignalsConfig({
@@ -82,6 +104,62 @@ contract SignalsHarness is Test {
     deal(address(_mUSDC), _charlie, 40_000 * 1e6);
 
     return (_mToken, _mUSDC);
+  }
+
+  function deployHooksAndLiquidity(Signals _signals) public {
+    // Approve our TOKEN for spending on the swap router and modify liquidity router
+    // NOTE: These variables are exported from the `Deployers` contract
+    _token.approve(address(swapRouter), type(uint256).max);
+    _token.approve(address(modifyLiquidityRouter), type(uint256).max);
+
+    _usdc.approve(address(swapRouter), type(uint256).max);
+    _usdc.approve(address(modifyLiquidityRouter), type(uint256).max);
+
+    // Deploy hook with correct flags
+    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+    console.log('HookAddress: %s', address(flags));
+
+    deployCodeTo('BondHook.sol', abi.encode(manager, address(_signals)), address(flags));
+    bondhook = BondHook(address(flags));
+
+    // Deploy the pools
+    console.log('Deploying USDC/GOV pool....');
+    _keyA = _deployPoolWithHook(usdcCurrency, tokenCurrency); // USDC/GOV
+    console.log('Deploying DAI/GOV pool....');
+    _keyB = _deployPoolWithHook(daiCurrency, tokenCurrency); // DAI/GOV
+  }
+
+  // Gotcha: currencies are sorted by address
+  function _deployPoolWithHook(
+    Currency currency0,
+    Currency currency1
+  ) public returns (PoolKey memory _key) {
+    (_key, ) = initPool(
+      currency0,
+      currency1,
+      bondhook, // Hook Contract
+      POOL_FEE, // Swap Fees, 0.3%
+      SQRT_PRICE_1_1 // Initial Sqrt(P) value = 1
+    );
+
+    console.log('Deployed pool...');
+    console.log('Adding liquidity...');
+
+    // Add some liquidity
+    modifyLiquidityRouter.modifyLiquidity(
+      _key,
+      IPoolManager.ModifyLiquidityParams({
+        tickLower: -60,
+        tickUpper: 60,
+        liquidityDelta: 100 ether,
+        salt: bytes32(0)
+      }),
+      ZERO_BYTES
+    );
+
+    console.log('Liquidity added...');
+
+    return _key;
   }
 
   function deployAllowedTokens()
