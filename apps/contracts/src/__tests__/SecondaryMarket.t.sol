@@ -44,7 +44,7 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
   using CurrencyLibrary for Currency;
 
   // --- Contracts ---
-  Signals _signalsContract;
+  Signals signals;
   BondHook public bondhook;
 
   // --- Tokens ---
@@ -64,7 +64,7 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
 
     // Deploy the Signals contract
     bool dealTokens = true;
-    deploySignals(dealTokens);
+    signals = deploySignals(dealTokens);
 
     // Deploy a governance token
     tokenCurrency = Currency.wrap(address(_token));
@@ -88,7 +88,7 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     deployCodeTo(
       'BondHook.sol',
       // Note: [manager] exposed from the Deployers contract
-      abi.encode(manager, address(_signalsContract)),
+      abi.encode(manager, address(signals)),
       address(flags)
     );
     bondhook = BondHook(address(flags));
@@ -147,5 +147,25 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
       }),
       hookData
     );
+
+    // TODO: What is the current price?
+  }
+
+  // lib/v4-periphery/src/interfaces/IV4Router.sol
+
+  /**
+   * [ ] Sell bond for UNI (exact output swap) single-hop pool [BOND -> UNI]
+   * [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
+   * [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]
+   */
+  function test_SellBondForExactOutput() public {
+    IV4Router.ExactOutputSingleParams({
+        poolKey: key,
+        zeroForOne: true,
+        amountOut: 1000,
+        amountInMaximum: 1000,
+        hookData: bytes("")
+    })
+    // TODO: Sell bond into the pool
   }
 }

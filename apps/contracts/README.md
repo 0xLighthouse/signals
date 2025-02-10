@@ -8,6 +8,13 @@
 - [ ] Allow lockers to list their tokens for sale `PurchaseBondHook` (ideally could be bought at a premium)
 - [ ] Allow lockers to sell their tokens for sale `SellBondHook` (ideally could be sold at a discount)
 
+### Secondary Market
+
+- [ ] Allow lockers to sell their tokens into AMM `BondHook` (ideally could be sold at a discount)
+- [ ] Allow lockers to buy tokens from AMM `BondHook` (ideally could be bought at a premium)
+- [ ] Need a way to list bonds owned by the hook
+- [ ] When a hook matures, it can be redeemed for the underlying tokens, any upside is also sold into the AMM and distributed LPs
+
 ## Getting Started
 
 We use Foundry to build and test our smart contracts. Get it here:

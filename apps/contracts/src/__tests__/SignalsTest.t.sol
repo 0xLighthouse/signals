@@ -108,7 +108,6 @@ contract SignalsTest is Test, SignalsHarness {
     // Propose an initiative
     _token.approve(address(signals), 100 * 1e18);
     signals.proposeInitiative('Initiative 1', 'Description 1');
-
     vm.stopPrank();
     vm.startPrank(_bob);
 

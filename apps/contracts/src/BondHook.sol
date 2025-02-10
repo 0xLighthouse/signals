@@ -7,9 +7,7 @@ import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
 import {BalanceDeltaLibrary, BalanceDelta} from 'v4-core/types/BalanceDelta.sol';
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapDelta.sol';
-
 import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
-
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 
@@ -30,6 +28,8 @@ contract BondHook is BaseHook {
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
   Signals public immutable signals;
+
+  // We need to
 
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
@@ -67,59 +67,74 @@ contract BondHook is BaseHook {
     return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
   }
 
-  // function _handleBondSwap(
-  //   address user,
-  //   PoolKey calldata key,
-  //   IPoolManager.SwapParams calldata params,
-  //   bytes calldata data
-  // ) internal {
-  //   uint256 tokenId = abi.decode(data, (uint256));
-  //   require(signals.ownerOf(tokenId) == user, 'BondHook: Not bond owner');
+  /**
+   * @notice Internal function to process a bond swap.
+   * @dev Decodes the tokenId from `data`, verifies ownership,
+   *      retrieves bond metadata, fetches the underlying price,
+   *      applies the discount, and checks the swap price limit.
+   */
+  function _handleBondSwap(
+    address user,
+    PoolKey calldata key,
+    IPoolManager.SwapParams calldata params,
+    bytes calldata data
+  ) internal {
+    // Decode the bond tokenId from the calldata.
+    uint256 tokenId = abi.decode(data, (uint256));
+    require(signals.ownerOf(tokenId) == user, 'BondHook: Not bond owner');
 
-  //   ISignals.LockInfo memory metadata = signals.getTokenMetadata(tokenId);
-  //   console.log('lockDuration', metadata.lockDuration);
+    // Retrieve bond metadata (e.g., lock duration, token amount, etc.)
+    ISignals.LockInfo memory metadata = signals.getTokenMetadata(tokenId);
+    console.log('lockDuration', metadata.lockDuration);
 
-  //   // TODO: Get current price and apply discount
-  //   // --- Get the bare minimum params required to calculate the bond.
-  //   uint256 currentPrice = _getUnderlyingPrice(Currency.unwrap(key.currency0));
-  //   uint256 currentDiscount = 10;
-  //   // uint256 currentDiscount = signals.getCurrentDiscount(tokenId);
-  //   uint256 discountedPrice = (currentPrice * (10000 - currentDiscount)) / 10000;
+    // Get the current price of the underlying asset.
+    // CurrencyLibrary.unwrap converts the currency type into its address form.
+    uint256 currentPrice = _getUnderlyingPrice(CurrencyLibrary.unwrap(key.currency0));
 
-  //   // FIXME: (TO STUDY) Enforce price impact based on bond terms
-  //   if (params.zeroForOne) {
-  //     require(
-  //       params.sqrtPriceLimitX96 <= _priceToSqrtX96(discountedPrice),
-  //       'BondHook: Price exceeds bond discount'
-  //     );
-  //   } else {
-  //     require(
-  //       params.sqrtPriceLimitX96 >= _priceToSqrtX96(discountedPrice),
-  //       'BondHook: Price exceeds bond discount'
-  //     );
-  //   }
-  // }
+    // For this example, apply a fixed discount of 20% (i.e. 2000 basis points out of 10000)
+    uint256 discountRate = 2000; // 20%
+    uint256 discountedPrice = (currentPrice * (10000 - discountRate)) / 10000;
+
+    // Enforce that the swap's price limit aligns with the discounted price.
+    // Depending on swap direction (zeroForOne), the sqrt price limit must be
+    // either at or below (for zeroForOne) or at or above (for oneForZero) the discounted price.
+    if (params.zeroForOne) {
+      require(
+        params.sqrtPriceLimitX96 <= _priceToSqrtX96(discountedPrice),
+        'BondHook: Price exceeds bond discount'
+      );
+    } else {
+      require(
+        params.sqrtPriceLimitX96 >= _priceToSqrtX96(discountedPrice),
+        'BondHook: Price exceeds bond discount'
+      );
+    }
+
+    // Emit an event indicating that this pool (identified by poolId) has processed a bond swap.
+    bytes32 poolId = keccak256(abi.encode(key));
+    emit Buyer(poolId, user);
+  }
 
   // // Lazy implementation
-  // function _priceToSqrtX96(uint256 price) internal pure returns (uint160) {
-  //   return uint160(_sqrt((price << 192) / 1e18));
-  // }
+  function _priceToSqrtX96(uint256 price) internal pure returns (uint160) {
+    return uint160(_sqrt((price << 192) / 1e18));
+  }
 
   // // Lazy implementation
-  // function _sqrt(uint256 x) internal pure returns (uint256 y) {
-  //   uint256 z = (x + 1) / 2;
-  //   y = x;
-  //   while (z < y) {
-  //     y = z;
-  //     z = (x / z + z) / 2;
-  //   }
-  // }
+  function _sqrt(uint256 x) internal pure returns (uint256 y) {
+    uint256 z = (x + 1) / 2;
+    y = x;
+    while (z < y) {
+      y = z;
+      z = (x / z + z) / 2;
+    }
+  }
 
   // // Lazy implementation
-  // function _getUnderlyingPrice(address asset) internal view returns (uint256) {
-  //   // Implement oracle price feed
-  //   return 1e18;
-  // }
+  function _getUnderlyingPrice(address asset) internal view returns (uint256) {
+    // Implement oracle price feed
+    return 1e18;
+  }
 
   // function _priceBond(address asset) internal view returns (uint256) {
   //   // Implement oracle price feed
