@@ -33,9 +33,9 @@ import {PoolSwapTest} from 'v4-core/test/PoolSwapTest.sol';
  * Selling locked bonds into a Uniswap V4 pool
  *
  * TODO:
- * - [ ] Alice has 100k GOV
- * - [ ] Bob provides 1k USDC/GOV to the pool
- * - [ ] Bob provides 1k USDT/GOV to the pool
+ * - [x] Alice has 100k GOV
+ * - [x] Deployer provides 100k USDC/GOV to the pool
+ * - [x] Deployer provides 100k DAI/GOV to the pool
  * - [ ] Alice locks 50k against an initiative for 1 year
  * - [ ] Variations:
  *      - [ ] Price selling the bond into the pool at t0 (immediately)
