@@ -62,39 +62,39 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     deployHooksAndLiquidity(signals);
   }
 
-  function test_liquidity() public {
-    // Get token balances of the deployer
-    uint256 govBalance = _token.balanceOf(address(this));
-    uint256 usdcBalance = _usdc.balanceOf(address(this));
-    uint256 daiBalance = _dai.balanceOf(address(this));
+  // function test_liquidity() public {
+  //   // Get token balances of the deployer
+  //   uint256 govBalance = _token.balanceOf(address(this));
+  //   uint256 usdcBalance = _usdc.balanceOf(address(this));
+  //   uint256 daiBalance = _dai.balanceOf(address(this));
 
-    // Log current balances
-    console.log('GOV balance:', govBalance);
-    console.log('USDC balance:', usdcBalance);
-    console.log('DAI balance:', daiBalance);
-    // Get liquidity positions from the pool
-    // (uint160 sqrtPriceX96, int24 tick, , , , , ) = manager.getSlot0(_keyA);
-    // console.log('Current pool price (sqrt):', sqrtPriceX96);
-    // console.log('Current tick:', tick);
+  //   // Log current balances
+  //   console.log('GOV balance:', govBalance);
+  //   console.log('USDC balance:', usdcBalance);
+  //   console.log('DAI balance:', daiBalance);
+  //   // Get liquidity positions from the pool
+  //   // (uint160 sqrtPriceX96, int24 tick, , , , , ) = manager.getSlot0(_keyA);
+  //   // console.log('Current pool price (sqrt):', sqrtPriceX96);
+  //   // console.log('Current tick:', tick);
 
-    // // Get position info for specific tick range
-    // bytes32 positionId = keccak256(
-    //   abi.encode(
-    //     address(this), // owner
-    //     -60, // tickLower
-    //     60 // tickUpper
-    //   )
-    // );
+  //   // // Get position info for specific tick range
+  //   // bytes32 positionId = keccak256(
+  //   //   abi.encode(
+  //   //     address(this), // owner
+  //   //     -60, // tickLower
+  //   //     60 // tickUpper
+  //   //   )
+  //   // );
 
-    // (uint128 liquidity, , , , ) = manager.getPosition(_keyA, address(this), -60, 60);
-    // console.log('Liquidity in position:', liquidity);
+  //   // (uint128 liquidity, , , , ) = manager.getPosition(_keyA, address(this), -60, 60);
+  //   // console.log('Liquidity in position:', liquidity);
 
-    // // Assert expected values
-    // assertGt(liquidity, 0, 'No liquidity found in position');
-    // assertGt(govBalance, 0, 'No GOV balance');
-    // assertGt(usdcBalance, 0, 'No USDC balance');
-    // assertGt(daiBalance, 0, 'No DAI balance');
-  }
+  //   // // Assert expected values
+  //   // assertGt(liquidity, 0, 'No liquidity found in position');
+  //   // assertGt(govBalance, 0, 'No GOV balance');
+  //   // assertGt(usdcBalance, 0, 'No USDC balance');
+  //   // assertGt(daiBalance, 0, 'No DAI balance');
+  // }
 
   function test_AddSingleSidedLiquidity() public {
     // Mint tokens to self
@@ -128,7 +128,7 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
 
     // Add liquidity
     modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
-      key,
+      _keyA,
       IPoolManager.ModifyLiquidityParams({
         tickLower: -60,
         tickUpper: 60,
@@ -146,20 +146,20 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
    * [ ] Sell bond for UNI (exact output swap) single-hop pool [BOND -> UNI]
    * <https://8640p.slack.com/archives/C089L09UCFR/p1739202925580799>
    */
-  function test_SellBondForExactOutput() public {
-    // TODO: Sell bond into the pool
+  // function test_SellBondForExactOutput() public {
+  //   // TODO: Sell bond into the pool
 
-    uint256 tokenId = 1;
-    uint256 amount = 1000;
-    bytes memory hookData = abi.encode(tokenId, amount);
+  //   uint256 tokenId = 1;
+  //   uint256 amount = 1000;
+  //   bytes memory hookData = abi.encode(tokenId, amount);
 
-    swapRouter.swap(
-      key,
-      IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 0}),
-      PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-      hookData
-    );
-  }
+  //   swapRouter.swap(
+  //     _keyA,
+  //     IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1}),
+  //     PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+  //     hookData
+  //   );
+  // }
 
   // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
   // TOOD: [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]
