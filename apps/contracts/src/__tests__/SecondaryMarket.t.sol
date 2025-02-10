@@ -96,50 +96,49 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     // assertGt(daiBalance, 0, 'No DAI balance');
   }
 
-  // function test_AddSingleSidedLiquidity() public {
-  //   // Mint tokens to self
-  //   _token.mint(address(_deployer), 1_000_000 * 1e18);
-  //   _usdc.mint(address(_deployer), 1_000_000 * 1e6);
+  function test_AddSingleSidedLiquidity() public {
+    // Mint tokens to self
+    _token.mint(address(_deployer), 1_000_000 * 1e18);
+    _usdc.mint(address(_deployer), 1_000_000 * 1e6);
 
-  //   // Set user address in hook data
-  //   bytes memory hookData = abi.encode(address(this));
+    // Set user address in hook data
+    bytes memory hookData = abi.encode(address(this));
 
-  //   uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
-  //   uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
+    uint160 sqrtPriceAtTickLower = TickMath.getSqrtPriceAtTick(-60);
+    uint160 sqrtPriceAtTickUpper = TickMath.getSqrtPriceAtTick(60);
 
-  //   console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
-  //   console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
+    console.log('sqrtPriceAtTickLower: %s', sqrtPriceAtTickLower);
+    console.log('sqrtPriceAtTickUpper: %s', sqrtPriceAtTickUpper);
 
-  //   uint256 usdcToAdd = 1_000_000 * 1e6;
+    uint256 usdcToAdd = 1_000_000 * 1e6;
 
-  //   uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
-  //     sqrtPriceAtTickLower,
-  //     SQRT_PRICE_1_1,
-  //     usdcToAdd
-  //   );
-  //   uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
-  //     sqrtPriceAtTickLower,
-  //     SQRT_PRICE_1_1,
-  //     liquidityDelta
-  //   );
+    uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmount0(
+      sqrtPriceAtTickLower,
+      SQRT_PRICE_1_1,
+      usdcToAdd
+    );
+    uint256 tokenToAdd = LiquidityAmounts.getAmount1ForLiquidity(
+      sqrtPriceAtTickLower,
+      SQRT_PRICE_1_1,
+      liquidityDelta
+    );
 
-  //   console.log('liquidityDelta: %s', liquidityDelta);
-  //   console.log('tokenToAdd: %s', tokenToAdd);
+    console.log('liquidityDelta: %s', liquidityDelta);
+    console.log('tokenToAdd: %s', tokenToAdd);
 
-  //   // Add liquidity
-  //   modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
-  //     key,
-  //     IPoolManager.ModifyLiquidityParams({
-  //       tickLower: -60,
-  //       tickUpper: 60,
-  //       liquidityDelta: int256(uint256(liquidityDelta)),
-  //       salt: bytes32(0)
-  //     }),
-  //     hookData
-  //   );
-
+    // Add liquidity
+    modifyLiquidityRouter.modifyLiquidity{value: usdcToAdd}(
+      key,
+      IPoolManager.ModifyLiquidityParams({
+        tickLower: -60,
+        tickUpper: 60,
+        liquidityDelta: int256(uint256(liquidityDelta)),
+        salt: bytes32(0)
+      }),
+      hookData
+    );
   //   // TODO: What is the current price?
-  // }
+  }
 
   // lib/v4-periphery/src/interfaces/IV4Router.sol
 

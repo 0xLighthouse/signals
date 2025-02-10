@@ -13,6 +13,7 @@ import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {BondHook} from '../../BondHook.sol';
 import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
+import {SortTokens} from '@uniswap/v4-core/test/utils/SortTokens.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
 import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
 
@@ -134,6 +135,10 @@ contract SignalsHarness is Test, Deployers {
     Currency currency0,
     Currency currency1
   ) public returns (PoolKey memory _key) {
+
+    (currency0, currency1) =
+      SortTokens.sort(MockERC20(Currency.unwrap(currency0)), MockERC20(Currency.unwrap(currency1)));
+
     (_key, ) = initPool(
       currency0,
       currency1,
@@ -146,16 +151,16 @@ contract SignalsHarness is Test, Deployers {
     console.log('Adding liquidity...');
 
     // Add some liquidity
-    modifyLiquidityRouter.modifyLiquidity(
-      _key,
-      IPoolManager.ModifyLiquidityParams({
-        tickLower: -60,
-        tickUpper: 60,
-        liquidityDelta: 100 ether,
-        salt: bytes32(0)
-      }),
-      ZERO_BYTES
-    );
+    // modifyLiquidityRouter.modifyLiquidity(
+    //   _key,
+    //   IPoolManager.ModifyLiquidityParams({
+    //     tickLower: -60,
+    //     tickUpper: 60,
+    //     liquidityDelta: 100 ether,
+    //     salt: bytes32(0)
+    //   }),
+    //   ZERO_BYTES
+    // );
 
     console.log('Liquidity added...');
 
