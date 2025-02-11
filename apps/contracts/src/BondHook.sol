@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import 'forge-std/console.sol';
+
 import {BaseHook} from 'v4-periphery/src/base/hooks/BaseHook.sol';
 
 import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
@@ -13,10 +15,9 @@ import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 
 import {Signals} from './Signals.sol';
 import {ISignals} from './interfaces/ISignals.sol';
+import {IBondPricing} from './interfaces/IBondPricing.sol';
 
-import 'forge-std/console.sol';
-import "./PipsLib.sol";
-import "./BondPrices.sol";
+import './PipsLib.sol';
 
 /**
  * - LPs provide need to provide single sided liquidity to a pool
@@ -30,7 +31,7 @@ contract BondHook is BaseHook {
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
   using PipsLib for uint256;
   Signals public immutable signals;
-  BondPrices public bondPrices;
+  IBondPricing public bondPricing;
 
   // TODO: Record the owner of the contract, and let only them update the discount and premium rates
   address public immutable owner;
@@ -40,9 +41,13 @@ contract BondHook is BaseHook {
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
-  constructor(IPoolManager _poolManager, address _signals, address _bondPrices) BaseHook(_poolManager) {
+  constructor(
+    IPoolManager _poolManager,
+    address _signals,
+    address _bondPricing
+  ) BaseHook(_poolManager) {
     signals = Signals(_signals);
-    bondPrices = BondPrices(_bondPrices);
+    bondPricing = IBondPricing(_bondPricing);
   }
 
   function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -66,7 +71,7 @@ contract BondHook is BaseHook {
   }
 
   /**
-   * @notice The nominal value of the bond is the amount of tokens that will be 
+   * @notice The nominal value of the bond is the amount of tokens that will be
    * received when the bond is redeemed.
    * @param tokenId The ID of the bond token.
    * @return value The nominal value of the bond.
@@ -75,28 +80,31 @@ contract BondHook is BaseHook {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
     return lock.tokenAmount;
   }
-  
-  function _nominalValue(uint256 tokenAmount) external view returns (uint256) {
+
+  function _nominalValue(uint256 tokenAmount) internal pure returns (uint256) {
     return tokenAmount;
   }
 
   /**
    * @notice The current value of the bond is a custom calculation based on
    * the current time.
+   *
    * @param tokenId The ID of the bond token.
    * @return value The current value of the bond.
    */
   function currentValue(uint256 tokenId) external view returns (uint256) {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+
     // TODO: The interval should be exposed from the Signals contract.
     uint256 interval = 30 days;
-    return bondPrices.currentBuyValue({
-      tokenAmount: lock.tokenAmount,
-      lockCreated: lock.created,
-      totalDuration: lock.lockDuration * interval,
-      currentTime: block.timestamp,
-      discount: discount
-    });
+
+    return
+      bondPricing.calculateBid({
+        tokenAmount: lock.tokenAmount,
+        lockCreated: lock.created,
+        totalDuration: lock.lockDuration * interval,
+        currentTime: block.timestamp
+      });
   }
 
   function beforeSwap(
