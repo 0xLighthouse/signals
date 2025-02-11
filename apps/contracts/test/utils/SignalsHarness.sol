@@ -3,15 +3,15 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
 
-import {Signals} from '../../Signals.sol';
-import {SignalsFactory} from '../../SignalsFactory.sol';
-import {ISignals} from '../../interfaces/ISignals.sol';
+import {Signals} from '../../src/Signals.sol';
+import {SignalsFactory} from '../../src/SignalsFactory.sol';
+import {ISignals} from '../../src/interfaces/ISignals.sol';
 import {MockERC20} from 'solmate/src/test/utils/mocks/MockERC20.sol';
-import {MockStable} from '../../__mocks__/MockStable.m.sol';
-import {TokenRegistry} from '../../TokenRegistry.sol';
+import {MockStable} from '../../src/__mocks__/MockStable.m.sol';
+import {TokenRegistry} from '../../src/TokenRegistry.sol';
 import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
-import {BondHook} from '../../BondHook.sol';
+import {BondHook} from '../../src/BondHook.sol';
 import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
 import {SortTokens} from '@uniswap/v4-core/test/utils/SortTokens.sol';
 import {Constants} from '@uniswap/v4-core/test/utils/Constants.sol';

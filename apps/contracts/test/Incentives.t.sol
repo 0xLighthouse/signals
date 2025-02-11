@@ -9,11 +9,11 @@ import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import '@openzeppelin/contracts/utils/Strings.sol';
 
-import {SignalsFactory} from '../SignalsFactory.sol';
-import {Signals} from '../Signals.sol';
-import {TokenRegistry} from '../TokenRegistry.sol';
-import {Incentives} from '../Incentives.sol';
-import {MockStable} from '../__mocks__/MockStable.m.sol';
+import {SignalsFactory} from '../src/SignalsFactory.sol';
+import {Signals} from '../src/Signals.sol';
+import {TokenRegistry} from '../src/TokenRegistry.sol';
+import {Incentives} from '../src/Incentives.sol';
+import {MockStable} from '../src/__mocks__/MockStable.m.sol';
 import {SignalsHarness} from './utils/SignalsHarness.sol';
 
 contract IncentivesTest is Test, SignalsHarness {

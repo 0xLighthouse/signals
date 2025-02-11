@@ -6,7 +6,7 @@ import 'forge-std/console.sol';
 
 import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
-import {Signals} from '../Signals.sol';
+import {Signals} from '../src/Signals.sol';
 import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 
 import {SignalsHarness} from './utils/SignalsHarness.sol';

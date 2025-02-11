@@ -10,10 +10,10 @@ import 'solmate/src/test/utils/mocks/MockERC20.sol';
 
 import '@openzeppelin/contracts/utils/Strings.sol';
 
-import {SignalsFactory} from '../SignalsFactory.sol';
-import {Signals} from '../Signals.sol';
+import {SignalsFactory} from '../src/SignalsFactory.sol';
+import {Signals} from '../src/Signals.sol';
 import {SignalsHarness} from './utils/SignalsHarness.sol';
-import {ISignals} from '../interfaces/ISignals.sol';
+import {ISignals} from '../src/interfaces/ISignals.sol';
 
 contract InitiativesTest is Test, SignalsHarness {
   // SignalsFactory factory;

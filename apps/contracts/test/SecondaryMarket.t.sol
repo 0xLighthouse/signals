@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
+import 'forge-std/console.sol';
 
 import {Deployers} from '@uniswap/v4-core/test/utils/Deployers.sol';
 import {LiquidityAmounts} from '@uniswap/v4-core/test/utils/LiquidityAmounts.sol';
@@ -19,12 +20,10 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
 import {Hooks} from 'v4-core/libraries/Hooks.sol';
-import {Signals} from '../Signals.sol';
+import {Signals} from '../src/Signals.sol';
 
-import {ISignals} from '../interfaces/ISignals.sol';
+import {ISignals} from '../src/interfaces/ISignals.sol';
 import {SignalsHarness} from './utils/SignalsHarness.sol';
-
-import 'forge-std/console.sol';
 
 import {IV4Router} from 'v4-periphery/src/interfaces/IV4Router.sol';
 import {PoolSwapTest} from 'v4-core/test/PoolSwapTest.sol';
