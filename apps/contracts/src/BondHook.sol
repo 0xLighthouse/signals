@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity ^0.8.24;
 
 import {BaseHook} from 'v4-periphery/src/base/hooks/BaseHook.sol';
 
@@ -15,6 +15,8 @@ import {Signals} from './Signals.sol';
 import {ISignals} from './interfaces/ISignals.sol';
 
 import 'forge-std/console.sol';
+import "./PipsLib.sol";
+import "./BondPrices.sol";
 
 /**
  * - LPs provide need to provide single sided liquidity to a pool
@@ -26,14 +28,21 @@ import 'forge-std/console.sol';
  */
 contract BondHook is BaseHook {
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
-
+  using PipsLib for uint256;
   Signals public immutable signals;
+  BondPrices public bondPrices;
+
+  // TODO: Record the owner of the contract, and let only them update the discount and premium rates
+  address public immutable owner;
+  uint256 public discount = uint256(10).percentToPips();
+  uint256 public premium = uint256(10).percentToPips();
 
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
-  constructor(IPoolManager _poolManager, address _signals) BaseHook(_poolManager) {
+  constructor(IPoolManager _poolManager, address _signals, address _bondPrices) BaseHook(_poolManager) {
     signals = Signals(_signals);
+    bondPrices = BondPrices(_bondPrices);
   }
 
   function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -56,19 +65,38 @@ contract BondHook is BaseHook {
       });
   }
 
-  function nominalAmount(uint256 tokenId) external view returns (uint256) {
+  /**
+   * @notice The nominal value of the bond is the amount of tokens that will be 
+   * received when the bond is redeemed.
+   * @param tokenId The ID of the bond token.
+   * @return value The nominal value of the bond.
+   */
+  function nominalValue(uint256 tokenId) external view returns (uint256) {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+    return lock.tokenAmount;
+  }
+  
+  function _nominalValue(uint256 tokenAmount) external view returns (uint256) {
+    return tokenAmount;
+  }
 
-    // FIXME: Compute the lock period in seconds (assumes 30 days per month).
+  /**
+   * @notice The current value of the bond is a custom calculation based on
+   * the current time.
+   * @param tokenId The ID of the bond token.
+   * @return value The current value of the bond.
+   */
+  function currentValue(uint256 tokenId) external view returns (uint256) {
+    ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+    // TODO: The interval should be exposed from the Signals contract.
     uint256 interval = 30 days;
-    uint256 expiresAt = lock.created + (lock.lockDuration * interval);
-    uint256 elapsed = expiresAt - block.timestamp;
-
-    // Compute the unlocked amount properly.
-    uint256 unlocked = (lock.tokenAmount * elapsed) / interval;
-
-    // Apply the discount factor (80%).
-    return (unlocked * 80) / 100;
+    return bondPrices.currentBuyValue({
+      tokenAmount: lock.tokenAmount,
+      lockCreated: lock.created,
+      totalDuration: lock.lockDuration * interval,
+      currentTime: block.timestamp,
+      discount: discount
+    });
   }
 
   function beforeSwap(
