@@ -57,17 +57,18 @@ contract BondHook is BaseHook {
   }
 
   function nominalAmount(uint256 tokenId) external view returns (uint256) {
-    ISignals.LockInfo memory metadata = signals.getTokenMetadata(tokenId);
+    ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
 
-    console.log('lockDuration', metadata.lockDuration);
-    console.log('initiativeId', metadata.initiativeId);
-    console.log('tokenAmount', metadata.tokenAmount);
-    console.log('created', metadata.created);
-    console.log('withdrawn', metadata.withdrawn);
+    // FIXME: Compute the lock period in seconds (assumes 30 days per month).
+    uint256 interval = 30 days;
+    uint256 expiresAt = lock.created + (lock.lockDuration * interval);
+    uint256 elapsed = expiresAt - block.timestamp;
 
-    // Apply a 20% discount to the token amount
-    uint256 discountedAmount = (metadata.tokenAmount * 8000) / 10000;
-    return discountedAmount;
+    // Compute the unlocked amount properly.
+    uint256 unlocked = (lock.tokenAmount * elapsed) / interval;
+
+    // Apply the discount factor (80%).
+    return (unlocked * 80) / 100;
   }
 
   function beforeSwap(

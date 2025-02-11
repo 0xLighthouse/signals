@@ -127,7 +127,7 @@ contract SignalsHarness is Test, Deployers {
     return (_mToken, _mUSDC);
   }
 
-  function deployHooksAndLiquidity(Signals _signals) public {
+  function deployHookWithLiquidity(Signals _signals) public {
     // Set up uniswap approvals
     usdcCurrency = _uniswapApprovals(_usdc);
     tokenCurrency = _uniswapApprovals(_token);
