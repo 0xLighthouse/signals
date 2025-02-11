@@ -7,7 +7,7 @@ import {Signals} from '../../src/Signals.sol';
 import {SignalsFactory} from '../../src/SignalsFactory.sol';
 import {ISignals} from '../../src/interfaces/ISignals.sol';
 import {MockERC20} from 'solmate/src/test/utils/mocks/MockERC20.sol';
-import {MockStable} from '../../src/__mocks__/MockStable.m.sol';
+import {MockStable} from '../../test/mocks/MockStable.m.sol';
 import {TokenRegistry} from '../../src/TokenRegistry.sol';
 import {Currency, CurrencyLibrary} from 'v4-core/types/Currency.sol';
 import {Hooks} from 'v4-core/libraries/Hooks.sol';

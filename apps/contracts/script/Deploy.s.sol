@@ -5,8 +5,8 @@ import 'forge-std/Script.sol';
 
 import {SignalsFactory} from '../src/SignalsFactory.sol';
 import {Signals} from '../src/Signals.sol';
-import {MockERC20} from '../src/__mocks__/MockERC20.m.sol'; // Add this line to import MockERC20;
-import {MockStable} from '../src/__mocks__/MockStable.m.sol';
+import {MockERC20} from '../test/mocks/MockERC20.m.sol';
+import {MockStable} from '../test/mocks/MockStable.m.sol';
 import {TokenRegistry} from '../src/TokenRegistry.sol';
 import {Incentives} from '../src/Incentives.sol';
 import {ISignals} from '../src/interfaces/ISignals.sol';

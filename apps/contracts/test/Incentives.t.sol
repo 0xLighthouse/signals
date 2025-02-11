@@ -13,7 +13,7 @@ import {SignalsFactory} from '../src/SignalsFactory.sol';
 import {Signals} from '../src/Signals.sol';
 import {TokenRegistry} from '../src/TokenRegistry.sol';
 import {Incentives} from '../src/Incentives.sol';
-import {MockStable} from '../src/__mocks__/MockStable.m.sol';
+import {MockStable} from '../test/mocks/MockStable.m.sol';
 import {SignalsHarness} from './utils/SignalsHarness.sol';
 
 contract IncentivesTest is Test, SignalsHarness {
