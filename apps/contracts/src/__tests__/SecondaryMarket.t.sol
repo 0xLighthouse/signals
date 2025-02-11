@@ -51,8 +51,6 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
   Signals signals;
 
   function setUp() public {
-    // Deploy Uniswap V4 PoolManager and Router contracts
-    // Note: Providers [manager] and [swapRouter] to scope
     deployFreshManagerAndRouters();
 
     // Deploy the Signals contract
@@ -62,8 +60,10 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     deployHooksAndLiquidity(signals);
   }
 
+  /**
+   * TODO: Ensure liquidity is deployed as expected
+   */
   function test_LiquidityDeployed() public view {
-    // Get token balances of the deployer
     uint256 govBalance = _token.balanceOf(address(this));
     uint256 usdcBalance = _usdc.balanceOf(address(this));
     uint256 daiBalance = _dai.balanceOf(address(this));
@@ -72,30 +72,31 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     console.log('GOV balance:', govBalance);
     console.log('USDC balance:', usdcBalance);
     console.log('DAI balance:', daiBalance);
-
-    // TODO: Get the current price of the pool
   }
-
-  // lib/v4-periphery/src/interfaces/IV4Router.sol
 
   /**
    * [ ] Sell bond for UNI (exact output swap) single-hop pool [BOND -> UNI]
    * <https://8640p.slack.com/archives/C089L09UCFR/p1739202925580799>
    */
-  // function test_SellBondForExactOutput() public {
-  //   // TODO: Sell bond into the pool
+  function test_SellBondForExactOutput() public {
+    // TODO: Sell bond into the pool
 
-  //   uint256 tokenId = 1;
-  //   uint256 amount = 1000;
-  //   bytes memory hookData = abi.encode(tokenId, amount);
+    // Alice locks 50k against an initiative for 1 year
+    uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50000, 12);
 
-  //   swapRouter.swap(
-  //     _keyA,
-  //     IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1}),
-  //     PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-  //     hookData
-  //   );
-  // }
+    console.log('Token ID:', tokenId);
+
+    // uint256 tokenId = 1;
+    // uint256 amount = 1000;
+    // bytes memory hookData = abi.encode(tokenId, amount);
+
+    // swapRouter.swap(
+    //   _keyA,
+    //   IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1}),
+    //   PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+    //   hookData
+    // );
+  }
 
   // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
   // TOOD: [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]

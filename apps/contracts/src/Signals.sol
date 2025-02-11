@@ -231,7 +231,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     address supporter,
     uint256 amount,
     uint256 lockDuration
-  ) internal hasSufficientTokens(amount) {
+  ) internal hasSufficientTokens(amount) returns (uint256 tokenId) {
     if (lockDuration == 0 || lockDuration > maxLockIntervals) {
       revert InvalidInput('Invalid lock interval');
     }
@@ -245,7 +245,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount))
       revert TokenTransferFailed();
 
-    uint256 tokenId = nextTokenId++;
+    tokenId = nextTokenId++;
 
     _mint(supporter, tokenId);
 
@@ -268,6 +268,8 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     }
 
     emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, block.timestamp);
+
+    return tokenId;
   }
 
   function _calculateWeightAt(
@@ -378,9 +380,14 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     string memory body,
     uint256 amount,
     uint256 lockDuration
-  ) external hasSufficientTokens(proposalThreshold) hasValidInput(title, body) {
+  )
+    external
+    hasSufficientTokens(proposalThreshold)
+    hasValidInput(title, body)
+    returns (uint256 tokenId)
+  {
     uint256 id = _addInitiative(title, body);
-    _addLock(id, msg.sender, amount, lockDuration);
+    tokenId = _addLock(id, msg.sender, amount, lockDuration);
   }
 
   /**
@@ -394,8 +401,8 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     uint256 initiativeId,
     uint256 amount,
     uint256 lockDuration
-  ) external exists(initiativeId) {
-    _addLock(initiativeId, msg.sender, amount, lockDuration);
+  ) external exists(initiativeId) returns (uint256 tokenId) {
+    tokenId = _addLock(initiativeId, msg.sender, amount, lockDuration);
   }
 
   function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {

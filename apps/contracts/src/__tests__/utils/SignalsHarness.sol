@@ -190,6 +190,23 @@ contract SignalsHarness is Test, Deployers {
     return _key;
   }
 
+  function lockTokensAndIssueBond(
+    Signals _signals,
+    address _user,
+    uint256 _amount,
+    uint256 _duration
+  ) public returns (uint256 tokenId) {
+    vm.startPrank(_user);
+    _token.approve(address(_signals), _amount);
+    (tokenId) = _signals.proposeInitiativeWithLock(
+      'Some Initiative',
+      'Some Description',
+      _amount,
+      _duration
+    );
+    vm.stopPrank();
+  }
+
   function deployAllowedTokens()
     public
     returns (TokenRegistry registry, MockERC20 _mToken, MockStable _mUSDC)
