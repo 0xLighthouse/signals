@@ -29,8 +29,6 @@ contract BondHook is BaseHook {
 
   Signals public immutable signals;
 
-  // We need to
-
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
@@ -56,6 +54,20 @@ contract BondHook is BaseHook {
         afterAddLiquidityReturnDelta: false,
         afterRemoveLiquidityReturnDelta: false
       });
+  }
+
+  function nominalAmount(uint256 tokenId) external view returns (uint256) {
+    ISignals.LockInfo memory metadata = signals.getTokenMetadata(tokenId);
+
+    console.log('lockDuration', metadata.lockDuration);
+    console.log('initiativeId', metadata.initiativeId);
+    console.log('tokenAmount', metadata.tokenAmount);
+    console.log('created', metadata.created);
+    console.log('withdrawn', metadata.withdrawn);
+
+    // Apply a 20% discount to the token amount
+    uint256 discountedAmount = (metadata.tokenAmount * 8000) / 10000;
+    return discountedAmount;
   }
 
   function beforeSwap(

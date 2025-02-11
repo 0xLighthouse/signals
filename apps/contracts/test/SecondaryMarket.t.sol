@@ -19,7 +19,6 @@ import {MockERC20} from 'solmate/src/test/utils/mocks/MockERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import {StateLibrary} from 'v4-core/libraries/StateLibrary.sol';
-import {Hooks} from 'v4-core/libraries/Hooks.sol';
 import {Signals} from '../src/Signals.sol';
 
 import {ISignals} from '../src/interfaces/ISignals.sol';
@@ -35,7 +34,7 @@ import {PoolSwapTest} from 'v4-core/test/PoolSwapTest.sol';
  * - [x] Alice has 100k GOV
  * - [x] Deployer provides 100k USDC/GOV to the pool
  * - [x] Deployer provides 100k DAI/GOV to the pool
- * - [ ] Alice locks 50k against an initiative for 1 year
+ * - [x] Alice locks 50k against an initiative for 1 year
  * - [ ] Variations:
  *      - [ ] Price selling the bond into the pool at t0 (immediately)
  *      - [ ] Price selling the bond into the pool at t3 (3/12)
@@ -81,9 +80,16 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     // TODO: Sell bond into the pool
 
     // Alice locks 50k against an initiative for 1 year
-    uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50000, 12);
+    uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50000, 12);
 
-    console.log('Token ID:', tokenId);
+    console.log('Token ID:', bondA);
+    // TODO: Ensure the bond is locked
+
+    // TODO: Quote selling it into the pool at t0 (immediately)
+    uint256 amountOut = bondhook.nominalAmount(bondA);
+    console.log('Amount out:', amountOut);
+    // TODO: Quote selling it into the pool at t3 (3/12 months)
+    // TODO: Quote selling it into the pool at t6 (6/12 months)
 
     // uint256 tokenId = 1;
     // uint256 amount = 1000;
