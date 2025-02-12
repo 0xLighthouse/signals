@@ -33,7 +33,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     bondPricing = new ExampleSimplePricing(uint256(100).percentToPips(), uint256(100).percentToPips());
     
     uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG// | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG// | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
     deployCodeTo(
         "BondHook.sol",
@@ -48,7 +48,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
   function testBeforeInitialize() public {
     MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
 
-    (currency0, currency1) = SortTokens.sort(pairToken, signals.underlyingToken);
+    (currency0, currency1) = SortTokens.sort(pairToken, MockERC20(signals.underlyingToken()));
     
     // Creating this pool should work
     initPool(

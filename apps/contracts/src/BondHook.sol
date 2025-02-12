@@ -52,7 +52,7 @@ contract BondHook is BaseHook {
     address _bondPricing
   ) BaseHook(_poolManager) {
     signals = Signals(_signals);
-    bondToken = Currency.wrap(signals.underlyingToken);
+    bondToken = Currency.wrap(signals.underlyingToken());
     bondPricing = IBondPricing(_bondPricing);
     owner = msg.sender;
   }
@@ -67,7 +67,7 @@ contract BondHook is BaseHook {
         beforeRemoveLiquidity: false,
         afterRemoveLiquidity: false,
         beforeSwap: true,
-        afterSwap: false,
+        afterSwap: true,
         beforeDonate: false,
         afterDonate: false,
         beforeSwapReturnDelta: false,
@@ -110,7 +110,7 @@ contract BondHook is BaseHook {
    * @param tokenId The ID of the bond token.
    * @return value The current value of the bond.
    */
-  function getPoolBuyPrice(uint256 tokenId) external view returns (uint256) {
+  function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
     // TODO: The interval should be exposed from the Signals contract.
     uint256 interval = 30 days;
@@ -125,7 +125,7 @@ contract BondHook is BaseHook {
       });
   }
 
-  function getPoolSellPrice(uint256 tokenId) external view returns (uint256) {
+  function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
     uint256 interval = 30 days;
 
@@ -150,7 +150,7 @@ contract BondHook is BaseHook {
       return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
     }
 
-    (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes _) = _parseHookData(data);
+    (bool isBuy, uint256 tokenId, uint256 desiredPrice,) = _parseHookData(hookData);
     if (isBuy) {
       // The user is selling to us
       uint256 price = getPoolBuyPrice(tokenId);
@@ -173,17 +173,17 @@ contract BondHook is BaseHook {
     bool isBuy,
     uint256 tokenId,
     uint256 desiredPrice,
-    bytes calldata signature
-    ) {
-      (tokenId, desiredPrice, signature) = abi.decode(data, (uint256, uint256, bytes));
-      // if we own the bond, the pool is not buying
-      if (bondBelongsTo[tokenId] != address(0)) {
-        isBuy = false;
-      } else {
-        isBuy = true;
-      }
-      return (isBuy, tokenId, desiredPrice, signature);
+    bytes memory signature
+  ) {
+    (tokenId, desiredPrice, signature) = abi.decode(data, (uint256, uint256, bytes));
+    // if we own the bond, the pool is not buying
+    if (PoolId.unwrap(bondBelongsTo[tokenId]) != bytes32(0)) {
+      isBuy = false;
+    } else {
+      isBuy = true;
     }
+    return (isBuy, tokenId, desiredPrice, signature);
+  }
 
   function afterSwap(
     address, 
@@ -196,8 +196,7 @@ contract BondHook is BaseHook {
         return (this.afterSwap.selector, int128(0));
       }
 
-      (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes signature) = _parseHookData(hookData);
-
+      (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
       address user = _verifySignature(signature);
       if (isBuy) {
         // The user is selling to us
@@ -212,7 +211,7 @@ contract BondHook is BaseHook {
       return (this.afterSwap.selector, int128(0));
     }
 
-  function _verifySignature(bytes calldata signature) internal pure returns (address) {
+  function _verifySignature(bytes memory signature) internal pure returns (address) {
     // Later: signature should include the data we need to find the user's address,
     // for now we just include the user's address as the signature
     return abi.decode(signature, (address));
