@@ -33,11 +33,7 @@ contract BondHook is BaseHook {
   Signals public immutable signals;
   IBondPricing public bondPricing;
 
-  // TODO: Record the owner of the contract, and let only them update the discount and premium rates
   address public immutable owner;
-  uint256 public discount = uint256(10).percentToPips();
-  uint256 public premium = uint256(10).percentToPips();
-
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
@@ -48,6 +44,7 @@ contract BondHook is BaseHook {
   ) BaseHook(_poolManager) {
     signals = Signals(_signals);
     bondPricing = IBondPricing(_bondPricing);
+    owner = msg.sender;
   }
 
   function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -81,10 +78,6 @@ contract BondHook is BaseHook {
     return lock.tokenAmount;
   }
 
-  function _nominalValue(uint256 tokenAmount) internal pure returns (uint256) {
-    return tokenAmount;
-  }
-
   /**
    * @notice The current value of the bond is a custom calculation based on
    * the current time.
@@ -92,18 +85,33 @@ contract BondHook is BaseHook {
    * @param tokenId The ID of the bond token.
    * @return value The current value of the bond.
    */
-  function currentValue(uint256 tokenId) external view returns (uint256) {
+  function getPoolBuyPrice(uint256 tokenId) external view returns (uint256) {
     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
 
     // TODO: The interval should be exposed from the Signals contract.
     uint256 interval = 30 days;
 
     return
-      bondPricing.calculateBid({
-        tokenAmount: lock.tokenAmount,
-        lockCreated: lock.created,
-        totalDuration: lock.lockDuration * interval,
-        currentTime: block.timestamp
+      bondPricing.getBuyPrice({
+        principal: lock.tokenAmount,
+        startTime: lock.created,
+        duration: lock.lockDuration * interval,
+        currentTime: block.timestamp,
+        bondMetadata: abi.encode(tokenId)
+      });
+  }
+
+  function getPoolSellPrice(uint256 tokenId) external view returns (uint256) {
+    ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+    uint256 interval = 30 days;
+
+    return
+      bondPricing.getSellPrice({
+        principal: lock.tokenAmount,
+        startTime: lock.created,
+        duration: lock.lockDuration * interval,
+        currentTime: block.timestamp,
+        bondMetadata: abi.encode(tokenId)
       });
   }
 

@@ -7,21 +7,38 @@ pragma solidity ^0.8.24;
  */
 interface IBondPricing {
   /**
-   * @notice Calculates the current value of a bond based on time and discount
+   * @notice Returns the price at which the pool would buy a bond
    *
-   * @param tokenAmount The nominal amount of tokens in the bond
-   * @param lockCreated The timestamp when the bond was created
-   * @param totalDuration The total duration of the bond lock period
+   * @param principal The principal amount of the bond
+   * @param startTime The timestamp when the bond was created
+   * @param duration The total duration of the bond lock period
    * @param currentTime The current timestamp
    *
-   * @return value The current value of the bond
+   * @return price The buy price quoted by the pool
    */
-  function calculateBid(
-    uint256 tokenAmount,
-    uint256 lockCreated,
-    uint256 totalDuration,
-    uint256 currentTime
+  function getBuyPrice(
+    uint256 principal,
+    uint256 startTime,
+    uint256 duration,
+    uint256 currentTime,
+    bytes calldata bondMetadata
   ) external view returns (uint256);
 
-  // TODO: Add calculateAsk()
+  /**
+   * @notice Returns the price at which the pool would sell a bond
+   *
+   * @param principal The principal amount of the bond
+   * @param startTime The timestamp when the bond was created
+   * @param duration The total duration of the bond lock period
+   * @param currentTime The current timestamp
+   *
+   * @return price The sell price quoted by the pool
+   */
+  function getSellPrice(
+    uint256 principal,
+    uint256 startTime,
+    uint256 duration,
+    uint256 currentTime,
+    bytes calldata bondMetadata
+  ) external view returns (uint256);
 }
