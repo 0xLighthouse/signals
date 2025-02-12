@@ -7,6 +7,7 @@ import {BaseHook} from 'v4-periphery/src/base/hooks/BaseHook.sol';
 
 import {CurrencyLibrary, Currency} from 'v4-core/types/Currency.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
+import {PoolId} from 'v4-core/types/PoolId.sol';
 import {BalanceDeltaLibrary, BalanceDelta} from 'v4-core/types/BalanceDelta.sol';
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from 'v4-core/types/BeforeSwapDelta.sol';
 import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
@@ -28,20 +29,28 @@ import './PipsLib.sol';
  *    - revert when bond is not mature
  */
 contract BondHook is BaseHook {
+  using CurrencyLibrary for Currency;
   using BeforeSwapDeltaLibrary for BeforeSwapDelta;
   using PipsLib for uint256;
   Signals public immutable signals;
   IBondPricing public bondPricing;
 
   address public immutable owner;
+  // The address of the token that is contained in the bonds
+  Currency public immutable bondToken;
+  // Record whether the bond token is currency 0 or 1 for each pool
+  mapping(PoolId => bool) public bondTokenIsZero;
+
   // Add events
   event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
   constructor(
     IPoolManager _poolManager,
+    address _bondToken,
     address _signals,
     address _bondPricing
   ) BaseHook(_poolManager) {
+    bondToken = Currency.wrap(_bondToken);
     signals = Signals(_signals);
     bondPricing = IBondPricing(_bondPricing);
     owner = msg.sender;
@@ -50,7 +59,7 @@ contract BondHook is BaseHook {
   function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
     return
       Hooks.Permissions({
-        beforeInitialize: false,
+        beforeInitialize: true,
         afterInitialize: false,
         beforeAddLiquidity: false,
         afterAddLiquidity: false,
@@ -65,6 +74,21 @@ contract BondHook is BaseHook {
         afterAddLiquidityReturnDelta: false,
         afterRemoveLiquidityReturnDelta: false
       });
+  }
+
+  function beforeInitialize(
+    address,
+    PoolKey calldata key,
+    uint160
+  ) external override returns (bytes4) {
+    if (key.currency0 == bondToken) {
+      bondTokenIsZero[key.toId()] = true;
+    } else if (key.currency1 == bondToken) {
+      bondTokenIsZero[key.toId()] = false;
+    } else {
+      revert('BondHook: Pool does not contain bond token');
+    }
+    return this.beforeInitialize.selector;
   }
 
   /**
@@ -188,14 +212,4 @@ contract BondHook is BaseHook {
     }
   }
 
-  // // Lazy implementation
-  function _getUnderlyingPrice(address asset) internal view returns (uint256) {
-    // Implement oracle price feed
-    return 1e18;
-  }
-
-  // function _priceBond(address asset) internal view returns (uint256) {
-  //   // Implement oracle price feed
-  //   return 1e18;
-  // }
 }
