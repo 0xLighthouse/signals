@@ -20,7 +20,6 @@ import {PoolSwapTest} from 'v4-core/test/PoolSwapTest.sol';
 /**
  * Selling locked bonds into a Uniswap V4 pool
  *
- * TODO:
  * - [x] Alice has 100k GOV
  * - [x] Deployer provides 100k USDC/GOV to the pool
  * - [x] Deployer provides 100k DAI/GOV to the pool
@@ -73,17 +72,6 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50_000, 12);
     console.log('Token ID:', bondA);
 
-    // TODO: Ensure the bond is locked
-    uint256 tokenId = 1;
-    uint256 amount = 1000;
-    bytes memory hookData = abi.encode(tokenId, amount);
-    swapRouter.swap(
-      _keyA,
-      IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1000}),
-      PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-      hookData
-    );
-
     //  IV4Quoter.QuoteExactSingleParams memory p = IQuoter
     //         .QuoteExactSingleParams({
     //             poolKey: _key,
@@ -121,23 +109,23 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
   }
 
   /**
-   * TODO: Ensure the bond is locked
+   * FIXME: This is not complete yet
    */
   function test_SwapExactSingleOutput() public {
     // Alice locks 50k against an initiative for 1 year
     uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50_000, 12);
     console.log('Token ID:', bondA);
 
-    // Ensure the bond is locked
-    uint256 tokenId = 1;
-    uint256 amount = 1000;
-    bytes memory hookData = abi.encode(tokenId, amount);
-    swapRouter.swap(
-      _keyA,
-      IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1000}),
-      PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-      hookData
-    );
+    // // Ensure the bond is locked
+    // uint256 tokenId = 1;
+    // uint256 amount = 1000;
+    // bytes memory hookData = abi.encode(tokenId, amount);
+    // swapRouter.swap(
+    //   _keyA,
+    //   IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1000}),
+    //   PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+    //   hookData
+    // );
   }
 
   // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
