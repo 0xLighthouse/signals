@@ -145,36 +145,34 @@ contract BondHook is BaseHook {
     IPoolManager.SwapParams calldata,
     bytes calldata hookData
   ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    console.log('---- START beforeSwap() ----');
+    console.log('hookData.length', hookData.length);
 
     if (hookData.length == 0) {
       return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
     }
 
-    (bool isBuy, uint256 tokenId, uint256 desiredPrice,) = _parseHookData(hookData);
+    (bool isBuy, uint256 tokenId, uint256 desiredPrice, ) = _parseHookData(hookData);
     if (isBuy) {
       // The user is selling to us
       uint256 price = getPoolBuyPrice(tokenId);
       require(desiredPrice <= price, 'BondHook: Desired price exceeds buy price');
 
       // TODO: set up balanceDelta so the user can receive the currency they want
-
     } else {
       // We are selling the bond to the user
       uint256 price = getPoolSellPrice(tokenId);
       require(desiredPrice >= price, 'BondHook: Desired price below sell price');
-      
+
       // TODO: set up balanceDelta so the user can receive the currency they want
     }
 
     return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
   }
 
-  function _parseHookData(bytes calldata data) internal returns (
-    bool isBuy,
-    uint256 tokenId,
-    uint256 desiredPrice,
-    bytes memory signature
-  ) {
+  function _parseHookData(
+    bytes calldata data
+  ) internal returns (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) {
     (tokenId, desiredPrice, signature) = abi.decode(data, (uint256, uint256, bytes));
     // if we own the bond, the pool is not buying
     if (PoolId.unwrap(bondBelongsTo[tokenId]) != bytes32(0)) {
@@ -186,38 +184,38 @@ contract BondHook is BaseHook {
   }
 
   function afterSwap(
-    address, 
-    PoolKey calldata, 
-    IPoolManager.SwapParams calldata, 
-    BalanceDelta, 
+    address,
+    PoolKey calldata,
+    IPoolManager.SwapParams calldata,
+    BalanceDelta,
     bytes calldata hookData
-    ) external override returns (bytes4, int128) {
-      if (hookData.length == 0) {
-        return (this.afterSwap.selector, int128(0));
-      }
-
-      (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
-      address user = _verifySignature(signature);
-      if (isBuy) {
-        // The user is selling to us
-        signals.transferFrom(user, address(this), tokenId);
-        // TODO: set up balanceDelta so the user doesn't pay anything to the pool
-      } else {
-        // We are selling to the user
-        signals.transferFrom(address(this), user, tokenId);
-        // TODO: set up balanceDelta so the user doesn't receive anything from the pool
-      }
-
+  ) external override returns (bytes4, int128) {
+    if (hookData.length == 0) {
       return (this.afterSwap.selector, int128(0));
     }
+
+    (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(
+      hookData
+    );
+    address user = _verifySignature(signature);
+    if (isBuy) {
+      // The user is selling to us
+      signals.transferFrom(user, address(this), tokenId);
+      // TODO: set up balanceDelta so the user doesn't pay anything to the pool
+    } else {
+      // We are selling to the user
+      signals.transferFrom(address(this), user, tokenId);
+      // TODO: set up balanceDelta so the user doesn't receive anything from the pool
+    }
+
+    return (this.afterSwap.selector, int128(0));
+  }
 
   function _verifySignature(bytes memory signature) internal pure returns (address) {
     // Later: signature should include the data we need to find the user's address,
     // for now we just include the user's address as the signature
     return abi.decode(signature, (address));
   }
-
-
 
   /**
    * @notice Internal function to process a bond swap.
@@ -282,5 +280,4 @@ contract BondHook is BaseHook {
       z = (x / z + z) / 2;
     }
   }
-
 }
