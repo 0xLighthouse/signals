@@ -28,7 +28,6 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     // Deploy PoolManager and Router contracts
     deployFreshManagerAndRouters();
 
-    bondToken = new MockERC20("Bond Token", "BOND", 18);
     signals = deploySignals(true);
 
     bondPricing = new ExampleSimplePricing(uint256(100).percentToPips(), uint256(100).percentToPips());
@@ -38,17 +37,18 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         );
     deployCodeTo(
         "BondHook.sol",
-        abi.encode(manager, bondToken, signals, bondPricing),
+        abi.encode(manager, signals, bondPricing),
         address(flags)
     );
 
     hook = BondHook(address(flags));
   }
 
+  // Test that a pool can be created when the underlying token is part of the pair
   function testBeforeInitialize() public {
-    MockERC20 tokenA = new MockERC20("Token A", "A", 18);
+    MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
 
-    (currency0, currency1) = SortTokens.sort(tokenA, bondToken);
+    (currency0, currency1) = SortTokens.sort(pairToken, signals.underlyingToken);
     
     // Creating this pool should work
     initPool(
@@ -60,10 +60,10 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     );
   }
 
+  // Test that a pool is rejected if the underlying token is not part of the pair
   function testBeforeInitializeWithNonBondToken() public {
-    // Create two irrelevant tokens
-    MockERC20 tokenA = new MockERC20("Token A", "A", 18);
-    MockERC20 tokenB = new MockERC20("Token B", "B", 18);
+    MockERC20 tokenA = new MockERC20("Example token", "EXAMPLE", 18);
+    MockERC20 tokenB = new MockERC20("Another example token", "EXAMPL", 18);
     
     (currency0, currency1) = SortTokens.sort(tokenA, tokenB);
     
