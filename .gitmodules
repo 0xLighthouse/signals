@@ -10,3 +10,6 @@
 [submodule "apps/contracts/lib/solady"]
 	path = apps/contracts/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "apps/contracts/lib/v4-router"]
+	path = apps/contracts/lib/v4-router
+	url = https://github.com/z0r0z/v4-router
