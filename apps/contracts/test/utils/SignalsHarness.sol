@@ -18,6 +18,10 @@ import {Constants} from '@uniswap/v4-core/test/utils/Constants.sol';
 import {PoolKey} from 'v4-core/types/PoolKey.sol';
 import {IPoolManager} from 'v4-core/interfaces/IPoolManager.sol';
 
+import {ExampleSimplePricing} from '../../src/pricing/ExampleSimplePricing.sol';
+import {IBondPricing} from '../../src/interfaces/IBondPricing.sol';
+import {PipsLib} from '../../src/PipsLib.sol';
+
 contract SignalsHarness is Test, Deployers {
   address _deployer = address(this);
   address _alice = address(0x1111);
@@ -142,11 +146,23 @@ contract SignalsHarness is Test, Deployers {
     deal(address(_usdc), _deployer, 1_000_000 * 1e6);
     deal(address(_dai), _deployer, 1_000_000 * 1e18);
 
+    // Deploy pricing contract
+    IBondPricing pricing = new ExampleSimplePricing(
+      PipsLib.percentToPips(100),
+      PipsLib.percentToPips(100)
+    );
+
     // Deploy hook with correct flags
-    uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+    uint160 flags = uint160(
+      Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG // | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+    );
     console.log('HookAddress: %s', address(flags));
 
-    deployCodeTo('BondHook.sol', abi.encode(manager, address(_signals)), address(flags));
+    deployCodeTo(
+      'BondHook.sol',
+      abi.encode(manager, address(_signals), address(pricing)),
+      address(flags)
+    );
     bondhook = BondHook(address(flags));
 
     // Deploy the pools
