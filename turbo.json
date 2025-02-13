@@ -23,14 +23,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "deploy": {
-      "dependsOn": [
-        "build"
-      ],
-      "inputs": [
-        "apps/contracts/**"
-      ]
     }
   }
 }
