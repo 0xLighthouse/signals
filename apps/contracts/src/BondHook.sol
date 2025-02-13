@@ -39,8 +39,10 @@ contract BondHook is BaseHook {
     address public immutable owner;
     // The address of the token that is contained in the bonds
     Currency public immutable bondToken;
+
     // Record whether the bond token is currency 0 or 1 for each pool
     mapping(PoolId => bool) internal bondTokenIsZero;
+
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
 
