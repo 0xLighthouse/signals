@@ -1,8 +1,12 @@
-name: CI
+name: Signals
 
 on:
   push:
+    paths:
+      - 'apps/contracts/**'
   pull_request:
+    paths:
+      - 'apps/contracts/**'
   workflow_dispatch:
 
 env:
@@ -13,7 +17,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: E2E Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,23 +27,18 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: rc
 
       - name: Show Forge version
         run: |
           forge --version
 
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
-
       - name: Run Forge build
-        run: |
-          forge build --sizes
+        working-directory: apps/contracts
+        run: forge build --sizes
         id: build
 
       - name: Run Forge tests
-        run: |
-          forge test -vvv
+        working-directory: apps/contracts
+        run: forge test -vvv
         id: test

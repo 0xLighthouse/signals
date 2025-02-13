@@ -7,3 +7,6 @@ evm_version = "cancun"
 optimizer_runs = 2000
 via_ir = true
 ffi = false
+
+[profile.formatter]
+line_length = 100

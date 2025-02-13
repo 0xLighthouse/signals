@@ -1,5 +1,12 @@
 # Contracts
 
+## Sanity
+
+```shell
+# Reset forge submodules
+git submodule update --recursive
+```
+
 ## TODO
 
 - [ ] Simplify how new `Signals` boards are deployed
