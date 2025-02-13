@@ -4,7 +4,7 @@ out = "out"
 libs = ["lib"]
 solc_version = '0.8.26'
 evm_version = "cancun"
-optimizer_runs = 2000
+optimizer_runs = 1
 via_ir = true
 ffi = false
 

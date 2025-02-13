@@ -41,7 +41,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     }
 
     // Test that a pool can be created when the underlying token is part of the pair
-    function testBeforeInitialize() public {
+    function test_initializePool() public {
         MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
 
         (currency0, currency1) = SortTokens.sort(pairToken, MockERC20(signals.underlyingToken()));
@@ -51,7 +51,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     }
 
     // Test that a pool is rejected if the underlying token is not part of the pair
-    function testBeforeInitializeWithNonBondToken() public {
+    function test_Revert_initializePoolWithoutBondToken() public {
         MockERC20 tokenA = new MockERC20("Example token", "EXAMPLE", 18);
         MockERC20 tokenB = new MockERC20("Another example token", "EXAMPL", 18);
 
