@@ -9,4 +9,4 @@ library PipsLib {
     function bpsToPips(uint256 x) public pure returns (uint256) {
         return x * 100;
     }
-} 
+}
