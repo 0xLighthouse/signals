@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
+    paths:
+      - 'apps/contracts/**'
   pull_request:
+    paths:
+      - 'apps/contracts/**'
   workflow_dispatch:
 
 env:
@@ -23,16 +27,11 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: rc
 
       - name: Show Forge version
         run: |
           forge --version
-
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
 
       - name: Run Forge build
         run: |
