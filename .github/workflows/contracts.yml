@@ -34,11 +34,11 @@ jobs:
           forge --version
 
       - name: Run Forge build
-        run: |
-          forge build --sizes
+        working-directory: apps/contracts
+        run: forge build --sizes
         id: build
 
       - name: Run Forge tests
-        run: |
-          forge test -vvv
+        working-directory: apps/contracts
+        run: forge test -vvv
         id: test
