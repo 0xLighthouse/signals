@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/console.sol";
 
-import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
@@ -75,7 +75,7 @@ contract BondHook is BaseHook {
         });
     }
 
-    function beforeInitialize(address, PoolKey calldata key, uint160) external override returns (bytes4) {
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
         if (key.currency0 == bondToken) {
             bondTokenIsZero[key.toId()] = true;
         } else if (key.currency1 == bondToken) {
@@ -131,8 +131,8 @@ contract BondHook is BaseHook {
         });
     }
 
-    function beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata hookData)
-        external
+    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata hookData)
+        internal
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
@@ -172,13 +172,13 @@ contract BondHook is BaseHook {
         return (isBuy, tokenId, desiredPrice, signature);
     }
 
-    function afterSwap(
+    function _afterSwap(
         address,
         PoolKey calldata,
         IPoolManager.SwapParams calldata,
         BalanceDelta,
         bytes calldata hookData
-    ) external override returns (bytes4, int128) {
+    ) internal override returns (bytes4, int128) {
         if (hookData.length == 0) {
             return (this.afterSwap.selector, int128(0));
         }
