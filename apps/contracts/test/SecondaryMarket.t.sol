@@ -7,12 +7,18 @@ import "forge-std/console.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 
 import {PoolManager} from "v4-core/PoolManager.sol";
+import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {Signals} from "../src/Signals.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
+
+import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
@@ -33,7 +39,7 @@ import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
  */
 contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     using CurrencyLibrary for Currency;
-
+    using PoolIdLibrary for PoolKey;
     // --- Contracts ---
     Signals signals;
 
@@ -45,6 +51,55 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
         signals = deploySignals(dealTokens);
 
         deployHookWithLiquidity(signals);
+    }
+
+    // function test_NormalSwap() public {
+    //     // 1. Create GOV token
+    //     Currency gov = deployAndMintToken("GOV", 6, 100_000_000);
+    //     // 2. Create USDC token
+    //     Currency usdc = deployAndMintToken("USDC", 6, 100_000_000);
+    //     // 3. Create pool for GOV/USDC + hook + liquidity
+
+    //     // print balances
+    //     console.log("gov balance:", gov.balanceOf(address(this)));
+    //     console.log("usdc balance:", usdc.balanceOf(address(this)));
+
+    //     (PoolKey memory key, Currency currency0, Currency currency1)     = _deployPoolWithHookAndLiquidity(gov, usdc);
+    //     // 4. Give USDC to alice
+    //     usdc.transfer(address(_alice), 100_000 * 1e6);
+    //     vm.startPrank(_alice);
+    //     // 5. Alice approves transfers
+    //     MockERC20(Currency.unwrap(usdc)).approve(address(swapRouter), type(uint256).max);
+    //     // 6. Alice swaps USDC for GOV
+    //     // We want to give USDC, so zeroForOne is true if USDC is currency0
+    //     bool zfo = currency0 == usdc;
+
+    //     swapRouter.swap(
+    //         key,
+    //         IPoolManager.SwapParams({
+    //             zeroForOne: zfo,
+    //             amountSpecified: 1 * 1e6,
+    //             // sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+    //             sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+    //             }),
+    //         PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+    //         ""
+    //     );
+    //     // 6. Check balances
+    //     console.log("gov balance:", gov.balanceOf(address(_alice)));
+    //     console.log("usdc balance:", usdc.balanceOf(address(_alice)));
+    //     // assertEq(gov.balanceOf(address(_alice)), 100_000);
+    //     // assertEq(usdc.balanceOf(address(_alice)), 0);
+    // }
+
+    function test_SellBond() public {
+        // 1. Create GOV token
+        // 2. Create USDC token
+        // 3. Create pool for GOV/USDC + hook
+        // 4. Give Signal NFT to alice
+        // 5. Give liquidity to pool
+        // 6. Alice swaps NFT for USDC
+        // 7. Check balances
     }
 
     /**
@@ -59,6 +114,15 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
         console.log("GOV balance:", govBalance);
         console.log("USDC balance:", usdcBalance);
         console.log("DAI balance:", daiBalance);
+
+        uint128 liquidityA = StateLibrary.getLiquidity(manager, _keyA.toId());
+        console.log("GOV/USDC Liquidity:", liquidityA);
+
+        uint128 liquidityB = StateLibrary.getLiquidity(manager, _keyB.toId());
+        console.log("GOV/DAI Liquidity:", liquidityB);
+
+        assertGt(liquidityA, 0);
+        assertGt(liquidityB, 0);
     }
 
     /**
@@ -68,9 +132,9 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     function test_QuoteExactSingleOutput() public {
         // TODO: Sell bond into the pool
 
-        // Alice locks 50k against an initiative for 1 year
-        uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50_000, 12);
-        console.log("Token ID:", bondA);
+        // // Alice locks 50k against an initiative for 1 year
+        // uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50_000, 12);
+        // console.log("Token ID:", bondA);
 
         //  IV4Quoter.QuoteExactSingleParams memory p = IQuoter
         //         .QuoteExactSingleParams({
@@ -116,16 +180,38 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
         uint256 bondA = lockTokensAndIssueBond(signals, _alice, 50_000, 12);
         console.log("Token ID:", bondA);
 
-        // // Ensure the bond is locked
-        // uint256 tokenId = 1;
-        // uint256 amount = 1000;
-        // bytes memory hookData = abi.encode(tokenId, amount);
-        // swapRouter.swap(
-        //   _keyA,
-        //   IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 1000}),
-        //   PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-        //   hookData
-        // );
+        deal(address(_dai), address(_alice), 100_000 ether);
+
+        vm.startPrank(_alice);
+        _token.approve(address(swapRouter), 50_000);    
+        _dai.approve(address(swapRouter), 100_000_000 ether);
+
+        console.log("gov balance before:", _token.balanceOf(address(_alice))); 
+        console.log("dai balance before:", _dai.balanceOf(address(_alice)));
+
+        uint256 govBalanceBefore = _token.balanceOf(address(_alice));
+        uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
+
+        // Ensure the bond is locked
+        uint256 tokenId = 1;
+        uint256 amount = 1000;
+        bytes memory hookData = abi.encode(tokenId, amount);
+
+        
+        // Buy 1 gov token
+        vm.startPrank(_alice);
+        swapRouter.swap(
+            _keyB,
+            IPoolManager.SwapParams({zeroForOne: !_keyBIsGovZero, amountSpecified: 1 ether, sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE-1}),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            // hookData
+            ZERO_BYTES
+        );
+
+        console.log("gov balance after:", _token.balanceOf(address(_alice))); 
+        console.log("dai balance after:", _dai.balanceOf(address(_alice)));
+        assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
+        assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
     }
 
     // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]

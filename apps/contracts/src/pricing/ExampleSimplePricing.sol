@@ -15,6 +15,7 @@ contract ExampleSimplePricing is IBondPricing {
     using PipsLib for uint256;
     using FixedPointMathLib for uint256;
     // Discount and premium rates to generate profit for the LPs. These could instead be changeable or dynamic based on some other factor
+
     uint256 public immutable bidDiscount;
     uint256 public immutable askPremium;
 
@@ -57,7 +58,6 @@ contract ExampleSimplePricing is IBondPricing {
         view
         returns (uint256)
     {
-
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
         uint256 premium = currentValue.mulDiv(askPremium, PipsLib.OneHundred);
         return currentValue + premium;

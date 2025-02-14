@@ -131,29 +131,32 @@ contract BondHook is BaseHook {
         });
     }
 
-    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata hookData)
-        internal
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
+    function _beforeSwap(
+        address,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata swapParams,
+        bytes calldata hookData
+    ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         if (hookData.length == 0) {
             return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
         }
 
+        bool bondTokenZero = bondTokenIsZero[key.toId()];
+
         (bool isBuy, uint256 tokenId, uint256 desiredPrice,) = _parseHookData(hookData);
+        uint256 price;
         if (isBuy) {
             // The user is selling to us
-            uint256 price = getPoolBuyPrice(tokenId);
+            price = getPoolBuyPrice(tokenId);
             require(desiredPrice <= price, "BondHook: Desired price exceeds buy price");
-
-            // TODO: set up balanceDelta so the user can receive the currency they want
         } else {
             // We are selling the bond to the user
-            uint256 price = getPoolSellPrice(tokenId);
+            price = getPoolSellPrice(tokenId);
             require(desiredPrice >= price, "BondHook: Desired price below sell price");
-
-            // TODO: set up balanceDelta so the user can receive the currency they want
         }
+
+        // set the balanceDelta to represent the underlying tokens we are buying or selling for
+        if (swapParams.zeroForOne == bondTokenZero) {}
 
         return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
     }
@@ -179,6 +182,8 @@ contract BondHook is BaseHook {
         BalanceDelta,
         bytes calldata hookData
     ) internal override returns (bytes4, int128) {
+
+
         if (hookData.length == 0) {
             return (this.afterSwap.selector, int128(0));
         }

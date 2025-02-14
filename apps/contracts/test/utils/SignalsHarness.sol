@@ -17,6 +17,8 @@ import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 
 import {ExampleSimplePricing} from "../../src/pricing/ExampleSimplePricing.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
@@ -44,7 +46,10 @@ contract SignalsHarness is Test, Deployers {
     uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
     PoolKey _keyA; // USDC/GOV
+    bool _keyAIsGovZero;    
+    
     PoolKey _keyB; // DAI/GOV
+    bool _keyBIsGovZero;
 
     ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
         owner: _deployer,
@@ -144,7 +149,7 @@ contract SignalsHarness is Test, Deployers {
         deal(address(_dai), _deployer, 1_000_000 * 1e18);
 
         // Deploy pricing contract
-        IBondPricing pricing = new ExampleSimplePricing(PipsLib.percentToPips(100), PipsLib.percentToPips(100));
+        IBondPricing pricing = new ExampleSimplePricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
 
         // Deploy hook with correct flags
         uint160 flags = uint160(
@@ -158,9 +163,11 @@ contract SignalsHarness is Test, Deployers {
         // Deploy the pools
         console.log("Deploying USDC/GOV pool....");
         _keyA = _deployPoolWithHook(usdcCurrency, tokenCurrency); // USDC/GOV
+        _keyAIsGovZero = _keyA.currency0 == tokenCurrency;
 
         console.log("Deploying DAI/GOV pool....");
         _keyB = _deployPoolWithHook(daiCurrency, tokenCurrency); // DAI/GOV
+        _keyBIsGovZero = _keyB.currency0 == tokenCurrency;
     }
 
     // Gotcha: currencies are sorted by address
@@ -178,7 +185,6 @@ contract SignalsHarness is Test, Deployers {
 
         (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
 
-        // Adjust liquidity amounts based on token decimals
         uint256 amount0 = MockERC20(Currency.unwrap(_currency0)).decimals() == 6
             ? 100_000 * 1e6 // USDC amount (6 decimals)
             : 100_000 ether; // GOV amount (18 decimals)

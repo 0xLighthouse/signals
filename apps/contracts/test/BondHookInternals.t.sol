@@ -43,26 +43,27 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     }
 
     function test_parseHookDataAndSignature() public {
-       // ID of the NFT being bought/sold
-       uint256 inputTokenId = 42;
-       // Desired price of the NFT (unrelated to slippage settings for swaps)
-       uint256 inputDesiredPrice = 12 ether;
-       // Signature -- for now, it is just the user's address
-       address user = makeAddr("user");
-       bytes memory inputSignature = abi.encode(user);
+        // ID of the NFT being bought/sold
+        uint256 inputTokenId = 42;
+        // Desired price of the NFT (unrelated to slippage settings for swaps)
+        uint256 inputDesiredPrice = 12 ether;
+        // Signature -- for now, it is just the user's address
+        address user = makeAddr("user");
+        bytes memory inputSignature = abi.encode(user);
 
-       // Encode the hookData
-       bytes memory inputHookData = abi.encode(inputTokenId, inputDesiredPrice, inputSignature);
+        // Encode the hookData
+        bytes memory inputHookData = abi.encode(inputTokenId, inputDesiredPrice, inputSignature);
 
-       // Parse the hookData
-       (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = hook.internalParseHookData(inputHookData);
+        // Parse the hookData
+        (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) =
+            hook.internalParseHookData(inputHookData);
 
-       assertEq(isBuy, true, "isBuy should be true");
-       assertEq(tokenId, inputTokenId, "tokenId should be equal to inputTokenId");
-       assertEq(desiredPrice, inputDesiredPrice, "desiredPrice should be equal to inputDesiredPrice");
+        assertEq(isBuy, true, "isBuy should be true");
+        assertEq(tokenId, inputTokenId, "tokenId should be equal to inputTokenId");
+        assertEq(desiredPrice, inputDesiredPrice, "desiredPrice should be equal to inputDesiredPrice");
 
-       // Decode the signature
-       address decodedSignature = hook.internalVerifySignature(signature);
-       assertEq(decodedSignature, user, "decodedUser should be equal to user");
+        // Decode the signature
+        address decodedSignature = hook.internalVerifySignature(signature);
+        assertEq(decodedSignature, user, "decodedUser should be equal to user");
     }
 }

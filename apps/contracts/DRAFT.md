@@ -87,3 +87,24 @@ Example:
 ## Ideas
 
 Everyday LPs can set their own algos for acquiring bonds at a discount and selling at preimum.
+
+
+## Buy/Sell NFT and swap notes
+
+Path 1: Sell NFT for UNI, swap UNI for USDC
+Path 2: Sell NFT for UNI, no swap
+Path 3: Swap USDC for UNI, buy NFT with UNI
+Path 4: No swap, buy NFT with UNI
+
+If UNI is token0:
+1: ZeroForOne: true, Amount: -(uni amount)
+2: ZeroForOne: false, Amount: (uni amount)
+3: ZeroForOne: false, Amount: (uni amount)
+4: ZeroForOne: true, Amount: -(uni amount)
+
+If UNI is token1:
+1. ZeroForOne: false, Amount: -(uni amount)
+2: ZeroForOne: true, Amount: (uni amount)
+3: ZeroForOne: true, Amount: (uni amount)
+4: ZeroForOne: false, Amount: -(uni amount)
+
