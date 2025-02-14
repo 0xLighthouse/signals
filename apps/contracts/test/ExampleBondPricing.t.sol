@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
 import {PipsLib} from "../src/PipsLib.sol";
 import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
@@ -10,6 +11,7 @@ import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 
 contract SimpleBondPricingTest is Test {
     using PipsLib for uint256;
+    using FixedPointMathLib for uint256;
 
     IBondPricing pricing;
     uint256 bondCreated = 1739290000;
@@ -38,7 +40,7 @@ contract SimpleBondPricingTest is Test {
         });
 
         // We expect full amount minus discount
-        uint256 expected = tokenAmount - (tokenAmount * discount / uint256(100).percentToPips());
+        uint256 expected = tokenAmount - tokenAmount.mulDiv(discount, PipsLib.OneHundred);
         assertEq(buyAfterMature, expected);
     }
 
@@ -54,7 +56,7 @@ contract SimpleBondPricingTest is Test {
 
         // We expect 50% of the amount, minus discount
         uint256 valueAtTime = (tokenAmount / 2);
-        uint256 discountAtTime = (valueAtTime * discount / uint256(100).percentToPips());
+        uint256 discountAtTime = valueAtTime.mulDiv(discount, PipsLib.OneHundred);
         assertEq(buyAtFiftyPercentMature, valueAtTime - discountAtTime);
     }
 
@@ -68,7 +70,7 @@ contract SimpleBondPricingTest is Test {
         });
 
         // We expect full amount plus premium
-        uint256 expected = tokenAmount + (tokenAmount * premium / uint256(100).percentToPips());
+        uint256 expected = tokenAmount + tokenAmount.mulDiv(premium, PipsLib.OneHundred);
         assertEq(sellAfterMature, expected);
     }
 
@@ -83,7 +85,7 @@ contract SimpleBondPricingTest is Test {
 
         // We expect 50% of the amount, plus premium
         uint256 valueAtTime = (tokenAmount / 2);
-        uint256 premiumAtTime = (valueAtTime * premium / uint256(100).percentToPips());
+        uint256 premiumAtTime = valueAtTime.mulDiv(premium, PipsLib.OneHundred);
         assertEq(sellAtFiftyPercentMature, valueAtTime + premiumAtTime);
     }
 }

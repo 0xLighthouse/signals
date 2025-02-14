@@ -136,9 +136,6 @@ contract BondHook is BaseHook {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        console.log("---- START beforeSwap() ----");
-        console.log("hookData.length", hookData.length);
-
         if (hookData.length == 0) {
             return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
         }
