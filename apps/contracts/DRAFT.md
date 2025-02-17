@@ -108,3 +108,6 @@ If UNI is token1:
 3: ZeroForOne: true, Amount: (uni amount)
 4: ZeroForOne: false, Amount: -(uni amount)
 
+ -- Swap value can not be zero
+ -- We can not change swap params
+User must indicate they want to swap something

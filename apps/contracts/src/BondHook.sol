@@ -5,11 +5,15 @@ import "forge-std/console.sol";
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
+// temporary:
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+
+
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {BalanceDeltaLibrary, BalanceDelta} from "v4-core/types/BalanceDelta.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
+import {toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
@@ -68,7 +72,7 @@ contract BondHook is BaseHook {
             afterSwap: true,
             beforeDonate: false,
             afterDonate: false,
-            beforeSwapReturnDelta: false,
+            beforeSwapReturnDelta: true,
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
@@ -132,7 +136,7 @@ contract BondHook is BaseHook {
     }
 
     function _beforeSwap(
-        address,
+        address ,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata swapParams,
         bytes calldata hookData
@@ -143,22 +147,54 @@ contract BondHook is BaseHook {
 
         bool bondTokenZero = bondTokenIsZero[key.toId()];
 
-        (bool isBuy, uint256 tokenId, uint256 desiredPrice,) = _parseHookData(hookData);
+        (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
+        address user = _verifySignature(signature);
         uint256 price;
         if (isBuy) {
+            console.log("BEFORESWAP: Buying bond");
             // The user is selling to us
             price = getPoolBuyPrice(tokenId);
+            console.log(price, desiredPrice);
             require(desiredPrice <= price, "BondHook: Desired price exceeds buy price");
         } else {
-            // We are selling the bond to the user
+            console.log("BEFORESWAP: Selling bond");
+            // We are selling the bon   d to the user
             price = getPoolSellPrice(tokenId);
+            console.log(price, desiredPrice);
             require(desiredPrice >= price, "BondHook: Desired price below sell price");
         }
 
-        // set the balanceDelta to represent the underlying tokens we are buying or selling for
-        if (swapParams.zeroForOne == bondTokenZero) {}
+        if (isBuy) {
+            // The user is selling to us
+            signals.transferFrom(user, address(this), tokenId);
+            // TODO: set up balanceDelta so the user doesn't pay anything to the pool
+        } else {
+            // We are selling to the user
+            signals.transferFrom(address(this), user, tokenId);
+            // TODO: set up balanceDelta so the user doesn't receive anything from the pool
+        }
+ 
+        // NOTE: WIP
+        // Currency specified;
+        // BeforeSwapDelta delta;
+        // if (bondTokenZero) {
+        //     specified = key.currency0;
+        //  delta = toBeforeSwapDelta(int128(uint128(price)), 0);
+        // } else {
+        //     specified = key.currency1;
+        //  delta = toBeforeSwapDelta(0, int128(uint128(price)));
+        // }
+        // console.log("SPECIFIED:", MockERC20(Currency.unwrap(specified)).symbol());
+        // console.log("SPECIFIED balance:", specified.balanceOf(user));
 
+        // poolManager.take(specified, user, price);
+        // return (this.beforeSwap.selector, delta, uint24(0));
+        
+
+
+        
         return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
+
     }
 
     function _parseHookData(bytes calldata data)
@@ -177,9 +213,9 @@ contract BondHook is BaseHook {
 
     function _afterSwap(
         address,
-        PoolKey calldata,
-        IPoolManager.SwapParams calldata,
-        BalanceDelta,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata swapParams,
+        BalanceDelta delta,
         bytes calldata hookData
     ) internal override returns (bytes4, int128) {
 
@@ -188,17 +224,50 @@ contract BondHook is BaseHook {
             return (this.afterSwap.selector, int128(0));
         }
 
+        // bool bondTokenZero = bondTokenIsZero[key.toId()];
+
         (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
         address user = _verifySignature(signature);
-        if (isBuy) {
-            // The user is selling to us
-            signals.transferFrom(user, address(this), tokenId);
-            // TODO: set up balanceDelta so the user doesn't pay anything to the pool
-        } else {
-            // We are selling to the user
-            signals.transferFrom(address(this), user, tokenId);
-            // TODO: set up balanceDelta so the user doesn't receive anything from the pool
-        }
+
+        // uint256 price;
+        // if (isBuy) {
+        //     console.log("SWAP: Buying bond");
+        //     // The user is selling to us
+        //     price = getPoolBuyPrice(tokenId);
+        //     console.log(price, desiredPrice);
+        //     require(desiredPrice <= price, "BondHook: Desired price exceeds buy price");
+        // } else {
+        //     console.log("SWAP: Selling bond");
+        //     // We are selling the bon   d to the user
+        //     price = getPoolSellPrice(tokenId);
+        //     console.log(price, desiredPrice);
+        //     require(desiredPrice >= price, "BondHook: Desired price below sell price");
+        // }
+
+        // // set the balanceDelta to represent the underlying tokens we are buying or selling for
+        // if (swapParams.zeroForOne == bondTokenZero) {}
+
+       
+        // if (isBuy) {
+        //     // The user is selling to us
+        //     signals.transferFrom(user, address(this), tokenId);
+        //     // TODO: set up balanceDelta so the user doesn't pay anything to the pool
+        // } else {
+        //     // We are selling to the user
+        //     signals.transferFrom(address(this), user, tokenId);
+        //     // TODO: set up balanceDelta so the user doesn't receive anything from the pool
+        // }
+
+
+        // Currency specified;
+        // if (swapParams.zeroForOne) {
+        //     specified = key.currency1;
+        // } else {
+        //     specified = key.currency0;
+        // }
+
+        console.log("DELTA0:", BalanceDeltaLibrary.amount0(delta));
+        console.log("DELTA1:", BalanceDeltaLibrary.amount1(delta));
 
         return (this.afterSwap.selector, int128(0));
     }

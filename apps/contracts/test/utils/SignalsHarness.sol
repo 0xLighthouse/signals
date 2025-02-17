@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol"; 
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
@@ -139,11 +140,6 @@ contract SignalsHarness is Test, Deployers {
         tokenCurrency = _uniswapApprovals(_token);
         daiCurrency = _uniswapApprovals(_dai);
 
-        console.log("USDC address: %s", Currency.unwrap(usdcCurrency));
-        console.log("GOV address: %s", Currency.unwrap(tokenCurrency));
-        console.log("DAI address: %s", Currency.unwrap(daiCurrency));
-
-        // Deal tokens to deployer
         deal(address(_token), _deployer, 1_000_000 * 1e18);
         deal(address(_usdc), _deployer, 1_000_000 * 1e6);
         deal(address(_dai), _deployer, 1_000_000 * 1e18);
@@ -153,19 +149,16 @@ contract SignalsHarness is Test, Deployers {
 
         // Deploy hook with correct flags
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG // | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG //| Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
-        console.log("HookAddress: %s", address(flags));
 
         deployCodeTo("BondHook.sol", abi.encode(manager, address(_signals), address(pricing)), address(flags));
         bondhook = BondHook(address(flags));
 
         // Deploy the pools
-        console.log("Deploying USDC/GOV pool....");
         _keyA = _deployPoolWithHook(usdcCurrency, tokenCurrency); // USDC/GOV
         _keyAIsGovZero = _keyA.currency0 == tokenCurrency;
 
-        console.log("Deploying DAI/GOV pool....");
         _keyB = _deployPoolWithHook(daiCurrency, tokenCurrency); // DAI/GOV
         _keyBIsGovZero = _keyB.currency0 == tokenCurrency;
     }
@@ -177,20 +170,10 @@ contract SignalsHarness is Test, Deployers {
         (_currency0, _currency1) =
             SortTokens.sort(MockERC20(Currency.unwrap(currencyA)), MockERC20(Currency.unwrap(currencyB)));
 
-        // print current decimals
-        console.log("currency0 decimals: %s", MockERC20(Currency.unwrap(_currency0)).decimals());
-        console.log("currency0 address: %s", Currency.unwrap(_currency0));
-        console.log("currency1 decimals: %s", MockERC20(Currency.unwrap(_currency1)).decimals());
-        console.log("currency1 address: %s", Currency.unwrap(_currency1));
-
         (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
 
-        uint256 amount0 = MockERC20(Currency.unwrap(_currency0)).decimals() == 6
-            ? 100_000 * 1e6 // USDC amount (6 decimals)
-            : 100_000 ether; // GOV amount (18 decimals)
-        uint256 amount1 = MockERC20(Currency.unwrap(_currency1)).decimals() == 6
-            ? 100_000 * 1e6 // USDC amount (6 decimals)
-            : 100_000 ether; // GOV amount (18 decimals)
+        uint256 amount0 = 100_000 * (10 ** MockERC20(Currency.unwrap(_currency0)).decimals());
+        uint256 amount1 = 100_000 * (10 ** MockERC20(Currency.unwrap(_currency1)).decimals());
 
         seedMoreLiquidity(_key, amount0, amount1);
 
@@ -225,5 +208,19 @@ contract SignalsHarness is Test, Deployers {
         for (uint256 i = 0; i < _tokens.length; i++) {
             registry.allow(_tokens[i]);
         }
+    }
+
+    function printPoolInfo() public view {
+        console.log("Address and decimals: ");
+        console.log("GOV: ", address(_token), _token.decimals());
+        console.log("DAI: ", address(_dai), _dai.decimals());
+        console.log("USDC: ", address(_usdc), _usdc.decimals());
+        console.log("Pool currencies (0 and 1): ");
+        MockERC20 a0 = MockERC20(Currency.unwrap(_keyA.currency0));
+        MockERC20 a1 = MockERC20(Currency.unwrap(_keyA.currency1));
+        console.log("Pool A: ",  a0.symbol()    , a1.symbol());
+        MockERC20 b0 = MockERC20(Currency.unwrap(_keyB.currency0));
+        MockERC20 b1 = MockERC20(Currency.unwrap(_keyB.currency1));
+        console.log("Pool B: ",  b0.symbol(), b1.symbol());
     }
 }
