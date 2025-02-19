@@ -24,6 +24,19 @@ import {IBondPricing} from "./interfaces/IBondPricing.sol";
 
 import "./PipsLib.sol";
 
+struct BondPoolState {
+    // If the underlying currency is currency 1 in the pool, set to 1.
+    // If it is currency 0, set to 2. 
+    // If it is set to 0, the pool is not initialized.
+    uint256 bondTokenCurrency;
+    // The balance of the bond token which belongs to this pool outside of liquidity
+    uint256 balanceOfBondToken;
+    // The balance of the other token which belongs to this pool outside of liquidity
+    uint256 balanceOfOtherToken;
+    // The total liquidity provided by LPs
+    uint256 totalLiquidity;
+}
+
 /**
  * - LPs provide need to provide single sided liquidity to a pool
  * - Bonds can be sold into the pool
@@ -45,7 +58,10 @@ contract BondHook is BaseHook {
     Currency public immutable bondToken;
 
     // Record whether the bond token is currency 0 or 1 for each pool
-    mapping(PoolId => bool) internal bondTokenIsZero;
+    mapping(PoolId => BondPoolState) internal bondPools;
+
+    // Record who owns how much of each pool
+    mapping(PoolId => mapping(address => uint256)) internal liquidityProviders;
 
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
@@ -69,7 +85,7 @@ contract BondHook is BaseHook {
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
             beforeSwap: true,
-            afterSwap: true,
+            afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: true,
@@ -80,26 +96,36 @@ contract BondHook is BaseHook {
     }
 
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
-        if (key.currency0 == bondToken) {
-            bondTokenIsZero[key.toId()] = true;
-        } else if (key.currency1 == bondToken) {
-            bondTokenIsZero[key.toId()] = false;
-        } else {
+        if (!(key.currency0 == bondToken) && !(key.currency1 == bondToken)) {
             revert("BondHook: Pool does not contain bond token");
         }
+        bondPools[key.toId()] = BondPoolState({
+            bondTokenCurrency: key.currency1 == bondToken ? 1 : 2,
+            balanceOfBondToken: 0,
+            balanceOfOtherToken: 0,
+            totalLiquidity: 0
+        });
+
         return this.beforeInitialize.selector;
     }
 
-    /**
-     * @notice The nominal value of the bond is the amount of tokens that will be
-     * received when the bond is redeemed.
-     * @param tokenId The ID of the bond token.
-     * @return value The nominal value of the bond.
-     */
-    function nominalValue(uint256 tokenId) external view returns (uint256) {
-        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-        return lock.tokenAmount;
+    function addLiquidity(PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params) public {
+        if (bondPools[key.toId()].bondTokenCurrency == 0) {
+        revert("BondHook: Pool is not initialized");
+        }
     }
+
+
+    // /**
+    //  * @notice The nominal value of the bond is the amount of tokens that will be
+    //  * received when the bond is redeemed.
+    //  * @param tokenId The ID of the bond token.
+    //  * @return value The nominal value of the bond.
+    //  */
+    // function nominalValue(uint256 tokenId) external view returns (uint256) {
+    //     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+    //     return lock.tokenAmount;
+    // }
 
     /**
      * @notice The current value of the bond is a custom calculation based on
@@ -145,7 +171,7 @@ contract BondHook is BaseHook {
             return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
         }
 
-        bool bondTokenZero = bondTokenIsZero[key.toId()];
+        bool bondTokenZero = bondPools[key.toId()].bondTokenCurrency == 2;
 
         (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
         address user = _verifySignature(signature);
@@ -176,7 +202,7 @@ contract BondHook is BaseHook {
  
         // NOTE: WIP
         // Currency specified;
-        // BeforeSwapDelta delta;
+        BeforeSwapDelta delta = toBeforeSwapDelta(int128(-100), int128(100));
         // if (bondTokenZero) {
         //     specified = key.currency0;
         //  delta = toBeforeSwapDelta(int128(uint128(price)), 0);
@@ -193,7 +219,7 @@ contract BondHook is BaseHook {
 
 
         
-        return (this.beforeSwap.selector, BeforeSwapDelta.wrap(0), uint24(0));
+        return (this.beforeSwap.selector, delta, uint24(0));
 
     }
 
@@ -276,69 +302,5 @@ contract BondHook is BaseHook {
         // Later: signature should include the data we need to find the user's address,
         // for now we just include the user's address as the signature
         return abi.decode(signature, (address));
-    }
-
-    /**
-     * @notice Internal function to process a bond swap.
-     * @dev Decodes the tokenId from `data`, verifies ownership,
-     *      retrieves bond metadata, fetches the underlying price,
-     *      applies the discount, and checks the swap price limit.
-     */
-    // function _handleBondSwap(
-    //   address user,
-    //   PoolKey calldata key,
-    //   IPoolManager.SwapParams calldata params,
-    //   bytes calldata data
-    // ) internal {
-    //   // Decode the bond tokenId from the calldata.
-    //   uint256 tokenId = abi.decode(data, (uint256));
-    //   require(signals.ownerOf(tokenId) == user, 'BondHook: Not bond owner');
-
-    //   // Retrieve bond metadata (e.g., lock duration, token amount, etc.)
-    //   ISignals.LockInfo memory metadata = signals.getTokenMetadata(tokenId);
-    //   console.log('lockDuration', metadata.lockDuration);
-
-    //   // Get the current price of the underlying asset.
-    //   // CurrencyLibrary.unwrap converts the currency type into its address form.
-    //   // uint256 currentPrice = _getUnderlyingPrice(CurrencyLibrary.unwrap(key.currency0));
-    //   uint256 currentPrice = 1e18;
-
-    //   // For this example, apply a fixed discount of 20% (i.e. 2000 basis points out of 10000)
-    //   uint256 discountRate = 2000; // 20%
-    //   uint256 discountedPrice = (currentPrice * (10000 - discountRate)) / 10000;
-
-    //   // Enforce that the swap's price limit aligns with the discounted price.
-    //   // Depending on swap direction (zeroForOne), the sqrt price limit must be
-    //   // either at or below (for zeroForOne) or at or above (for oneForZero) the discounted price.
-    //   if (params.zeroForOne) {
-    //     require(
-    //       params.sqrtPriceLimitX96 <= _priceToSqrtX96(discountedPrice),
-    //       'BondHook: Price exceeds bond discount'
-    //     );
-    //   } else {
-    //     require(
-    //       params.sqrtPriceLimitX96 >= _priceToSqrtX96(discountedPrice),
-    //       'BondHook: Price exceeds bond discount'
-    //     );
-    //   }
-
-    //   // Emit an event indicating that this pool (identified by poolId) has processed a bond swap.
-    //   bytes32 poolId = keccak256(abi.encode(key));
-    //   emit Buyer(poolId, user);
-    // }
-
-    // // Lazy implementation
-    function _priceToSqrtX96(uint256 price) internal pure returns (uint160) {
-        return uint160(_sqrt((price << 192) / 1e18));
-    }
-
-    // // Lazy implementation
-    function _sqrt(uint256 x) internal pure returns (uint256 y) {
-        uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
     }
 }

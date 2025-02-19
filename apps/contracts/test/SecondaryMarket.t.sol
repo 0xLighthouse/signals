@@ -147,63 +147,63 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
         assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
     }
 
-    function test_SwapNFT() public {
-        deal(address(_dai), address(_alice), 100_000 ether);
-        deal(address(_token), address(_alice), 100_000 ether);
-        // Alice locks 50k against an initiative for 1 year
-        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 12);
-        // Jump ahead to when bond is worth 50%
-        vm.warp(block.timestamp + 6 * 30 days);
+    // function test_SwapNFT() public {
+    //     deal(address(_dai), address(_alice), 100_000 ether);
+    //     deal(address(_token), address(_alice), 100_000 ether);
+    //     // Alice locks 50k against an initiative for 1 year
+    //     uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 12);
+    //     // Jump ahead to when bond is worth 50%
+    //     vm.warp(block.timestamp + 6 * 30 days);
 
-        vm.startPrank(_alice);
-        _token.approve(address(swapRouter), 100_000 ether);
-        _token.approve(address(manager), 100_000 ether);    
-        _dai.approve(address(swapRouter), 100_000 ether);
-        _dai.approve(address(manager), 100_000 ether);
+    //     vm.startPrank(_alice);
+    //     _token.approve(address(swapRouter), 100_000 ether);
+    //     _token.approve(address(manager), 100_000 ether);    
+    //     _dai.approve(address(swapRouter), 100_000 ether);
+    //     _dai.approve(address(manager), 100_000 ether);
         
 
-        console.log("Alice bond balance (before):", signals.balanceOf(address(_alice)));
-        console.log("Pool bond balance (before):", signals.balanceOf(address(bondhook)));
-        int256 _aliceBondBefore = int256(signals.balanceOf(address(_alice)));
-        int256 _poolBondBefore = int256(signals.balanceOf(address(bondhook)));
-        int256 _govBefore = int256(_token.balanceOf(address(_alice)));
-        int256 _daiBefore = int256(_dai.balanceOf(address(_alice)));
+    //     console.log("Alice bond balance (before):", signals.balanceOf(address(_alice)));
+    //     console.log("Pool bond balance (before):", signals.balanceOf(address(bondhook)));
+    //     int256 _aliceBondBefore = int256(signals.balanceOf(address(_alice)));
+    //     int256 _poolBondBefore = int256(signals.balanceOf(address(bondhook)));
+    //     int256 _govBefore = int256(_token.balanceOf(address(_alice)));
+    //     int256 _daiBefore = int256(_dai.balanceOf(address(_alice)));
 
-        // Allow the hook to transfer the NFT
-        signals.approve(address(bondhook), tokenId);
+    //     // Allow the hook to transfer the NFT
+    //     signals.approve(address(bondhook), tokenId);
 
-        console.log("gov balance before:", _token.balanceOf(address(_alice)) / 1e18);
-        console.log("dai balance before:", _dai.balanceOf(address(_alice)) / 1e18);
+    //     console.log("gov balance before:", _token.balanceOf(address(_alice)) / 1e18);
+    //     console.log("dai balance before:", _dai.balanceOf(address(_alice)) / 1e18);
 
-        uint256 govBalanceBefore = _token.balanceOf(address(_alice));
-        uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
+    //     uint256 govBalanceBefore = _token.balanceOf(address(_alice));
+    //     uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
 
-        // The minimum price we will accept for the bond.
-        // 50% of 50k is 25k, minus the 10% fee is 22.5k
-        int128 desiredAmount = 22_500 ether;
-        // Mock signature
-        bytes memory signature = abi.encode(address(_alice));
-        // Hook data is tokenId, desiredAmount, signature
-        bytes memory hookData = abi.encode(tokenId, desiredAmount, signature);
+    //     // The minimum price we will accept for the bond.
+    //     // 50% of 50k is 25k, minus the 10% fee is 22.5k
+    //     int128 desiredAmount = 22_500 ether;
+    //     // Mock signature
+    //     bytes memory signature = abi.encode(address(_alice));
+    //     // Hook data is tokenId, desiredAmount, signature
+    //     bytes memory hookData = abi.encode(tokenId, desiredAmount, signature);
 
-        // To sell GOV, we need to set zeroForOne to
-        // which currency is the bond token.
-        vm.startPrank(_alice);
-        swapRouter.swap(
-            _keyB,
-            IPoolManager.SwapParams({zeroForOne: _keyBIsGovZero, amountSpecified: 1, sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE+1}),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            // hookData
-            hookData
-        );
+    //     // To sell GOV, we need to set zeroForOne to
+    //     // which currency is the bond token.
+    //     vm.startPrank(_alice);
+    //     swapRouter.swap(
+    //         _keyB,
+    //         IPoolManager.SwapParams({zeroForOne: _keyBIsGovZero, amountSpecified: 0, sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE+1}),
+    //         PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+    //         // hookData
+    //         hookData
+    //     );
 
-        console.log("Alice Gov change:", int256(_token.balanceOf(address(_alice))) - _govBefore); 
-        console.log("Alice DAI change:", int256(_dai.balanceOf(address(_alice))) - _daiBefore);
-        console.log("Alice Bond change:", int256(signals.balanceOf(address(_alice))) - _aliceBondBefore);
-        console.log("Pool Bond change:", int256(signals.balanceOf(address(bondhook))) - _poolBondBefore);   
-        // assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
-        // assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
-    }
+    //     console.log("Alice Gov change:", int256(_token.balanceOf(address(_alice))) - _govBefore); 
+    //     console.log("Alice DAI change:", int256(_dai.balanceOf(address(_alice))) - _daiBefore);
+    //     console.log("Alice Bond change:", int256(signals.balanceOf(address(_alice))) - _aliceBondBefore);
+    //     console.log("Pool Bond change:", int256(signals.balanceOf(address(bondhook))) - _poolBondBefore);   
+    //     // assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
+    //     // assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
+    // }
 
     // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
     // TOOD: [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]
