@@ -6,7 +6,7 @@ import "forge-std/console.sol";
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 // temporary:
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
@@ -16,8 +16,10 @@ import {BalanceDeltaLibrary, BalanceDelta} from "v4-core/types/BalanceDelta.sol"
 import {toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
-
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {ImmutableState} from "v4-periphery/src/base/ImmutableState.sol";
 import {Signals} from "./Signals.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IBondPricing} from "./interfaces/IBondPricing.sol";
@@ -35,6 +37,12 @@ struct BondPoolState {
     uint256 balanceOfOtherToken;
     // The total liquidity provided by LPs
     uint256 totalLiquidity;
+}
+
+struct DepositData {
+    PoolKey poolKey;
+    address owner;
+    int256 liquidityDelta;
 }
 
 /**
@@ -65,6 +73,10 @@ contract BondHook is BaseHook {
 
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
+
+    // Errors
+    error PoolNotInitialized();
+    error InvalidPool();
 
     // Add events
     event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
@@ -97,7 +109,7 @@ contract BondHook is BaseHook {
 
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
         if (!(key.currency0 == bondToken) && !(key.currency1 == bondToken)) {
-            revert("BondHook: Pool does not contain bond token");
+            revert InvalidPool();
         }
         bondPools[key.toId()] = BondPoolState({
             bondTokenCurrency: key.currency1 == bondToken ? 1 : 2,
@@ -109,12 +121,70 @@ contract BondHook is BaseHook {
         return this.beforeInitialize.selector;
     }
 
-    function addLiquidity(PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params) public {
+    function modifyLiquidity(PoolKey calldata key, int256 liquidityDelta) external {
         if (bondPools[key.toId()].bondTokenCurrency == 0) {
-        revert("BondHook: Pool is not initialized");
+            revert PoolNotInitialized();
         }
+
+        // This can be called directly by an EOA, so msg.sender is the owner of the tokens
+        poolManager.unlock(
+            abi.encode(
+                DepositData({
+                    poolKey: key,
+                    owner: msg.sender,
+                    liquidityDelta: liquidityDelta
+                })
+            )
+        );
     }
 
+    // poolManager.unlock will call back to here, so we need to figure out which action we are taking
+    function unlockCallback(bytes calldata data) external onlyPoolManager() returns (bytes memory) {
+        DepositData memory depositData = abi.decode(data, (DepositData));
+        if (depositData.liquidityDelta > 0) {
+            // Add liquidity
+            _addLiquidity(depositData);
+        } else {
+            // Remove liquidity
+            _removeLiquidity(depositData);
+        }
+        return "";
+    }
+
+    function _addLiquidity(DepositData memory data) internal {    
+        PoolKey memory key = data.poolKey;
+
+        // Add liquidity to pool, credited to our hook
+        (BalanceDelta delta, ) = poolManager.modifyLiquidity(
+            key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.minUsableTick(key.tickSpacing),
+                tickUpper: TickMath.maxUsableTick(key.tickSpacing),
+                liquidityDelta: data.liquidityDelta,
+                salt: bytes32(0)
+            }),
+            ""
+        );
+
+        // TODO: Support native currency too
+        // Based on how much of each currency is set to be deposited, take those funds from the user and add to our hook
+        ERC20(Currency.unwrap(data.poolKey.currency0)).transferFrom(data.owner, address(this), uint256(uint128(-delta.amount0())));
+        ERC20(Currency.unwrap(data.poolKey.currency1)).transferFrom(data.owner, address(this), uint256(uint128(-delta.amount1())));
+
+        // Add liquidity to the pool
+        poolManager.sync(data.poolKey.currency0);
+        ERC20(Currency.unwrap(data.poolKey.currency0)).transfer(address(poolManager), uint256(uint128(-delta.amount0())));
+        poolManager.settle();
+
+        poolManager.sync(data.poolKey.currency1);
+        ERC20(Currency.unwrap(data.poolKey.currency1)).transfer(address(poolManager), uint256(uint128(-delta.amount1())));
+        poolManager.settle();
+
+    }
+
+    function _removeLiquidity(DepositData memory data) internal {
+        //TODO: Implement
+    }
 
     // /**
     //  * @notice The nominal value of the bond is the amount of tokens that will be

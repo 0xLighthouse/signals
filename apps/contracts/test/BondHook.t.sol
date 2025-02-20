@@ -9,13 +9,16 @@ import {Signals} from "../src/Signals.sol";
 import {BondHook} from "../src/BondHook.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
-
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/types/PoolKey.sol";
+
 import {PipsLib} from "../src/PipsLib.sol";
 import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
 import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
-
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 contract BondHookTest is Test, Deployers, SignalsHarness {
     using PipsLib for uint256;
 
@@ -60,5 +63,29 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         // Creating this pool should revert
         vm.expectRevert();
         initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
+    }
+
+    function test_addLiquidity() public {
+        MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
+
+        (currency0, currency1) = SortTokens.sort(pairToken, MockERC20(signals.underlyingToken()));
+
+        (PoolKey memory poolKey, ) = initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
+
+        deal(address(pairToken), address(this), 100 ether);
+        deal(address(signals.underlyingToken()), address(this), 100 ether);
+
+        pairToken.approve(address(hook), 100 ether);
+        MockERC20(signals.underlyingToken()).approve(address(hook), 100 ether);
+
+        // Add liquidity to pool
+        hook.modifyLiquidity(
+            poolKey,
+            1 ether
+        );
+
+        // Check that the liquidity was added
+        uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());
+        assertEq(liquidity, 1 ether);
     }
 }
