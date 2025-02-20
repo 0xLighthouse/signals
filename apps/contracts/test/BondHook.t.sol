@@ -87,5 +87,11 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());
         assertEq(liquidity, 1 ether);
+
+        // Check that the balance of the user is 1 ether
+        assertEq(hook.getBalance(poolKey.toId(), address(this)), 1 ether);
+
+        // Check that the total liquidity is 1 ether
+        assertEq(hook.getTotalLiquidity(poolKey.toId()), 1 ether);
     }
 }

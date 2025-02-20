@@ -42,7 +42,7 @@ struct BondPoolState {
 struct DepositData {
     PoolKey poolKey;
     address owner;
-    int256 liquidityDelta;
+    int128 liquidityDelta;
 }
 
 /**
@@ -121,7 +121,8 @@ contract BondHook is BaseHook {
         return this.beforeInitialize.selector;
     }
 
-    function modifyLiquidity(PoolKey calldata key, int256 liquidityDelta) external {
+    // We receive an int128, to leave room for casting negative values to uint
+    function modifyLiquidity(PoolKey calldata key, int128 liquidityDelta) external {
         if (bondPools[key.toId()].bondTokenCurrency == 0) {
             revert PoolNotInitialized();
         }
@@ -160,7 +161,7 @@ contract BondHook is BaseHook {
             IPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.minUsableTick(key.tickSpacing),
                 tickUpper: TickMath.maxUsableTick(key.tickSpacing),
-                liquidityDelta: data.liquidityDelta,
+                liquidityDelta: int256(data.liquidityDelta),
                 salt: bytes32(0)
             }),
             ""
@@ -180,6 +181,9 @@ contract BondHook is BaseHook {
         ERC20(Currency.unwrap(data.poolKey.currency1)).transfer(address(poolManager), uint256(uint128(-delta.amount1())));
         poolManager.settle();
 
+        // Credit the user with having added liquidity -- we know the delta is positive
+        liquidityProviders[key.toId()][data.owner] += uint256(uint128(data.liquidityDelta));
+        bondPools[key.toId()].totalLiquidity += uint256(uint128(data.liquidityDelta));
     }
 
     function _removeLiquidity(DepositData memory data) internal {
@@ -196,6 +200,20 @@ contract BondHook is BaseHook {
     //     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
     //     return lock.tokenAmount;
     // }
+
+    /**
+     * @notice Get the balance of the liquidity a user has provided to a pool
+     * @param id The ID of the pool
+     * @param user The address of the user
+     * @return balance The balance of the user
+     */
+    function getBalance(PoolId id, address user) public view returns (uint256) {
+        return liquidityProviders[id][user];
+    }
+
+    function getTotalLiquidity(PoolId id) public view returns (uint256) {
+        return bondPools[id].totalLiquidity;
+    }
 
     /**
      * @notice The current value of the bond is a custom calculation based on
