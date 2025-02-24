@@ -30,7 +30,7 @@ contract SignalsHarness is Test, Deployers {
     address _alice = address(0x1111);
     address _bob = address(0x2222);
     address _charlie = address(0x3333);
-
+    address _liquidityProvider = address(0x4444);
     // --- Tokens ---
     MockERC20 internal _token = new MockERC20("SomeGovToken", "GOV", 18);
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
@@ -81,6 +81,19 @@ contract SignalsHarness is Test, Deployers {
         }
     }
 
+    function dealMockTokens() public {
+        _dealToken(_token);
+        _dealToken(_usdc);
+        _dealToken(_dai);
+    }
+
+    function _dealToken(MockERC20 token) public {
+        deal(address(token), _alice, 200_000 * 10 ** token.decimals());
+        deal(address(token), _bob, 200_000 * 10 ** token.decimals());
+        deal(address(token), _charlie, 40_000 * 10 ** token.decimals());
+        deal(address(token), _liquidityProvider, 1_000_000 * 10 ** token.decimals());
+    }
+
     function _dealDefaultTokens() public {
         // --- Issue governance tokens to participants ---
         // Alice has 50k
@@ -89,6 +102,8 @@ contract SignalsHarness is Test, Deployers {
         deal(address(_token), _bob, defaultConfig.acceptanceThreshold);
         // Charlie has 25k
         deal(address(_token), _charlie, defaultConfig.proposalThreshold / 2);
+        // Liquidity provider has 1M
+        deal(address(_token), _liquidityProvider, 1_000_000 * 1e18);
     }
 
     function _uniswapApprovals(MockERC20 token) internal returns (Currency currency) {
@@ -110,30 +125,7 @@ contract SignalsHarness is Test, Deployers {
         return Currency.wrap(address(token));
     }
 
-    // TODO: Needs review
-    function deployStables() public returns (MockERC20 _mToken, MockStable _mUSDC) {
-        // Deploy MockERC20 token and mint 1 million tokens
-        _mToken = new MockERC20("MockToken", "MTK", 18);
-
-        uint256 initialSupply = 1_000_000 * 1e18;
-        deal(address(_mToken), _deployer, initialSupply);
-
-        _mUSDC = new MockStable("MockUSDC", "MUSDC");
-        deal(address(_mUSDC), _deployer, initialSupply);
-
-        // Distribute tokens to test addresses
-        deal(address(_mToken), _alice, 200_000 * 1e18);
-        deal(address(_mToken), _bob, 200_000 * 1e18);
-        deal(address(_mToken), _charlie, 40_000 * 1e18);
-
-        // Distribute some mocked USDC to the test addresses
-        deal(address(_mUSDC), _alice, 200_000 * 1e6);
-        deal(address(_mUSDC), _bob, 200_000 * 1e6);
-        deal(address(_mUSDC), _charlie, 40_000 * 1e6);
-
-        return (_mToken, _mUSDC);
-    }
-
+    
     function deployHookWithLiquidity(Signals _signals) public {
         // Set up uniswap approvals
         usdcCurrency = _uniswapApprovals(_usdc);
@@ -149,7 +141,7 @@ contract SignalsHarness is Test, Deployers {
 
         // Deploy hook with correct flags
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
 
         deployCodeTo("BondHook.sol", abi.encode(manager, address(_signals), address(pricing)), address(flags));
@@ -190,25 +182,25 @@ contract SignalsHarness is Test, Deployers {
         vm.stopPrank();
     }
 
-    function deployAllowedTokens() public returns (TokenRegistry registry, MockERC20 _mToken, MockStable _mUSDC) {
-        // Create some tokens
-        (_mToken, _mUSDC) = deployStables();
-        address[] memory _tokens = new address[](2);
-        _tokens[0] = address(_mToken);
-        _tokens[1] = address(_mUSDC);
+    // function deployAllowedTokens() public returns (TokenRegistry registry, MockERC20 _mToken, MockStable _mUSDC) {
+    //     // Create some tokens
+        
+    //     address[] memory _tokens = new address[](2);
+    //     _tokens[0] = address(_mToken);
+    //     _tokens[1] = address(_mUSDC);
 
-        // Configure the registry
-        registry = _configureRegistry(_tokens);
+    //     // Configure the registry
+    //     registry = _configureRegistry(_tokens);
 
-        return (registry, _mToken, _mUSDC);
-    }
+    //     return (registry, _mToken, _mUSDC);
+    // }
 
-    function _configureRegistry(address[] memory _tokens) public returns (TokenRegistry registry) {
-        registry = new TokenRegistry();
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            registry.allow(_tokens[i]);
-        }
-    }
+    // function _configureRegistry(address[] memory _tokens) public returns (TokenRegistry registry) {
+    //     registry = new TokenRegistry();
+    //     for (uint256 i = 0; i < _tokens.length; i++) {
+    //         registry.allow(_tokens[i]);
+    //     }
+    // }
 
     function printPoolInfo() public view {
         console.log("Address and decimals: ");

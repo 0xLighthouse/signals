@@ -24,17 +24,17 @@ contract IncentivesTest is Test, SignalsHarness {
     address _feesAddress = address(0x4444);
     address _votersAddress = address(0x5555);
     address _treasuryAddress = address(0x6666);
-
-    MockERC20 _mToken;
-    MockStable _mUSDC;
-
     // Parameters
 
     function setUp() public {
         // Deploy SignalsFactory with the Signals implementation
         bool dealTokens = true;
         signals = deploySignals(dealTokens);
-        (_registry, _mToken, _mUSDC) = deployAllowedTokens();
+        dealMockTokens();
+
+        _registry = new TokenRegistry();
+        _registry.allow(address(_token));
+        _registry.allow(address(_usdc));
 
         // Declare how incentives are allocated
         // 5% to fees, 20% to voters, 75% to treasury
@@ -55,30 +55,27 @@ contract IncentivesTest is Test, SignalsHarness {
         assertEq(signals.owner(), address(_deployer));
 
         // Accounts have been created with the expected balances
-        assertEq(_mToken.balanceOf(_alice), 200_000 * 1e18);
-        assertEq(_mUSDC.balanceOf(_alice), 200_000 * 1e6);
+        assertEq(_token.balanceOf(_alice), 200_000 * 1e18);
+        assertEq(_usdc.balanceOf(_alice), 200_000 * 1e6);
 
         // TokenRegistry has token and usdc registered
-        assertEq(_registry.isAllowed(address(_mToken)), true);
-        assertEq(_registry.isAllowed(address(_mUSDC)), true);
+        assertEq(_registry.isAllowed(address(_token)), true);
+        assertEq(_registry.isAllowed(address(_usdc)), true);
     }
 
     function test_AddIncentive() public {
-        // Mint tokens to the alice account
-        deal(address(_token), _alice, 200_000 * 1e18);
-
         // Propose an initiative
         vm.startPrank(_alice);
         signals.proposeInitiative("Initiative 1", "Test adding incentives");
 
         // Add a 500 USDC bounty (4 times)
         uint256 initiativeId = 0;
-        address rewardToken = address(_mUSDC);
+        address rewardToken = address(_usdc);
         uint256 amount = 500 * 1e6;
         uint256 expiresAt = 0;
         Incentives.Conditions conditions = Incentives.Conditions.NONE;
         // Approve the incentives contract to spend the USDC
-        _mUSDC.approve(address(_incentives), amount * 4);
+        _usdc.approve(address(_incentives), amount * 4);
 
         // Add 4 incentives
         for (uint256 i = 1; i <= 4; i++) {

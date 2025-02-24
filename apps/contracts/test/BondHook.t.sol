@@ -13,12 +13,18 @@ import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 
+import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
+import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+
+
 import {PipsLib} from "../src/PipsLib.sol";
 import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
 import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
+import {BondHookUtils} from "./utils/BondHookUtils.sol";
+
 contract BondHookTest is Test, Deployers, SignalsHarness {
     using PipsLib for uint256;
 
@@ -33,10 +39,10 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
 
         signals = deploySignals(true);
 
-        bondPricing = new ExampleSimplePricing(uint256(100).percentToPips(), uint256(100).percentToPips());
+        bondPricing = new ExampleSimplePricing(uint256(10).percentToPips(), uint256(10).percentToPips());
 
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
         deployCodeTo("BondHook.sol", abi.encode(manager, signals, bondPricing), address(flags));
 
@@ -67,22 +73,21 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
 
     function test_addLiquidity() public {
         MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
-
-        (currency0, currency1) = SortTokens.sort(pairToken, MockERC20(signals.underlyingToken()));
-
+        MockERC20 underlyingToken = MockERC20(signals.underlyingToken());
+        (currency0, currency1) = SortTokens.sort(pairToken, underlyingToken);
+        // fee zero
         (PoolKey memory poolKey, ) = initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
 
         deal(address(pairToken), address(this), 100 ether);
-        deal(address(signals.underlyingToken()), address(this), 100 ether);
+        deal(address(underlyingToken), address(this), 100 ether);
 
-        pairToken.approve(address(hook), 100 ether);
-        MockERC20(signals.underlyingToken()).approve(address(hook), 100 ether);
+        console.log("Starting Bal0:", currency0.balanceOf(address(this)) / 1e12);
+        console.log("Starting Bal1:", currency1.balanceOf(address(this)) / 1e12);
 
-        // Add liquidity to pool
-        hook.modifyLiquidity(
-            poolKey,
-            1 ether
-        );
+        BondHookUtils.addLiquidity(hook, poolKey, 1 ether);
+
+        console.log("After liq Bal0:", currency0.balanceOf(address(this)) / 1e12);
+        console.log("After liq Bal1:", currency1.balanceOf(address(this)) / 1e12);
 
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());

@@ -23,6 +23,9 @@ import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
+import {BondHookUtils} from "./utils/BondHookUtils.sol";
+import {DesiredCurrency} from "../src/BondHook.sol";
+
 /**
  * Selling locked bonds into a Uniswap V4 pool
  *
@@ -124,7 +127,7 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     }
 
     function test_NormalSwap() public {
-        deal(address(_dai), address(_alice), 100_000 ether);
+        dealMockTokens();
 
         vm.startPrank(_alice);
         // _token.approve(address(swapRouter), 100_000 either);    
@@ -148,18 +151,23 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
     }
 
     // function test_SwapNFT() public {
-    //     deal(address(_dai), address(_alice), 100_000 ether);
-    //     deal(address(_token), address(_alice), 100_000 ether);
+    //     dealMockTokens();
+
+    //     // we add liquidity to the pool
+    //     vm.startPrank(_liquidityProvider);
+    //     BondHookUtils.addLiquidity(bondhook, _keyA, 1 ether);
+    //     vm.stopPrank();
+
     //     // Alice locks 50k against an initiative for 1 year
     //     uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 12);
     //     // Jump ahead to when bond is worth 50%
     //     vm.warp(block.timestamp + 6 * 30 days);
 
     //     vm.startPrank(_alice);
-    //     _token.approve(address(swapRouter), 100_000 ether);
-    //     _token.approve(address(manager), 100_000 ether);    
-    //     _dai.approve(address(swapRouter), 100_000 ether);
-    //     _dai.approve(address(manager), 100_000 ether);
+    //     _token.approve(address(bondhook), 100_000 ether);
+    //     // _token.approve(address(manager), 100_000 ether);    
+    //     _dai.approve(address(bondhook), 100_000 ether);
+    //     // _dai.approve(address(manager), 100_000 ether);
         
 
     //     console.log("Alice bond balance (before):", signals.balanceOf(address(_alice)));
@@ -180,21 +188,14 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
 
     //     // The minimum price we will accept for the bond.
     //     // 50% of 50k is 25k, minus the 10% fee is 22.5k
-    //     int128 desiredAmount = 22_500 ether;
-    //     // Mock signature
-    //     bytes memory signature = abi.encode(address(_alice));
-    //     // Hook data is tokenId, desiredAmount, signature
-    //     bytes memory hookData = abi.encode(tokenId, desiredAmount, signature);
-
-    //     // To sell GOV, we need to set zeroForOne to
-    //     // which currency is the bond token.
-    //     vm.startPrank(_alice);
-    //     swapRouter.swap(
-    //         _keyB,
-    //         IPoolManager.SwapParams({zeroForOne: _keyBIsGovZero, amountSpecified: 0, sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE+1}),
-    //         PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-    //         // hookData
-    //         hookData
+    //     uint256 desiredAmount = 22_500 ether;
+        
+    //     // vm.startPrank(_alice);
+    //     bondhook.swapBond(
+    //         _keyA,
+    //         tokenId,
+    //         desiredAmount,
+    //         DesiredCurrency.Mixed
     //     );
 
     //     console.log("Alice Gov change:", int256(_token.balanceOf(address(_alice))) - _govBefore); 
