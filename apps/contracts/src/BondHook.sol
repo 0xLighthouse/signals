@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "forge-std/console.sol";
-
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 // temporary:
@@ -23,10 +21,6 @@ import {ImmutableState} from "v4-periphery/src/base/ImmutableState.sol";
 import {Signals} from "./Signals.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IBondPricing} from "./interfaces/IBondPricing.sol";
-
-import {PoolTestBase} from "v4-core/test/PoolTestBase.sol";
-import {SafeCast} from "v4-core/libraries/SafeCast.sol";
-
 
 import "./PipsLib.sol";
 
@@ -149,8 +143,6 @@ contract BondHook is BaseHook {
             revert PoolNotInitialized();
         }
 
-        console.log("sender:", msg.sender);
-
         poolManager.unlock(
             abi.encode(
                 CallbackData({
@@ -211,18 +203,21 @@ contract BondHook is BaseHook {
             ""
         );
 
+        ERC20 currency0 = ERC20(Currency.unwrap(key.currency0));
+        ERC20 currency1 = ERC20(Currency.unwrap(key.currency1));
+
         // TODO: Support native currency too
         // Based on how much of each currency is set to be deposited, take those funds from the user and add to our hook
-        ERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(this), uint256(uint128(-delta.amount0())));
-        ERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(this), uint256(uint128(-delta.amount1())));
+        currency0.transferFrom(data.sender, address(this), uint256(uint128(-delta.amount0())));
+        currency1.transferFrom(data.sender, address(this), uint256(uint128(-delta.amount1())));
 
         // Add liquidity to the pool
         poolManager.sync(key.currency0);
-        ERC20(Currency.unwrap(key.currency0)).transfer(address(poolManager), uint256(uint128(-delta.amount0())));
+        currency0.transfer(address(poolManager), uint256(uint128(-delta.amount0())));
         poolManager.settle();
 
         poolManager.sync(key.currency1);
-        ERC20(Currency.unwrap(key.currency1)).transfer(address(poolManager), uint256(uint128(-delta.amount1())));
+        currency1.transfer(address(poolManager), uint256(uint128(-delta.amount1())));
         poolManager.settle();
 
         // Credit the user with having added liquidity -- we know the delta is positive
