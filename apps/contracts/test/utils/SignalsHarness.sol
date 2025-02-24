@@ -91,7 +91,7 @@ contract SignalsHarness is Test, Deployers {
         deal(address(token), _alice, 200_000 * 10 ** token.decimals());
         deal(address(token), _bob, 200_000 * 10 ** token.decimals());
         deal(address(token), _charlie, 40_000 * 10 ** token.decimals());
-        deal(address(token), _liquidityProvider, 1_000_000 * 10 ** token.decimals());
+        deal(address(token), _liquidityProvider, 100_000_000 * 10 ** token.decimals());
     }
 
     function _dealDefaultTokens() public {
@@ -103,7 +103,7 @@ contract SignalsHarness is Test, Deployers {
         // Charlie has 25k
         deal(address(_token), _charlie, defaultConfig.proposalThreshold / 2);
         // Liquidity provider has 1M
-        deal(address(_token), _liquidityProvider, 1_000_000 * 1e18);
+        deal(address(_token), _liquidityProvider, 100_000_000 * 1e18);
     }
 
     function _uniswapApprovals(MockERC20 token) internal returns (Currency currency) {

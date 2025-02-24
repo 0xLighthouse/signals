@@ -23,7 +23,6 @@ import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
-import {BondHookUtils} from "./utils/BondHookUtils.sol";
 
 contract BondHookTest is Test, Deployers, SignalsHarness {
     using PipsLib for uint256;
@@ -81,22 +80,23 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         deal(address(pairToken), address(this), 100 ether);
         deal(address(underlyingToken), address(this), 100 ether);
 
-        console.log("Starting Bal0:", currency0.balanceOf(address(this)) / 1e12);
-        console.log("Starting Bal1:", currency1.balanceOf(address(this)) / 1e12);
+        pairToken.approve(address(hook), type(uint256).max);
+        underlyingToken.approve(address(hook), type(uint256).max);
 
-        BondHookUtils.addLiquidity(hook, poolKey, 1 ether);
-
-        console.log("After liq Bal0:", currency0.balanceOf(address(this)) / 1e12);
-        console.log("After liq Bal1:", currency1.balanceOf(address(this)) / 1e12);
+    // Add liquidity to pool
+        hook.modifyLiquidity(
+            poolKey,
+            1 ether
+        );
 
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());
-        assertEq(liquidity, 1 ether);
+        assertEq(liquidity, 1 ether, "Incorrect amount of liquidity added");
 
         // Check that the balance of the user is 1 ether
-        assertEq(hook.getBalance(poolKey.toId(), address(this)), 1 ether);
+        assertEq(hook.balanceOf(poolKey.toId(), address(this)), 1 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 1 ether
-        assertEq(hook.getTotalLiquidity(poolKey.toId()), 1 ether);
+        assertEq(hook.totalLiquidity(poolKey.toId()), 1 ether, "Incorrect total liquidity reported by hook");
     }
 }

@@ -23,7 +23,6 @@ import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
-import {BondHookUtils} from "./utils/BondHookUtils.sol";
 import {DesiredCurrency} from "../src/BondHook.sol";
 
 /**
@@ -150,61 +149,61 @@ contract SecondaryMarketTest is Test, Deployers, SignalsHarness {
         assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
     }
 
-    // function test_SwapNFT() public {
-    //     dealMockTokens();
+    function test_SwapNFT() public {
+        dealMockTokens();
 
-    //     // we add liquidity to the pool
-    //     vm.startPrank(_liquidityProvider);
-    //     BondHookUtils.addLiquidity(bondhook, _keyA, 1 ether);
-    //     vm.stopPrank();
+        // add liquidity to the pool
+        vm.startPrank(_liquidityProvider);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
 
-    //     // Alice locks 50k against an initiative for 1 year
-    //     uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 12);
-    //     // Jump ahead to when bond is worth 50%
-    //     vm.warp(block.timestamp + 6 * 30 days);
+        bondhook.modifyLiquidity(
+            _keyB,
+            1_000_000 ether
+        );
+        vm.stopPrank();
 
-    //     vm.startPrank(_alice);
-    //     _token.approve(address(bondhook), 100_000 ether);
-    //     // _token.approve(address(manager), 100_000 ether);    
-    //     _dai.approve(address(bondhook), 100_000 ether);
-    //     // _dai.approve(address(manager), 100_000 ether);
+        // Alice locks 50k against an initiative for 1 year
+        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 12);
+        // Jump ahead to when bond is worth 50%
+        vm.warp(block.timestamp + 6 * 30 days);
         
+        // The minimum price we will accept for the bond.
+        // 50% of 50k is 25k, minus the 10% fee is 22.5k
+        uint256 desiredAmount = 22_500 ether;
 
-    //     console.log("Alice bond balance (before):", signals.balanceOf(address(_alice)));
-    //     console.log("Pool bond balance (before):", signals.balanceOf(address(bondhook)));
-    //     int256 _aliceBondBefore = int256(signals.balanceOf(address(_alice)));
-    //     int256 _poolBondBefore = int256(signals.balanceOf(address(bondhook)));
-    //     int256 _govBefore = int256(_token.balanceOf(address(_alice)));
-    //     int256 _daiBefore = int256(_dai.balanceOf(address(_alice)));
+        // record balances
+        uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
+        uint256 _poolBondBefore = signals.balanceOf(address(bondhook));
+        uint256 _govBefore = _token.balanceOf(address(_alice));
+        uint256 _daiBefore = _dai.balanceOf(address(_alice));
 
-    //     // Allow the hook to transfer the NFT
-    //     signals.approve(address(bondhook), tokenId);
+        // approve and swap the bond into the pool
+        vm.startPrank(_alice);
+        _token.approve(address(bondhook), 100_000 ether);
+        _dai.approve(address(bondhook), 100_000 ether);
+        signals.approve(address(bondhook), tokenId);
 
-    //     console.log("gov balance before:", _token.balanceOf(address(_alice)) / 1e18);
-    //     console.log("dai balance before:", _dai.balanceOf(address(_alice)) / 1e18);
+        bondhook.swapBond(
+            _keyB,
+            tokenId,
+            desiredAmount,
+            DesiredCurrency.Mixed
+        );
+        vm.stopPrank();
 
-    //     uint256 govBalanceBefore = _token.balanceOf(address(_alice));
-    //     uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
+        uint256 _govAfter = _token.balanceOf(address(_alice));
+        uint256 _daiAfter = _dai.balanceOf(address(_alice));
+        uint256 _bondAfter = signals.balanceOf(address(_alice));
+        uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
 
-    //     // The minimum price we will accept for the bond.
-    //     // 50% of 50k is 25k, minus the 10% fee is 22.5k
-    //     uint256 desiredAmount = 22_500 ether;
-        
-    //     // vm.startPrank(_alice);
-    //     bondhook.swapBond(
-    //         _keyA,
-    //         tokenId,
-    //         desiredAmount,
-    //         DesiredCurrency.Mixed
-    //     );
-
-    //     console.log("Alice Gov change:", int256(_token.balanceOf(address(_alice))) - _govBefore); 
-    //     console.log("Alice DAI change:", int256(_dai.balanceOf(address(_alice))) - _daiBefore);
-    //     console.log("Alice Bond change:", int256(signals.balanceOf(address(_alice))) - _aliceBondBefore);
-    //     console.log("Pool Bond change:", int256(signals.balanceOf(address(bondhook))) - _poolBondBefore);   
-    //     // assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
-    //     // assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
-    // }
+        // Alice should end up with 22.5k liquidity (11.25k gov, 11.25k dai)
+        assertApproxEqAbs(_govAfter, _govBefore + (desiredAmount / 2), 1000, "Alice Gov balance incorrect");
+        assertApproxEqAbs(_daiAfter, _daiBefore + (desiredAmount / 2), 1000, "Alice DAI balance incorrect");
+        // The bond should be transfered to the pool
+        assertEq(_bondAfter, 0, "Alice Bond balance incorrect");
+        assertEq(_poolBondAfter, 1, "Pool Bond balance incorrect");
+    }
 
     // TOOD: [ ] Sell bond for USDC (exact input swap) single-hop pool [BOND -> UNI -> USDC]
     // TOOD: [ ] Sell bond for USDT (exact input swap) multi-hop pool (UNI/USDC, UNI/USDT) [BOND -> UNI -> USDC -> USDT]

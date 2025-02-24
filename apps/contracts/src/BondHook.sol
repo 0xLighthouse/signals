@@ -25,6 +25,7 @@ import {ISignals} from "./interfaces/ISignals.sol";
 import {IBondPricing} from "./interfaces/IBondPricing.sol";
 
 import {PoolTestBase} from "v4-core/test/PoolTestBase.sol";
+import {SafeCast} from "v4-core/libraries/SafeCast.sol";
 
 
 import "./PipsLib.sol";
@@ -148,6 +149,8 @@ contract BondHook is BaseHook {
             revert PoolNotInitialized();
         }
 
+        console.log("sender:", msg.sender);
+
         poolManager.unlock(
             abi.encode(
                 CallbackData({
@@ -228,7 +231,7 @@ contract BondHook is BaseHook {
     }
 
     function _removeLiquidity(DepositData memory data) internal {
-        //TODO: Implement
+        //to implement
     }
 
     function _sellBond(SwapData memory data) internal {
@@ -239,33 +242,84 @@ contract BondHook is BaseHook {
 
         PoolKey memory key = data.poolKey;
 
-        // Withdraw liquidity from pool -- delta should always be positive
+        // Withdraw liquidity from pool:
+        // We specify 50% of the price as the amount of liquidity to withdraw, as we will then 
+        // get 50% as one currency and 50% as the other, totaling 100%.
         (BalanceDelta delta, ) = poolManager.modifyLiquidity(
             key,
             IPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.minUsableTick(key.tickSpacing),
                 tickUpper: TickMath.maxUsableTick(key.tickSpacing),
-                liquidityDelta: -int256(price / 2),
+                liquidityDelta: -int256(price/2),
                 salt: bytes32(0)
             }),
             ""
         );
 
         if (data.desiredCurrency == DesiredCurrency.Mixed) {
-            console.log("Pay out mixed currency");
             poolManager.take(key.currency0, data.sender, uint256(uint128(delta.amount0())));
             poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
         } else {
-            console.log("Pay out single currency");
-            // TODO: Implement
+            // perform swap to return a single currency
         }
     }
 
     function _buyBond(SwapData memory data) internal {
-        //TODO: Implement
+        // to implement
     }
 
+        /**
+     * @notice Get the balance of the liquidity a user has provided to a pool
+     * @param id The ID of the pool
+     * @param user The address of the user
+     * @return balance The balance of the user
+     */
+    function balanceOf(PoolId id, address user) public view returns (uint256) {
+        return liquidityProviders[id][user];
+    }
 
+    /**
+     * @notice Get the total liquidity added to a pool
+     * @param id The ID of the pool
+     * @return totalLiquidity The total liquidity added to the pool
+     */
+    function totalLiquidity(PoolId id) public view returns (uint256) {
+        return bondPools[id].totalLiquidityAdded;
+    }
+
+    /**
+     * @notice The current value of the bond is a custom calculation based on
+     * the current time.
+     *
+     * @param tokenId The ID of the bond token.
+     * @return value The current value of the bond.
+     */
+    function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
+        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+        // TODO: The interval should be exposed from the Signals contract.
+        uint256 interval = 30 days;
+
+        return bondPricing.getBuyPrice({
+            principal: lock.tokenAmount,
+            startTime: lock.created,
+            duration: lock.lockDuration * interval,
+            currentTime: block.timestamp,
+            bondMetadata: abi.encode(tokenId)
+        });
+    }
+
+    function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
+        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+        uint256 interval = 30 days;
+
+        return bondPricing.getSellPrice({
+            principal: lock.tokenAmount,
+            startTime: lock.created,
+            duration: lock.lockDuration * interval,
+            currentTime: block.timestamp,
+            bondMetadata: abi.encode(tokenId)
+        });
+    }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
@@ -306,136 +360,26 @@ contract BondHook is BaseHook {
         return this.beforeAddLiquidity.selector;
     }
 
-    
-
-
-    // /**
-    //  * @notice The nominal value of the bond is the amount of tokens that will be
-    //  * received when the bond is redeemed.
-    //  * @param tokenId The ID of the bond token.
-    //  * @return value The nominal value of the bond.
-    //  */
-    // function nominalValue(uint256 tokenId) external view returns (uint256) {
-    //     ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-    //     return lock.tokenAmount;
-    // }
-
-    /**
-     * @notice Get the balance of the liquidity a user has provided to a pool
-     * @param id The ID of the pool
-     * @param user The address of the user
-     * @return balance The balance of the user
-     */
-    function getBalance(PoolId id, address user) public view returns (uint256) {
-        return liquidityProviders[id][user];
-    }
-
-    function getTotalLiquidity(PoolId id) public view returns (uint256) {
-        return bondPools[id].totalLiquidityAdded;
-    }
-
-    /**
-     * @notice The current value of the bond is a custom calculation based on
-     * the current time.
-     *
-     * @param tokenId The ID of the bond token.
-     * @return value The current value of the bond.
-     */
-    function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
-        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-        // TODO: The interval should be exposed from the Signals contract.
-        uint256 interval = 30 days;
-
-        return bondPricing.getBuyPrice({
-            principal: lock.tokenAmount,
-            startTime: lock.created,
-            duration: lock.lockDuration * interval,
-            currentTime: block.timestamp,
-            bondMetadata: abi.encode(tokenId)
-        });
-    }
-
-    function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
-        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-        uint256 interval = 30 days;
-
-        return bondPricing.getSellPrice({
-            principal: lock.tokenAmount,
-            startTime: lock.created,
-            duration: lock.lockDuration * interval,
-            currentTime: block.timestamp,
-            bondMetadata: abi.encode(tokenId)
-        });
-    }
-
     function _beforeSwap(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata swapParams,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
-       
-            return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
-        // end test
-
-
-
-        // if (hookData.length == 0) {
-        //      return (this.beforeSwap.selector, toBeforeSwapDelta(-5 * 1e11, 0), uint24(0));
-        // }
-
-        // bool isZero = bondPools[key.toId()].bondTokenIsCurrency0;
-
-        // (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
-        // address user = _verifySignature(signature);
-        // uint256 price;
-        // if (isBuy) {
-        //     console.log("BEFORESWAP: Buying bond");
-        //     // The user is selling to us
-        //     price = getPoolBuyPrice(tokenId);
-        //     console.log(price, desiredPrice);
-        //     require(desiredPrice <= price, "BondHook: Desired price exceeds buy price");
-        // } else {
-        //     console.log("BEFORESWAP: Selling bond");
-        //     // We are selling the bon   d to the user
-        //     price = getPoolSellPrice(tokenId);
-        //     console.log(price, desiredPrice);
-        //     require(desiredPrice >= price, "BondHook: Desired price below sell price");
-        // }
-
-        // if (isBuy) {
-        //     // The user is selling to us
-        //     signals.transferFrom(user, address(this), tokenId);
-        //     // TODO: set up balanceDelta so the user doesn't pay anything to the pool
-        // } else {
-        //     // We are selling to the user
-        //     signals.transferFrom(address(this), user, tokenId);
-        //     // TODO: set up balanceDelta so the user doesn't receive anything from the pool
-        // }
- 
-        // // NOTE: WIP
-        // // Currency specified;
-        // BeforeSwapDelta delta = toBeforeSwapDelta(int128(-100), int128(100));
-        // // if (isZero) {
-        // //     specified = key.currency0;
-        // //  delta = toBeforeSwapDelta(int128(uint128(price)), 0);
-        // // } else {
-        // //     specified = key.currency1;
-        // //  delta = toBeforeSwapDelta(0, int128(uint128(price)));
-        // // }
-        // // console.log("SPECIFIED:", MockERC20(Currency.unwrap(specified)).symbol());
-        // // console.log("SPECIFIED balance:", specified.balanceOf(user));
-
-        // // poolManager.take(specified, user, price);
-        // // return (this.beforeSwap.selector, delta, uint24(0));
-        
-
-
-        
-        // return (this.beforeSwap.selector, 0, uint24(0));
-
+        return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
     }
 
+    function _afterSwap(
+        address,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata swapParams,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) internal override returns (bytes4, int128) {
+        return (this.afterSwap.selector, int128(0));
+    }
+
+    // TODO: These can probably be removed
     function _parseHookData(bytes calldata data)
         internal
         returns (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature)
@@ -448,67 +392,6 @@ contract BondHook is BaseHook {
             isBuy = true;
         }
         return (isBuy, tokenId, desiredPrice, signature);
-    }
-
-    function _afterSwap(
-        address,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata swapParams,
-        BalanceDelta delta,
-        bytes calldata hookData
-    ) internal override returns (bytes4, int128) {
-
-
-        if (hookData.length == 0) {
-            return (this.afterSwap.selector, int128(0));
-        }
-
-        // bool isZero = bondTokenIsZero[key.toId()];
-
-        (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature) = _parseHookData(hookData);
-        address user = _verifySignature(signature);
-
-        // uint256 price;
-        // if (isBuy) {
-        //     console.log("SWAP: Buying bond");
-        //     // The user is selling to us
-        //     price = getPoolBuyPrice(tokenId);
-        //     console.log(price, desiredPrice);
-        //     require(desiredPrice <= price, "BondHook: Desired price exceeds buy price");
-        // } else {
-        //     console.log("SWAP: Selling bond");
-        //     // We are selling the bon   d to the user
-        //     price = getPoolSellPrice(tokenId);
-        //     console.log(price, desiredPrice);
-        //     require(desiredPrice >= price, "BondHook: Desired price below sell price");
-        // }
-
-        // // set the balanceDelta to represent the underlying tokens we are buying or selling for
-        // if (swapParams.zeroForOne == isZero) {}
-
-       
-        // if (isBuy) {
-        //     // The user is selling to us
-        //     signals.transferFrom(user, address(this), tokenId);
-        //     // TODO: set up balanceDelta so the user doesn't pay anything to the pool
-        // } else {
-        //     // We are selling to the user
-        //     signals.transferFrom(address(this), user, tokenId);
-        //     // TODO: set up balanceDelta so the user doesn't receive anything from the pool
-        // }
-
-
-        // Currency specified;
-        // if (swapParams.zeroForOne) {
-        //     specified = key.currency1;
-        // } else {
-        //     specified = key.currency0;
-        // }
-
-        console.log("DELTA0:", BalanceDeltaLibrary.amount0(delta));
-        console.log("DELTA1:", BalanceDeltaLibrary.amount1(delta));
-
-        return (this.afterSwap.selector, int128(0));
     }
 
     function _verifySignature(bytes memory signature) internal pure returns (address) {
