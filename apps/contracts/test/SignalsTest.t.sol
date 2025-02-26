@@ -19,7 +19,7 @@ contract SignalsTest is Test, SignalsHarness {
         (, signals) = deploySignalsWithFactory(dealTokens);
     }
 
-    function testDefaultConfig() public view {
+    function test_defaultConfig() public view {
         assertEq(signals.owner(), address(_deployer));
         assertEq(signals.underlyingToken(), address(_token));
         assertEq(signals.proposalThreshold(), defaultConfig.proposalThreshold);
@@ -34,7 +34,7 @@ contract SignalsTest is Test, SignalsHarness {
     /**
      * @notice Test revert when proposing an initiative with insufficient tokens
      */
-    function testProposeInitiativeRevertsWithInsufficientTokens() public {
+    function test_proposeInitiativeRevertsWithInsufficientTokens() public {
         vm.startPrank(_charlie);
         vm.expectRevert(Signals.InsufficientTokens.selector);
         signals.proposeInitiative("Should revert", "Description 1");
@@ -44,7 +44,7 @@ contract SignalsTest is Test, SignalsHarness {
     /**
      * @notice Test proposing an initiative without locking tokens
      */
-    function testProposeInitiative() public {
+    function test_proposeInitiative() public {
         vm.startPrank(_alice);
         _token.approve(address(signals), defaultConfig.proposalThreshold);
 
@@ -66,7 +66,7 @@ contract SignalsTest is Test, SignalsHarness {
     /**
      * @notice Test proposing an initiative with locked tokens
      */
-    function testProposeInitiativeWithLock() public {
+    function test_proposeInitiativeWithLock() public {
         vm.startPrank(_bob);
         // Approve the total amount needed (proposal threshold + locked amount)
         _token.approve(address(signals), defaultConfig.proposalThreshold * 2);
@@ -102,7 +102,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test supporting an initiative with locked tokens
-    function testSupportInitiative() public {
+    function test_supportInitiative() public {
         vm.startPrank(_alice);
 
         // Propose an initiative
@@ -127,7 +127,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test accepting an initiative
-    function testAcceptInitiative() public {
+    function test_acceptInitiative() public {
         // Propose an initiative
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
@@ -143,7 +143,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test that only the owner can accept an initiative
-    function test_OnlyOwnerCanAccept() public {
+    function test_onlyOwnerCanAccept() public {
         // Propose an initiative
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
@@ -155,7 +155,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test redeeming tokens after initiative is accepted
-    function testRedemptions() public {
+    function test_redemptions() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
         _token.approve(address(signals), 200 * 1e18);
@@ -182,7 +182,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test redeeming tokens before initiative is accepted (should fail)
-    function testCannotRedeemBeforeAcceptance() public {
+    function test_cannotRedeemBeforeAcceptance() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
         _token.approve(address(signals), 200 * 1e18);
@@ -196,7 +196,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test redeeming multiple escrow locks
-    function testRedeemMany() public {
+    function test_redeemMany() public {
         // Propose an initiative with lock
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
@@ -219,7 +219,7 @@ contract SignalsTest is Test, SignalsHarness {
         uint256 balanceBefore = _token.balanceOf(_alice);
 
         // List all NFTs owned by the alice
-        uint256[] memory nfts = signals.openPositions(_alice);
+        uint256[] memory nfts = signals.listPositions(_alice);
         assertEq(nfts.length, 3);
 
         // Iterate over the NFTs and redeem them
@@ -234,8 +234,20 @@ contract SignalsTest is Test, SignalsHarness {
         assertEq(balanceDifference, 325 * 1e18);
     }
 
+    function test_listBondsByOwner() public {
+        vm.startPrank(_alice);
+        _token.approve(address(signals), 100 * 1e18);
+        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
+        vm.stopPrank();
+
+        vm.startPrank(_alice);
+        uint256[] memory nfts = signals.listPositions(_alice);
+        assertEq(nfts.length, 1);
+        assertEq(nfts[0], 1);
+    }
+
     /// Test expiring an initiative after inactivity
-    function testExpireInitiative() public {
+    function test_expireInitiative() public {
         // Propose an initiative
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
@@ -252,7 +264,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     // Test attempting to expire an initiative before inactivity threshold (should fail)
-    function testExpireInitiativeBeforeThreshold() public {
+    function test_expireInitiativeBeforeThreshold() public {
         // Propose an initiative
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
@@ -267,7 +279,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test withdrawing tokens after initiative is expired
-    function testredeemAfterExpiration() public {
+    function test_redeemAfterExpiration() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
         _token.approve(address(signals), 200 * 1e18);
@@ -292,7 +304,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     // Test updating inactivity threshold as owner
-    function testSetInactivityThreshold() public {
+    function test_setInactivityThreshold() public {
         // Update the inactivity threshold
         vm.startPrank(_deployer);
         signals.setInactivityThreshold(30 days);
@@ -301,14 +313,14 @@ contract SignalsTest is Test, SignalsHarness {
         assertEq(signals.activityTimeout(), 30 days);
     }
 
-    function test_SetInactivityThresholdOnlyOwner() public {
+    function test_setInactivityThresholdOnlyOwner() public {
         vm.startPrank(_alice);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _alice));
         signals.setInactivityThreshold(30 days);
     }
 
     // Test that users cannot redeem tokens twice
-    function testCannotRedeemTwice() public {
+    function test_cannotRedeemTwice() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
         _token.approve(address(signals), 200 * 1e18);
@@ -328,7 +340,7 @@ contract SignalsTest is Test, SignalsHarness {
     }
 
     /// Test that redeeming multiple escrow locks only withdraws from initiatives in withdrawable state
-    function testRedeemManyPartialWithdrawal() public {
+    function test_redeemManyPartialWithdrawal() public {
         // Propose initiative with lock
         vm.startPrank(_bob);
         _token.approve(address(signals), defaultConfig.proposalThreshold);

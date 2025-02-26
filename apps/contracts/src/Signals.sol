@@ -597,7 +597,7 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
      * @notice Returns all token IDs owned by an address
      * @param owner The address to return the tokens for
      */
-    function openPositions(address owner) public view returns (uint256[] memory) {
+    function listPositions(address owner) public view returns (uint256[] memory) {
         uint256 tokenCount = balanceOf(owner);
         uint256[] memory tokens = new uint256[](tokenCount);
 
