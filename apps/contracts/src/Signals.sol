@@ -6,9 +6,9 @@ import "forge-std/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
-import "lib/solady/src/tokens/ERC721.sol";
 
 import "./interfaces/ISignals.sol";
 
@@ -28,7 +28,7 @@ import "forge-std/console.sol";
  * @author 1a35e1.eth <arnold@lighthouse.cx>
  * @author jkm.eth <james@lighthouse.cx>
  */
-contract Signals is ERC721, Ownable, ReentrancyGuard {
+contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Represents an initiative in the Signals contract
      * @dev Stores all relevant information about a single initiative
@@ -161,12 +161,6 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
         _;
     }
 
-    /// @notice Mapping of owner address to their current active token IDs
-    mapping(address => uint256[]) private _currentHoldings;
-
-    /// @notice Mapping to track index of token in _currentHoldings array
-    mapping(uint256 => uint256) private _holdingsIndex;
-
     modifier isNotInitialized() {
         require(acceptanceThreshold == 0, "Already initialized");
         _;
@@ -188,7 +182,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
     // TODO: Reconsider tradeoffs of this design pattern properly
     Incentives public incentives;
 
-    constructor() ERC721() Ownable(msg.sender) {}
+    constructor() ERC721("", "") Ownable(msg.sender) {}
 
     function name() public view override returns (string memory) {
         return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), " Locked Support"));
@@ -599,49 +593,18 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
         return supporterLocks[supporter];
     }
 
+    /**
+     * @notice Returns all token IDs owned by an address
+     * @param owner The address to return the tokens for
+     */
     function openPositions(address owner) public view returns (uint256[] memory) {
-        return _currentHoldings[owner];
-    }
+        uint256 tokenCount = balanceOf(owner);
+        uint256[] memory tokens = new uint256[](tokenCount);
 
-    function _mint(address to, uint256 tokenId) internal override {
-        super._mint(to, tokenId);
-        // Add to current holdings
-        _holdingsIndex[tokenId] = _currentHoldings[to].length;
-        _currentHoldings[to].push(tokenId);
-    }
-
-    function _burn(uint256 tokenId) internal override {
-        address owner = _ownerOf(tokenId);
-
-        // Remove from current holdings (swap and pop)
-        uint256 index = _holdingsIndex[tokenId];
-        uint256 lastTokenId = _currentHoldings[owner][_currentHoldings[owner].length - 1];
-
-        if (tokenId != lastTokenId) {
-            _currentHoldings[owner][index] = lastTokenId;
-            _holdingsIndex[lastTokenId] = index;
+        for (uint256 i = 0; i < tokenCount; i++) {
+            tokens[i] = tokenOfOwnerByIndex(owner, i);
         }
-        _currentHoldings[owner].pop();
-        delete _holdingsIndex[tokenId];
 
-        super._burn(tokenId);
-    }
-
-    function _transfer(address from, address to, uint256 tokenId) internal override {
-        // Remove from previous owner's holdings
-        uint256 index = _holdingsIndex[tokenId];
-        uint256 lastTokenId = _currentHoldings[from][_currentHoldings[from].length - 1];
-
-        if (tokenId != lastTokenId) {
-            _currentHoldings[from][index] = lastTokenId;
-            _holdingsIndex[lastTokenId] = index;
-        }
-        _currentHoldings[from].pop();
-
-        // Add to new owner's holdings
-        _holdingsIndex[tokenId] = _currentHoldings[to].length;
-        _currentHoldings[to].push(tokenId);
-
-        super._transfer(from, to, tokenId);
+        return tokens;
     }
 }
