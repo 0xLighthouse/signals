@@ -13,6 +13,7 @@
   "dependencies": {
     "@nextui-org/spinner": "^2.0.34",
     "@phosphor-icons/react": "^2.1.7",
+    "@privy-io/react-auth": "^2.5.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -32,7 +33,6 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
-    "connectkit": "^1.8.2",
     "ethers": "5",
     "lucide-react": "^0.453.0",
     "luxon": "^3.5.0",

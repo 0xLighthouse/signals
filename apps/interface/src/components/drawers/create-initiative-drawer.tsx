@@ -30,12 +30,14 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
-import { useModal } from 'connectkit'
+import { usePrivyModal } from '@/contexts/PrivyModalContext'
+import { usePrivy } from '@privy-io/react-auth'
 
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { setOpen } = usePrivyModal()
+  const { authenticated, login } = usePrivy()
   const {
     acceptanceThreshold,
     proposalThreshold,
@@ -74,8 +76,12 @@ export function CreateInitiativeDrawer() {
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)

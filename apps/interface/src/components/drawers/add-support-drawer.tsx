@@ -28,11 +28,13 @@ import { createWalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
-import { useModal } from 'connectkit'
+import { usePrivyModal } from '@/contexts/PrivyModalContext'
+import { usePrivy } from '@privy-io/react-auth'
 
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { setOpen } = usePrivyModal()
+  const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
     useSignals()
@@ -63,8 +65,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)

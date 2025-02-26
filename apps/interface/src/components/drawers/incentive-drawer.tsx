@@ -27,7 +27,8 @@ import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { cn } from '@/lib/utils'
-import { useModal } from 'connectkit'
+import { usePrivyModal } from '@/contexts/PrivyModalContext'
+import { usePrivy } from '@privy-io/react-auth'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -35,7 +36,8 @@ interface Props {
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { setOpen } = usePrivyModal()
+  const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
   const [amount, setAmount] = useState<number | null>(null)
@@ -57,8 +59,12 @@ export function IncentiveDrawer({ initiative }: Props) {
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)
