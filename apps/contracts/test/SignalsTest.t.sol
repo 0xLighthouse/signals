@@ -3,13 +3,13 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import {SignalsHarness} from "./utils/SignalsHarness.sol";
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "solmate/src/test/utils/mocks/MockERC20.sol";
 
+import {ISignals} from "../src/interfaces/ISignals.sol";
 import {Signals} from "../src/Signals.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
-import {SignalsHarness} from "./utils/SignalsHarness.sol";
 
 contract SignalsTest is Test, SignalsHarness {
     Signals signals;
@@ -140,6 +140,23 @@ contract SignalsTest is Test, SignalsHarness {
         // Check that the initiative state is updated
         Signals.Initiative memory initiative = signals.getInitiative(0);
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Accepted));
+    }
+
+    /**
+     * TODO: Update this test to use the new bond details struct
+     * TODO: Update this test to use the new bond details struct
+     */
+    function test_reteriveBondDetails() public {
+        vm.startPrank(_alice);
+        _token.approve(address(signals), 100 * 1e18);
+        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
+
+        // Check that the bond details are correct
+        ISignals.LockInfo memory lockInfo = signals.getTokenMetadata(1);
+        assertEq(lockInfo.initiativeId, 0);
+        assertEq(lockInfo.tokenAmount, 100 * 1e18);
+        assertEq(lockInfo.lockDuration, 6);
+        assertEq(lockInfo.withdrawn, false);
     }
 
     /// Test that only the owner can accept an initiative
