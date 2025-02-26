@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "solmate/src/utils/ReentrancyGuard.sol";
 
 import "./interfaces/ISignals.sol";
+import {IBondIssuer, BondInfo} from "./interfaces/IBondIssuer.sol";
 
 import "./DecayCurves.sol";
 import "./Incentives.sol";
@@ -28,7 +29,7 @@ import "forge-std/console.sol";
  * @author 1a35e1.eth <arnold@lighthouse.cx>
  * @author jkm.eth <james@lighthouse.cx>
  */
-contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
+contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     /**
      * @notice Represents an initiative in the Signals contract
      * @dev Stores all relevant information about a single initiative
@@ -65,7 +66,7 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
     error TokenTransferFailed();
     error InvalidRedemption();
     error InitiativeNotFound();
-
+    error InvalidTokenId();
     /// @notice Minimum tokens required to propose an initiative
     uint256 public proposalThreshold;
 
@@ -157,7 +158,7 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
 
     /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
     modifier exists(uint256 initiativeId) {
-        if (initiativeId >= initiativeCount) revert InitiativeNotFound();
+        if (initiativeId > initiativeCount) revert InitiativeNotFound();
         _;
     }
 
@@ -211,12 +212,12 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
             underlyingLocked: 0
         });
 
-        uint256 initiativeId = initiativeCount;
-        initiatives[initiativeId] = newInitiative;
+        // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
+        initiatives[initiativeCount] = newInitiative;
 
-        emit InitiativeProposed(initiativeId, msg.sender, title, body);
-        return initiativeId;
+        emit InitiativeProposed(initiativeCount, msg.sender, title, body);
+        return initiativeCount;
     }
 
     function _addLock(uint256 initiativeId, address supporter, uint256 amount, uint256 lockDuration)
@@ -240,7 +241,7 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
 
         tokenId = nextTokenId++;
 
-        _mint(supporter, tokenId);
+        _safeMint(supporter, tokenId);
 
         locks[tokenId] = ISignals.LockInfo({
             initiativeId: initiativeId,
@@ -438,6 +439,21 @@ contract Signals is ERC721Enumerable, Ownable, ReentrancyGuard {
         emit Redeemed(tokenId, msg.sender, amount);
     }
 
+    function getBondInfo(uint256 tokenId) external view returns (BondInfo memory) {
+        if (locks[tokenId].initiativeId == 0) {
+            revert InvalidTokenId();
+        }
+
+        return BondInfo({
+            referenceId: locks[tokenId].initiativeId,
+            nominalValue: locks[tokenId].tokenAmount,
+            expires: locks[tokenId].created + locks[tokenId].lockDuration * lockInterval,
+            created: locks[tokenId].created,
+            claimed: locks[tokenId].withdrawn
+        });
+    }
+
+    // NOTE: This is not needed, as it is exactly the same as `signals.locks(tokenId)`
     function getTokenMetadata(uint256 tokenId) public view returns (ISignals.LockInfo memory) {
         return locks[tokenId];
     }

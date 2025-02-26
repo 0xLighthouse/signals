@@ -104,14 +104,14 @@ contract InitiativesTest is Test, SignalsHarness {
         vm.stopPrank();
 
         // Retrieve the initiative and check the details
-        Signals.Initiative memory initiative = signals.getInitiative(0);
+        Signals.Initiative memory initiative = signals.getInitiative(1);
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
         assertEq(initiative.title, title);
         assertEq(initiative.body, body);
         assertEq(address(initiative.proposer), _bob);
 
         // The weight should be equal to the amount of tokens locked
-        uint256 weight = signals.getWeightAt(0, block.timestamp);
+        uint256 weight = signals.getWeightAt(1, block.timestamp);
         assertEq(weight, amountToLock);
     }
 }

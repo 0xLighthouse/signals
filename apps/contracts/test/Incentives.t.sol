@@ -69,7 +69,7 @@ contract IncentivesTest is Test, SignalsHarness {
         signals.proposeInitiative("Initiative 1", "Test adding incentives");
 
         // Add a 500 USDC bounty (4 times)
-        uint256 initiativeId = 0;
+        uint256 initiativeId = 1;
         address rewardToken = address(_usdc);
         uint256 amount = 500 * 1e6;
         uint256 expiresAt = 0;
@@ -104,7 +104,7 @@ contract IncentivesTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock("Initiative 1", "Test adding incentives", lockedAmount, 6);
 
         // Add a 500 USDC bounty (4 times)
-        uint256 initiativeId = 0;
+        uint256 initiativeId = 1;
         address rewardToken = address(_usdc);
         uint256 amount = 500 * 1e6;
         uint256 expiresAt = 0;

@@ -9,6 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {ISignals} from "../src/interfaces/ISignals.sol";
+import {IBondIssuer, BondInfo} from "../src/interfaces/IBondIssuer.sol";
 import {Signals} from "../src/Signals.sol";
 
 contract SignalsTest is Test, SignalsHarness {
@@ -49,12 +50,12 @@ contract SignalsTest is Test, SignalsHarness {
         _token.approve(address(signals), defaultConfig.proposalThreshold);
 
         vm.expectEmit();
-        emit Signals.InitiativeProposed(0, _alice, "Initiative 1", "Description 1");
+        emit Signals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1");
 
         signals.proposeInitiative("Initiative 1", "Description 1");
 
         // Check that the initiative is stored correctly
-        Signals.Initiative memory initiative = signals.getInitiative(0);
+        Signals.Initiative memory initiative = signals.getInitiative(1);
         assertEq(initiative.title, "Initiative 1");
         assertEq(initiative.body, "Description 1");
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
@@ -76,13 +77,13 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Propose an initiative with lock
         vm.expectEmit();
-        emit Signals.InitiativeProposed(0, _bob, "Initiative 2", "Description 2");
+        emit Signals.InitiativeProposed(1, _bob, "Initiative 2", "Description 2");
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", lockedAmount, 6);
 
         assertEq(_token.balanceOf(_bob), balanceBefore - lockedAmount);
 
         // Check that the initiative is stored correctly
-        Signals.Initiative memory initiative = signals.getInitiative(0);
+        Signals.Initiative memory initiative = signals.getInitiative(1);
         assertEq(initiative.title, "Initiative 2");
         assertEq(initiative.body, "Description 2");
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
@@ -109,19 +110,30 @@ contract SignalsTest is Test, SignalsHarness {
         _token.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
         vm.stopPrank();
-        vm.startPrank(_bob);
 
+        vm.startPrank(_bob);
         // Approve tokens
         _token.approve(address(signals), 150 * 1e18);
 
         // Support the initiative
-        signals.supportInitiative(0, 150 * 1e18, 6);
+        signals.supportInitiative(1, 150 * 1e18, 6);
+        vm.stopPrank();
 
         // Check that the lock info is stored
         (, uint256 amount, uint256 duration,, bool withdrawn) = signals.locks(1);
         assertEq(amount, 150 * 1e18);
         assertEq(duration, 6);
         assertEq(withdrawn, false);
+
+        // Test the signals contract as an IBondIssuer
+        IBondIssuer signalsIssuer = IBondIssuer(address(signals));
+        BondInfo memory bondInfo = signalsIssuer.getBondInfo(1);
+
+        assertEq(bondInfo.referenceId, 1);
+        assertEq(bondInfo.nominalValue, 150 * 1e18);
+        assertEq(bondInfo.expires, block.timestamp + 6 * 60 * 60 * 24);
+        assertEq(bondInfo.created, block.timestamp);
+        assertEq(bondInfo.claimed, false);
 
         vm.stopPrank();
     }
@@ -135,10 +147,10 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Accept the initiative
         vm.startPrank(_deployer);
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
 
         // Check that the initiative state is updated
-        Signals.Initiative memory initiative = signals.getInitiative(0);
+        Signals.Initiative memory initiative = signals.getInitiative(1);
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Accepted));
     }
 
@@ -146,14 +158,14 @@ contract SignalsTest is Test, SignalsHarness {
      * TODO: Update this test to use the new bond details struct
      * TODO: Update this test to use the new bond details struct
      */
-    function test_reteriveBondDetails() public {
+    function test_retrieveBondDetails() public {
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
 
         // Check that the bond details are correct
         ISignals.LockInfo memory lockInfo = signals.getTokenMetadata(1);
-        assertEq(lockInfo.initiativeId, 0);
+        assertEq(lockInfo.initiativeId, 1);
         assertEq(lockInfo.tokenAmount, 100 * 1e18);
         assertEq(lockInfo.lockDuration, 6);
         assertEq(lockInfo.withdrawn, false);
@@ -168,7 +180,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Attempt to accept the initiative as a non-owner
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _alice));
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
     }
 
     /// Test redeeming tokens after initiative is accepted
@@ -180,7 +192,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Accept the initiative
         vm.startPrank(_deployer);
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
 
         // Check initial token balance
         // Withdraw tokens
@@ -221,15 +233,15 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Add a second lock to the same initiative
         _token.approve(address(signals), 75 * 1e18);
-        signals.supportInitiative(0, 75 * 1e18, 6);
+        signals.supportInitiative(1, 75 * 1e18, 6);
 
         // Support another initiative
         _token.approve(address(signals), 150 * 1e18);
-        signals.supportInitiative(0, 150 * 1e18, 6);
+        signals.supportInitiative(1, 150 * 1e18, 6);
 
         // Accept the initiative
         vm.startPrank(_deployer);
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
 
         // Record the balance before withdrawal
         vm.startPrank(_alice);
@@ -275,8 +287,8 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Expire the initiative
         vm.startPrank(_deployer); // Only owner can expire initiatives
-        signals.expireInitiative(0);
-        Signals.Initiative memory initiative = signals.getInitiative(0);
+        signals.expireInitiative(1);
+        Signals.Initiative memory initiative = signals.getInitiative(1);
         assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Expired));
     }
 
@@ -292,7 +304,7 @@ contract SignalsTest is Test, SignalsHarness {
         vm.expectRevert(
             abi.encodeWithSignature("InvalidInitiativeState(string)", "Initiative not yet eligible for expiration")
         );
-        signals.expireInitiative(0);
+        signals.expireInitiative(1);
     }
 
     /// Test withdrawing tokens after initiative is expired
@@ -307,7 +319,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Expire the initiative
         vm.startPrank(_deployer);
-        signals.expireInitiative(0);
+        signals.expireInitiative(1);
 
         // Check initial token balance
         // Withdraw tokens
@@ -345,7 +357,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Accept the initiative
         vm.startPrank(_deployer);
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
 
         // Withdraw all tokens
         vm.startPrank(_bob);
@@ -369,7 +381,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Accept the first initiative
         vm.startPrank(_deployer);
-        signals.acceptInitiative(0);
+        signals.acceptInitiative(1);
 
         // Record the balance before first withdrawal
         vm.startPrank(_bob);
@@ -393,7 +405,7 @@ contract SignalsTest is Test, SignalsHarness {
 
         // Expire the second initiative
         vm.startPrank(_deployer);
-        signals.expireInitiative(1);
+        signals.expireInitiative(2);
 
         // Withdraw tokens from the expired initiative
         vm.startPrank(_bob);

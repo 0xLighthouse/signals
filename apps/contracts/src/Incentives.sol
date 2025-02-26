@@ -178,7 +178,7 @@ contract Incentives is Ownable, ReentrancyGuard {
         Conditions _terms
     ) internal {
         require(registry.isAllowed(_token), "Token not registered for incentives");
-        require(_initiativeId < signalsContract.totalInitiatives(), "Invalid initiative");
+        require(_initiativeId <= signalsContract.initiativeCount(), "Invalid initiative");
 
         IERC20 token = IERC20(_token);
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient balance");
