@@ -106,6 +106,11 @@ contract BondHook is BaseHook {
     error InvalidAction();
 
     // Add events
+    // poolAdded 
+    // bondPurchased
+    // bondSold
+    // liquidityAdded
+    // liquidityRemoved
     event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
 
     constructor(IPoolManager _poolManager, address _signals, address _bondPricing) BaseHook(_poolManager) {
@@ -232,7 +237,7 @@ contract BondHook is BaseHook {
     function _sellBond(SwapData memory data) internal {
         // The user is selling to us
         uint256 price = getPoolBuyPrice(data.tokenId);
-        require(data.desiredPrice >= price, "BondHook: Desired price not met");
+        require(price >= data.desiredPrice, "BondHook: Desired price not met");
         signals.transferFrom(data.sender, address(this), data.tokenId);
 
         PoolKey memory key = data.poolKey;
@@ -251,12 +256,30 @@ contract BondHook is BaseHook {
             ""
         );
 
-        if (data.desiredCurrency == DesiredCurrency.Mixed) {
-            poolManager.take(key.currency0, data.sender, uint256(uint128(delta.amount0())));
-            poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
-        } else {
-            // perform swap to return a single currency
+        if (data.desiredCurrency != DesiredCurrency.Mixed) {
+            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency1;
+
+            BalanceDelta swapDelta = poolManager.swap(
+                key,
+                IPoolManager.SwapParams({
+                    zeroForOne: zeroForOne,
+                    amountSpecified: zeroForOne ? -delta.amount0() : -delta.amount1(),
+                    // minimum price limit for now
+                    sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+                }),
+                ""
+            );
+
+            delta = delta + swapDelta;
         }
+
+        if (delta.amount0() > 0) {
+            poolManager.take(key.currency0, data.sender, uint256(uint128(delta.amount0())));
+        }
+        if (delta.amount1() > 0) {
+            poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
+        }
+            // emit event
     }
 
     function _buyBond(SwapData memory data) internal {
@@ -283,34 +306,34 @@ contract BondHook is BaseHook {
     }
 
     /**
-     * @notice The current value of the bond is a custom calculation based on
-     * the current time.
+     * @notice The price the pool would pay for the bond.
      *
      * @param tokenId The ID of the bond token.
      * @return value The current value of the bond.
      */
     function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
         ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-        // TODO: The interval should be exposed from the Signals contract.
-        uint256 interval = 30 days;
-
         return bondPricing.getBuyPrice({
             principal: lock.tokenAmount,
             startTime: lock.created,
-            duration: lock.lockDuration * interval,
+            duration: lock.lockDuration * signals.lockInterval(),
             currentTime: block.timestamp,
             bondMetadata: abi.encode(tokenId)
         });
     }
 
+    /**
+     * @notice The price the pool would request for the bond.
+     *
+     * @param tokenId The ID of the bond token.
+     * @return value The current value of the bond.
+     */
     function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
         ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
-        uint256 interval = 30 days;
-
         return bondPricing.getSellPrice({
             principal: lock.tokenAmount,
             startTime: lock.created,
-            duration: lock.lockDuration * interval,
+            duration: lock.lockDuration * signals.lockInterval(),
             currentTime: block.timestamp,
             bondMetadata: abi.encode(tokenId)
         });
