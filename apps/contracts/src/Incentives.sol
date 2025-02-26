@@ -239,6 +239,10 @@ contract Incentives is Ownable, ReentrancyGuard {
     }
 
     /**
+     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
+     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
+     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
+     *
      * @notice Get the potential reward for a supporter for a given initiative.
      *
      * @param _initiativeId The ID of the initiative.
