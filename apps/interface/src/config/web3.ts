@@ -1,9 +1,11 @@
-import { createPublicClient, http, createWalletClient, custom, erc20Abi } from 'viem'
+import { createPublicClient, http, erc20Abi } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 import signalsAbi from '../abis/signals.abi.json'
 import incentivesAbi from '../abis/incentives.abi.json'
 
+// Default public client for server components or initial loading
+// Components should prefer using the context via useWeb3() whenever possible
 export const readClient = createPublicClient({
   chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
   transport: http(process.env.NEXT_PUBLIC_RPC_URL!),

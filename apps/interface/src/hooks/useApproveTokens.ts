@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { toast } from 'sonner'
 import { readClient } from '@/config/web3'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { ABI } from '@/config/web3'
 
 interface Props {
@@ -16,6 +16,7 @@ interface Props {
 export function useApproveTokens({ amount, actor, decimals, spenderAddress, tokenAddress }: Props) {
   const [isApproving, setIsApproving] = useState(false)
   const [hasAllowance, setHasAllowance] = useState(false)
+  const { walletClient, publicClient } = useWeb3()
 
   const handleApprove = useCallback(async (amount: number) => {
     if (!actor || !amount || !spenderAddress || !tokenAddress) {
@@ -24,17 +25,18 @@ export function useApproveTokens({ amount, actor, decimals, spenderAddress, toke
     }
 
     try {
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
+      
       setIsApproving(true)
       // Signer get nonce
-      const nonce = await readClient.getTransactionCount({
+      const nonce = await publicClient.getTransactionCount({
         address: actor,
       })
 
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         nonce,
         account: actor,
         address: tokenAddress,
@@ -43,10 +45,10 @@ export function useApproveTokens({ amount, actor, decimals, spenderAddress, toke
         args: [spenderAddress, amount * 10 ** (decimals || 18)],
       })
 
-      const hash = await signer.writeContract(request)
+      const hash = await walletClient.writeContract(request)
       console.log('Transaction Hash:', hash)
       console.log('Waiting for txn to be mined...')
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash: hash,
         confirmations: 2,
         pollingInterval: 2000,
@@ -66,12 +68,12 @@ export function useApproveTokens({ amount, actor, decimals, spenderAddress, toke
     } finally {
       setIsApproving(false)
     }
-  }, [actor, spenderAddress, tokenAddress, decimals])
+  }, [amount, actor, spenderAddress, tokenAddress, decimals, publicClient])
 
   const checkAllowance = useCallback(async () => {
     if (!amount || !actor || !spenderAddress || !tokenAddress) return
 
-    const allowance = await readClient.readContract({
+    const allowance = await publicClient.readContract({
       address: tokenAddress,
       abi: ABI,
       functionName: 'allowance',
@@ -81,7 +83,7 @@ export function useApproveTokens({ amount, actor, decimals, spenderAddress, toke
     const _hasAllowance = Number(allowance) >= amount * 10 ** (decimals || 18)
     console.log('hasAllowance', _hasAllowance)
     setHasAllowance(_hasAllowance)
-  }, [amount, actor, spenderAddress, tokenAddress, decimals])
+  }, [amount, actor, spenderAddress, tokenAddress, decimals, publicClient])
 
   useEffect(() => {
     if (actor && amount && spenderAddress && tokenAddress && decimals) {

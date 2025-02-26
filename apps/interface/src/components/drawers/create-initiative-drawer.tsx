@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
-import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
 
@@ -36,6 +36,7 @@ import { usePrivy } from '@privy-io/react-auth'
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
+  const { walletClient, publicClient } = useWeb3()
   const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
   const {
@@ -99,18 +100,18 @@ export function CreateInitiativeDrawer() {
     }
 
     try {
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
+      
       setIsSubmitting(true)
-      const nonce = await readClient.getTransactionCount({ address })
-
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
+      const nonce = await publicClient.getTransactionCount({ address })
 
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
 
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
         address: SIGNALS_PROTOCOL,
         abi: SIGNALS_ABI,
@@ -119,9 +120,9 @@ export function CreateInitiativeDrawer() {
         args,
       })
 
-      const hash = await signer.writeContract(request)
+      const hash = await walletClient.writeContract(request)
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,
