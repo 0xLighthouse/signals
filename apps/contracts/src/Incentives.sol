@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
 
+import "./interfaces/ISignals.sol";
 import "./Signals.sol";
 import "./TokenRegistry.sol";
 
@@ -166,9 +167,6 @@ contract Incentives is Ownable, ReentrancyGuard {
         external
         payable
     {
-        // if (_expiresAt == 0 && _terms == Conditions.NONE) {
-        //     _terms = Conditions.ACCEPTED_ON_OR_BEFORE_TIMESTAMP;
-        // }
         _addIncentive(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
@@ -239,32 +237,45 @@ contract Incentives is Ownable, ReentrancyGuard {
     }
 
     /**
-     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
-     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
-     * FIXME: This needs to be updated to work for the bearer of the NFT token lock.
-     *
-     * @notice Get the potential reward for a supporter for a given initiative.
+     * @notice Returns the voter rewards for a specific bond.
      *
      * @param _initiativeId The ID of the initiative.
-     * @param _supporter The address of the supporter.
+     * @param _tokenId The ID of the NFT token (lock position).
      *
-     * @return The potential reward amount.
+     * @return The voter rewards amount.
      */
-    function getRewards(uint256 _initiativeId, address _supporter) external view returns (uint256) {
-        Incentive storage incentive = incentives[_initiativeId];
+    function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256) {
+        // Fetch incentives for this initiative
+        uint256[] memory incentiveIds = incentivesByInitiative[_initiativeId];
+        if (incentiveIds.length == 0) return 0;
 
-        uint256 totalWeight = signalsContract.getWeight(_initiativeId);
-        if (totalWeight == 0) {
-            return 0; // Avoid division by zero
+        // Get token metadata
+        ISignals.LockInfo memory bond = signalsContract.getTokenMetadata(_tokenId);
+
+        // Verify this token is for the specified initiative
+        if (bond.initiativeId != _initiativeId) return 0;
+
+        // If the token has already been withdrawn, return 0
+        if (bond.withdrawn) return 0;
+
+        // Calculate the proportion of rewards this token should receive
+        uint256 totalRewards = 0;
+
+        // FIXME: This is a bit sketchy as we are mixing various token denominations...
+        (, uint256[] memory _amounts,) = getIncentives(_initiativeId);
+        for (uint256 i = 0; i < _amounts.length; i++) {
+            totalRewards += _amounts[i];
         }
 
-        uint256 supporterWeight = signalsContract.getWeightForSupporterAt(_initiativeId, _supporter, block.timestamp);
-        if (supporterWeight == 0) {
-            return 0; // No rewards for this supporter
-        }
+        // Calculate voter rewards
+        uint256 underlyingLocked = signalsContract.getInitiative(_initiativeId).underlyingLocked;
+        uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
+        uint256 voterRewards = (totalRewards * allocations[version][1]) / 100;
+        uint256 tokenRewards = (voterRewards * shareOfPool);
 
-        uint256 potentialReward = (incentive.amount * supporterWeight) / totalWeight;
-        return potentialReward;
+        console.log("Share of pool", shareOfPool);
+
+        return tokenRewards;
     }
 
     // Functions to handle notifications from Signals contract

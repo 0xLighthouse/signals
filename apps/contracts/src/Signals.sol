@@ -47,6 +47,7 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
         address proposer;
         uint256 timestamp;
         uint256 lastActivity;
+        uint256 underlyingLocked;
     }
 
     /// @notice Possible initiative states
@@ -212,7 +213,8 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
             body: body,
             proposer: msg.sender,
             timestamp: block.timestamp,
-            lastActivity: block.timestamp
+            lastActivity: block.timestamp,
+            underlyingLocked: 0
         });
 
         uint256 initiativeId = initiativeCount;
@@ -257,8 +259,13 @@ contract Signals is ERC721, Ownable, ReentrancyGuard {
         initiativeLocks[initiativeId].push(tokenId);
         supporterLocks[supporter].push(tokenId);
 
+        // Update the initiative's underlying locked amount
+        initiative.underlyingLocked += amount;
+
+        // Update the initiative's last activity timestamp
         initiative.lastActivity = block.timestamp;
 
+        // Inscribe the users support
         if (!isSupporter[initiativeId][supporter]) {
             supporters[initiativeId].push(supporter);
             isSupporter[initiativeId][supporter] = true;
