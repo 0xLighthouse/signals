@@ -50,7 +50,7 @@ contract IncentivesTest is Test, SignalsHarness {
         signals.setIncentives(address(_incentives));
     }
 
-    function testInitialState() public view {
+    function test_initialState() public view {
         // Ensure the owner is the deployer
         assertEq(signals.owner(), address(_deployer));
 
@@ -63,7 +63,7 @@ contract IncentivesTest is Test, SignalsHarness {
         assertEq(_registry.isAllowed(address(_usdc)), true);
     }
 
-    function test_AddIncentive() public {
+    function test_addMultipleIncentives() public {
         // Propose an initiative
         vm.startPrank(_alice);
         signals.proposeInitiative("Initiative 1", "Test adding incentives");
@@ -87,9 +87,39 @@ contract IncentivesTest is Test, SignalsHarness {
         (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) =
             _incentives.getIncentives(initiativeId);
 
+        // Ensure the incentives are summed up correctly
         assertEq(tokens.length, 1);
         assertEq(tokens[0], rewardToken);
         assertEq(amounts[0], amount * 4);
         assertEq(expiredCount, 0);
+    }
+
+    function test_previewRewards() public {
+        // Propose an initiative
+        vm.startPrank(_alice);
+
+        // Propose an initiative with a lock
+        uint256 lockedAmount = 200 * 1e18;
+        _token.approve(address(signals), lockedAmount);
+        signals.proposeInitiativeWithLock("Initiative 1", "Test adding incentives", lockedAmount, 6);
+
+        // Add a 500 USDC bounty (4 times)
+        uint256 initiativeId = 0;
+        address rewardToken = address(_usdc);
+        uint256 amount = 500 * 1e6;
+        uint256 expiresAt = 0;
+        Incentives.Conditions conditions = Incentives.Conditions.NONE;
+        // Approve the incentives contract to spend the USDC
+        _usdc.approve(address(_incentives), amount * 4);
+
+        // Add 4 incentives
+        for (uint256 i = 1; i <= 4; i++) {
+            _incentives.addIncentive(initiativeId, rewardToken, amount, expiresAt, conditions);
+        }
+
+        // Calculate Alices share of the rewards
+        // 20% of the total rewards are allocated to voters
+        uint256 rewards = _incentives.previewRewards(initiativeId, 1);
+        assertEq(rewards, amount * 4 * 20 / 100);
     }
 }
