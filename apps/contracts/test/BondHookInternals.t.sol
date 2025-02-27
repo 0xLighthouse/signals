@@ -15,7 +15,7 @@ import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {PipsLib} from "../src/PipsLib.sol";
-import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
+import {ExampleLinearPricing} from "../src/pricing/ExampleLinearPricing.sol";
 import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 
 contract BondHookTest is Test, Deployers, SignalsHarness {
@@ -32,10 +32,11 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
 
         signals = deploySignals(true);
 
-        bondPricing = new ExampleSimplePricing(uint256(100).percentToPips(), uint256(100).percentToPips());
+        bondPricing = new ExampleLinearPricing(uint256(100).percentToPips(), uint256(100).percentToPips());
 
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
         deployCodeTo("utils/BondHookHarness.sol", abi.encode(manager, signals, bondPricing), address(flags));
 
