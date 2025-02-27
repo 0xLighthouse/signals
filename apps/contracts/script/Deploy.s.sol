@@ -9,7 +9,6 @@ import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Incentives} from "../src/Incentives.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
 
 /**
  * @notice forge script script/Deploy.s.sol --fork-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
@@ -65,7 +64,7 @@ contract DevelopmentScript is Script {
         // Deploy a new Signals contract using the factory
         vm.broadcast(deployerPrivateKey);
         address protocolAddress = _factory.create(
-            ISignals.SignalsConfig({
+            Signals.SignalsConfig({
                 owner: _owner,
                 underlyingToken: address(_token),
                 proposalThreshold: 25_000 * 1e18, // 25k _proposalThreshold

@@ -25,7 +25,7 @@ contract SignalsFactory {
     ///
     /// @return Address of the newly created Signals contract
     /// --------------------------------------------------------
-    function create(ISignals.SignalsConfig calldata config) public payable returns (address) {
+    function create(Signals.SignalsConfig calldata config) public payable returns (address) {
         if (config.owner == address(0)) revert InvalidOwnerAddress();
 
         // TODO: Also init the Incentives contract from the factory

@@ -8,8 +8,7 @@ import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "solmate/src/test/utils/mocks/MockERC20.sol";
 
-import {ISignals} from "../src/interfaces/ISignals.sol";
-import {IBondIssuer, BondInfo} from "../src/interfaces/IBondIssuer.sol";
+import {IBondIssuer} from "../src/interfaces/IBondIssuer.sol";
 import {Signals} from "../src/Signals.sol";
 
 contract SignalsTest is Test, SignalsHarness {
@@ -124,18 +123,6 @@ contract SignalsTest is Test, SignalsHarness {
         assertEq(amount, 150 * 1e18);
         assertEq(duration, 6);
         assertEq(withdrawn, false);
-
-        // Test the signals contract as an IBondIssuer
-        IBondIssuer signalsIssuer = IBondIssuer(address(signals));
-        BondInfo memory bondInfo = signalsIssuer.getBondInfo(1);
-
-        assertEq(bondInfo.referenceId, 1);
-        assertEq(bondInfo.nominalValue, 150 * 1e18);
-        assertEq(bondInfo.expires, block.timestamp + 6 * 60 * 60 * 24);
-        assertEq(bondInfo.created, block.timestamp);
-        assertEq(bondInfo.claimed, false);
-
-        vm.stopPrank();
     }
 
     /// Test accepting an initiative
@@ -162,13 +149,17 @@ contract SignalsTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _token.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
+        vm.stopPrank();
 
-        // Check that the bond details are correct
-        ISignals.LockInfo memory lockInfo = signals.getTokenMetadata(1);
-        assertEq(lockInfo.initiativeId, 1);
-        assertEq(lockInfo.tokenAmount, 100 * 1e18);
-        assertEq(lockInfo.lockDuration, 6);
-        assertEq(lockInfo.withdrawn, false);
+        // Test the signals contract as an IBondIssuer
+        IBondIssuer signalsIssuer = IBondIssuer(address(signals));
+        IBondIssuer.BondInfo memory bondInfo = signalsIssuer.getBondInfo(1);
+
+        assertEq(bondInfo.referenceId, 1);
+        assertEq(bondInfo.nominalValue, 100 * 1e18);
+        assertEq(bondInfo.expires, block.timestamp + 6 * 60 * 60 * 24);
+        assertEq(bondInfo.created, block.timestamp);
+        assertEq(bondInfo.claimed, false);
     }
 
     /// Test that only the owner can accept an initiative

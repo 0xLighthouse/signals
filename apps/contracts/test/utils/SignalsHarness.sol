@@ -6,7 +6,6 @@ import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
-import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockStable} from "../../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../../src/TokenRegistry.sol";
@@ -52,7 +51,7 @@ contract SignalsHarness is Test, Deployers {
     PoolKey _keyB; // DAI/GOV
     bool _keyBIsGovZero;
 
-    ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
+    Signals.SignalsConfig public defaultConfig = Signals.SignalsConfig({
         owner: _deployer,
         underlyingToken: address(_token),
         proposalThreshold: 50_000 * 1e18, // 50k

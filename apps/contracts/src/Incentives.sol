@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
 
-import "./interfaces/ISignals.sol";
 import "./Signals.sol";
 import "./TokenRegistry.sol";
 
@@ -250,7 +249,7 @@ contract Incentives is Ownable, ReentrancyGuard {
         if (incentiveIds.length == 0) return 0;
 
         // Get token metadata
-        ISignals.LockInfo memory bond = signalsContract.getTokenMetadata(_tokenId);
+        Signals.TokenLock memory bond = signalsContract.getTokenMetadata(_tokenId);
 
         // Verify this token is for the specified initiative
         if (bond.initiativeId != _initiativeId) return 0;

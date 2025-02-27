@@ -12,7 +12,6 @@ import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
 
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
 
 contract SignalsFactoryTest is Test, SignalsHarness {
     SignalsFactory _factory;
@@ -29,7 +28,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _decayCurveParameters[0] = 9e17;
 
         // Deploy a new instance using the factory
-        ISignals.SignalsConfig memory _defaultConfig = ISignals.SignalsConfig({
+        Signals.SignalsConfig memory _defaultConfig = Signals.SignalsConfig({
             owner: _alice,
             underlyingToken: address(_token),
             proposalThreshold: defaultConfig.proposalThreshold,
@@ -70,7 +69,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _decayCurveParameters[0] = 9e17;
 
         _factory.create(
-            ISignals.SignalsConfig({
+            Signals.SignalsConfig({
                 owner: address(0), // --- invalid owner address
                 underlyingToken: address(_token),
                 proposalThreshold: defaultConfig.proposalThreshold,

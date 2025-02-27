@@ -19,9 +19,8 @@ import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {ImmutableState} from "v4-periphery/src/base/ImmutableState.sol";
 import {Signals} from "./Signals.sol";
-import {ISignals} from "./interfaces/ISignals.sol";
+import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {IBondPricing} from "./interfaces/IBondPricing.sol";
-
 import "./PipsLib.sol";
 
 struct BondPoolState {
@@ -312,13 +311,13 @@ contract BondHook is BaseHook {
      * @return value The current value of the bond.
      */
     function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
-        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+        IBondIssuer.BondInfo memory bondInfo = signals.getBondInfo(tokenId);
         return bondPricing.getBuyPrice({
-            principal: lock.tokenAmount,
-            startTime: lock.created,
-            duration: lock.lockDuration * signals.lockInterval(),
+            principal: bondInfo.nominalValue,
+            startTime: bondInfo.created,
+            duration: bondInfo.expires - bondInfo.created,
             currentTime: block.timestamp,
-            bondMetadata: abi.encode(tokenId)
+            referenceId: abi.encode(bondInfo.referenceId)
         });
     }
 
@@ -329,13 +328,13 @@ contract BondHook is BaseHook {
      * @return value The current value of the bond.
      */
     function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
-        ISignals.LockInfo memory lock = signals.getTokenMetadata(tokenId);
+        IBondIssuer.BondInfo memory bondInfo = signals.getBondInfo(tokenId);
         return bondPricing.getSellPrice({
-            principal: lock.tokenAmount,
-            startTime: lock.created,
-            duration: lock.lockDuration * signals.lockInterval(),
+            principal: bondInfo.nominalValue,
+            startTime: bondInfo.created,
+            duration: bondInfo.expires - bondInfo.created,
             currentTime: block.timestamp,
-            bondMetadata: abi.encode(tokenId)
+            referenceId: abi.encode(bondInfo.referenceId)
         });
     }
 

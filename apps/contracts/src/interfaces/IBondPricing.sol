@@ -21,7 +21,7 @@ interface IBondPricing {
         uint256 startTime,
         uint256 duration,
         uint256 currentTime,
-        bytes calldata bondMetadata
+        bytes calldata referenceId
     ) external view returns (uint256);
 
     /**
@@ -39,6 +39,6 @@ interface IBondPricing {
         uint256 startTime,
         uint256 duration,
         uint256 currentTime,
-        bytes calldata bondMetadata
+        bytes calldata referenceId
     ) external view returns (uint256);
 }
