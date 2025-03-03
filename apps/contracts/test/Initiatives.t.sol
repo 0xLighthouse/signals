@@ -36,7 +36,7 @@ contract InitiativesTest is Test, SignalsHarness {
         _token.approve(address(signals), 40_000);
 
         // Charlie has InsufficientTokens, so this should revert
-        vm.expectRevert(Signals.InsufficientTokens.selector);
+        vm.expectRevert(ISignals.InsufficientTokens.selector);
         signals.proposeInitiative(title, body);
     }
 
@@ -49,11 +49,11 @@ contract InitiativesTest is Test, SignalsHarness {
         vm.startPrank(_alice);
 
         // Attempt to propose with empty title
-        vm.expectRevert(abi.encodeWithSelector(Signals.InvalidInput.selector, "Title or body cannot be empty"));
+        vm.expectRevert(abi.encodeWithSelector(ISignals.InvalidInput.selector, "Title or body cannot be empty"));
         signals.proposeInitiative("", "Some body");
 
         // Attempt to propose with empty body
-        vm.expectRevert(abi.encodeWithSelector(Signals.InvalidInput.selector, "Title or body cannot be empty"));
+        vm.expectRevert(abi.encodeWithSelector(ISignals.InvalidInput.selector, "Title or body cannot be empty"));
         signals.proposeInitiative("Some title", "");
     }
 
@@ -104,8 +104,8 @@ contract InitiativesTest is Test, SignalsHarness {
         vm.stopPrank();
 
         // Retrieve the initiative and check the details
-        Signals.Initiative memory initiative = signals.getInitiative(1);
-        assertEq(uint256(initiative.state), uint256(Signals.InitiativeState.Proposed));
+        ISignals.Initiative memory initiative = signals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Proposed));
         assertEq(initiative.title, title);
         assertEq(initiative.body, body);
         assertEq(address(initiative.proposer), _bob);

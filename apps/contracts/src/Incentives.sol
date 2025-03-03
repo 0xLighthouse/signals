@@ -9,31 +9,16 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
 
-import "./interfaces/ISignals.sol";
 import "./Signals.sol";
+import "./interfaces/ISignals.sol";
+import "./interfaces/IIncentives.sol";
 import "./TokenRegistry.sol";
 
-contract Incentives is Ownable, ReentrancyGuard {
+contract Incentives is IIncentives, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    Signals public signalsContract;
+    ISignals public signalsContract;
     TokenRegistry public registry;
-
-    struct Incentive {
-        uint256 initiativeId;
-        IERC20 token;
-        uint256 amount;
-        uint256 paid;
-        uint256 refunded;
-        uint256 expiresAt;
-        address contributor;
-        Conditions terms;
-    }
-
-    enum Conditions {
-        NONE,
-        ACCEPTED_ON_OR_BEFORE_TIMESTAMP
-    }
 
     /// @notice [0]: protocolFee, [1]: voterRewards, [2]: treasuryShare
     mapping(uint256 => uint256[3]) public allocations;
@@ -49,25 +34,6 @@ contract Incentives is Ownable, ReentrancyGuard {
     uint256 public version = 0;
 
     uint256 public incentiveCount;
-
-    event IncentiveAdded(
-        uint256 indexed incentiveId,
-        uint256 indexed initiativeId,
-        address indexed token,
-        uint256 amount,
-        uint256 expiresAt,
-        Conditions terms
-    );
-
-    event IncentivePaidOut(
-        uint256 indexed incentiveId, uint256 protocolAmount, uint256 voterAmount, uint256 treasuryAmount
-    );
-
-    event IncentivesUpdated(uint256 version);
-
-    event RewardClaimed(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
-
-    event IncentiveRefunded(uint256 indexed initiativeId, address indexed contributor, uint256 amount);
 
     function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
         require(_allocations[0] + _allocations[1] + _allocations[2] == 100, "Total distribution must be 100%");
@@ -250,7 +216,7 @@ contract Incentives is Ownable, ReentrancyGuard {
         if (incentiveIds.length == 0) return 0;
 
         // Get token metadata
-        ISignals.LockInfo memory bond = signalsContract.getTokenMetadata(_tokenId);
+        ISignals.TokenLock memory bond = signalsContract.getTokenLock(_tokenId);
 
         // Verify this token is for the specified initiative
         if (bond.initiativeId != _initiativeId) return 0;

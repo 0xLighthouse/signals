@@ -36,7 +36,7 @@ contract SimpleBondPricingTest is Test {
             startTime: bondCreated,
             duration: totalDuration,
             currentTime: bondCreated + 40 days,
-            bondMetadata: ""
+            referenceId: ""
         });
 
         // We expect full amount minus discount
@@ -51,7 +51,7 @@ contract SimpleBondPricingTest is Test {
             startTime: bondCreated,
             duration: totalDuration,
             currentTime: bondCreated + 15 days,
-            bondMetadata: ""
+            referenceId: ""
         });
 
         // We expect 50% of the amount, minus discount
@@ -66,7 +66,7 @@ contract SimpleBondPricingTest is Test {
             startTime: bondCreated,
             duration: totalDuration,
             currentTime: bondCreated + 40 days,
-            bondMetadata: ""
+            referenceId: ""
         });
 
         // We expect full amount plus premium
@@ -80,7 +80,7 @@ contract SimpleBondPricingTest is Test {
             startTime: bondCreated,
             duration: totalDuration,
             currentTime: bondCreated + 15 days,
-            bondMetadata: ""
+            referenceId: ""
         });
 
         // We expect 50% of the amount, plus premium

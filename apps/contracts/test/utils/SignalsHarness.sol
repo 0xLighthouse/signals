@@ -6,7 +6,6 @@ import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
-import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockStable} from "../../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../../src/TokenRegistry.sol";
@@ -24,6 +23,7 @@ import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol
 import {ExampleSimplePricing} from "../../src/pricing/ExampleSimplePricing.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
+import {ISignals} from "../../src/interfaces/ISignals.sol";
 
 contract SignalsHarness is Test, Deployers {
     address _deployer = address(this);

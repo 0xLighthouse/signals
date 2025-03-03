@@ -5,11 +5,11 @@ import "forge-std/Script.sol";
 
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Incentives} from "../src/Incentives.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
 
 /**
  * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
