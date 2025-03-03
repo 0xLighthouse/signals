@@ -32,12 +32,12 @@ import {DesiredCurrency} from "../../src/BondHook.sol";
  *
  * Base case:
  * - [ ] Purchase bond with DAI from DAI/GOV pool
+ *
+ * Later:
  * - [ ] Purchase bond with USDC from DAI/GOV pool
  * Extended cases:
  * - [ ] Setup additional pools with different pairs
  * - [ ] Setup additional hooks with alternate pricing contracts
- *
- * Later:
  * - [ ] (v2) Buy bond from DAI/GOV pool with DEGEN
  */
 contract UserBuyBondTest is Test, Deployers, SignalsHarness {

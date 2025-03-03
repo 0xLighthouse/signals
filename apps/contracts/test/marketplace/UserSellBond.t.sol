@@ -31,13 +31,14 @@ import {DesiredCurrency} from "../../src/BondHook.sol";
  * Assume pool: DAI/GOV w/ ExampleLinearPricing
  *
  * Base case:
- * - [ ] Sell bond for DAI from DAI/GOV pool
- * - [ ] Sell bond for USDC from DAI/GOV pool
- * Extended cases:
- * - [ ] Setup additional pools with different pairs
- * - [ ] Setup additional hooks with alternate pricing contracts
+ * - [x] Sell bond for DAI from DAI/GOV pool
  *
  * Later:
+ * - [ ] Sell bond for USDC from DAI/GOV pool
+ * - [ ] Setup additional pool (USDC/GOV)
+ *      - [ ] Sell bond into both pools (USDC/GOV, DAI/GOV)
+ *      - [ ] Ensure hook registers which NFT belongs to which pool
+ * - [ ] Setup additional hooks with alternate pricing contracts
  * Multi hop swaps:
  * - [ ] (v2) Sell bond for USDT when there is only DAI/GOV pool
  * - [ ] (v2) Sell bond for USDT when there is [DAI/GOV, DEGEN/GOV] pool
