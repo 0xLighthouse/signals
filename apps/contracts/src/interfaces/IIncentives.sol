@@ -52,12 +52,7 @@ interface IIncentives {
     );
 
     function signalsContract() external view returns (ISignals);
-    function registry() external view returns (address);
-    function allocations(uint256 version) external view returns (uint256[3] memory);
-    function receivers(uint256 version) external view returns (address[3] memory);
-    function incentives(uint256 id) external view returns (Incentive memory);
     function balances(address account, address token) external view returns (uint256);
-    function incentivesByInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function version() external view returns (uint256);
     function incentiveCount() external view returns (uint256);
 

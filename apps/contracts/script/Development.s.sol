@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
@@ -73,7 +74,7 @@ contract DevelopmentScript is Script {
         // Deploy a new Signals contract using the factory
         vm.broadcast(_deployer);
         address protocolAddress = _factory.create(
-            Signals.SignalsConfig({
+            ISignals.SignalsConfig({
                 owner: _alice,
                 underlyingToken: address(_token),
                 proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold

@@ -119,15 +119,12 @@ interface ISignals is IERC721Enumerable {
     function decayCurveParameters(uint256) external view returns (uint256);
     function underlyingToken() external view returns (address);
     function activityTimeout() external view returns (uint256);
-    function initiatives(uint256) external view returns (Initiative memory);
-    function locks(uint256) external view returns (TokenLock memory);
     function initiativeLocks(uint256, uint256) external view returns (uint256);
     function supporterLocks(address, uint256) external view returns (uint256);
     function supporters(uint256, uint256) external view returns (address);
     function isSupporter(uint256, address) external view returns (bool);
     function nextTokenId() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
-    function incentives() external view returns (IIncentives);
 
     // Public functions
     function initialize(SignalsConfig calldata config) external;
@@ -137,9 +134,7 @@ interface ISignals is IERC721Enumerable {
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeem(uint256 tokenId) external;
-    function getBondInfo(uint256 tokenId) external view returns (IBondIssuer.BondInfo memory);
-    function getTokenMetadata(uint256 tokenId) external view returns (TokenLock memory);
-    function currentDiscount(uint256 tokenId) external view returns (uint256);
+    function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
     function getSupporters(uint256 initiativeId) external view returns (address[] memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);

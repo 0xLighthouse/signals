@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./Signals.sol";
-
+import "./interfaces/ISignals.sol";
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
 contract SignalsFactory {
@@ -25,7 +25,7 @@ contract SignalsFactory {
     ///
     /// @return Address of the newly created Signals contract
     /// --------------------------------------------------------
-    function create(Signals.SignalsConfig calldata config) public payable returns (address) {
+    function create(ISignals.SignalsConfig calldata config) public payable returns (address) {
         if (config.owner == address(0)) revert InvalidOwnerAddress();
 
         // TODO: Also init the Incentives contract from the factory

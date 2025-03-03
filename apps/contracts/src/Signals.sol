@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "solmate/src/utils/ReentrancyGuard.sol";
 
 import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
+import {ISignals} from "./interfaces/ISignals.sol";
 
 import "./DecayCurves.sol";
 import "./Incentives.sol";
@@ -28,86 +29,8 @@ import "forge-std/console.sol";
  * @author 1a35e1.eth <arnold@lighthouse.cx>
  * @author jkm.eth <james@lighthouse.cx>
  */
-contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
+contract Signals is ISignals, ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
 
-    /**
-     * @notice Struct to store all configuration parameters for initializing the Signals contract
-     *
-     * @param owner The address which will own the contract
-     * @param underlyingToken The address of the underlying ERC20 token
-     * @param proposalThreshold Minimum tokens to propose an initiative
-     * @param acceptanceThreshold Minimum tokens to accept an initiative
-     * @param maxLockIntervals Maximum lock intervals allowed
-     * @param proposalCap The maximum number of proposals
-     * @param lockInterval Time interval for lockup duration and decay calculations
-     * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
-     * @param decayCurveParameters Parameters to control the decay curve behavior
-     */
-    struct SignalsConfig {
-        address owner;
-        address underlyingToken;
-        uint256 proposalThreshold;
-        uint256 acceptanceThreshold;
-        uint256 maxLockIntervals;
-        uint256 proposalCap;
-        uint256 lockInterval;
-        uint256 decayCurveType;
-        uint256[] decayCurveParameters;
-    }
-    /**
-     * @notice Represents an initiative in the Signals contract
-     * @dev Stores all relevant information about a single initiative
-     *
-     * @param title The title of the initiative
-     * @param body The detailed body of the initiative in markdown format
-     * @param state The current state of the initiative
-     * @param proposer The address of the account that proposed this initiative
-     * @param timestamp The timestamp when the initiative was created
-     * @param lastActivity Used to determine if an initiative has become inactive and can be expired
-     */
-    struct Initiative {
-        string title;
-        string body;
-        InitiativeState state;
-        address proposer;
-        uint256 timestamp;
-        uint256 lastActivity;
-        uint256 underlyingLocked;
-    }
-
-    /// @notice Possible initiative states
-    enum InitiativeState {
-        Proposed,
-        Accepted,
-        Cancelled,
-        Expired
-    }
-
-    /**
-     * @notice Struct to store lock information for each lockup
-     *
-     * @param initiativeId ID of the initiative
-     * @param tokenAmount Amount of tokens locked
-     * @param lockDuration Total duration of the lock in intervals
-     * @param created Timestamp of when the lock was created
-     * @param withdrawn Flag indicating whether the locked tokens have been withdrawn
-     */
-    struct TokenLock {
-        uint256 initiativeId;
-        uint256 tokenAmount;
-        uint256 lockDuration;
-        uint256 created;
-        bool withdrawn;
-    }
-
-    /// @notice Custom errors
-    error InvalidInput(string message);
-    error InsufficientTokens();
-    error InvalidInitiativeState(string message);
-    error TokenTransferFailed();
-    error InvalidRedemption();
-    error InitiativeNotFound();
-    error InvalidTokenId();
     /// @notice Minimum tokens required to propose an initiative
     uint256 public proposalThreshold;
 
@@ -141,10 +64,10 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     uint256 public activityTimeout = 60 days;
 
     /// @notice (initiativeId => Initiative)
-    mapping(uint256 => Initiative) public initiatives;
+    mapping(uint256 => Initiative) internal _initiatives;
 
     /// @notice Mapping from token ID to lock details
-    mapping(uint256 => TokenLock) public locks;
+    mapping(uint256 => ISignals.TokenLock) internal _locks;
 
     /// @notice Mapping from initiative ID to array of token IDs
     mapping(uint256 => uint256[]) public initiativeLocks;
@@ -165,41 +88,9 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     /// @notice Add back the initiative counter
     uint256 public initiativeCount = 0;
 
-    /**
-     * @notice Event emitted when a supporter supports an initiative
-     *
-     * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter
-     * @param tokenAmount Amount of tokens locked
-     * @param lockDuration Duration for which tokens are locked (in intervals)
-     * @param timestamp Timestamp of when the support was made
-     */
-    event InitiativeSupported(
-        uint256 indexed initiativeId,
-        address indexed supporter,
-        uint256 tokenAmount,
-        uint256 lockDuration,
-        uint256 timestamp
-    );
-
-    /// @notice Event emitted when a new initiative is proposed
-    event InitiativeProposed(uint256 indexed initiativeId, address indexed proposer, string title, string body);
-
-    /// @notice Event emitted when an initiative is accepted
-    event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
-
-    /// @notice Event emitted when an initiative is expired
-    event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
-
-    /// @notice Event emitted when some user redeems their tokens
-    event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
-
-    /// @notice Event emitted when the decay curve is updated
-    event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
-
     /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
     modifier exists(uint256 initiativeId) {
-        if (initiativeId > initiativeCount) revert InitiativeNotFound();
+        if (initiativeId > initiativeCount) revert ISignals.InitiativeNotFound();
         _;
     }
 
@@ -209,20 +100,20 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     }
 
     modifier hasSufficientTokens(uint256 amount) {
-        if (IERC20(underlyingToken).balanceOf(msg.sender) < amount) revert InsufficientTokens();
+        if (IERC20(underlyingToken).balanceOf(msg.sender) < amount) revert ISignals.InsufficientTokens();
         _;
     }
 
     modifier hasValidInput(string memory title, string memory body) {
         if (bytes(title).length == 0 || bytes(body).length == 0) {
-            revert InvalidInput("Title or body cannot be empty");
+            revert ISignals.InvalidInput("Title or body cannot be empty");
         }
         _;
     }
 
     /// @notice (Optional) Reference to the Incentives contract (can only be set once)
     // TODO: Reconsider tradeoffs of this design pattern properly
-    Incentives public incentives;
+    IIncentives public incentives;
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
@@ -244,7 +135,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
         returns (uint256 id)
     {
         Initiative memory newInitiative = Initiative({
-            state: InitiativeState.Proposed,
+            state: ISignals.InitiativeState.Proposed,
             title: title,
             body: body,
             proposer: msg.sender,
@@ -255,7 +146,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
 
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
-        initiatives[initiativeCount] = newInitiative;
+        _initiatives[initiativeCount] = newInitiative;
 
         emit InitiativeProposed(initiativeCount, msg.sender, title, body);
         return initiativeCount;
@@ -267,24 +158,24 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
         returns (uint256 tokenId)
     {
         if (lockDuration == 0 || lockDuration > maxLockIntervals) {
-            revert InvalidInput("Invalid lock interval");
+            revert ISignals.InvalidInput("Invalid lock interval");
         }
 
-        Initiative storage initiative = initiatives[initiativeId];
+        Initiative storage initiative = _initiatives[initiativeId];
 
         if (initiative.state != InitiativeState.Proposed) {
-            revert InvalidInitiativeState("Initiative is not in Proposed state");
+            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
         }
 
         if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount)) {
-            revert TokenTransferFailed();
+            revert ISignals.TokenTransferFailed();
         }
 
         tokenId = nextTokenId++;
 
         _safeMint(supporter, tokenId);
 
-        locks[tokenId] = TokenLock({
+        _locks[tokenId] = TokenLock({
             initiativeId: initiativeId,
             tokenAmount: amount,
             lockDuration: lockDuration,
@@ -318,7 +209,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            TokenLock memory lock = locks[tokenId];
+            TokenLock memory lock = _locks[tokenId];
             if (!lock.withdrawn) {
                 weight += _calculateLockWeightAt(lock, timestamp);
             }
@@ -337,7 +228,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            TokenLock memory lock = locks[tokenId];
+            TokenLock memory lock = _locks[tokenId];
             if (lock.initiativeId == initiativeId && !lock.withdrawn) {
                 weight += _calculateLockWeightAt(lock, timestamp);
             }
@@ -363,7 +254,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     /**
      * @notice Permit initializing the contract exactly once
      */
-    function initialize(SignalsConfig calldata config) external isNotInitialized {
+    function initialize(ISignals.SignalsConfig calldata config) external isNotInitialized {
         underlyingToken = config.underlyingToken;
         proposalThreshold = config.proposalThreshold;
         acceptanceThreshold = config.acceptanceThreshold;
@@ -424,9 +315,9 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     }
 
     function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
-        Initiative storage initiative = initiatives[initiativeId];
+        Initiative storage initiative = _initiatives[initiativeId];
         if (initiative.state != InitiativeState.Proposed) {
-            revert InvalidInitiativeState("Initiative is not in Proposed state");
+            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
         }
 
         initiative.state = InitiativeState.Accepted;
@@ -441,12 +332,12 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     }
 
     function expireInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
-        Initiative storage initiative = initiatives[initiativeId];
+        Initiative storage initiative = _initiatives[initiativeId];
         if (initiative.state != InitiativeState.Proposed) {
-            revert InvalidInitiativeState("Initiative is not in Proposed state");
+            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
         }
         if (block.timestamp <= initiative.lastActivity + activityTimeout) {
-            revert InvalidInitiativeState("Initiative not yet eligible for expiration");
+            revert ISignals.InvalidInitiativeState("Initiative not yet eligible for expiration");
         }
 
         initiative.state = InitiativeState.Expired;
@@ -461,42 +352,44 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
     }
 
     function redeem(uint256 tokenId) public nonReentrant {
-        require(!locks[tokenId].withdrawn, InvalidRedemption());
+        require(!_locks[tokenId].withdrawn, ISignals.InvalidRedemption());
         require(ownerOf(tokenId) == msg.sender, "Not token owner");
 
-        TokenLock storage lock = locks[tokenId];
+        TokenLock storage lock = _locks[tokenId];
 
-        Initiative storage initiative = initiatives[lock.initiativeId];
+        Initiative storage initiative = _initiatives[lock.initiativeId];
         if (!(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)) {
-            revert InvalidInitiativeState("Initiative not withdrawable");
+            revert ISignals.InvalidInitiativeState("Initiative not withdrawable");
         }
 
         uint256 amount = lock.tokenAmount;
         lock.withdrawn = true;
         _burn(tokenId);
 
-        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert TokenTransferFailed();
+        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.TokenTransferFailed();
 
         emit Redeemed(tokenId, msg.sender, amount);
     }
 
     function getBondInfo(uint256 tokenId) external view returns (IBondIssuer.BondInfo memory) {
-        if (locks[tokenId].initiativeId == 0) {
-            revert InvalidTokenId();
+        if (_locks[tokenId].initiativeId == 0) {
+            revert ISignals.InvalidTokenId();
         }
 
+        TokenLock memory lock = _locks[tokenId];
+
         return IBondIssuer.BondInfo({
-            referenceId: locks[tokenId].initiativeId,
-            nominalValue: locks[tokenId].tokenAmount,
-            expires: locks[tokenId].created + locks[tokenId].lockDuration * lockInterval,
-            created: locks[tokenId].created,
-            claimed: locks[tokenId].withdrawn
+            referenceId: lock.initiativeId,
+            nominalValue: lock.tokenAmount,
+            expires: lock.created + lock.lockDuration * lockInterval,
+            created: lock.created,
+            claimed: lock.withdrawn
         });
     }
 
     // NOTE: This is not needed, as it is exactly the same as `signals.locks(tokenId)`
-    function getTokenMetadata(uint256 tokenId) public view returns (TokenLock memory) {
-        return locks[tokenId];
+    function getTokenLock(uint256 tokenId) public view returns (TokenLock memory) {
+        return _locks[tokenId];
     }
 
     /**
@@ -505,7 +398,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
      * @param initiativeId The initiative to return
      */
     function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
-        return initiatives[initiativeId];
+        return _initiatives[initiativeId];
     }
 
     /**
@@ -530,7 +423,7 @@ contract Signals is ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
             address supporter = _supporters[i];
             uint256 lockCount = supporterLocks[supporter].length;
             for (uint256 j = 0; j < lockCount; j++) {
-                uint256 currentWeight = _calculateLockWeightAt(locks[supporterLocks[supporter][j]], block.timestamp);
+                uint256 currentWeight = _calculateLockWeightAt(_locks[supporterLocks[supporter][j]], block.timestamp);
                 totalCurrentWeight += currentWeight;
             }
         }

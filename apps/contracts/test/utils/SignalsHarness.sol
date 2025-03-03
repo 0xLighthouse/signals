@@ -23,6 +23,7 @@ import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol
 import {ExampleSimplePricing} from "../../src/pricing/ExampleSimplePricing.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
+import {ISignals} from "../../src/interfaces/ISignals.sol";
 
 contract SignalsHarness is Test, Deployers {
     address _deployer = address(this);
@@ -51,7 +52,7 @@ contract SignalsHarness is Test, Deployers {
     PoolKey _keyB; // DAI/GOV
     bool _keyBIsGovZero;
 
-    Signals.SignalsConfig public defaultConfig = Signals.SignalsConfig({
+    ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
         owner: _deployer,
         underlyingToken: address(_token),
         proposalThreshold: 50_000 * 1e18, // 50k
