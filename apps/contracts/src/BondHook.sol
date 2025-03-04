@@ -5,7 +5,7 @@ import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 // temporary:
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-
+import "forge-std/console.sol";
 
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
@@ -59,7 +59,8 @@ struct SwapData {
     PoolKey poolKey;
     address sender;
     uint256 tokenId;
-    uint256 desiredPrice;
+    uint256 bondPriceLimit;
+    uint256 swapPriceLimit;
     DesiredCurrency desiredCurrency;
 }
 
@@ -237,12 +238,14 @@ contract BondHook is BaseHook {
     function _sellBond(SwapData memory data) internal {
         // The user is selling to us
         uint256 price = getPoolBuyPrice(data.tokenId);
-        require(price >= data.desiredPrice, "BondHook: Desired price not met");
+        require(price >= data.swapPriceLimit, "BondHook: Desired price not met");
+        // Take bond and record who now owns it
         signals.transferFrom(data.sender, address(this), data.tokenId);
+        bondBelongsTo[data.tokenId] = data.poolKey.toId();
 
         PoolKey memory key = data.poolKey;
 
-        // Withdraw liquidity from pool:
+        // Withdraw liquidity from pool to pay user:
         // We specify 50% of the price as the amount of liquidity to withdraw, as we will then 
         // get 50% as one currency and 50% as the other, totaling 100%.
         (BalanceDelta delta, ) = poolManager.modifyLiquidity(
@@ -265,7 +268,7 @@ contract BondHook is BaseHook {
                     zeroForOne: zeroForOne,
                     amountSpecified: zeroForOne ? -delta.amount0() : -delta.amount1(),
                     // minimum price limit for now
-                    sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+                    sqrtPriceLimitX96: data.desiredSwapPrice
                 }),
                 ""
             );
@@ -279,12 +282,62 @@ contract BondHook is BaseHook {
         if (delta.amount1() > 0) {
             poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
         }
-        
+
         emit BondSold(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
     }
 
     function _buyBond(SwapData memory data) internal {
-        // to implement
+        // The user is buying from us
+        uint256 price = getPoolSellPrice(data.tokenId);
+        require(price <= data.swapPriceLimit, "BondHook: Desired price exceeded");
+        
+        PoolKey memory key = data.poolKey;
+        // Add liquidity first, to see what balances we need to make up
+        (BalanceDelta delta, ) = poolManager.modifyLiquidity(
+            key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.minUsableTick(key.tickSpacing),
+                tickUpper: TickMath.maxUsableTick(key.tickSpacing),
+                liquidityDelta: int256(price/2),
+                salt: bytes32(0)
+            }),
+            ""
+        );
+
+        // Do a swap if we want to pay in a single currency
+        if (data.desiredCurrency != DesiredCurrency.Mixed) {
+            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency1;
+
+             BalanceDelta swapDelta = poolManager.swap(
+                key,
+                IPoolManager.SwapParams({
+                    zeroForOne: zeroForOne,
+                    amountSpecified: zeroForOne ? -delta.amount1() : -delta.amount0(),
+                    sqrtPriceLimitX96: data.desiredSwapPrice
+                }),
+                ""
+            );
+
+            delta = delta + swapDelta;
+        }
+
+        // Take the funds from the user
+        if (delta.amount0() < 0) {
+            poolManager.sync(key.currency0);
+            key.currency0.transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
+            poolManager.settle();
+        }
+        if (delta.amount1() < 0) {
+            poolManager.sync(key.currency1);
+            key.currency1.transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
+            poolManager.settle();
+        }
+
+        // Transfer the bond to the user
+        signals.transferFrom(address(this), data.sender, data.tokenId);
+        delete bondBelongsTo[data.tokenId];
+        
+        emit BondPurchased(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
     }
 
         /**
