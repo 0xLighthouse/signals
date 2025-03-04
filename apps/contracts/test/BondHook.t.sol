@@ -16,10 +16,9 @@ import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
-
-import {PipsLib} from "../src/PipsLib.sol";
-import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
-import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
+import {PipsLib} from "../../src/PipsLib.sol";
+import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
+import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
@@ -38,10 +37,11 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
 
         signals = deploySignals(true);
 
-        bondPricing = new ExampleSimplePricing(uint256(10).percentToPips(), uint256(10).percentToPips());
+        bondPricing = new ExampleLinearPricing(uint256(10).percentToPips(), uint256(10).percentToPips());
 
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
         deployCodeTo("BondHook.sol", abi.encode(manager, signals, bondPricing), address(flags));
 
@@ -75,7 +75,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         MockERC20 underlyingToken = MockERC20(signals.underlyingToken());
         (currency0, currency1) = SortTokens.sort(pairToken, underlyingToken);
         // fee zero
-        (PoolKey memory poolKey, ) = initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
+        (PoolKey memory poolKey,) = initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
 
         deal(address(pairToken), address(this), 100 ether);
         deal(address(underlyingToken), address(this), 100 ether);
@@ -83,11 +83,8 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         pairToken.approve(address(hook), type(uint256).max);
         underlyingToken.approve(address(hook), type(uint256).max);
 
-    // Add liquidity to pool
-        hook.modifyLiquidity(
-            poolKey,
-            1 ether
-        );
+        // Add liquidity to pool
+        hook.modifyLiquidity(poolKey, 1 ether);
 
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());

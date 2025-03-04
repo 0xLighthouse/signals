@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { custom, useAccount } from 'wagmi'
+import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
@@ -24,15 +24,18 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { NormalisedInitiative } from '@/app/api/initiatives/route'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { createWalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
-import { useModal } from 'connectkit'
+import { usePrivyModal } from '@/contexts/PrivyModalContext'
+import { usePrivy } from '@privy-io/react-auth'
 
 export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { walletClient, publicClient } = useWeb3()
+  const { setOpen } = usePrivyModal()
+  const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
     useSignals()
@@ -63,8 +66,12 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)
@@ -86,15 +93,15 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
     }
 
     try {
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
+      
       setIsSubmitting(true)
-      const nonce = await readClient.getTransactionCount({ address })
+      const nonce = await publicClient.getTransactionCount({ address })
 
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
-
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
         address: SIGNALS_PROTOCOL,
         abi: SIGNALS_ABI,
@@ -103,9 +110,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         args: [initiative.initiativeId, amount * 1e18, duration],
       })
 
-      const hash = await signer.writeContract(request)
+      const hash = await walletClient.writeContract(request)
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,

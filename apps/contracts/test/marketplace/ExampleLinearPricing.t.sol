@@ -5,11 +5,11 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
-import {PipsLib} from "../src/PipsLib.sol";
-import {ExampleSimplePricing} from "../src/pricing/ExampleSimplePricing.sol";
-import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
+import {PipsLib} from "../../src/PipsLib.sol";
+import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
+import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 
-contract SimpleBondPricingTest is Test {
+contract ExampleLinearPricingTest is Test {
     using PipsLib for uint256;
     using FixedPointMathLib for uint256;
 
@@ -22,7 +22,7 @@ contract SimpleBondPricingTest is Test {
 
     function setUp() public {
         // Deploy example pricing contract
-        pricing = IBondPricing(address(new ExampleSimplePricing(discount, premium)));
+        pricing = IBondPricing(address(new ExampleLinearPricing(discount, premium)));
     }
 
     function test_BPStoPips() public pure {

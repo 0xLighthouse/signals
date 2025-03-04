@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { ContactUsDialog } from '../dialogs/contact-us'
+import { DeploySignalsDrawer } from '../drawers/deploy-signals-drawer'
 
 export const Breadcrumbs: React.FC = () => {
   const { name, symbol } = useUnderlying()
@@ -62,7 +63,8 @@ export const Breadcrumbs: React.FC = () => {
           </DropdownMenu>
         </BreadcrumbItem>
       </BreadcrumbList>
-      <ContactUsDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />{' '}
+      <DeploySignalsDrawer isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} /> {' '}
+      {/* <ContactUsDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />{' '} */}
       {/* Pass state and handler */}
     </Breadcrumb>
   )

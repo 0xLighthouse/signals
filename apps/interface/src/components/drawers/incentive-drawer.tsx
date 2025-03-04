@@ -22,12 +22,13 @@ import { INCENTIVES, INCENTIVES_ABI, readClient, USDC_ADDRESS } from '@/config/w
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { createWalletClient, custom } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { cn } from '@/lib/utils'
-import { useModal } from 'connectkit'
+import { usePrivyModal } from '@/contexts/PrivyModalContext'
+import { usePrivy } from '@privy-io/react-auth'
 
 interface Props {
   initiative: NormalisedInitiative
@@ -35,7 +36,9 @@ interface Props {
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { walletClient, publicClient } = useWeb3()
+  const { setOpen } = usePrivyModal()
+  const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
   const [amount, setAmount] = useState<number | null>(null)
@@ -57,8 +60,12 @@ export function IncentiveDrawer({ initiative }: Props) {
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)
@@ -76,20 +83,20 @@ export function IncentiveDrawer({ initiative }: Props) {
     }
 
     try {
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
+      
       setIsSubmitting(true)
-      const nonce = await readClient.getTransactionCount({ address })
-
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
+      const nonce = await publicClient.getTransactionCount({ address })
 
       // Define the token address and other required parameters
       const tokenAddress = USDC_ADDRESS // Replace with the selected token if dynamic
       const expiresAt = 0
       const terms = 0
 
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
         address: INCENTIVES,
         abi: INCENTIVES_ABI,
@@ -98,9 +105,9 @@ export function IncentiveDrawer({ initiative }: Props) {
         args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
       })
 
-      const hash = await signer.writeContract(request)
+      const hash = await walletClient.writeContract(request)
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,

@@ -11,7 +11,7 @@ import "../interfaces/IBondPricing.sol";
  *
  * @notice The pricing model for bonds is based on the time since the bond was created and the discount rate.
  */
-contract ExampleSimplePricing is IBondPricing {
+contract ExampleLinearPricing is IBondPricing {
     using PipsLib for uint256;
     using FixedPointMathLib for uint256;
     // Discount and premium rates to generate profit for the LPs. These could instead be changeable or dynamic based on some other factor

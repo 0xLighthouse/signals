@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import "forge-std/console.sol"; 
+import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
@@ -20,7 +20,7 @@ import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 
-import {ExampleSimplePricing} from "../../src/pricing/ExampleSimplePricing.sol";
+import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
@@ -47,8 +47,8 @@ contract SignalsHarness is Test, Deployers {
     uint24 public constant POOL_FEE = 3000; // 0.3% fee
 
     PoolKey _keyA; // USDC/GOV
-    bool _keyAIsGovZero;    
-    
+    bool _keyAIsGovZero;
+
     PoolKey _keyB; // DAI/GOV
     bool _keyBIsGovZero;
 
@@ -125,7 +125,6 @@ contract SignalsHarness is Test, Deployers {
         return Currency.wrap(address(token));
     }
 
-    
     function deployHookWithLiquidity(Signals _signals) public {
         // Set up uniswap approvals
         usdcCurrency = _uniswapApprovals(_usdc);
@@ -137,11 +136,12 @@ contract SignalsHarness is Test, Deployers {
         deal(address(_dai), _deployer, 1_000_000 * 1e18);
 
         // Deploy pricing contract
-        IBondPricing pricing = new ExampleSimplePricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
+        IBondPricing pricing = new ExampleLinearPricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
 
         // Deploy hook with correct flags
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         );
 
         deployCodeTo("BondHook.sol", abi.encode(manager, address(_signals), address(pricing)), address(flags));
@@ -184,7 +184,7 @@ contract SignalsHarness is Test, Deployers {
 
     // function deployAllowedTokens() public returns (TokenRegistry registry, MockERC20 _mToken, MockStable _mUSDC) {
     //     // Create some tokens
-        
+
     //     address[] memory _tokens = new address[](2);
     //     _tokens[0] = address(_mToken);
     //     _tokens[1] = address(_mUSDC);
@@ -210,9 +210,9 @@ contract SignalsHarness is Test, Deployers {
         console.log("Pool currencies (0 and 1): ");
         MockERC20 a0 = MockERC20(Currency.unwrap(_keyA.currency0));
         MockERC20 a1 = MockERC20(Currency.unwrap(_keyA.currency1));
-        console.log("Pool A: ",  a0.symbol()    , a1.symbol());
+        console.log("Pool A: ", a0.symbol(), a1.symbol());
         MockERC20 b0 = MockERC20(Currency.unwrap(_keyB.currency0));
         MockERC20 b1 = MockERC20(Currency.unwrap(_keyB.currency1));
-        console.log("Pool B: ",  b0.symbol(), b1.symbol());
+        console.log("Pool B: ", b0.symbol(), b1.symbol());
     }
 }
