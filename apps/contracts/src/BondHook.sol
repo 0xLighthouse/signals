@@ -191,6 +191,8 @@ contract BondHook is BaseHook {
                 _buyBond(swapData);
             }
         }
+
+        return abi.encode("");
     }
 
     function _addLiquidity(DepositData memory data) internal {
@@ -416,6 +418,7 @@ contract BondHook is BaseHook {
         if (!(key.currency0 == bondToken) && !(key.currency1 == bondToken)) {
             revert InvalidPool();
         }
+ 
         bondPools[key.toId()] = BondPoolState({
             initialized: true,
             bondTokenIsCurrency0: key.currency0 == bondToken,
@@ -434,7 +437,7 @@ contract BondHook is BaseHook {
     }
 
     function _beforeSwap(
-        address sender,
+        address,
         PoolKey calldata,
         IPoolManager.SwapParams calldata,
         bytes calldata
@@ -446,7 +449,7 @@ contract BondHook is BaseHook {
         address,
         PoolKey calldata,
         IPoolManager.SwapParams calldata,
-        BalanceDelta delta,
+        BalanceDelta,
         bytes calldata
     ) internal override returns (bytes4, int128) {
         return (this.afterSwap.selector, int128(0));

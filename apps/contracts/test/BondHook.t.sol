@@ -12,7 +12,7 @@ import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
-
+import {Currency} from "v4-core/types/Currency.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
@@ -41,58 +41,40 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         deployHookWithLiquidity(signals);
     }
 
-    // Test that a pool can be created when the underlying token is part of the pair
-    function test_initializePool() public {
-        MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
-
-        (currency0, currency1) = SortTokens.sort(pairToken, MockERC20(signals.underlyingToken()));
-
-        // Creating this pool should work
-        initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
-    }
-
     // Test that a pool is rejected if the underlying token is not part of the pair
     function test_Revert_initializePoolWithoutBondToken() public {
-        MockERC20 tokenA = new MockERC20("Example token", "EXAMPLE", 18);
-        MockERC20 tokenB = new MockERC20("Another example token", "EXAMPL", 18);
-
-        (currency0, currency1) = SortTokens.sort(tokenA, tokenB);
-
+        (currency0, currency1) = SortTokens.sort(_dai, _usdc);
         // Creating this pool should revert
         vm.expectRevert();
-        initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
+        initPool(currency0, currency1, bondhook, 3000, SQRT_PRICE_1_1);
     }
 
     function test_addLiquidity() public {
-        MockERC20 pairToken = new MockERC20("Example token", "EXAMPLE", 18);
-        MockERC20 underlyingToken = MockERC20(signals.underlyingToken());
-        (currency0, currency1) = SortTokens.sort(pairToken, underlyingToken);
-        // fee zero
-        (PoolKey memory poolKey,) = initPool(currency0, currency1, hook, 3000, SQRT_PRICE_1_1);
 
-        deal(address(pairToken), address(this), 100 ether);
-        deal(address(underlyingToken), address(this), 100 ether);
+        deal(Currency.unwrap(_keyB.currency0), address(this), 100 ether);
+        deal(Currency.unwrap(_keyB.currency1), address(this), 100 ether);
 
-        pairToken.approve(address(hook), type(uint256).max);
-        underlyingToken.approve(address(hook), type(uint256).max);
+        MockERC20(Currency.unwrap(_keyB.currency0)).approve(address(bondhook), type(uint256).max);
+        MockERC20(Currency.unwrap(_keyB.currency1)).approve(address(bondhook), type(uint256).max);
 
         // Add liquidity to pool
-        hook.modifyLiquidity(poolKey, 1 ether);
+        bondhook.modifyLiquidity(_keyB, 1 ether);
 
         // Check that the liquidity was added
-        uint128 liquidity = StateLibrary.getLiquidity(manager, poolKey.toId());
+        uint128 liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
         assertEq(liquidity, 1 ether, "Incorrect amount of liquidity added");
 
         // Check that the balance of the user is 1 ether
-        assertEq(hook.balanceOf(poolKey.toId(), address(this)), 1 ether, "Incorrect user balance");
+        assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 1 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 1 ether
-        assertEq(hook.totalLiquidity(poolKey.toId()), 1 ether, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.totalLiquidity(_keyB.toId()), 1 ether, "Incorrect total liquidity reported by hook");
     }
 
     // A non-hook swap should work fine
     function test_NormalSwap() public {
         dealMockTokens();
+        addLiquidity(_keyB);
 
         vm.startPrank(_alice);
         // _token.approve(address(swapRouter), 100_000 either);

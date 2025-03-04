@@ -58,19 +58,11 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         signals = deploySignals(dealTokens);
 
         deployHookWithLiquidity(signals);
+        dealMockTokens();
+        addLiquidity(_keyB);
     }
 
     function test_UserSellsBond() public {
-        dealMockTokens();
-
-        // add liquidity to the pool
-        vm.startPrank(_liquidityProvider);
-        _token.approve(address(bondhook), type(uint256).max);
-        _dai.approve(address(bondhook), type(uint256).max);
-
-        bondhook.modifyLiquidity(_keyB, 1_000_000 ether);
-        vm.stopPrank();
-
         // Alice locks 50k against an initiative for 1 year
         uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
         // Jump ahead to when bond is worth 50%
@@ -112,16 +104,6 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
     }
 
     function test_UserSellsBondSingleCurrency() public {
-        dealMockTokens();
-
-        // add liquidity to the pool
-        vm.startPrank(_liquidityProvider);
-        _token.approve(address(bondhook), type(uint256).max);
-        _dai.approve(address(bondhook), type(uint256).max);
-
-        bondhook.modifyLiquidity(_keyB, 1_000_000 ether);
-        vm.stopPrank();
-
         // Alice locks 50k against an initiative for 1 year
         uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
         // Jump ahead to when bond is worth 50%

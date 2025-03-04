@@ -155,6 +155,15 @@ contract SignalsHarness is Test, Deployers {
         _keyBIsGovZero = _keyB.currency0 == tokenCurrency;
     }
 
+    function addLiquidity(PoolKey memory _key) public {
+        vm.startPrank(_liquidityProvider);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
+
+        bondhook.modifyLiquidity(_key, 1_000_000 ether);
+        vm.stopPrank();
+    }
+
     // Gotcha: currencies are sorted by address
     function _deployPoolWithHook(Currency currencyA, Currency currencyB) public returns (PoolKey memory _key) {
         Currency _currency0;
@@ -163,11 +172,6 @@ contract SignalsHarness is Test, Deployers {
             SortTokens.sort(MockERC20(Currency.unwrap(currencyA)), MockERC20(Currency.unwrap(currencyB)));
 
         (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
-
-        uint256 amount0 = 100_000 * (10 ** MockERC20(Currency.unwrap(_currency0)).decimals());
-        uint256 amount1 = 100_000 * (10 ** MockERC20(Currency.unwrap(_currency1)).decimals());
-
-        seedMoreLiquidity(_key, amount0, amount1);
 
         return _key;
     }

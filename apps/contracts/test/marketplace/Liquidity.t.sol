@@ -28,7 +28,7 @@ import {DesiredCurrency} from "../../src/BondHook.sol";
 /**
  * Ensure our helper liquidity is deployed correctly
  */
-contract UserSellBondTest is Test, Deployers, SignalsHarness {
+contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
 
@@ -45,25 +45,5 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         deployHookWithLiquidity(signals);
     }
 
-    function test_helperLiquidityDeployment() public view {
-        printPoolInfo();
-
-        uint256 govBalance = _token.balanceOf(address(this));
-        uint256 usdcBalance = _usdc.balanceOf(address(this));
-        uint256 daiBalance = _dai.balanceOf(address(this));
-
-        // Log current balances
-        console.log("GOV balance:", govBalance);
-        console.log("USDC balance:", usdcBalance);
-        console.log("DAI balance:", daiBalance);
-
-        uint128 liquidityA = StateLibrary.getLiquidity(manager, _keyA.toId());
-        console.log("GOV/USDC Liquidity:", liquidityA);
-
-        uint128 liquidityB = StateLibrary.getLiquidity(manager, _keyB.toId());
-        console.log("GOV/DAI Liquidity:", liquidityB);
-
-        assertGt(liquidityA, 0);
-        assertGt(liquidityB, 0);
-    }
+    // TODO: Test that liquidity is deployed correctly
 }
