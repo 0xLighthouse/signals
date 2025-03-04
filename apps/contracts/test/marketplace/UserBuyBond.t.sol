@@ -105,53 +105,58 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         assertApproxEqAbs(_poolLiquidityAfter - _poolLiquidity, 2_500 ether, 100, "Pool liquidity should have increased");
     }
 
-    // function test_UserSellsBondSingleCurrency() public {
-    //     dealMockTokens();
+    function test_UserBuysBondSingleCurrency() public {
+          // Alice locks 50k against an initiative for 1 year
+        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
+        // Jump ahead to when bond is worth 50%
+        vm.warp(block.timestamp + 365 days / 2);
 
-    //     // add liquidity to the pool
-    //     vm.startPrank(_liquidityProvider);
-    //     _token.approve(address(bondhook), type(uint256).max);
-    //     _dai.approve(address(bondhook), type(uint256).max);
+        // record pool balances
+        uint256 _poolLiquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
+        
+        // approve and swap the bond into the pool
+        vm.startPrank(_alice);
+        signals.approve(address(bondhook), tokenId);
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: 0,
+            swapPriceLimit: 0,
+            desiredCurrency: DesiredCurrency.Mixed
+        });
+        vm.stopPrank();
 
-    //     bondhook.modifyLiquidity(_keyB, 1_000_000 ether);
-    //     vm.stopPrank();
+        // The maximum price we would pay for the bond.
+        // 50% of 50k is 25k, plus the 10% fee is 27.5k
+        uint256 bondPriceLimit = 27_500 ether;
 
-    //     // Alice locks 50k against an initiative for 1 year
-    //     uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
-    //     // Jump ahead to when bond is worth 50%
-    //     vm.warp(block.timestamp + 365 days / 2);
+        uint256 _daiBalanceBefore = _dai.balanceOf(address(_bob));
+        uint256 _tokenBalanceBefore = _token.balanceOf(address(_bob));
 
-    //     // The minimum price we will accept for the bond.
-    //     // 50% of 50k is 25k, minus the 10% fee is 22.5k
-    //     uint256 desiredAmount = 22_500 ether;
+        vm.startPrank(_bob);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
 
-    //     // record balances
-    //     uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
-    //     uint256 _poolBondBefore = signals.balanceOf(address(bondhook));
-    //     uint256 _govBefore = _token.balanceOf(address(_alice));
-    //     uint256 _daiBefore = _dai.balanceOf(address(_alice));
+        // Purchase bond with DAI
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: bondPriceLimit,
+            swapPriceLimit: _keyBIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+            desiredCurrency: _keyBIsGovZero ? DesiredCurrency.Currency1 : DesiredCurrency.Currency0
+        });
+        vm.stopPrank();
 
-    //     // approve and swap the bond into the pool, requesting only gov tokens in return
-    //     vm.startPrank(_alice);
-    //     signals.approve(address(bondhook), tokenId);
-    //     bondhook.swapBond(
-    //         _keyB,
-    //         tokenId,
-    //         desiredAmount, // The minimum she expects to receive before any swap
-    //         _keyBIsGovZero ? DesiredCurrency.Currency0 : DesiredCurrency.Currency1
-    //     );
-    //     vm.stopPrank();
+        // record pool balances
+        uint256 _poolLiquidityAfter = StateLibrary.getLiquidity(manager, _keyB.toId());
+        uint256 _daiBalanceAfter = _dai.balanceOf(address(_bob));
+        uint256 _tokenBalanceAfter = _token.balanceOf(address(_bob));
+       
+        // The pool should have earned profit in the form of liquidity:
+        // Bought for 22_500, sold for 27_500 = 5_000 equals 2_500 liquidity as profit
+        assertApproxEqAbs(_poolLiquidityAfter - _poolLiquidity, 2_500 ether, 100, "Pool liquidity should have increased");
 
-    //     uint256 _govAfter = _token.balanceOf(address(_alice));
-    //     uint256 _daiAfter = _dai.balanceOf(address(_alice));
-    //     uint256 _aliceBondAfter = signals.balanceOf(address(_alice));
-    //     uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
-
-    //     //Alice should end up with around 22.5k in currency 0, minus the 3% trading fee
-    //     assertApproxEqAbs(_govAfter, _govBefore + desiredAmount, _govAfter * 3 / 100, "Alice Gov balance incorrect");
-    //     assertEq(_daiAfter, _daiBefore, "Alice DAI balance incorrect");
-    //     // The bond should be transfered to the pool
-    //     assertEq(_aliceBondAfter, 0, "Alice Bond balance incorrect");
-    //     assertEq(_poolBondAfter, 1, "Pool Bond balance incorrect");
-    // }
+        assertApproxEqAbs(_daiBalanceBefore - _daiBalanceAfter, 27_500 ether, 27_500 ether / 100, "Bob should have spent DAI (and some fees)");
+        assertEq(_tokenBalanceAfter, _tokenBalanceBefore, "Bob should have no change of GOV");
+    }
 }

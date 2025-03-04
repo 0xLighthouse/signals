@@ -308,7 +308,7 @@ contract BondHook is BaseHook {
 
         // Do a swap if we want to pay in a single currency
         if (data.desiredCurrency != DesiredCurrency.Mixed) {
-            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency1;
+            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency0;
 
              BalanceDelta swapDelta = poolManager.swap(
                 key,
