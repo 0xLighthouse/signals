@@ -60,35 +60,7 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         deployHookWithLiquidity(signals);
     }
 
-    function test_NormalSwap() public {
-        dealMockTokens();
-
-        vm.startPrank(_alice);
-        // _token.approve(address(swapRouter), 100_000 either);
-        _dai.approve(address(swapRouter), 100_000 ether);
-
-        uint256 govBalanceBefore = _token.balanceOf(address(_alice));
-        uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
-
-        // Buy 1 gov token
-        vm.startPrank(_alice);
-        swapRouter.swap(
-            _keyB,
-            IPoolManager.SwapParams({
-                zeroForOne: !_keyBIsGovZero,
-                amountSpecified: 1 ether,
-                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            // hookData
-            ZERO_BYTES
-        );
-
-        assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
-        assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
-    }
-
-    function test_SwapNFT() public {
+    function test_UserSellsBond() public {
         dealMockTokens();
 
         // add liquidity to the pool
@@ -106,7 +78,7 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
 
         // The minimum price we will accept for the bond.
         // 50% of 50k is 25k, minus the 10% fee is 22.5k
-        uint256 desiredAmount = 22_500 ether;
+        uint256 bondPriceLimit = 22_500 ether;
 
         // record balances
         uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
@@ -117,12 +89,13 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            _keyB,
-            tokenId,
-            desiredAmount, // The minimum she expects to receive before any swap
-            DesiredCurrency.Mixed
-        );
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: bondPriceLimit,
+            swapPriceLimit: 0,
+            desiredCurrency: DesiredCurrency.Mixed
+        });
         vm.stopPrank();
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
@@ -131,14 +104,14 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
 
         // Alice should end up with 22.5k liquidity (11.25k gov, 11.25k dai)
-        assertApproxEqAbs(_govAfter, _govBefore + (desiredAmount / 2), 1000, "Alice Gov balance incorrect");
-        assertApproxEqAbs(_daiAfter, _daiBefore + (desiredAmount / 2), 1000, "Alice DAI balance incorrect");
+        assertApproxEqAbs(_govAfter, _govBefore + (bondPriceLimit / 2), 1000, "Alice Gov balance incorrect");
+        assertApproxEqAbs(_daiAfter, _daiBefore + (bondPriceLimit / 2), 1000, "Alice DAI balance incorrect");
         // The bond should be transfered to the pool
         assertEq(_bondAfter, 0, "Alice Bond balance incorrect");
         assertEq(_poolBondAfter, 1, "Pool Bond balance incorrect");
     }
 
-    function test_SwapNFTSingleCurrency() public {
+    function test_UserSellsBondSingleCurrency() public {
         dealMockTokens();
 
         // add liquidity to the pool
@@ -156,7 +129,11 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
 
         // The minimum price we will accept for the bond.
         // 50% of 50k is 25k, minus the 10% fee is 22.5k
-        uint256 desiredAmount = 22_500 ether;
+        uint256 bondPriceLimit = 22_500 ether;
+
+        // If zeroForOne is true, we are specifying the minimum swap price
+        // In this example, we are not doing zeroForOne (because we want currency 0)
+        uint160 swapPriceLimit = TickMath.MAX_SQRT_PRICE - 1;
 
         // record balances
         uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
@@ -167,12 +144,13 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool, requesting only gov tokens in return
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            _keyB,
-            tokenId,
-            desiredAmount, // The minimum she expects to receive before any swap
-            _keyBIsGovZero ? DesiredCurrency.Currency0 : DesiredCurrency.Currency1
-        );
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: bondPriceLimit,
+            swapPriceLimit: swapPriceLimit,
+            desiredCurrency: DesiredCurrency.Currency0
+        });
         vm.stopPrank();
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
@@ -181,7 +159,7 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
 
         //Alice should end up with around 22.5k in currency 0, minus the 3% trading fee
-        assertApproxEqAbs(_govAfter, _govBefore + desiredAmount, _govAfter * 3 / 100, "Alice Gov balance incorrect");
+        assertApproxEqAbs(_govAfter, _govBefore + bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");
         assertEq(_daiAfter, _daiBefore, "Alice DAI balance incorrect");
         // The bond should be transfered to the pool
         assertEq(_aliceBondAfter, 0, "Alice Bond balance incorrect");

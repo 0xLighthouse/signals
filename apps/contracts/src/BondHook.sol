@@ -60,7 +60,7 @@ struct SwapData {
     address sender;
     uint256 tokenId;
     uint256 bondPriceLimit;
-    uint256 swapPriceLimit;
+    uint160 swapPriceLimit;
     DesiredCurrency desiredCurrency;
 }
 
@@ -142,7 +142,7 @@ contract BondHook is BaseHook {
         );
     }
 
-    function swapBond(PoolKey calldata key, uint256 tokenId, uint256 desiredPrice, DesiredCurrency desiredCurrency) external {
+    function swapBond(PoolKey calldata key, uint256 tokenId, uint256 bondPriceLimit, uint160 swapPriceLimit, DesiredCurrency desiredCurrency) external {
         if (!bondPools[key.toId()].initialized) {
             revert PoolNotInitialized();
         }
@@ -155,7 +155,8 @@ contract BondHook is BaseHook {
                         poolKey: key,
                         sender: msg.sender,
                         tokenId: tokenId,
-                        desiredPrice: desiredPrice,
+                        bondPriceLimit: bondPriceLimit,
+                        swapPriceLimit: swapPriceLimit,
                         desiredCurrency: desiredCurrency
                     })
                     )
@@ -206,22 +207,16 @@ contract BondHook is BaseHook {
             }),
             ""
         );
-
-        ERC20 currency0 = ERC20(Currency.unwrap(key.currency0));
-        ERC20 currency1 = ERC20(Currency.unwrap(key.currency1));
-
         // TODO: Support native currency too
         // Based on how much of each currency is set to be deposited, take those funds from the user and add to our hook
-        currency0.transferFrom(data.sender, address(this), uint256(uint128(-delta.amount0())));
-        currency1.transferFrom(data.sender, address(this), uint256(uint128(-delta.amount1())));
 
         // Add liquidity to the pool
         poolManager.sync(key.currency0);
-        currency0.transfer(address(poolManager), uint256(uint128(-delta.amount0())));
+        ERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
         poolManager.settle();
 
         poolManager.sync(key.currency1);
-        currency1.transfer(address(poolManager), uint256(uint128(-delta.amount1())));
+        ERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
         poolManager.settle();
 
         // Credit the user with having added liquidity -- we know the delta is positive
@@ -238,7 +233,7 @@ contract BondHook is BaseHook {
     function _sellBond(SwapData memory data) internal {
         // The user is selling to us
         uint256 price = getPoolBuyPrice(data.tokenId);
-        require(price >= data.swapPriceLimit, "BondHook: Desired price not met");
+        require(price >= data.bondPriceLimit, "BondHook: Desired price not met");
         // Take bond and record who now owns it
         signals.transferFrom(data.sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
@@ -268,7 +263,7 @@ contract BondHook is BaseHook {
                     zeroForOne: zeroForOne,
                     amountSpecified: zeroForOne ? -delta.amount0() : -delta.amount1(),
                     // minimum price limit for now
-                    sqrtPriceLimitX96: data.desiredSwapPrice
+                    sqrtPriceLimitX96: data.swapPriceLimit
                 }),
                 ""
             );
@@ -287,9 +282,14 @@ contract BondHook is BaseHook {
     }
 
     function _buyBond(SwapData memory data) internal {
+        // Only allow to buy from the pool that the bond belongs to
+        if (PoolId.unwrap(bondBelongsTo[data.tokenId]) != PoolId.unwrap(data.poolKey.toId())) {
+            revert InvalidPool();
+        }
+
         // The user is buying from us
         uint256 price = getPoolSellPrice(data.tokenId);
-        require(price <= data.swapPriceLimit, "BondHook: Desired price exceeded");
+        require(price <= data.bondPriceLimit, "BondHook: Desired price exceeded");
         
         PoolKey memory key = data.poolKey;
         // Add liquidity first, to see what balances we need to make up
@@ -313,7 +313,7 @@ contract BondHook is BaseHook {
                 IPoolManager.SwapParams({
                     zeroForOne: zeroForOne,
                     amountSpecified: zeroForOne ? -delta.amount1() : -delta.amount0(),
-                    sqrtPriceLimitX96: data.desiredSwapPrice
+                    sqrtPriceLimitX96: data.swapPriceLimit
                 }),
                 ""
             );
@@ -324,18 +324,18 @@ contract BondHook is BaseHook {
         // Take the funds from the user
         if (delta.amount0() < 0) {
             poolManager.sync(key.currency0);
-            key.currency0.transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
+            ERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
             poolManager.settle();
         }
         if (delta.amount1() < 0) {
             poolManager.sync(key.currency1);
-            key.currency1.transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
+            ERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
             poolManager.settle();
         }
 
         // Transfer the bond to the user
         signals.transferFrom(address(this), data.sender, data.tokenId);
-        delete bondBelongsTo[data.tokenId];
+        bondBelongsTo[data.tokenId] = PoolId.wrap(0);
         
         emit BondPurchased(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
     }
@@ -450,26 +450,5 @@ contract BondHook is BaseHook {
         bytes calldata hookData
     ) internal override returns (bytes4, int128) {
         return (this.afterSwap.selector, int128(0));
-    }
-
-    // TODO: These can probably be removed
-    function _parseHookData(bytes calldata data)
-        internal
-        returns (bool isBuy, uint256 tokenId, uint256 desiredPrice, bytes memory signature)
-    {
-        (tokenId, desiredPrice, signature) = abi.decode(data, (uint256, uint256, bytes));
-        // if we own the bond, the pool is not buying
-        if (PoolId.unwrap(bondBelongsTo[tokenId]) != bytes32(0)) {
-            isBuy = false;
-        } else {
-            isBuy = true;
-        }
-        return (isBuy, tokenId, desiredPrice, signature);
-    }
-
-    function _verifySignature(bytes memory signature) internal pure returns (address) {
-        // Later: signature should include the data we need to find the user's address,
-        // for now we just include the user's address as the signature
-        return abi.decode(signature, (address));
     }
 }

@@ -16,9 +16,9 @@ import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
-import {PipsLib} from "../../src/PipsLib.sol";
-import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
-import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
+import {PipsLib} from "../src/PipsLib.sol";
+import {ExampleLinearPricing} from "../src/pricing/ExampleLinearPricing.sol";
+import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
@@ -32,20 +32,13 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
     BondHook hook;
 
     function setUp() public {
-        // Deploy PoolManager and Router contracts
         deployFreshManagerAndRouters();
 
-        signals = deploySignals(true);
+        // Deploy the Signals contract
+        bool dealTokens = true;
+        signals = deploySignals(dealTokens);
 
-        bondPricing = new ExampleLinearPricing(uint256(10).percentToPips(), uint256(10).percentToPips());
-
-        uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
-        );
-        deployCodeTo("BondHook.sol", abi.encode(manager, signals, bondPricing), address(flags));
-
-        hook = BondHook(address(flags));
+        deployHookWithLiquidity(signals);
     }
 
     // Test that a pool can be created when the underlying token is part of the pair
@@ -95,5 +88,34 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
 
         // Check that the total liquidity is 1 ether
         assertEq(hook.totalLiquidity(poolKey.toId()), 1 ether, "Incorrect total liquidity reported by hook");
+    }
+
+    // A non-hook swap should work fine
+    function test_NormalSwap() public {
+        dealMockTokens();
+
+        vm.startPrank(_alice);
+        // _token.approve(address(swapRouter), 100_000 either);
+        _dai.approve(address(swapRouter), 100_000 ether);
+
+        uint256 govBalanceBefore = _token.balanceOf(address(_alice));
+        uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
+
+        // Buy 1 gov token
+        vm.startPrank(_alice);
+        swapRouter.swap(
+            _keyB,
+            IPoolManager.SwapParams({
+                zeroForOne: !_keyBIsGovZero,
+                amountSpecified: 1 ether,
+                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+            }),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            // hookData
+            ZERO_BYTES
+        );
+
+        assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
+        assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);
     }
 }
