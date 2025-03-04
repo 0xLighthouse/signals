@@ -104,13 +104,12 @@ contract BondHook is BaseHook {
     error InvalidPool();
     error InvalidAction();
 
-    // Add events
-    // poolAdded 
-    // bondPurchased
-    // bondSold
-    // liquidityAdded
-    // liquidityRemoved
-    event Buyer(bytes32 indexed poolId, address indexed liquidityProvider);
+    // Events
+    event PoolAdded(PoolId indexed poolId);
+    event BondSold(PoolId indexed poolId, uint256 indexed tokenId, address indexed buyer, uint256 amount);
+    event BondPurchased(PoolId indexed poolId, uint256 indexed tokenId, address indexed seller, uint256 amount);
+    event LiquidityAdded(PoolId indexed poolId, address indexed provider, uint256 amount);
+    event LiquidityRemoved(PoolId indexed poolId, address indexed provider, uint256 amount);
 
     constructor(IPoolManager _poolManager, address _signals, address _bondPricing) BaseHook(_poolManager) {
         signals = Signals(_signals);
@@ -227,6 +226,8 @@ contract BondHook is BaseHook {
         // Credit the user with having added liquidity -- we know the delta is positive
         liquidityProviders[key.toId()][data.sender] += uint256(uint128(data.liquidityDelta));
         bondPools[key.toId()].totalLiquidityAdded += uint256(uint128(data.liquidityDelta));
+
+        emit LiquidityAdded(key.toId(), data.sender, uint256(uint128(data.liquidityDelta)));
     }
 
     function _removeLiquidity(DepositData memory data) internal {
@@ -278,7 +279,8 @@ contract BondHook is BaseHook {
         if (delta.amount1() > 0) {
             poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
         }
-            // emit event
+        
+        emit BondSold(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
     }
 
     function _buyBond(SwapData memory data) internal {
@@ -369,6 +371,7 @@ contract BondHook is BaseHook {
             totalLiquidityAdded: 0
         });
 
+        emit PoolAdded(key.toId());
         return this.beforeInitialize.selector;
     }
 
