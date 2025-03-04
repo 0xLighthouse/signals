@@ -57,55 +57,61 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         deployHookWithLiquidity(signals);
     }
 
-    // function test_UserBuysBond() public {
-    //     dealMockTokens();
+    function test_UserBuysBond() public {
+        dealMockTokens();
 
-    //     // add liquidity to the pool
-    //     vm.startPrank(_liquidityProvider);
-    //     _token.approve(address(bondhook), type(uint256).max);
-    //     _dai.approve(address(bondhook), type(uint256).max);
+        // add liquidity to the pool
+        vm.startPrank(_liquidityProvider);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
 
-    //     bondhook.modifyLiquidity(_keyB, 1_000_000 ether);
-    //     vm.stopPrank();
+        bondhook.modifyLiquidity(_keyB, 1_000_000 ether);
+        vm.stopPrank();
 
-    //     // Alice locks 50k against an initiative for 1 year
-    //     uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
-    //     // Jump ahead to when bond is worth 50%
-    //     vm.warp(block.timestamp + 365 days / 2);
+        // Alice locks 50k against an initiative for 1 year
+        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
+        // Jump ahead to when bond is worth 50%
+        vm.warp(block.timestamp + 365 days / 2);
 
-    //     // The minimum price we will accept for the bond.
-    //     // 50% of 50k is 25k, minus the 10% fee is 22.5k
-    //     uint256 desiredAmount = 22_500 ether;
+        // record pool balances
+        uint256 _poolLiquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
+        
+        // approve and swap the bond into the pool
+        vm.startPrank(_alice);
+        signals.approve(address(bondhook), tokenId);
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: 0,
+            swapPriceLimit: 0,
+            desiredCurrency: DesiredCurrency.Mixed
+        });
+        vm.stopPrank();
 
-    //     // record balances
-    //     uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
-    //     uint256 _poolBondBefore = signals.balanceOf(address(bondhook));
-    //     uint256 _govBefore = _token.balanceOf(address(_alice));
-    //     uint256 _daiBefore = _dai.balanceOf(address(_alice));
+        // The maximum price we would pay for the bond.
+        // 50% of 50k is 25k, plus the 10% fee is 27.5k
+        uint256 bondPriceLimit = 27_500 ether;
 
-    //     // approve and swap the bond into the pool
-    //     vm.startPrank(_alice);
-    //     signals.approve(address(bondhook), tokenId);
-    //     bondhook.swapBond(
-    //         _keyB,
-    //         tokenId,
-    //         desiredAmount, // The minimum she expects to receive before any swap
-    //         DesiredCurrency.Mixed
-    //     );
-    //     vm.stopPrank();
+        vm.startPrank(_bob);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
 
-    //     uint256 _govAfter = _token.balanceOf(address(_alice));
-    //     uint256 _daiAfter = _dai.balanceOf(address(_alice));
-    //     uint256 _bondAfter = signals.balanceOf(address(_alice));
-    //     uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
+        bondhook.swapBond({
+            key: _keyB,
+            tokenId: tokenId,
+            bondPriceLimit: bondPriceLimit,
+            swapPriceLimit: 0,
+            desiredCurrency: DesiredCurrency.Mixed
+        });
+        vm.stopPrank();
 
-    //     // Alice should end up with 22.5k liquidity (11.25k gov, 11.25k dai)
-    //     assertApproxEqAbs(_govAfter, _govBefore + (desiredAmount / 2), 1000, "Alice Gov balance incorrect");
-    //     assertApproxEqAbs(_daiAfter, _daiBefore + (desiredAmount / 2), 1000, "Alice DAI balance incorrect");
-    //     // The bond should be transfered to the pool
-    //     assertEq(_bondAfter, 0, "Alice Bond balance incorrect");
-    //     assertEq(_poolBondAfter, 1, "Pool Bond balance incorrect");
-    // }
+        // record pool balances
+        uint256 _poolLiquidityAfter = StateLibrary.getLiquidity(manager, _keyB.toId());
+       
+        // The pool should have earned profit in the form of liquidity:
+        // Bought for 22_500, sold for 27_500 = 5_000 equals 2_500 liquidity as profit
+        assertApproxEqAbs(_poolLiquidityAfter - _poolLiquidity, 2_500 ether, 100, "Pool liquidity should have increased");
+    }
 
     // function test_UserSellsBondSingleCurrency() public {
     //     dealMockTokens();

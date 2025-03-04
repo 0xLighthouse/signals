@@ -435,19 +435,19 @@ contract BondHook is BaseHook {
 
     function _beforeSwap(
         address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata swapParams,
-        bytes calldata hookData
+        PoolKey calldata,
+        IPoolManager.SwapParams calldata,
+        bytes calldata
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
     }
 
     function _afterSwap(
         address,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata swapParams,
+        PoolKey calldata,
+        IPoolManager.SwapParams calldata,
         BalanceDelta delta,
-        bytes calldata hookData
+        bytes calldata
     ) internal override returns (bytes4, int128) {
         return (this.afterSwap.selector, int128(0));
     }
