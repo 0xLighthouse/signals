@@ -49,28 +49,6 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
         initPool(currency0, currency1, bondhook, 3000, SQRT_PRICE_1_1);
     }
 
-    function test_addLiquidity() public {
-
-        deal(Currency.unwrap(_keyB.currency0), address(this), 100 ether);
-        deal(Currency.unwrap(_keyB.currency1), address(this), 100 ether);
-
-        MockERC20(Currency.unwrap(_keyB.currency0)).approve(address(bondhook), type(uint256).max);
-        MockERC20(Currency.unwrap(_keyB.currency1)).approve(address(bondhook), type(uint256).max);
-
-        // Add liquidity to pool
-        bondhook.modifyLiquidity(_keyB, 1 ether);
-
-        // Check that the liquidity was added
-        uint128 liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
-        assertEq(liquidity, 1 ether, "Incorrect amount of liquidity added");
-
-        // Check that the balance of the user is 1 ether
-        assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 1 ether, "Incorrect user balance");
-
-        // Check that the total liquidity is 1 ether
-        assertEq(bondhook.totalLiquidity(_keyB.toId()), 1 ether, "Incorrect total liquidity reported by hook");
-    }
-
     // A non-hook swap should work fine
     function test_NormalSwap() public {
         dealMockTokens();

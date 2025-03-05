@@ -10,6 +10,7 @@ import "forge-std/console.sol";
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
+import {Position} from "v4-core/libraries/Position.sol";
 import {BalanceDeltaLibrary, BalanceDelta} from "v4-core/types/BalanceDelta.sol";
 import {toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -24,8 +25,8 @@ import {IBondPricing} from "./interfaces/IBondPricing.sol";
 import "./PipsLib.sol";
 
 struct BondPoolState {
-    // If the pool is initialized
-    bool initialized;
+    // The liquidity position id of the pool
+    bytes32 positionId;
     // If the underlying currency is currency0 or currency1.
     bool bondTokenIsCurrency0;
     // The balance of the bond token which belongs to this pool outside of liquidity
@@ -104,7 +105,7 @@ contract BondHook is BaseHook {
     error PoolNotInitialized();
     error InvalidPool();
     error InvalidAction();
-
+    error InsufficientLiquidity();
     // Events
     event PoolAdded(PoolId indexed poolId);
     event BondSold(PoolId indexed poolId, uint256 indexed tokenId, address indexed buyer, uint256 amount);
@@ -121,7 +122,7 @@ contract BondHook is BaseHook {
 
     // We receive an int128, to leave room for casting negative values to uint
     function modifyLiquidity(PoolKey calldata key, int128 liquidityDelta) external {
-        if (!bondPools[key.toId()].initialized) {
+        if (bondPools[key.toId()].positionId == bytes32(0)) {
             revert PoolNotInitialized();
         }
 
@@ -143,7 +144,7 @@ contract BondHook is BaseHook {
     }
 
     function swapBond(PoolKey calldata key, uint256 tokenId, uint256 bondPriceLimit, uint160 swapPriceLimit, DesiredCurrency desiredCurrency) external {
-        if (!bondPools[key.toId()].initialized) {
+        if (bondPools[key.toId()].positionId == bytes32(0)) {
             revert PoolNotInitialized();
         }
 
@@ -226,10 +227,17 @@ contract BondHook is BaseHook {
         bondPools[key.toId()].totalLiquidityAdded += uint256(uint128(data.liquidityDelta));
 
         emit LiquidityAdded(key.toId(), data.sender, uint256(uint128(data.liquidityDelta)));
-    }
+
+        // Get liquidity of our position
+        // uint256 totalLiquidity = StateLibrary.getPositionLiquidity(poolManager, key.toId(), data.sender);
+     }
 
     function _removeLiquidity(DepositData memory data) internal {
         //to implement
+        if (uint256(uint128(-data.liquidityDelta)) > liquidityProviders[data.poolKey.toId()][data.sender]) {
+            revert InsufficientLiquidity();
+        }
+
     }
 
     function _sellBond(SwapData memory data) internal {
@@ -420,7 +428,12 @@ contract BondHook is BaseHook {
         }
  
         bondPools[key.toId()] = BondPoolState({
-            initialized: true,
+            positionId: Position.calculatePositionKey({
+                owner: address(this),
+                tickLower: TickMath.minUsableTick(key.tickSpacing),
+                tickUpper: TickMath.maxUsableTick(key.tickSpacing),
+                salt: bytes32(0)
+            }),
             bondTokenIsCurrency0: key.currency0 == bondToken,
             balanceOfBondToken: 0,
             balanceOfOtherToken: 0,
