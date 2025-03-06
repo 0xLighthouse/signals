@@ -23,7 +23,7 @@ import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
-import {DesiredCurrency} from "../../src/BondHook.sol";
+import {DesiredCurrency, SwapData} from "../../src/BondHook.sol";
 
 /**
  * Goal of this suite is to ensure that a user can purchase bonds from one or many pools
@@ -71,13 +71,13 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond({
-            key: _keyB,
+        bondhook.swapBond(SwapData({
+            poolKey: _keyB,
             tokenId: tokenId,
             bondPriceLimit: 0,
             swapPriceLimit: 0,
             desiredCurrency: DesiredCurrency.Mixed
-        });
+        }));
         vm.stopPrank();
 
         // The maximum price we would pay for the bond.
@@ -88,13 +88,13 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         _token.approve(address(bondhook), type(uint256).max);
         _dai.approve(address(bondhook), type(uint256).max);
 
-        bondhook.swapBond({
-            key: _keyB,
+        bondhook.swapBond(SwapData({
+            poolKey: _keyB,
             tokenId: tokenId,
             bondPriceLimit: bondPriceLimit,
             swapPriceLimit: 0,
             desiredCurrency: DesiredCurrency.Mixed
-        });
+        }));
         vm.stopPrank();
 
         // record pool balances
@@ -117,13 +117,13 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond({
-            key: _keyB,
+        bondhook.swapBond(SwapData({
+            poolKey: _keyB,
             tokenId: tokenId,
             bondPriceLimit: 0,
             swapPriceLimit: 0,
             desiredCurrency: DesiredCurrency.Mixed
-        });
+        }));
         vm.stopPrank();
 
         // The maximum price we would pay for the bond.
@@ -138,13 +138,13 @@ contract UserBuyBondTest is Test, Deployers, SignalsHarness {
         _dai.approve(address(bondhook), type(uint256).max);
 
         // Purchase bond with DAI
-        bondhook.swapBond({
-            key: _keyB,
+        bondhook.swapBond(SwapData({
+            poolKey: _keyB,
             tokenId: tokenId,
             bondPriceLimit: bondPriceLimit,
             swapPriceLimit: _keyBIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
             desiredCurrency: _keyBIsGovZero ? DesiredCurrency.Currency1 : DesiredCurrency.Currency0
-        });
+        }));
         vm.stopPrank();
 
         // record pool balances

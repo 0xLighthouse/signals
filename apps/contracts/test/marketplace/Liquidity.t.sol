@@ -17,14 +17,12 @@ import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {BondHook} from "../../src/BondHook.sol";
+import {BondHook, LiquidityData, DesiredCurrency} from "../../src/BondHook.sol";
 
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
-
-import {DesiredCurrency} from "../../src/BondHook.sol";
 
 /**
  * Ensure our helper liquidity is deployed correctly
@@ -58,7 +56,12 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         _currency1.approve(address(bondhook), type(uint256).max);
 
         // Add liquidity to pool
-        bondhook.modifyLiquidity(_keyB, 10 ether);
+        bondhook.modifyLiquidity(LiquidityData({
+            poolKey: _keyB,
+            liquidityDelta: 10 ether,
+            desiredCurrency: DesiredCurrency.Mixed,
+            swapPriceLimit: 0
+        }));
 
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
@@ -75,12 +78,17 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
 
         // Add liquidity to unknown pool
         vm.expectRevert(BondHook.PoolNotInitialized.selector);
-        bondhook.modifyLiquidity(PoolKey({
-            currency0: Currency.wrap(address(234)),
-            currency1: Currency.wrap(address(345)),
-            fee: 3000,
-            tickSpacing: 100,
-            hooks: bondhook
-        }), 10 ether);
+        bondhook.modifyLiquidity(LiquidityData({
+            poolKey: PoolKey({
+                currency0: Currency.wrap(address(234)),
+                currency1: Currency.wrap(address(345)),
+                fee: 3000,
+                tickSpacing: 100,
+                hooks: bondhook
+            }),
+            liquidityDelta: 10 ether,
+            desiredCurrency: DesiredCurrency.Mixed,
+            swapPriceLimit: 0
+        }));
     }
 }

@@ -11,7 +11,7 @@ import {MockStable} from "../../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../../src/TokenRegistry.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
-import {BondHook} from "../../src/BondHook.sol";
+import {BondHook, DesiredCurrency, LiquidityData, SwapData} from "../../src/BondHook.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
@@ -160,7 +160,12 @@ contract SignalsHarness is Test, Deployers {
         _token.approve(address(bondhook), type(uint256).max);
         _dai.approve(address(bondhook), type(uint256).max);
 
-        bondhook.modifyLiquidity(_key, 1_000_000 ether);
+        bondhook.modifyLiquidity(LiquidityData({
+            poolKey: _key,
+            liquidityDelta: 1_000_000 ether,
+            desiredCurrency: DesiredCurrency.Mixed,
+            swapPriceLimit: 0
+        }));
         vm.stopPrank();
     }
 

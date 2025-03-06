@@ -39,26 +39,27 @@ struct BondPoolState {
 
 struct CallbackData {
     Action action;
+    address sender;
     bytes data;
 }
 
 // Which action is being taken in the callback
 enum Action {
-    Deposit,
+    Liquidity,
     Swap
 }
 
 // Data needed to add or remove liquidity
-struct DepositData {
+struct LiquidityData {
     PoolKey poolKey;
-    address sender;
     int128 liquidityDelta;
+    uint160 swapPriceLimit;
+    DesiredCurrency desiredCurrency;
 }
 
 // Data needed to swap for an NFT
 struct SwapData {
     PoolKey poolKey;
-    address sender;
     uint256 tokenId;
     uint256 bondPriceLimit;
     uint160 swapPriceLimit;
@@ -70,6 +71,11 @@ enum DesiredCurrency {
     Currency0,
     Currency1,
     Mixed
+}
+
+struct LiquidityPosition {
+    uint256 amount;
+    uint256 totalAtCheckpoint; 
 }
 
 /**
@@ -95,8 +101,8 @@ contract BondHook is BaseHook {
     // Record whether the bond token is currency 0 or 1 for each pool
     mapping(PoolId => BondPoolState) internal bondPools;
 
-    // Record who owns how much of each pool
-    mapping(PoolId => mapping(address => uint256)) internal liquidityProviders;
+    // Modify the mapping
+    mapping(PoolId => mapping(address => LiquidityPosition)) internal liquidityProviders;
 
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
@@ -106,6 +112,7 @@ contract BondHook is BaseHook {
     error InvalidPool();
     error InvalidAction();
     error InsufficientLiquidity();
+    error InvalidLiquidityDelta();
     // Events
     event PoolAdded(PoolId indexed poolId);
     event BondSold(PoolId indexed poolId, uint256 indexed tokenId, address indexed buyer, uint256 amount);
@@ -121,8 +128,8 @@ contract BondHook is BaseHook {
     }
 
     // We receive an int128, to leave room for casting negative values to uint
-    function modifyLiquidity(PoolKey calldata key, int128 liquidityDelta) external {
-        if (bondPools[key.toId()].positionId == bytes32(0)) {
+    function modifyLiquidity(LiquidityData calldata data) external {
+        if (bondPools[data.poolKey.toId()].positionId == bytes32(0)) {
             revert PoolNotInitialized();
         }
 
@@ -130,21 +137,16 @@ contract BondHook is BaseHook {
         poolManager.unlock(
             abi.encode(
                 CallbackData({
-                    action: Action.Deposit, 
-                    data: abi.encode(
-                        DepositData({
-                            poolKey: key,
-                            sender: msg.sender,
-                            liquidityDelta: liquidityDelta
-                        })
-                    )
+                    action: Action.Liquidity,
+                    sender: msg.sender,
+                    data: abi.encode(data)
                 })
             )
         );
     }
 
-    function swapBond(PoolKey calldata key, uint256 tokenId, uint256 bondPriceLimit, uint160 swapPriceLimit, DesiredCurrency desiredCurrency) external {
-        if (bondPools[key.toId()].positionId == bytes32(0)) {
+    function swapBond(SwapData calldata data) external {
+        if (bondPools[data.poolKey.toId()].positionId == bytes32(0)) {
             revert PoolNotInitialized();
         }
 
@@ -152,146 +154,112 @@ contract BondHook is BaseHook {
             abi.encode(
                 CallbackData({
                     action: Action.Swap,
-                    data: abi.encode(SwapData({
-                        poolKey: key,
-                        sender: msg.sender,
-                        tokenId: tokenId,
-                        bondPriceLimit: bondPriceLimit,
-                        swapPriceLimit: swapPriceLimit,
-                        desiredCurrency: desiredCurrency
-                    })
-                    )
+                    sender: msg.sender,
+                    data: abi.encode(data)
                 })
             )
         );
     }
 
     // poolManager.unlock will call back to here, so we need to figure out which action we are taking
-    function unlockCallback(bytes calldata data) external onlyPoolManager() returns (bytes memory) {
+    function unlockCallback(bytes calldata data) external onlyPoolManager() returns (bytes memory empty) {
         CallbackData memory callbackData = abi.decode(data, (CallbackData));
         if (callbackData.action > Action.Swap) {
             revert InvalidAction();
         }
 
-        if (callbackData.action == Action.Deposit) {
-            DepositData memory depositData = abi.decode(callbackData.data, (DepositData));
-            if (depositData.liquidityDelta > 0) {
+        if (callbackData.action == Action.Liquidity) {
+            LiquidityData memory liquidityData = abi.decode(callbackData.data, (LiquidityData));
+            if (liquidityData.liquidityDelta == 0) {
+                revert InvalidLiquidityDelta();
+            } else if (liquidityData.liquidityDelta > 0) {
                 // Add liquidity
-                _addLiquidity(depositData);
+                _addLiquidity(callbackData.sender, liquidityData);
             } else {
                 // Remove liquidity
-                _removeLiquidity(depositData);
+                _removeLiquidity(callbackData.sender, liquidityData);
             }
         } else {
             SwapData memory swapData = abi.decode(callbackData.data, (SwapData));
             if (PoolId.unwrap(bondBelongsTo[swapData.tokenId]) == 0) {
                 // Sell bond to us
-                _sellBond(swapData);
+                _sellBond(callbackData.sender, swapData);
             } else {
                 // Buy bond from us
-                _buyBond(swapData);
+                _buyBond(callbackData.sender, swapData);
             }
         }
-
-        return abi.encode("");
     }
 
-    function _addLiquidity(DepositData memory data) internal {
-        PoolKey memory key = data.poolKey;
+    function _addLiquidity(address sender, LiquidityData memory data) internal {
 
-        // Add liquidity to pool, credited to our hook
-        (BalanceDelta delta, ) = poolManager.modifyLiquidity(
-            key,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: TickMath.minUsableTick(key.tickSpacing),
-                tickUpper: TickMath.maxUsableTick(key.tickSpacing),
-                liquidityDelta: int256(data.liquidityDelta),
-                salt: bytes32(0)
-            }),
-            ""
-        );
+        _modifyLiquidity({
+            key: data.poolKey,
+            sender: sender,
+            liquidityDelta: data.liquidityDelta,
+            desiredCurrency: data.desiredCurrency,
+            swapPriceLimit: data.swapPriceLimit
+        });
+
         // TODO: Support native currency too
-        // Based on how much of each currency is set to be deposited, take those funds from the user and add to our hook
-
-        // Add liquidity to the pool
-        poolManager.sync(key.currency0);
-        ERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
-        poolManager.settle();
-
-        poolManager.sync(key.currency1);
-        ERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
-        poolManager.settle();
 
         // Credit the user with having added liquidity -- we know the delta is positive
-        liquidityProviders[key.toId()][data.sender] += uint256(uint128(data.liquidityDelta));
-        bondPools[key.toId()].totalLiquidityAdded += uint256(uint128(data.liquidityDelta));
+        liquidityProviders[data.poolKey.toId()][sender].amount += uint256(uint128(data.liquidityDelta));
+        
+        bondPools[data.poolKey.toId()].totalLiquidityAdded += uint256(uint128(data.liquidityDelta));
 
-        emit LiquidityAdded(key.toId(), data.sender, uint256(uint128(data.liquidityDelta)));
+        // Update the total liquidity at the checkpoint
+
+        emit LiquidityAdded(data.poolKey.toId(), sender, uint256(uint128(data.liquidityDelta)));
 
         // Get liquidity of our position
-        // uint256 totalLiquidity = StateLibrary.getPositionLiquidity(poolManager, key.toId(), data.sender);
+        // uint256 totalLiquidity = StateLibrary.getPositionLiquidity(poolManager, key.toId(), sender);
      }
 
-    function _removeLiquidity(DepositData memory data) internal {
+    function _removeLiquidity(address sender, LiquidityData memory data) internal {
         //to implement
-        if (uint256(uint128(-data.liquidityDelta)) > liquidityProviders[data.poolKey.toId()][data.sender]) {
+        if (uint256(uint128(-data.liquidityDelta)) > liquidityProviders[data.poolKey.toId()][sender].amount) {
             revert InsufficientLiquidity();
         }
 
+        // TODO: Figre out how much liquidity the user is actually owed, taking into account
+        // liquidity that has been added/removed since the last checkpoint
+
+        _modifyLiquidity({
+            key: data.poolKey,
+            sender: sender,
+            liquidityDelta: data.liquidityDelta,
+            desiredCurrency: data.desiredCurrency,
+            swapPriceLimit: data.swapPriceLimit
+        }); 
+
+        liquidityProviders[data.poolKey.toId()][sender].amount -= uint256(uint128(-data.liquidityDelta));
     }
 
-    function _sellBond(SwapData memory data) internal {
+    // function _updateLiquidityCheckpoint(PoolId id, address user, int256 liquidityDelta) internal {
+    //     LiquidityPosition memory previous = liquidityProviders[id][user];
+    // }
+
+    function _sellBond(address sender, SwapData memory data) internal {
         // The user is selling to us
         uint256 price = getPoolBuyPrice(data.tokenId);
         require(price >= data.bondPriceLimit, "BondHook: Desired price not met");
         // Take bond and record who now owns it
-        signals.transferFrom(data.sender, address(this), data.tokenId);
+        signals.transferFrom(sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
 
-        PoolKey memory key = data.poolKey;
+        _modifyLiquidity({
+            key: data.poolKey,
+            sender: sender,
+            liquidityDelta: -int256(price/2),
+            desiredCurrency: data.desiredCurrency,
+            swapPriceLimit: data.swapPriceLimit
+        });
 
-        // Withdraw liquidity from pool to pay user:
-        // We specify 50% of the price as the amount of liquidity to withdraw, as we will then 
-        // get 50% as one currency and 50% as the other, totaling 100%.
-        (BalanceDelta delta, ) = poolManager.modifyLiquidity(
-            key,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: TickMath.minUsableTick(key.tickSpacing),
-                tickUpper: TickMath.maxUsableTick(key.tickSpacing),
-                liquidityDelta: -int256(price/2),
-                salt: bytes32(0)
-            }),
-            ""
-        );
-
-        if (data.desiredCurrency != DesiredCurrency.Mixed) {
-            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency1;
-
-            BalanceDelta swapDelta = poolManager.swap(
-                key,
-                IPoolManager.SwapParams({
-                    zeroForOne: zeroForOne,
-                    amountSpecified: zeroForOne ? -delta.amount0() : -delta.amount1(),
-                    // minimum price limit for now
-                    sqrtPriceLimitX96: data.swapPriceLimit
-                }),
-                ""
-            );
-
-            delta = delta + swapDelta;
-        }
-
-        if (delta.amount0() > 0) {
-            poolManager.take(key.currency0, data.sender, uint256(uint128(delta.amount0())));
-        }
-        if (delta.amount1() > 0) {
-            poolManager.take(key.currency1, data.sender, uint256(uint128(delta.amount1())));
-        }
-
-        emit BondSold(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
+        emit BondSold(data.poolKey.toId(), data.tokenId, sender, uint256(uint128(price)));
     }
 
-    function _buyBond(SwapData memory data) internal {
+    function _buyBond(address sender, SwapData memory data) internal {
         // Only allow to buy from the pool that the bond belongs to
         if (PoolId.unwrap(bondBelongsTo[data.tokenId]) != PoolId.unwrap(data.poolKey.toId())) {
             revert InvalidPool();
@@ -301,53 +269,90 @@ contract BondHook is BaseHook {
         uint256 price = getPoolSellPrice(data.tokenId);
         require(price <= data.bondPriceLimit, "BondHook: Desired price exceeded");
         
-        PoolKey memory key = data.poolKey;
+        _modifyLiquidity({
+            key: data.poolKey,
+            sender: sender,
+            liquidityDelta: int256(price/2),
+            desiredCurrency: data.desiredCurrency,
+            swapPriceLimit: data.swapPriceLimit
+        });
+
+        // Transfer the bond to the user
+        signals.transferFrom(address(this), sender, data.tokenId);
+        bondBelongsTo[data.tokenId] = PoolId.wrap(0);
+        
+        emit BondPurchased(data.poolKey.toId(), data.tokenId, sender, uint256(uint128(price)));
+    }
+
+    /**
+     * @notice Internal function to add or remove liquidity, and optionally swap the unwanted currency
+     * @param key The key of the pool
+     * @param sender The address of the sender
+     * @param liquidityDelta The liquidity delta to modify
+     * @param desiredCurrency The desired currency to spend or receive
+     * @param swapPriceLimit The price limit for the swap
+     */
+    function _modifyLiquidity(PoolKey memory key, address sender, int256 liquidityDelta, DesiredCurrency desiredCurrency, uint160 swapPriceLimit) internal {
+
         // Add liquidity first, to see what balances we need to make up
         (BalanceDelta delta, ) = poolManager.modifyLiquidity(
             key,
             IPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.minUsableTick(key.tickSpacing),
                 tickUpper: TickMath.maxUsableTick(key.tickSpacing),
-                liquidityDelta: int256(price/2),
+                liquidityDelta: liquidityDelta,
                 salt: bytes32(0)
             }),
             ""
         );
 
-        // Do a swap if we want to pay in a single currency
-        if (data.desiredCurrency != DesiredCurrency.Mixed) {
-            bool zeroForOne = data.desiredCurrency == DesiredCurrency.Currency0;
+        if (desiredCurrency != DesiredCurrency.Mixed) {
+            bool zeroForOne;
+            int128 amountSpecified;
 
-             BalanceDelta swapDelta = poolManager.swap(
+            if (liquidityDelta > 0) {
+                // we are paying in, so desired currency is what we want to spend
+                zeroForOne = desiredCurrency == DesiredCurrency.Currency0;
+                // Amounts will be negative (since we are paying in), and
+                // we need to buy the exact amount of the currency we don't have
+                amountSpecified = zeroForOne ? -delta.amount1() : -delta.amount0();
+            } else {
+                // we are taking out, so desired currency is what we want to receive
+                zeroForOne = desiredCurrency == DesiredCurrency.Currency1;
+                // Amounts will be positive (since we are taking out), and
+                // we need to sell the exact amount of the currency we don't want
+                amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+            }
+
+            BalanceDelta swapDelta = poolManager.swap(
                 key,
                 IPoolManager.SwapParams({
                     zeroForOne: zeroForOne,
-                    amountSpecified: zeroForOne ? -delta.amount1() : -delta.amount0(),
-                    sqrtPriceLimitX96: data.swapPriceLimit
-                }),
-                ""
-            );
+                    amountSpecified: amountSpecified,
+                    sqrtPriceLimitX96: swapPriceLimit
+                    }),
+                    ""
+                );
 
             delta = delta + swapDelta;
         }
 
-        // Take the funds from the user
-        if (delta.amount0() < 0) {
+        // settle remaining balances with sender
+        // If an amount is positive, we "take" from pool to user. If it is negative, we "sync" from user to pool
+        if (delta.amount0() > 0) {
+            poolManager.take(key.currency0, sender, uint256(uint128(delta.amount0())));
+        } else if (delta.amount0() < 0) {
             poolManager.sync(key.currency0);
-            ERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount0())));
+            ERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(poolManager), uint256(uint128(-delta.amount0())));
             poolManager.settle();
         }
-        if (delta.amount1() < 0) {
+        if (delta.amount1() > 0) {
+            poolManager.take(key.currency1, sender, uint256(uint128(delta.amount1())));
+        } else if (delta.amount1() < 0) {
             poolManager.sync(key.currency1);
-            ERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(poolManager), uint256(uint128(-delta.amount1())));
+            ERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(poolManager), uint256(uint128(-delta.amount1())));
             poolManager.settle();
         }
-
-        // Transfer the bond to the user
-        signals.transferFrom(address(this), data.sender, data.tokenId);
-        bondBelongsTo[data.tokenId] = PoolId.wrap(0);
-        
-        emit BondPurchased(key.toId(), data.tokenId, data.sender, uint256(uint128(price)));
     }
 
         /**
@@ -357,7 +362,7 @@ contract BondHook is BaseHook {
      * @return balance The balance of the user
      */
     function balanceOf(PoolId id, address user) public view returns (uint256) {
-        return liquidityProviders[id][user];
+        return liquidityProviders[id][user].amount;
     }
 
     /**
