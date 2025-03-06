@@ -29,12 +29,10 @@ struct BondPoolState {
     bytes32 positionId;
     // If the underlying currency is currency0 or currency1.
     bool bondTokenIsCurrency0;
-    // The balance of the bond token which belongs to this pool outside of liquidity
-    uint256 balanceOfBondToken;
-    // The balance of the other token which belongs to this pool outside of liquidity
-    uint256 balanceOfOtherToken;
     // The total liquidity provided by LPs
-    uint256 totalLiquidityAdded;
+    uint256 totalSharesAdded;
+    // The profit generated per 1e18 of liquidity provided to the pool
+    uint256 profitPerShare;
 }
 
 struct CallbackData {
@@ -74,8 +72,10 @@ enum DesiredCurrency {
 }
 
 struct LiquidityPosition {
+    // Total amount of liquidity currently provided
     uint256 amount;
-    uint256 totalAtCheckpoint; 
+    // Total profit debt so far (can be negative if rewards were earned and not claimed)
+    int256 profitDebt; 
 }
 
 /**
@@ -107,6 +107,9 @@ contract BondHook is BaseHook {
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
 
+    // Record the amount paid out for each bond
+    mapping(uint256 => uint256) internal amountPaidOutFor;
+
     // Errors
     error PoolNotInitialized();
     error InvalidPool();
@@ -119,7 +122,7 @@ contract BondHook is BaseHook {
     event BondPurchased(PoolId indexed poolId, uint256 indexed tokenId, address indexed seller, uint256 amount);
     event LiquidityAdded(PoolId indexed poolId, address indexed provider, uint256 amount);
     event LiquidityRemoved(PoolId indexed poolId, address indexed provider, uint256 amount);
-
+    event RewardsClaimed(PoolId indexed poolId, address indexed provider, int256 profit);
     constructor(IPoolManager _poolManager, address _signals, address _bondPricing) BaseHook(_poolManager) {
         signals = Signals(_signals);
         bondToken = Currency.wrap(signals.underlyingToken());
@@ -201,19 +204,17 @@ contract BondHook is BaseHook {
             swapPriceLimit: data.swapPriceLimit
         });
 
-        // TODO: Support native currency too
-
         // Credit the user with having added liquidity -- we know the delta is positive
         liquidityProviders[data.poolKey.toId()][sender].amount += uint256(uint128(data.liquidityDelta));
-        
-        bondPools[data.poolKey.toId()].totalLiquidityAdded += uint256(uint128(data.liquidityDelta));
 
-        // Update the total liquidity at the checkpoint
+        // Calculate how many shares of liquidity they are adding, and how much existing profit they should 
+        // miss out on
+        uint256 shares = _getSharesFromLiquidity(uint256(uint128(data.liquidityDelta)));
+        liquidityProviders[data.poolKey.toId()][sender].profitDebt += int256(shares * bondPools[data.poolKey.toId()].profitPerShare);
+
+        bondPools[data.poolKey.toId()].totalSharesAdded += shares;
 
         emit LiquidityAdded(data.poolKey.toId(), sender, uint256(uint128(data.liquidityDelta)));
-
-        // Get liquidity of our position
-        // uint256 totalLiquidity = StateLibrary.getPositionLiquidity(poolManager, key.toId(), sender);
      }
 
     function _removeLiquidity(address sender, LiquidityData memory data) internal {
@@ -222,10 +223,7 @@ contract BondHook is BaseHook {
             revert InsufficientLiquidity();
         }
 
-        // TODO: Figre out how much liquidity the user is actually owed, taking into account
-        // liquidity that has been added/removed since the last checkpoint
-
-        _modifyLiquidity({
+         _modifyLiquidity({
             key: data.poolKey,
             sender: sender,
             liquidityDelta: data.liquidityDelta,
@@ -234,7 +232,13 @@ contract BondHook is BaseHook {
         }); 
 
         liquidityProviders[data.poolKey.toId()][sender].amount -= uint256(uint128(-data.liquidityDelta));
-        bondPools[data.poolKey.toId()].totalLiquidityAdded -= uint256(uint128(-data.liquidityDelta));
+
+        // Calculate how many shares of liquidity they are removing, and how much profit they should
+        // be owed
+        uint256 shares = _getSharesFromLiquidity(uint256(uint128(-data.liquidityDelta)));
+        liquidityProviders[data.poolKey.toId()][sender].profitDebt -= int256(shares * bondPools[data.poolKey.toId()].profitPerShare);
+
+        bondPools[data.poolKey.toId()].totalSharesAdded -= shares;
     }
 
     // function _updateLiquidityCheckpoint(PoolId id, address user, int256 liquidityDelta) internal {
@@ -248,6 +252,9 @@ contract BondHook is BaseHook {
         // Take bond and record who now owns it
         signals.transferFrom(sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
+
+        // Record how much liquidity was spent on it
+        amountPaidOutFor[data.tokenId] = price/2;
 
         _modifyLiquidity({
             key: data.poolKey,
@@ -270,6 +277,11 @@ contract BondHook is BaseHook {
         uint256 price = getPoolSellPrice(data.tokenId);
         require(price <= data.bondPriceLimit, "BondHook: Desired price exceeded");
         
+        // record how much profit was generated
+        uint256 profit = price/2 - amountPaidOutFor[data.tokenId];
+        uint256 totalShares = bondPools[data.poolKey.toId()].totalSharesAdded;
+        bondPools[data.poolKey.toId()].profitPerShare += profit / totalShares;
+
         _modifyLiquidity({
             key: data.poolKey,
             sender: sender,
@@ -356,6 +368,30 @@ contract BondHook is BaseHook {
         }
     }
 
+    function claimRewards(PoolKey calldata key, DesiredCurrency desiredCurrency, uint160 swapPriceLimit) public {
+        // Get user's supplied liquidity, equivalent shares, and profit per share
+        LiquidityPosition memory position = liquidityProviders[key.toId()][msg.sender];
+        uint256 shares = _getSharesFromLiquidity(position.amount);
+        uint256 pps = bondPools[key.toId()].profitPerShare;
+
+        // Calculate profit value of user's shares
+        int256 profit = int256(shares * pps);
+        int256 liquidityOwed = profit - position.profitDebt;
+        // Reset debt
+        liquidityProviders[key.toId()][msg.sender].profitDebt = profit;
+
+        // Transfer profit to user
+        _modifyLiquidity({
+            key: key,
+            sender: msg.sender,
+            liquidityDelta: -liquidityOwed,
+            desiredCurrency: desiredCurrency,
+            swapPriceLimit: swapPriceLimit
+        });
+        
+        emit RewardsClaimed(key.toId(), msg.sender, profit);
+    }
+
         /**
      * @notice Get the balance of the liquidity a user has provided to a pool
      * @param id The ID of the pool
@@ -367,12 +403,12 @@ contract BondHook is BaseHook {
     }
 
     /**
-     * @notice Get the total liquidity added to a pool
+     * @notice Get the total liquidity added to a pool, quoted as shares of profit-sharing
      * @param id The ID of the pool
-     * @return totalLiquidity The total liquidity added to the pool
+     * @return totalShares The total number of shares added to the pool
      */
-    function totalLiquidity(PoolId id) public view returns (uint256) {
-        return bondPools[id].totalLiquidityAdded;
+    function totalShares(PoolId id) public view returns (uint256) {
+        return bondPools[id].totalSharesAdded;
     }
 
     /**
@@ -446,9 +482,8 @@ contract BondHook is BaseHook {
                 salt: bytes32(0)
             }),
             bondTokenIsCurrency0: key.currency0 == bondToken,
-            balanceOfBondToken: 0,
-            balanceOfOtherToken: 0,
-            totalLiquidityAdded: 0
+            totalSharesAdded: 0,
+            profitPerShare: 0
         });
 
         emit PoolAdded(key.toId());
@@ -477,5 +512,10 @@ contract BondHook is BaseHook {
         bytes calldata
     ) internal override returns (bytes4, int128) {
         return (this.afterSwap.selector, int128(0));
+    }
+
+    // Calculate how many shares of profit sharing an amount of liquidity is worth
+    function _getSharesFromLiquidity(uint256 liquidity) internal pure returns (uint256) {
+        return liquidity / 1e6;
     }
 }

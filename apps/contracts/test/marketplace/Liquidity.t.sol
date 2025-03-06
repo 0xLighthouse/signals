@@ -71,7 +71,7 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 10 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 10 ether
-        assertEq(bondhook.totalLiquidity(_keyB.toId()), 10 ether, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.totalShares(_keyB.toId()), 10 ether / 1e6, "Incorrect total liquidity reported by hook");
 
         // Remove liquidity from pool
         bondhook.modifyLiquidity(LiquidityData({
@@ -89,7 +89,7 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 0 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 0 ether
-        assertEq(bondhook.totalLiquidity(_keyB.toId()), 0 ether, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.totalShares(_keyB.toId()), 0 ether, "Incorrect total liquidity reported by hook");
 
         // Check that the user has their starting balances
         assertApproxEqAbs(_currency0.balanceOf(address(this)), 100 ether, 10, "Incorrect currency0 balance");
