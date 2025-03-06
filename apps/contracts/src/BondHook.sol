@@ -234,6 +234,7 @@ contract BondHook is BaseHook {
         }); 
 
         liquidityProviders[data.poolKey.toId()][sender].amount -= uint256(uint128(-data.liquidityDelta));
+        bondPools[data.poolKey.toId()].totalLiquidityAdded -= uint256(uint128(-data.liquidityDelta));
     }
 
     // function _updateLiquidityCheckpoint(PoolId id, address user, int256 liquidityDelta) internal {

@@ -44,7 +44,7 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         deployHookWithLiquidity(signals);
     }
 
-    function test_addLiquidity() public {
+    function test_addRemoveLiquidity() public {
 
         MockERC20 _currency0 = MockERC20(Currency.unwrap(_keyB.currency0));
         MockERC20 _currency1 = MockERC20(Currency.unwrap(_keyB.currency1));
@@ -72,6 +72,28 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
 
         // Check that the total liquidity is 10 ether
         assertEq(bondhook.totalLiquidity(_keyB.toId()), 10 ether, "Incorrect total liquidity reported by hook");
+
+        // Remove liquidity from pool
+        bondhook.modifyLiquidity(LiquidityData({
+            poolKey: _keyB,
+            liquidityDelta: -10 ether,
+            desiredCurrency: DesiredCurrency.Mixed,
+            swapPriceLimit: 0
+        }));
+
+        // Check that the liquidity was removed
+        liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
+        assertEq(liquidity, 0, "Incorrect amount of liquidity removed");
+
+        // Check that the balance of the user is 0 ether
+        assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 0 ether, "Incorrect user balance");
+
+        // Check that the total liquidity is 0 ether
+        assertEq(bondhook.totalLiquidity(_keyB.toId()), 0 ether, "Incorrect total liquidity reported by hook");
+
+        // Check that the user has their starting balances
+        assertApproxEqAbs(_currency0.balanceOf(address(this)), 100 ether, 10, "Incorrect currency0 balance");
+        assertApproxEqAbs(_currency1.balanceOf(address(this)), 100 ether, 10, "Incorrect currency1 balance");
     }
 
     function test_Revert_addLiquidityInvalidPool() public {
