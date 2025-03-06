@@ -432,6 +432,11 @@ contract BondHook is BaseHook {
         if (!(key.currency0 == bondToken) && !(key.currency1 == bondToken)) {
             revert InvalidPool();
         }
+
+        // We don't currently support native currency
+        if (key.currency0 == Currency.wrap(address(0))) {
+            revert InvalidPool();
+        }
  
         bondPools[key.toId()] = BondPoolState({
             positionId: Position.calculatePositionKey({
