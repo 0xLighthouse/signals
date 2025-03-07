@@ -4,30 +4,30 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {SignalsHarness} from "../../test/utils/SignalsHarness.sol";
+import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
+import { IssuerHarness } from "../../test/utils/IssuerHarness.sol";
 
-import {PoolManager} from "v4-core/PoolManager.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {PoolIdLibrary} from "v4-core/types/PoolId.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import { PoolManager } from "v4-core/PoolManager.sol";
+import { PoolKey } from "v4-core/types/PoolKey.sol";
+import { PoolIdLibrary } from "v4-core/types/PoolId.sol";
+import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
+import { TickMath } from "v4-core/libraries/TickMath.sol";
+import { Currency, CurrencyLibrary } from "v4-core/types/Currency.sol";
+import { MockERC20 } from "solmate/test/utils/mocks/MockERC20.sol";
 
-import {Signals} from "../../src/Signals.sol";
-import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {BondHook, LiquidityData, DesiredCurrency} from "../../src/BondHook.sol";
+import { Signals } from "../../src/Signals.sol";
+import { ISignals } from "../../src/interfaces/ISignals.sol";
+import { BondHook, LiquidityData, DesiredCurrency } from "../../src/BondHook.sol";
 
-import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
+import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
-import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
-import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+// import { IV4Router } from "v4-periphery/interfaces/IV4Router.sol";
+import { PoolSwapTest } from "v4-core/test/PoolSwapTest.sol";
 
 /**
  * Ensure our helper liquidity is deployed correctly
  */
-contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
+contract ModifyLiquidityTest is Test, Deployers, IssuerHarness {
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
 
@@ -45,7 +45,6 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
     }
 
     function test_addRemoveLiquidity() public {
-
         MockERC20 _currency0 = MockERC20(Currency.unwrap(_keyB.currency0));
         MockERC20 _currency1 = MockERC20(Currency.unwrap(_keyB.currency1));
 
@@ -56,12 +55,14 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         _currency1.approve(address(bondhook), type(uint256).max);
 
         // Add liquidity to pool
-        bondhook.modifyLiquidity(LiquidityData({
-            poolKey: _keyB,
-            liquidityDelta: 10 ether,
-            desiredCurrency: DesiredCurrency.Mixed,
-            swapPriceLimit: 0
-        }));
+        bondhook.modifyLiquidity(
+            LiquidityData({
+                poolKey: _keyB,
+                liquidityDelta: 10 ether,
+                desiredCurrency: DesiredCurrency.Mixed,
+                swapPriceLimit: 0
+            })
+        );
 
         // Check that the liquidity was added
         uint128 liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
@@ -74,12 +75,14 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
         assertEq(bondhook.totalShares(_keyB.toId()), 10 ether / 1e6, "Incorrect total liquidity reported by hook");
 
         // Remove liquidity from pool
-        bondhook.modifyLiquidity(LiquidityData({
-            poolKey: _keyB,
-            liquidityDelta: -10 ether,
-            desiredCurrency: DesiredCurrency.Mixed,
-            swapPriceLimit: 0
-        }));
+        bondhook.modifyLiquidity(
+            LiquidityData({
+                poolKey: _keyB,
+                liquidityDelta: -10 ether,
+                desiredCurrency: DesiredCurrency.Mixed,
+                swapPriceLimit: 0
+            })
+        );
 
         // Check that the liquidity was removed
         liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
@@ -97,20 +100,21 @@ contract ModifyLiquidityTest is Test, Deployers, SignalsHarness {
     }
 
     function test_Revert_addLiquidityInvalidPool() public {
-
         // Add liquidity to unknown pool
         vm.expectRevert(BondHook.PoolNotInitialized.selector);
-        bondhook.modifyLiquidity(LiquidityData({
-            poolKey: PoolKey({
-                currency0: Currency.wrap(address(234)),
-                currency1: Currency.wrap(address(345)),
-                fee: 3000,
-                tickSpacing: 100,
-                hooks: bondhook
-            }),
-            liquidityDelta: 10 ether,
-            desiredCurrency: DesiredCurrency.Mixed,
-            swapPriceLimit: 0
-        }));
+        bondhook.modifyLiquidity(
+            LiquidityData({
+                poolKey: PoolKey({
+                    currency0: Currency.wrap(address(234)),
+                    currency1: Currency.wrap(address(345)),
+                    fee: 3000,
+                    tickSpacing: 100,
+                    hooks: bondhook
+                }),
+                liquidityDelta: 10 ether,
+                desiredCurrency: DesiredCurrency.Mixed,
+                swapPriceLimit: 0
+            })
+        );
     }
 }

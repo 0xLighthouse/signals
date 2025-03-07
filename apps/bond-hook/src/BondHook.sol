@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
 
 // temporary:
-import { ERC20 } from "solmate/tokens/ERC20.sol";
+// FIXME: Should use IERC20
+import { ERC20 } from "solmate/src/tokens/ERC20.sol";
 import "forge-std/console.sol";
 
 import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";

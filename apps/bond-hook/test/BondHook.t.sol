@@ -4,26 +4,27 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {Signals} from "../src/Signals.sol";
-import {BondHook} from "../src/BondHook.sol";
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {SignalsHarness} from "./utils/SignalsHarness.sol";
-import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
-import {Hooks} from "v4-core/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {Currency} from "v4-core/types/Currency.sol";
-import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
-import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+import { MockERC20 } from "solmate/src/test/utils/mocks/MockERC20.sol";
+import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
+import { SortTokens } from "@uniswap/v4-core/test/utils/SortTokens.sol";
+import { Hooks } from "v4-core/libraries/Hooks.sol";
+import { PoolKey } from "v4-core/types/PoolKey.sol";
+import { Currency } from "v4-core/types/Currency.sol";
+import { BalanceDelta, BalanceDeltaLibrary } from "v4-core/types/BalanceDelta.sol";
+import { PoolSwapTest } from "v4-core/test/PoolSwapTest.sol";
+import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
+import { TickMath } from "v4-core/libraries/TickMath.sol";
+import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
-import {PipsLib} from "../src/PipsLib.sol";
-import {ExampleLinearPricing} from "../src/pricing/ExampleLinearPricing.sol";
-import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
+import { IBondIssuer } from "../src/interfaces/IBondIssuer.sol";
+import { BondHook } from "../src/BondHook.sol";
+import { IssuerHarness } from "./utils/IssuerHarness.sol";
 
-contract BondHookTest is Test, Deployers, SignalsHarness {
+import { PipsLib } from "../src/PipsLib.sol";
+import { ExampleLinearPricing } from "../src/pricing/ExampleLinearPricing.sol";
+import { IBondPricing } from "../src/interfaces/IBondPricing.sol";
+
+contract BondHookTest is Test, Deployers, IssuerHarness {
     using PipsLib for uint256;
 
     MockERC20 bondToken;
@@ -70,7 +71,7 @@ contract BondHookTest is Test, Deployers, SignalsHarness {
                 amountSpecified: 1 ether,
                 sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
             }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
             // hookData
             ZERO_BYTES
         );

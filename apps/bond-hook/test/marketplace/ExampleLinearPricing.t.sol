@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import { FixedPointMathLib } from "solady/utils/FixedPointMathLib.sol";
 
-import {PipsLib} from "../../src/PipsLib.sol";
-import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
-import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
+import { PipsLib } from "../../src/PipsLib.sol";
+import { ExampleLinearPricing } from "../../src/pricing/ExampleLinearPricing.sol";
+import { IBondPricing } from "../../src/interfaces/IBondPricing.sol";
 
 contract ExampleLinearPricingTest is Test {
     using PipsLib for uint256;

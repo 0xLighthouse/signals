@@ -4,26 +4,26 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import {SignalsHarness} from "../../test/utils/SignalsHarness.sol";
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import { SignalsHarness } from "../../test/utils/SignalsHarness.sol";
+import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
 
-import {PoolManager} from "v4-core/PoolManager.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {PoolIdLibrary} from "v4-core/types/PoolId.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import { PoolManager } from "v4-core/PoolManager.sol";
+import { PoolKey } from "v4-core/types/PoolKey.sol";
+import { PoolIdLibrary } from "v4-core/types/PoolId.sol";
+import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
+import { TickMath } from "v4-core/libraries/TickMath.sol";
+import { Currency, CurrencyLibrary } from "v4-core/types/Currency.sol";
+import { MockERC20 } from "solmate/test/utils/mocks/MockERC20.sol";
 
-import {Signals} from "../../src/Signals.sol";
-import {ISignals} from "../../src/interfaces/ISignals.sol";
+import { Signals } from "../../src/Signals.sol";
+import { ISignals } from "../../src/interfaces/ISignals.sol";
 
-import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
+import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
-import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
-import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+// import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
+import { PoolSwapTest } from "v4-core/test/PoolSwapTest.sol";
 
-import {DesiredCurrency, SwapData} from "../../src/BondHook.sol";
+import { DesiredCurrency, SwapData } from "../../src/BondHook.sol";
 
 /**
  * Goal of this suite is to ensure that a user can sell a bond into the pool
@@ -81,13 +81,15 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond(SwapData({
-            poolKey: _keyB,
-            tokenId: tokenId,
-            bondPriceLimit: bondPriceLimit,
-            swapPriceLimit: 0,
-            desiredCurrency: DesiredCurrency.Mixed
-        }));
+        bondhook.swapBond(
+            SwapData({
+                poolKey: _keyB,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
+                swapPriceLimit: 0,
+                desiredCurrency: DesiredCurrency.Mixed
+            })
+        );
         vm.stopPrank();
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
@@ -126,13 +128,15 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         // approve and swap the bond into the pool, requesting only gov tokens in return
         vm.startPrank(_alice);
         signals.approve(address(bondhook), tokenId);
-        bondhook.swapBond(SwapData({
-            poolKey: _keyB,
-            tokenId: tokenId,
-            bondPriceLimit: bondPriceLimit,
-            swapPriceLimit: swapPriceLimit,
-            desiredCurrency: DesiredCurrency.Currency0
-        }));
+        bondhook.swapBond(
+            SwapData({
+                poolKey: _keyB,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
+                swapPriceLimit: swapPriceLimit,
+                desiredCurrency: DesiredCurrency.Currency0
+            })
+        );
         vm.stopPrank();
 
         uint256 _govAfter = _token.balanceOf(address(_alice));

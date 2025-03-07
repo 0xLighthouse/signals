@@ -21,7 +21,7 @@ import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 
-contract SignalsHarness is Test, Deployers {
+contract IssuerHarness is Test, Deployers {
     address _deployer = address(this);
     address _alice = address(0x1111);
     address _bob = address(0x2222);
