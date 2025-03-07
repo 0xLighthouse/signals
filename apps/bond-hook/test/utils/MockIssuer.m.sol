@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 contract MockIssuer is ERC721Enumerable, IBondIssuer {
