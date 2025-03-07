@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import { FixedPointMathLib } from "solady/utils/FixedPointMathLib.sol";
+import { FixedPointMathLib } from "solmate/src/utils/FixedPointMathLib.sol";
 
-import { PipsLib } from "../../src/PipsLib.sol";
-import { ExampleLinearPricing } from "../../src/pricing/ExampleLinearPricing.sol";
-import { IBondPricing } from "../../src/interfaces/IBondPricing.sol";
+import { PipsLib } from "../src/PipsLib.sol";
+import { ExampleLinearPricing } from "../src/pricing/ExampleLinearPricing.sol";
+import { IBondPricing } from "../src/interfaces/IBondPricing.sol";
 
 contract ExampleLinearPricingTest is Test {
     using PipsLib for uint256;
@@ -40,7 +40,7 @@ contract ExampleLinearPricingTest is Test {
         });
 
         // We expect full amount minus discount
-        uint256 expected = tokenAmount - tokenAmount.mulDiv(discount, PipsLib.OneHundred);
+        uint256 expected = tokenAmount - tokenAmount.mulDivDown(discount, PipsLib.OneHundred);
         assertEq(buyAfterMature, expected);
     }
 
@@ -56,7 +56,7 @@ contract ExampleLinearPricingTest is Test {
 
         // We expect 50% of the amount, minus discount
         uint256 valueAtTime = (tokenAmount / 2);
-        uint256 discountAtTime = valueAtTime.mulDiv(discount, PipsLib.OneHundred);
+        uint256 discountAtTime = valueAtTime.mulDivDown(discount, PipsLib.OneHundred);
         assertEq(buyAtFiftyPercentMature, valueAtTime - discountAtTime);
     }
 
@@ -70,7 +70,7 @@ contract ExampleLinearPricingTest is Test {
         });
 
         // We expect full amount plus premium
-        uint256 expected = tokenAmount + tokenAmount.mulDiv(premium, PipsLib.OneHundred);
+        uint256 expected = tokenAmount + tokenAmount.mulDivUp(premium, PipsLib.OneHundred);
         assertEq(sellAfterMature, expected);
     }
 
@@ -85,7 +85,7 @@ contract ExampleLinearPricingTest is Test {
 
         // We expect 50% of the amount, plus premium
         uint256 valueAtTime = (tokenAmount / 2);
-        uint256 premiumAtTime = valueAtTime.mulDiv(premium, PipsLib.OneHundred);
+        uint256 premiumAtTime = valueAtTime.mulDivUp(premium, PipsLib.OneHundred);
         assertEq(sellAtFiftyPercentMature, valueAtTime + premiumAtTime);
     }
 }

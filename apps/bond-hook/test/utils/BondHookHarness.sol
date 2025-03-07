@@ -4,9 +4,11 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {MockIssuer} from "./MockIssuer.m.sol";
 
 import {Currency} from "v4-core/types/Currency.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
@@ -17,7 +19,7 @@ import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
 
-contract BondHookHarness is Test {
+contract BondHookHarness is Test, Deployers {
     address _deployer = address(this);
     address _alice = address(0x1111);
     address _bob = address(0x2222);
@@ -31,7 +33,9 @@ contract BondHookHarness is Test {
 
     BondHook public bondhook;
 
-    MockIssuer public bondIssuer;
+    MockIssuer public bondIssuer = new MockIssuer(address(_token));
+
+    IBondPricing public pricingContract = new ExampleLinearPricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
 
     // --- Pool Config ---
     uint24 public constant POOL_FEE = 3000; // 0.3% fee
@@ -42,17 +46,14 @@ contract BondHookHarness is Test {
     PoolKey poolB; // DAI/GOV
     bool poolBIsGovZero;
 
-    MockIssuer public mockIssuer;
-
-    function deployMockIssuer() public returns (MockIssuer) {
-        bondIssuer = new MockIssuer(address(_token));
-        return bondIssuer;
-    }
-
     function dealMockTokens() public {
         _dealToken(_token);
         _dealToken(_usdc);
         _dealToken(_dai);
+
+        vm.startPrank(_alice);
+        _token.approve(address(bondIssuer), 50_000 ether);
+        vm.stopPrank();
     }
 
     function _dealToken(MockERC20 token) public {
@@ -62,51 +63,29 @@ contract BondHookHarness is Test {
         deal(address(token), _liquidityProvider, 100_000_000 * 10 ** token.decimals());
     }
 
-    // function _approveAll(address user, MockERC20 token) internal returns (Currency currency) {
-    //     address[9] memory toApprove = [
-    //         address(swapRouter),
-    //         address(swapRouterNoChecks),
-    //         address(modifyLiquidityRouter),
-    //         address(modifyLiquidityNoChecks),
-    //         address(donateRouter),
-    //         address(takeRouter),
-    //         address(claimsRouter),
-    //         address(nestedActionRouter.executor()),
-    //         address(actionsRouter)
-    //     ];
-
-    //     vm.startPrank(user);
-    //     for (uint256 i = 0; i < toApprove.length; i++) {
-    //         token.approve(toApprove[i], Constants.MAX_UINT256);
-    //     }
-    //     vm.stopPrank();
-    //     return Currency.wrap(address(token));
-    // }
-
-    function deployHookAndPools(IBondIssuer _issuer) public {
-        // Deploy pricing contract
-        IBondPricing _pricing = new ExampleLinearPricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
-
+    function deployHookAndPools() public {
         // Deploy hook with correct flags
-        uint160 flags = uint160(
+        address _hookAddress = address(uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
                 | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
-        );
+        ));
 
-        deployCodeTo("BondHook.sol", abi.encode(manager, address(_issuer), address(_pricing)), address(flags));
-        bondhook = BondHook(address(flags));
+        bytes memory args = abi.encode(address(manager), address(bondIssuer), address(pricingContract));
+
+        deployCodeTo("BondHook.sol", args, _hookAddress);
+        bondhook = BondHook(_hookAddress);
 
         // Deploy the pools
         poolA = _deployPool(_dai, _token); // DAI/GOV
-        poolAIsGovZero = poolA.currency0 == Currency.wrap(_token);
+        poolAIsGovZero = Currency.unwrap(poolA.currency0) == address(_token);
 
         poolB = _deployPool(_usdc, _token); // USDC/GOV
-        poolBIsGovZero = poolB.currency0 == Currency.wrap(_token);
+        poolBIsGovZero = Currency.unwrap(poolB.currency0) == address(_token);
     }
 
     function addLiquidity(PoolKey memory _key) public {
-        Currency currency0 = _key.currency0;
-        Currency currency1 = _key.currency1;
+        MockERC20 currency0 = MockERC20(Currency.unwrap(_key.currency0));
+        MockERC20 currency1 = MockERC20(Currency.unwrap(_key.currency1));
 
         vm.startPrank(_liquidityProvider);
         currency0.approve(address(bondhook), type(uint256).max);
@@ -132,8 +111,8 @@ contract BondHookHarness is Test {
         returns (uint256 tokenId)
     {
         vm.startPrank(_user);
-        _token.approve(address(mockIssuer), _amount);
-        tokenId = mockIssuer.createBond(1, _amount, _duration);
+        _token.approve(address(bondIssuer), _amount);
+        tokenId = bondIssuer.createBond(1, _amount, _duration);
         vm.stopPrank();
     }
 
@@ -143,11 +122,11 @@ contract BondHookHarness is Test {
         console.log("DAI: ", address(_dai), _dai.decimals());
         console.log("USDC: ", address(_usdc), _usdc.decimals());
         console.log("Pool currencies (0 and 1): ");
-        MockERC20 a0 = MockERC20(Currency.unwrap(_keyA.currency0));
-        MockERC20 a1 = MockERC20(Currency.unwrap(_keyA.currency1));
+        MockERC20 a0 = MockERC20(Currency.unwrap(poolA.currency0));
+        MockERC20 a1 = MockERC20(Currency.unwrap(poolA.currency1));
         console.log("Pool A: ", a0.symbol(), a1.symbol());
-        MockERC20 b0 = MockERC20(Currency.unwrap(_keyB.currency0));
-        MockERC20 b1 = MockERC20(Currency.unwrap(_keyB.currency1));
+        MockERC20 b0 = MockERC20(Currency.unwrap(poolB.currency0));
+        MockERC20 b1 = MockERC20(Currency.unwrap(poolB.currency1));
         console.log("Pool B: ", b0.symbol(), b1.symbol());
     }
 }

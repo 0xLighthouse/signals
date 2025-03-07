@@ -5,98 +5,72 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
-import { IssuerHarness } from "../../test/utils/IssuerHarness.sol";
+import { BondHookHarness } from "./utils/BondHookHarness.sol";
 
-import { PoolManager } from "v4-core/PoolManager.sol";
 import { PoolKey } from "v4-core/types/PoolKey.sol";
 import { PoolIdLibrary } from "v4-core/types/PoolId.sol";
-import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
-import { TickMath } from "v4-core/libraries/TickMath.sol";
 import { Currency, CurrencyLibrary } from "v4-core/types/Currency.sol";
-import { MockERC20 } from "solmate/test/utils/mocks/MockERC20.sol";
-
-import { Signals } from "../../src/Signals.sol";
-import { ISignals } from "../../src/interfaces/ISignals.sol";
-import { BondHook, LiquidityData, DesiredCurrency } from "../../src/BondHook.sol";
-
 import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
-// import { IV4Router } from "v4-periphery/interfaces/IV4Router.sol";
-import { PoolSwapTest } from "v4-core/test/PoolSwapTest.sol";
+import { BondHook, LiquidityData, DesiredCurrency } from "../src/BondHook.sol";
 
-/**
- * Ensure our helper liquidity is deployed correctly
- */
-contract ModifyLiquidityTest is Test, Deployers, IssuerHarness {
+contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
 
-    // --- Contracts ---
-    Signals signals;
-
     function setUp() public {
         deployFreshManagerAndRouters();
-
-        // Deploy the Signals contract
-        bool dealTokens = true;
-        signals = deploySignals(dealTokens);
-
-        deployHookWithLiquidity(signals);
+        deployHookAndPools();
     }
 
     function test_addRemoveLiquidity() public {
-        MockERC20 _currency0 = MockERC20(Currency.unwrap(_keyB.currency0));
-        MockERC20 _currency1 = MockERC20(Currency.unwrap(_keyB.currency1));
-
-        deal(address(_currency0), address(this), 100 ether);
-        deal(address(_currency1), address(this), 100 ether);
-
-        _currency0.approve(address(bondhook), type(uint256).max);
-        _currency1.approve(address(bondhook), type(uint256).max);
-
-        // Add liquidity to pool
+        // Add liquidity to pool as liquidity provider
+        vm.startPrank(_liquidityProvider);
         bondhook.modifyLiquidity(
             LiquidityData({
-                poolKey: _keyB,
+                poolKey: poolA,
                 liquidityDelta: 10 ether,
                 desiredCurrency: DesiredCurrency.Mixed,
                 swapPriceLimit: 0
             })
         );
+        vm.stopPrank();
 
         // Check that the liquidity was added
-        uint128 liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
+        uint128 liquidity = StateLibrary.getLiquidity(manager, poolA.toId());
         assertEq(liquidity, 10 ether, "Incorrect amount of liquidity added");
 
         // Check that the balance of the user is 10 ether
-        assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 10 ether, "Incorrect user balance");
+        assertEq(bondhook.balanceOf(poolA.toId(), address(this)), 10 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 10 ether
-        assertEq(bondhook.totalShares(_keyB.toId()), 10 ether / 1e6, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.totalShares(poolA.toId()), 10 ether / 1e6, "Incorrect total liquidity reported by hook");
 
         // Remove liquidity from pool
+        vm.startPrank(_liquidityProvider);
         bondhook.modifyLiquidity(
             LiquidityData({
-                poolKey: _keyB,
+                poolKey: poolA,
                 liquidityDelta: -10 ether,
                 desiredCurrency: DesiredCurrency.Mixed,
                 swapPriceLimit: 0
             })
         );
+        vm.stopPrank();
 
         // Check that the liquidity was removed
-        liquidity = StateLibrary.getLiquidity(manager, _keyB.toId());
+        liquidity = StateLibrary.getLiquidity(manager, poolA.toId());
         assertEq(liquidity, 0, "Incorrect amount of liquidity removed");
 
         // Check that the balance of the user is 0 ether
-        assertEq(bondhook.balanceOf(_keyB.toId(), address(this)), 0 ether, "Incorrect user balance");
+        assertEq(bondhook.balanceOf(poolA.toId(), address(this)), 0 ether, "Incorrect user balance");
 
         // Check that the total liquidity is 0 ether
-        assertEq(bondhook.totalShares(_keyB.toId()), 0 ether, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.totalShares(poolA.toId()), 0 ether, "Incorrect total liquidity reported by hook");
 
         // Check that the user has their starting balances
-        assertApproxEqAbs(_currency0.balanceOf(address(this)), 100 ether, 10, "Incorrect currency0 balance");
-        assertApproxEqAbs(_currency1.balanceOf(address(this)), 100 ether, 10, "Incorrect currency1 balance");
+        assertApproxEqAbs(_dai.balanceOf(address(this)), 100 ether, 10, "Incorrect dai balance");
+        assertApproxEqAbs(_token.balanceOf(address(this)), 100 ether, 10, "Incorrect token balance");
     }
 
     function test_Revert_addLiquidityInvalidPool() public {

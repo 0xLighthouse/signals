@@ -18,28 +18,18 @@ import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
 import { IBondIssuer } from "../src/interfaces/IBondIssuer.sol";
 import { BondHook } from "../src/BondHook.sol";
-import { IssuerHarness } from "./utils/IssuerHarness.sol";
+import { BondHookHarness } from "./utils/BondHookHarness.sol";
 
 import { PipsLib } from "../src/PipsLib.sol";
 import { ExampleLinearPricing } from "../src/pricing/ExampleLinearPricing.sol";
 import { IBondPricing } from "../src/interfaces/IBondPricing.sol";
 
-contract BondHookTest is Test, Deployers, IssuerHarness {
+contract BondHookTest is Test, Deployers, BondHookHarness {
     using PipsLib for uint256;
-
-    MockERC20 bondToken;
-    Signals signals;
-    IBondPricing bondPricing;
-    BondHook hook;
 
     function setUp() public {
         deployFreshManagerAndRouters();
-
-        // Deploy the Signals contract
-        bool dealTokens = true;
-        signals = deploySignals(dealTokens);
-
-        deployHookWithLiquidity(signals);
+        deployHookAndPools();
     }
 
     // Test that a pool is rejected if the underlying token is not part of the pair
@@ -53,7 +43,7 @@ contract BondHookTest is Test, Deployers, IssuerHarness {
     // A non-hook swap should work fine
     function test_NormalSwap() public {
         dealMockTokens();
-        addLiquidity(_keyB);
+        addLiquidity(poolA);
 
         vm.startPrank(_alice);
         // _token.approve(address(swapRouter), 100_000 either);
@@ -65,11 +55,11 @@ contract BondHookTest is Test, Deployers, IssuerHarness {
         // Buy 1 gov token
         vm.startPrank(_alice);
         swapRouter.swap(
-            _keyB,
+            poolA,
             IPoolManager.SwapParams({
-                zeroForOne: !_keyBIsGovZero,
+                zeroForOne: !poolAIsGovZero,
                 amountSpecified: 1 ether,
-                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+                sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
             }),
             PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
             // hookData

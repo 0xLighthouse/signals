@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
 import "../PipsLib.sol";
 import "../interfaces/IBondPricing.sol";
@@ -39,7 +39,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 discount = currentValue.mulDiv(bidDiscount, PipsLib.OneHundred);
+        uint256 discount = currentValue.mulDivDown(bidDiscount, PipsLib.OneHundred);
         return currentValue - discount;
     }
 
@@ -59,7 +59,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 premium = currentValue.mulDiv(askPremium, PipsLib.OneHundred);
+        uint256 premium = currentValue.mulDivUp(askPremium, PipsLib.OneHundred);
         return currentValue + premium;
     }
 
@@ -85,7 +85,7 @@ contract ExampleLinearPricing is IBondPricing {
             return principal;
         } else {
             uint256 remainingDuration = endTime - currentTime;
-            return principal - principal.mulDiv(remainingDuration, duration);
+            return principal - principal.mulDivDown(remainingDuration, duration);
         }
     }
 }

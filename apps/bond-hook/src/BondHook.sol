@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
-
-// temporary:
-// FIXME: Should use IERC20
-import { ERC20 } from "solmate/src/tokens/ERC20.sol";
-import "forge-std/console.sol";
+import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
 
 import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";
 import { PoolKey } from "v4-core/types/PoolKey.sol";
 import { PoolId } from "v4-core/types/PoolId.sol";
 import { Position } from "v4-core/libraries/Position.sol";
-import { BalanceDeltaLibrary, BalanceDelta } from "v4-core/types/BalanceDelta.sol";
-import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
+import { BalanceDelta } from "v4-core/types/BalanceDelta.sol";
 import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
 import { Hooks } from "v4-core/libraries/Hooks.sol";
 import { TickMath } from "v4-core/libraries/TickMath.sol";
 import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 import { SafeCallback } from "v4-periphery/base/SafeCallback.sol";
-import { ImmutableState } from "v4-periphery/base/ImmutableState.sol";
+
+import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
 import { IBondIssuer } from "./interfaces/IBondIssuer.sol";
 import { IBondPricing } from "./interfaces/IBondPricing.sol";
+
+import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
 
 import "./PipsLib.sol";
 
@@ -92,7 +89,7 @@ contract BondHook is BaseHook {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using PipsLib for uint256;
 
-    IBondIssuer public immutable signals;
+    IBondIssuer public immutable bondIssuer;
     IBondPricing public bondPricing;
 
     address public immutable owner;
@@ -126,9 +123,9 @@ contract BondHook is BaseHook {
     event LiquidityRemoved(PoolId indexed poolId, address indexed provider, uint256 amount);
     event RewardsClaimed(PoolId indexed poolId, address indexed provider, int256 profit);
 
-    constructor(IPoolManager _poolManager, address _signals, address _bondPricing) BaseHook(_poolManager) {
-        signals = IBondIssuer(_signals);
-        bondToken = Currency.wrap(address(_signals));
+    constructor(IPoolManager _poolManager, address _bondIssuer, address _bondPricing) BaseHook(_poolManager) {
+        bondIssuer = IBondIssuer(_bondIssuer);
+        bondToken = Currency.wrap(bondIssuer.getUnderlyingToken());
         bondPricing = IBondPricing(_bondPricing);
         owner = msg.sender;
     }
@@ -242,7 +239,7 @@ contract BondHook is BaseHook {
         uint256 price = getPoolBuyPrice(data.tokenId);
         require(price >= data.bondPriceLimit, "BondHook: Desired price not met");
         // Take bond and record who now owns it
-        signals.transferFrom(sender, address(this), data.tokenId);
+        bondIssuer.transferFrom(sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
 
         // Record how much liquidity was spent on it
@@ -283,7 +280,7 @@ contract BondHook is BaseHook {
         });
 
         // Transfer the bond to the user
-        signals.transferFrom(address(this), sender, data.tokenId);
+        bondIssuer.transferFrom(address(this), sender, data.tokenId);
         bondBelongsTo[data.tokenId] = PoolId.wrap(0);
 
         emit BondPurchased(data.poolKey.toId(), data.tokenId, sender, uint256(uint128(price)));
@@ -419,7 +416,7 @@ contract BondHook is BaseHook {
      * @return value The current value of the bond.
      */
     function getPoolBuyPrice(uint256 tokenId) public view returns (uint256) {
-        IBondIssuer.BondInfo memory bondInfo = signals.getBondInfo(tokenId);
+        IBondIssuer.BondInfo memory bondInfo = bondIssuer.getBondInfo(tokenId);
         return bondPricing.getBuyPrice({
             principal: bondInfo.nominalValue,
             startTime: bondInfo.created,
@@ -436,7 +433,7 @@ contract BondHook is BaseHook {
      * @return value The current value of the bond.
      */
     function getPoolSellPrice(uint256 tokenId) public view returns (uint256) {
-        IBondIssuer.BondInfo memory bondInfo = signals.getBondInfo(tokenId);
+        IBondIssuer.BondInfo memory bondInfo = bondIssuer.getBondInfo(tokenId);
         return bondPricing.getSellPrice({
             principal: bondInfo.nominalValue,
             startTime: bondInfo.created,

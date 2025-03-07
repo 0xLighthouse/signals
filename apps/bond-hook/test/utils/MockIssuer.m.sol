@@ -2,8 +2,9 @@
 pragma solidity ^0.8.4;
 
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 contract MockIssuer is ERC721Enumerable, IBondIssuer {
 
@@ -40,5 +41,9 @@ contract MockIssuer is ERC721Enumerable, IBondIssuer {
 
     function getBondInfo(uint256 tokenId) external view returns (BondInfo memory) {
         return bonds[tokenId];
+    }
+
+    function getUnderlyingToken() external view returns (address) {
+        return address(underlyingToken);
     }
 }

@@ -4,26 +4,11 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import { SignalsHarness } from "../../test/utils/SignalsHarness.sol";
 import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
+import { BondHookHarness } from "./utils/BondHookHarness.sol";
 
-import { PoolManager } from "v4-core/PoolManager.sol";
-import { PoolKey } from "v4-core/types/PoolKey.sol";
-import { PoolIdLibrary } from "v4-core/types/PoolId.sol";
-import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
 import { TickMath } from "v4-core/libraries/TickMath.sol";
-import { Currency, CurrencyLibrary } from "v4-core/types/Currency.sol";
-import { MockERC20 } from "solmate/test/utils/mocks/MockERC20.sol";
-
-import { Signals } from "../../src/Signals.sol";
-import { ISignals } from "../../src/interfaces/ISignals.sol";
-
-import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
-
-// import {IV4Router} from "v4-periphery/src/interfaces/IV4Router.sol";
-import { PoolSwapTest } from "v4-core/test/PoolSwapTest.sol";
-
-import { DesiredCurrency, SwapData } from "../../src/BondHook.sol";
+import { DesiredCurrency, SwapData } from "../src/BondHook.sol";
 
 /**
  * Goal of this suite is to ensure that a user can sell a bond into the pool
@@ -43,28 +28,21 @@ import { DesiredCurrency, SwapData } from "../../src/BondHook.sol";
  * - [ ] (v2) Sell bond for USDT when there is only DAI/GOV pool
  * - [ ] (v2) Sell bond for USDT when there is [DAI/GOV, DEGEN/GOV] pool
  */
-contract UserSellBondTest is Test, Deployers, SignalsHarness {
-    using CurrencyLibrary for Currency;
-    using PoolIdLibrary for PoolKey;
-
-    // --- Contracts ---
-    Signals signals;
-
+contract UserSellBondTest is Test, Deployers, BondHookHarness {
+  
     function setUp() public {
         deployFreshManagerAndRouters();
-
-        // Deploy the Signals contract
-        bool dealTokens = true;
-        signals = deploySignals(dealTokens);
-
-        deployHookWithLiquidity(signals);
+        deployHookAndPools();
         dealMockTokens();
-        addLiquidity(_keyB);
+        addLiquidity(poolA);
     }
 
     function test_UserSellsBond() public {
         // Alice locks 50k against an initiative for 1 year
-        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
+        vm.startPrank(_alice);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        vm.stopPrank();
+
         // Jump ahead to when bond is worth 50%
         vm.warp(block.timestamp + 365 days / 2);
 
@@ -73,17 +51,17 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         uint256 bondPriceLimit = 22_500 ether;
 
         // record balances
-        uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
-        uint256 _poolBondBefore = signals.balanceOf(address(bondhook));
+        uint256 _aliceBondBefore = bondIssuer.balanceOf(address(_alice));
+        uint256 _poolBondBefore = bondIssuer.balanceOf(address(bondhook));
         uint256 _govBefore = _token.balanceOf(address(_alice));
         uint256 _daiBefore = _dai.balanceOf(address(_alice));
 
         // approve and swap the bond into the pool
         vm.startPrank(_alice);
-        signals.approve(address(bondhook), tokenId);
+        bondIssuer.approve(address(bondhook), tokenId);
         bondhook.swapBond(
             SwapData({
-                poolKey: _keyB,
+                poolKey: poolA,
                 tokenId: tokenId,
                 bondPriceLimit: bondPriceLimit,
                 swapPriceLimit: 0,
@@ -94,8 +72,8 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
         uint256 _daiAfter = _dai.balanceOf(address(_alice));
-        uint256 _bondAfter = signals.balanceOf(address(_alice));
-        uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
+        uint256 _bondAfter = bondIssuer.balanceOf(address(_alice));
+        uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
 
         // Alice should end up with 22.5k liquidity (11.25k gov, 11.25k dai)
         assertApproxEqAbs(_govAfter, _govBefore + (bondPriceLimit / 2), 1000, "Alice Gov balance incorrect");
@@ -107,7 +85,10 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
 
     function test_UserSellsBondSingleCurrency() public {
         // Alice locks 50k against an initiative for 1 year
-        uint256 tokenId = lockTokensAndIssueBond(signals, _alice, 50_000 ether, 365);
+        vm.startPrank(_alice);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        vm.stopPrank();
+
         // Jump ahead to when bond is worth 50%
         vm.warp(block.timestamp + 365 days / 2);
 
@@ -120,17 +101,17 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
         uint160 swapPriceLimit = TickMath.MAX_SQRT_PRICE - 1;
 
         // record balances
-        uint256 _aliceBondBefore = signals.balanceOf(address(_alice));
-        uint256 _poolBondBefore = signals.balanceOf(address(bondhook));
+        uint256 _aliceBondBefore = bondIssuer.balanceOf(address(_alice));
+        uint256 _poolBondBefore = bondIssuer.balanceOf(address(bondhook));
         uint256 _govBefore = _token.balanceOf(address(_alice));
         uint256 _daiBefore = _dai.balanceOf(address(_alice));
 
         // approve and swap the bond into the pool, requesting only gov tokens in return
         vm.startPrank(_alice);
-        signals.approve(address(bondhook), tokenId);
+        bondIssuer.approve(address(bondhook), tokenId);
         bondhook.swapBond(
             SwapData({
-                poolKey: _keyB,
+                poolKey: poolA,
                 tokenId: tokenId,
                 bondPriceLimit: bondPriceLimit,
                 swapPriceLimit: swapPriceLimit,
@@ -141,8 +122,8 @@ contract UserSellBondTest is Test, Deployers, SignalsHarness {
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
         uint256 _daiAfter = _dai.balanceOf(address(_alice));
-        uint256 _aliceBondAfter = signals.balanceOf(address(_alice));
-        uint256 _poolBondAfter = signals.balanceOf(address(bondhook));
+        uint256 _aliceBondAfter = bondIssuer.balanceOf(address(_alice));
+        uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
 
         //Alice should end up with around 22.5k in currency 0, minus the 3% trading fee
         assertApproxEqAbs(_govAfter, _govBefore + bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");

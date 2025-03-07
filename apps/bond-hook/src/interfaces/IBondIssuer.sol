@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IBondIssuer {
+import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+
+interface IBondIssuer is IERC721Enumerable {
     /**
      * @notice Struct to store bond information
      *
@@ -25,4 +27,6 @@ interface IBondIssuer {
      * @return bondInfo The bond information for the given token ID
      */
     function getBondInfo(uint256 tokenId) external view returns (BondInfo memory);
+
+    function getUnderlyingToken() external view returns (address);
 }
