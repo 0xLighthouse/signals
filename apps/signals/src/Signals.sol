@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import "forge-std/console.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -12,11 +10,10 @@ import "solmate/src/utils/ReentrancyGuard.sol";
 
 import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
+import {IIncentives} from "./interfaces/IIncentives.sol";
 
 import "./DecayCurves.sol";
 import "./Incentives.sol";
-
-import "forge-std/console.sol";
 
 /**
  * @title Signals by Lighthouse <https://lighthouse.cx>
