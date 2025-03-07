@@ -19,12 +19,6 @@
 [submodule "apps/bond-hook/lib/v4-periphery"]
 	path = apps/bond-hook/lib/v4-periphery
 	url = https://github.com/Uniswap/v4-periphery
-[submodule "apps/bond-hook/lib/solady"]
-	path = apps/bond-hook/lib/solady
-	url = https://github.com/vectorized/solady
 [submodule "apps/bond-hook/lib/solmate"]
 	path = apps/bond-hook/lib/solmate
 	url = https://github.com/transmissions11/solmate
-[submodule "apps/bond-hook/lib/openzeppelin-contracts"]
-	path = apps/bond-hook/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
