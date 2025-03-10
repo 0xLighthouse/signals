@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "forge-std/console.sol";
+
 import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
 
 import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";
@@ -220,7 +222,6 @@ contract BondHook is BaseHook {
         });
 
         liquidityProviders[data.poolKey.toId()][sender].amount -= uint256(uint128(-data.liquidityDelta));
-
         // Calculate how many shares of liquidity they are removing, and how much profit they should
         // be owed
         uint256 shares = _getSharesFromLiquidity(uint256(uint128(-data.liquidityDelta)));

@@ -21,9 +21,13 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
     function setUp() public {
         deployFreshManagerAndRouters();
         deployHookAndPools();
+        dealMockTokens();
     }
 
     function test_addRemoveLiquidity() public {
+        uint256 initialDaiBalance = _dai.balanceOf(address(_liquidityProvider));
+        uint256 initialTokenBalance = _token.balanceOf(address(_liquidityProvider));
+
         // Add liquidity to pool as liquidity provider
         vm.startPrank(_liquidityProvider);
         bondhook.modifyLiquidity(
@@ -36,15 +40,17 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
         );
         vm.stopPrank();
 
-        // Check that the liquidity was added
+        // Check that the liquidity was added to the pool
         uint128 liquidity = StateLibrary.getLiquidity(manager, poolA.toId());
         assertEq(liquidity, 10 ether, "Incorrect amount of liquidity added");
 
-        // Check that the balance of the user is 10 ether
-        assertEq(bondhook.balanceOf(poolA.toId(), address(this)), 10 ether, "Incorrect user balance");
+        // Check that the user was credited with the liquidity
+        assertEq(bondhook.balanceOf(poolA.toId(), address(_liquidityProvider)), 10 ether, "Incorrect user liquidity deposited");
+        assertEq(bondhook.totalShares(poolA.toId()), 10 ether / 1e6, "Incorrect total shares reported by hook");
 
-        // Check that the total liquidity is 10 ether
-        assertEq(bondhook.totalShares(poolA.toId()), 10 ether / 1e6, "Incorrect total liquidity reported by hook");
+        // Check that the user's balances were reduced
+        assertEq(_dai.balanceOf(address(_liquidityProvider)), initialDaiBalance - 10 ether, "Incorrect dai balance");
+        assertEq(_token.balanceOf(address(_liquidityProvider)), initialTokenBalance - 10 ether, "Incorrect token balance");
 
         // Remove liquidity from pool
         vm.startPrank(_liquidityProvider);
@@ -63,14 +69,14 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
         assertEq(liquidity, 0, "Incorrect amount of liquidity removed");
 
         // Check that the balance of the user is 0 ether
-        assertEq(bondhook.balanceOf(poolA.toId(), address(this)), 0 ether, "Incorrect user balance");
+        assertEq(bondhook.balanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed");
 
         // Check that the total liquidity is 0 ether
         assertEq(bondhook.totalShares(poolA.toId()), 0 ether, "Incorrect total liquidity reported by hook");
 
         // Check that the user has their starting balances
-        assertApproxEqAbs(_dai.balanceOf(address(this)), 100 ether, 10, "Incorrect dai balance");
-        assertApproxEqAbs(_token.balanceOf(address(this)), 100 ether, 10, "Incorrect token balance");
+        assertApproxEqAbs(_dai.balanceOf(address(_liquidityProvider)), initialDaiBalance, 10, "Incorrect dai balance");
+        assertApproxEqAbs(_token.balanceOf(address(_liquidityProvider)), initialTokenBalance, 10, "Incorrect token balance");
     }
 
     function test_Revert_addLiquidityInvalidPool() public {

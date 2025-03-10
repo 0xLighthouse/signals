@@ -52,7 +52,12 @@ contract BondHookHarness is Test, Deployers {
         _dealToken(_dai);
 
         vm.startPrank(_alice);
-        _token.approve(address(bondIssuer), 50_000 ether);
+        _token.approve(address(bondIssuer), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(_liquidityProvider);
+        _dai.approve(address(bondhook), type(uint256).max);
+        _token.approve(address(bondhook), type(uint256).max);
         vm.stopPrank();
     }
 
