@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
 
-import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
+import {IBondIssuer} from "@bondhook/interfaces/IBondIssuer.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IIncentives} from "./interfaces/IIncentives.sol";
 
@@ -26,7 +26,7 @@ import "./Incentives.sol";
  * @author 1a35e1.eth <arnold@lighthouse.cx>
  * @author jkm.eth <james@lighthouse.cx>
  */
-contract Signals is ISignals, ERC721Enumerable, IBondIssuer, Ownable, ReentrancyGuard {
+contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     /// @notice Minimum tokens required to propose an initiative
     uint256 public proposalThreshold;
@@ -382,6 +382,10 @@ contract Signals is ISignals, ERC721Enumerable, IBondIssuer, Ownable, Reentrancy
             created: lock.created,
             claimed: lock.withdrawn
         });
+    }
+
+    function getUnderlyingToken() external view returns (address) {
+        return underlyingToken;
     }
 
     // NOTE: This is not needed, as it is exactly the same as `signals.locks(tokenId)`

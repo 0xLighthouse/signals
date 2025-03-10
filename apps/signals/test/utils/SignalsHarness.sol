@@ -11,7 +11,6 @@ import {MockStable} from "../../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../../src/TokenRegistry.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
-import {BondHook, DesiredCurrency, LiquidityData, SwapData} from "../../src/BondHook.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
@@ -40,8 +39,6 @@ contract SignalsHarness is Test, Deployers {
     Currency tokenCurrency;
     Currency usdcCurrency;
     Currency daiCurrency;
-
-    BondHook public bondhook;
 
     // --- Pool Config ---
     uint24 public constant POOL_FEE = 3000; // 0.3% fee
@@ -123,36 +120,6 @@ contract SignalsHarness is Test, Deployers {
             token.approve(toApprove[i], Constants.MAX_UINT256);
         }
         return Currency.wrap(address(token));
-    }
-
-    function deployHookWithLiquidity(Signals _signals) public {
-        // Set up uniswap approvals
-        usdcCurrency = _uniswapApprovals(_usdc);
-        tokenCurrency = _uniswapApprovals(_token);
-        daiCurrency = _uniswapApprovals(_dai);
-
-        deal(address(_token), _deployer, 1_000_000 * 1e18);
-        deal(address(_usdc), _deployer, 1_000_000 * 1e6);
-        deal(address(_dai), _deployer, 1_000_000 * 1e18);
-
-        // Deploy pricing contract
-        IBondPricing pricing = new ExampleLinearPricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
-
-        // Deploy hook with correct flags
-        uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
-        );
-
-        deployCodeTo("BondHook.sol", abi.encode(manager, address(_signals), address(pricing)), address(flags));
-        bondhook = BondHook(address(flags));
-
-        // Deploy the pools
-        _keyA = _deployPoolWithHook(usdcCurrency, tokenCurrency); // USDC/GOV
-        _keyAIsGovZero = _keyA.currency0 == tokenCurrency;
-
-        _keyB = _deployPoolWithHook(daiCurrency, tokenCurrency); // DAI/GOV
-        _keyBIsGovZero = _keyB.currency0 == tokenCurrency;
     }
 
     function addLiquidity(PoolKey memory _key) public {

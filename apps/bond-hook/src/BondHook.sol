@@ -268,8 +268,8 @@ contract BondHook is BaseHook {
 
         // record how much profit was generated
         uint256 profit = price / 2 - amountPaidOutFor[data.tokenId];
-        uint256 totalShares = bondPools[data.poolKey.toId()].totalSharesAdded;
-        bondPools[data.poolKey.toId()].profitPerShare += profit / totalShares;
+        uint256 _totalShares = bondPools[data.poolKey.toId()].totalSharesAdded;
+        bondPools[data.poolKey.toId()].profitPerShare += profit / _totalShares;
 
         _modifyLiquidity({
             key: data.poolKey,

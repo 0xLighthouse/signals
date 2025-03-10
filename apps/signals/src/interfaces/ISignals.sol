@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IBondIssuer} from "./IBondIssuer.sol";
 import {IIncentives} from "./IIncentives.sol";
+import {IBondIssuer} from "@bondhook/interfaces/IBondIssuer.sol";
 
-interface ISignals is IERC721Enumerable {
+interface ISignals is IERC721Enumerable, IBondIssuer {
     /**
      * @notice All configuration parameters for initializing the Signals contract
      *
