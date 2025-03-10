@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "forge-std/console.sol";
-
 import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
 
 import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";

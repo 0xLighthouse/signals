@@ -38,7 +38,7 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
     function test_UserBuysBond() public {
         // Alice locks 50k against an initiative for 1 year
         vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
         vm.stopPrank();
         // Jump ahead to when bond is worth 50%
         vm.warp(block.timestamp + 365 days / 2);
@@ -92,7 +92,7 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
     function test_UserBuysBondSingleCurrency() public {
         // Alice locks 50k against an initiative for 1 year
         vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
         vm.stopPrank();
         // Jump ahead to when bond is worth 50%
         vm.warp(block.timestamp + 365 days / 2);

@@ -40,7 +40,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
     function test_UserSellsBond() public {
         // Alice locks 50k against an initiative for 1 year
         vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
         vm.stopPrank();
 
         // Jump ahead to when bond is worth 50%
@@ -86,7 +86,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
     function test_UserSellsBondSingleCurrency() public {
         // Alice locks 50k against an initiative for 1 year
         vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365);
+        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
         vm.stopPrank();
 
         // Jump ahead to when bond is worth 50%
@@ -95,10 +95,6 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         // The minimum price we will accept for the bond.
         // 50% of 50k is 25k, minus the 10% fee is 22.5k
         uint256 bondPriceLimit = 22_500 ether;
-
-        // If zeroForOne is true, we are specifying the minimum swap price
-        // In this example, we are not doing zeroForOne (because we want currency 0)
-        uint160 swapPriceLimit = TickMath.MAX_SQRT_PRICE - 1;
 
         // record balances
         uint256 _aliceBondBefore = bondIssuer.balanceOf(address(_alice));
@@ -114,8 +110,8 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
                 poolKey: poolA,
                 tokenId: tokenId,
                 bondPriceLimit: bondPriceLimit,
-                swapPriceLimit: swapPriceLimit,
-                desiredCurrency: DesiredCurrency.Currency0
+                swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+                desiredCurrency: poolAIsGovZero ? DesiredCurrency.Currency0 : DesiredCurrency.Currency1
             })
         );
         vm.stopPrank();
@@ -125,7 +121,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         uint256 _aliceBondAfter = bondIssuer.balanceOf(address(_alice));
         uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
 
-        //Alice should end up with around 22.5k in currency 0, minus the 3% trading fee
+        //Alice should end up with around 22.5k in gov, minus the 3% trading fee
         assertApproxEqAbs(_govAfter, _govBefore + bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");
         assertEq(_daiAfter, _daiBefore, "Alice DAI balance incorrect");
         // The bond should be transfered to the pool
