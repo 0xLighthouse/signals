@@ -1,13 +1,16 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useAccount } from '@/hooks/useAccount'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DeploySignalsContract from '../deploy-signals-contract'
+import { TextInput } from '../inputs'
+import { DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DrawerClose } from '@/components/ui/drawer'
+import { Label } from '@/components/ui/label'
 
 export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const { address, isConnected } = useAccount()
@@ -69,156 +72,124 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
         <Button variant="outline" onClick={() => onOpenChange(true)}>Deploy Contract</Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90vh]">
-        <div className="mx-auto w-full max-w-md">
-          <DrawerHeader>
-            <DrawerTitle>Deploy Signals Contract</DrawerTitle>
-          </DrawerHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 p-4">
-            <div className="space-y-2">
-              <Label htmlFor="owner">Owner Address</Label>
-              <Input
-                id="owner"
-                placeholder="0x..."
-                value={formData.owner || address}
-                onChange={(e) => handleChange('owner', e.target.value)}
-              />
-              <p className="text-xs text-gray-500">
-                The address that will own the new contract
-              </p>
-            </div>
+        <DrawerHeader>
+          <DrawerTitle>Deploy Signals Contract</DrawerTitle>
+        </DrawerHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 p-4">
+          <TextInput
+            id="owner"
+            label="Owner Address"
+            placeholder="0x..."
+            value={formData.owner || address}
+            onChange={(value) => handleChange('owner', value)}
+            description="The address that will own the new contract"
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="underlyingToken">Governance Token Address</Label>
-              <Input
-                id="underlyingToken"
-                placeholder="0x..."
-                value={formData.underlyingToken}
-                onChange={(e) => handleChange('underlyingToken', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                The ERC20 token address that will be used for lockups
-              </p>
-            </div>
+          <TextInput
+            id="underlyingToken"
+            label="Governance Token Address"
+            placeholder="0x..."
+            value={formData.underlyingToken}
+            onChange={(value) => handleChange('underlyingToken', value)}
+            description="The ERC20 token address that will be used for lockups"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="proposalThreshold">Proposal Threshold</Label>
-              <Input
-                id="proposalThreshold"
-                placeholder="1000000000000000000"
-                value={formData.proposalThreshold}
-                onChange={(e) => handleChange('proposalThreshold', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Minimum token balance required to submit an initiative (in wei)
-              </p>
-            </div>
+          <TextInput
+            id="proposalThreshold"
+            label="Proposal Threshold"
+            placeholder="1000000000000000000"
+            value={formData.proposalThreshold}
+            onChange={(value) => handleChange('proposalThreshold', value)}
+            description="Minimum token balance required to submit an initiative (in wei)"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="acceptanceThreshold">Acceptance Threshold</Label>
-              <Input
-                id="acceptanceThreshold"
-                placeholder="10000000000000000000"
-                value={formData.acceptanceThreshold}
-                onChange={(e) => handleChange('acceptanceThreshold', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Support required before an initiative can be accepted (in wei)
-              </p>
-            </div>
+          <TextInput
+            id="acceptanceThreshold"
+            label="Acceptance Threshold"
+            placeholder="10000000000000000000"
+            value={formData.acceptanceThreshold}
+            onChange={(value) => handleChange('acceptanceThreshold', value)}
+            description="Support required before an initiative can be accepted (in wei)"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="maxLockIntervals">Max Lock Intervals</Label>
-              <Input
-                id="maxLockIntervals"
-                placeholder="12"
-                value={formData.maxLockIntervals}
-                onChange={(e) => handleChange('maxLockIntervals', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Maximum number of intervals funds can be locked
-              </p>
-            </div>
+          <TextInput
+            id="maxLockIntervals"
+            label="Max Lock Intervals"
+            placeholder="12"
+            value={formData.maxLockIntervals}
+            onChange={(value) => handleChange('maxLockIntervals', value)}
+            description="Maximum number of intervals funds can be locked"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="proposalCap">Proposal Cap</Label>
-              <Input
-                id="proposalCap"
-                placeholder="100"
-                value={formData.proposalCap}
-                onChange={(e) => handleChange('proposalCap', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Maximum number of proposals allowed
-              </p>
-            </div>
+          <TextInput
+            id="proposalCap"
+            label="Proposal Cap"
+            placeholder="100"
+            value={formData.proposalCap}
+            onChange={(value) => handleChange('proposalCap', value)}
+            description="Maximum number of proposals allowed"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="lockInterval">Lock Interval (seconds)</Label>
-              <Input
-                id="lockInterval"
-                placeholder="604800"
-                value={formData.lockInterval}
-                onChange={(e) => handleChange('lockInterval', e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Duration of one lock interval in seconds (e.g., 604800 = 1 week)
-              </p>
-            </div>
+          <TextInput
+            id="lockInterval"
+            label="Lock Interval (seconds)"
+            placeholder="604800"
+            value={formData.lockInterval}
+            onChange={(value) => handleChange('lockInterval', value)}
+            description="Duration of one lock interval in seconds (e.g., 604800 = 1 week)"
+            required
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="decayCurveType">Decay Curve Type</Label>
-              <Select
-                value={formData.decayCurveType}
-                onValueChange={(value) => handleChange('decayCurveType', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select curve type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Linear (0)</SelectItem>
-                  <SelectItem value="1">Exponential (1)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Type of decay curve for lock-up bonuses
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="decayCurveType">Decay Curve Type</Label>
+            <Select
+              value={formData.decayCurveType}
+              onValueChange={(value) => handleChange('decayCurveType', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select curve type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Linear (0)</SelectItem>
+                <SelectItem value="1">Exponential (1)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Type of decay curve for lock-up bonuses
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="decayCurveParameters">Curve Parameter</Label>
-              <Input
-                id="decayCurveParameters"
-                placeholder="1000000000000000000"
-                value={formData.decayCurveParameters[0]}
-                onChange={(e) => handleChange('decayCurveParameters', [e.target.value])}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                {formData.decayCurveType === '0'
-                  ? 'Linear: 1.0 (1e18) means weight decays at linear rate proportional to lockup length'
-                  : 'Exponential: 0.9 (9e17) means weight decays with previous period multiplied by 0.9'}
-              </p>
-            </div>
+          <TextInput
+            id="decayCurveParameters"
+            label="Curve Parameter"
+            placeholder="1000000000000000000"
+            value={formData.decayCurveParameters[0]}
+            onChange={(value) => handleChange('decayCurveParameters', [value])}
+            description={
+              formData.decayCurveType === '0'
+                ? 'Linear: 1.0 (1e18) means weight decays at linear rate proportional to lockup length'
+                : 'Exponential: 0.9 (9e17) means weight decays with previous period multiplied by 0.9'
+            }
+            required
+          />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DrawerClose>
-              <Button
-                type="submit"
-                disabled={!isConnected || isLoading}
-              >
-                {isLoading ? 'Deploying...' : 'Deploy Contract'}
-              </Button>
-            </div>
-          </form>
-        </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+            <Button
+              type="submit"
+              disabled={!isConnected || isLoading}
+            >
+              {isLoading ? 'Deploying...' : 'Deploy Contract'}
+            </Button>
+          </div>
+        </form>
       </DrawerContent>
     </Drawer>
   )
