@@ -12,7 +12,17 @@ import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Incentives} from "../src/Incentives.sol";
 
 /**
- * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
+ * This script is used to deploy the Signals contracts on a local development network.
+ *
+ * It will deploy:
+ * - a MockERC20 token
+ * - a SignalsFactory
+ * - a Signals contract
+ * - a TokenRegistry
+ * - an Incentives contract
+ *
+ *
+ * @notice forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast
  */
 contract DevelopmentScript is Script {
     address _deployer;
@@ -28,7 +38,7 @@ contract DevelopmentScript is Script {
 
     function run() external {
         // Load the private key from the environment
-        string memory seedPhrase = vm.envString("DEPLOYER_TESTNET_SEED_PHRASE");
+        string memory seedPhrase = vm.envString("DEVELOPMENT_SEED_PHRASE");
         _deployer = vm.addr(vm.deriveKey(seedPhrase, 0));
         _alice = vm.addr(vm.deriveKey(seedPhrase, 1));
         _bob = vm.addr(vm.deriveKey(seedPhrase, 2));

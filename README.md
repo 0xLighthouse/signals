@@ -1,5 +1,14 @@
 # 📡 Signals: Discover community sentiment
 
+## Getting started
+
+### Local development
+
+```shell
+# apps/signals
+forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
+```
+
 #### A project for the RnDAO Arbitrum CollabTech Hackathon
 
 ***

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+# Test if anvil is running on port 8545
+if ! nc -z localhost 8545; then
+  echo "Anvil is not running"
+  exit 1
+fi
+
+# Deploy the signals contract to the development network
+#
+#   Requires:
+#     - a local anvil instance running on port 8545
+#     - the LOCAL_RPC environment variable set
+cd apps/signals
+forge clean && forge install
+forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
+cd ../..
+
+# Error out if the BOND_ISSUER environment variable is not set
+if [ -z "$BOND_ISSUER" ]; then
+  echo "A BOND_ISSUER environment variable is required"
+  exit 1
+fi
+
+# Deploy the uniswap v4 hooks contract to the development network
+#
+#   Requires:
+#     - a local anvil instance running on port 8545
+#     - the BOND_ISSUER environment variable set
+cd apps/bond-hook
+forge clean && forge install
+forge script script/Development.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
+cd ../..
