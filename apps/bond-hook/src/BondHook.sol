@@ -225,8 +225,11 @@ contract BondHook is BaseHook {
         uint256 shares = _getSharesFromLiquidity(uint256(uint128(-data.liquidityDelta)));
         liquidityProviders[data.poolKey.toId()][sender].profitDebt -=
             int256(shares * bondPools[data.poolKey.toId()].profitPerShare);
-
-        bondPools[data.poolKey.toId()].totalSharesAdded -= shares;
+        if (bondPools[data.poolKey.toId()].totalSharesAdded > shares) {
+            bondPools[data.poolKey.toId()].totalSharesAdded -= shares;
+        } else {
+            bondPools[data.poolKey.toId()].totalSharesAdded = 0;
+        }
     }
 
     // function _updateLiquidityCheckpoint(PoolId id, address user, int256 liquidityDelta) internal {
@@ -365,7 +368,7 @@ contract BondHook is BaseHook {
         }
     }
 
-    function claimRewards(PoolKey calldata key, DesiredCurrency desiredCurrency, uint160 swapPriceLimit) public {
+    function claimRewards(PoolKey calldata key) public {
         // Get user's supplied liquidity, equivalent shares, and profit per share
         LiquidityPosition memory position = liquidityProviders[key.toId()][msg.sender];
         uint256 shares = _getSharesFromLiquidity(position.amount);
@@ -376,18 +379,11 @@ contract BondHook is BaseHook {
         int256 liquidityOwed = profit - position.profitDebt;
         // Reset debt
         liquidityProviders[key.toId()][msg.sender].profitDebt = profit;
+        // Update liqduidity position
+        liquidityProviders[key.toId()][msg.sender].amount += uint256(liquidityOwed);
 
-        // Transfer profit to user
-        _modifyLiquidity({
-            key: key,
-            sender: msg.sender,
-            liquidityDelta: -liquidityOwed,
-            desiredCurrency: desiredCurrency,
-            swapPriceLimit: swapPriceLimit
-        });
-
-        emit RewardsClaimed(key.toId(), msg.sender, profit);
-    }
+        emit RewardsClaimed(key.toId(), msg.sender, liquidityOwed);
+    } 
 
     /**
      * @notice Get the balance of the liquidity a user has provided to a pool
