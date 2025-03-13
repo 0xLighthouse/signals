@@ -122,32 +122,6 @@ contract SignalsHarness is Test, Deployers {
         return Currency.wrap(address(token));
     }
 
-    function addLiquidity(PoolKey memory _key) public {
-        vm.startPrank(_liquidityProvider);
-        _token.approve(address(bondhook), type(uint256).max);
-        _dai.approve(address(bondhook), type(uint256).max);
-
-        bondhook.modifyLiquidity(LiquidityData({
-            poolKey: _key,
-            liquidityDelta: 1_000_000 ether,
-            desiredCurrency: DesiredCurrency.Mixed,
-            swapPriceLimit: 0
-        }));
-        vm.stopPrank();
-    }
-
-    // Gotcha: currencies are sorted by address
-    function _deployPoolWithHook(Currency currencyA, Currency currencyB) public returns (PoolKey memory _key) {
-        Currency _currency0;
-        Currency _currency1;
-        (_currency0, _currency1) =
-            SortTokens.sort(MockERC20(Currency.unwrap(currencyA)), MockERC20(Currency.unwrap(currencyB)));
-
-        (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
-
-        return _key;
-    }
-
     function lockTokensAndIssueBond(Signals _signals, address _user, uint256 _amount, uint256 _duration)
         public
         returns (uint256 tokenId)

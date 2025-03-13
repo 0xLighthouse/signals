@@ -23,11 +23,10 @@ import "./Incentives.sol";
  *         that can be traded and used to redeem the underlying tokens
  *         when the lock expires
  *
- * @author 1a35e1.eth <arnold@lighthouse.cx>
+ * @author 1a35e1.eth <https://x.com/1a35e1>
  * @author jkm.eth <james@lighthouse.cx>
  */
 contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
-
     /// @notice Minimum tokens required to propose an initiative
     uint256 public proposalThreshold;
 
