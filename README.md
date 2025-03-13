@@ -5,8 +5,11 @@
 ### Local development
 
 ```shell
-# apps/signals
-forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $DEPLOYER_TESTNET_PRIVATE_KEY
+# tty0
+anvil
+
+# tty1
+bash scripts/dev.sh
 ```
 
 #### A project for the RnDAO Arbitrum CollabTech Hackathon
