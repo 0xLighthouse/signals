@@ -17,7 +17,7 @@ import {BondHook, DesiredCurrency, LiquidityData} from "../../src/BondHook.sol";
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
-import {PipsLib} from "../../src/PipsLib.sol";
+import {PipsLib} from "./PipsLib.sol";
 
 contract BondHookHarness is Test, Deployers {
     address _deployer = address(this);

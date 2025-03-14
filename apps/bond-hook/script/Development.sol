@@ -8,7 +8,6 @@ import {BondHookLibrary} from "../src/interfaces/IBondHook.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {ExampleLinearPricing} from "../src/pricing/ExampleLinearPricing.sol";
-import {PipsLib} from "../src/PipsLib.sol";
 import {IBondPricing} from "../src/interfaces/IBondPricing.sol";
 import {HookMiner} from "v4-periphery/utils/HookMiner.sol";
 
@@ -31,7 +30,7 @@ contract DeployManagerAndHook is Script, Deployers {
 
         // 2. Deploy pricing contract
         vm.startBroadcast(_deployer);
-        IBondPricing pricing = new ExampleLinearPricing(PipsLib.percentToPips(10), PipsLib.percentToPips(10));
+        IBondPricing pricing = new ExampleLinearPricing(10_0000, 10_0000); // 10% fees on each side
         vm.stopBroadcast();
 
         console.log("Pricing contract", address(pricing));

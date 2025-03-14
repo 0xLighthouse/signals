@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
-import "../PipsLib.sol";
 import "../interfaces/IBondPricing.sol";
 
 /**
@@ -12,9 +11,10 @@ import "../interfaces/IBondPricing.sol";
  * @notice The pricing model for bonds is based on the time since the bond was created and the discount rate.
  */
 contract ExampleLinearPricing is IBondPricing {
-    using PipsLib for uint256;
     using FixedPointMathLib for uint256;
     // Discount and premium rates to generate profit for the LPs. These could instead be changeable or dynamic based on some other factor
+
+    uint256 private constant ONE_HUNDRED = 100_0000;
 
     uint256 public immutable bidDiscount;
     uint256 public immutable askPremium;
@@ -39,7 +39,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 discount = currentValue.mulDivDown(bidDiscount, PipsLib.OneHundred);
+        uint256 discount = currentValue.mulDivDown(bidDiscount, ONE_HUNDRED);
         return currentValue - discount;
     }
 
@@ -59,7 +59,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 premium = currentValue.mulDivUp(askPremium, PipsLib.OneHundred);
+        uint256 premium = currentValue.mulDivUp(askPremium, ONE_HUNDRED);
         return currentValue + premium;
     }
 

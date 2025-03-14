@@ -20,12 +20,10 @@ import { IBondIssuer } from "../src/interfaces/IBondIssuer.sol";
 import { BondHook } from "../src/BondHook.sol";
 import { BondHookHarness } from "./utils/BondHookHarness.sol";
 
-import { PipsLib } from "../src/PipsLib.sol";
 import { ExampleLinearPricing } from "../src/pricing/ExampleLinearPricing.sol";
 import { IBondPricing } from "../src/interfaces/IBondPricing.sol";
 
 contract BondHookTest is Test, Deployers, BondHookHarness {
-    using PipsLib for uint256;
 
     function setUp() public {
         deployFreshManagerAndRouters();

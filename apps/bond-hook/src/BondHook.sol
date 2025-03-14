@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
+import { IBondIssuer } from "./interfaces/IBondIssuer.sol";
+import { IBondPricing } from "./interfaces/IBondPricing.sol";
 
 import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";
 import { PoolKey } from "v4-core/types/PoolKey.sol";
@@ -15,12 +17,9 @@ import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 import { SafeCallback } from "v4-periphery/base/SafeCallback.sol";
 
 import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
-import { IBondIssuer } from "./interfaces/IBondIssuer.sol";
-import { IBondPricing } from "./interfaces/IBondPricing.sol";
+
 
 import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
-
-import "./PipsLib.sol";
 
 struct BondPoolState {
     // The liquidity position id of the pool
@@ -87,7 +86,6 @@ struct LiquidityPosition {
 contract BondHook is BaseHook {
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
-    using PipsLib for uint256;
 
     IBondIssuer public immutable bondIssuer;
     IBondPricing public bondPricing;

@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import { FixedPointMathLib } from "solmate/src/utils/FixedPointMathLib.sol";
 
-import { PipsLib } from "../src/PipsLib.sol";
+import { PipsLib } from "./utils/PipsLib.sol";
 import { ExampleLinearPricing } from "../src/pricing/ExampleLinearPricing.sol";
 import { IBondPricing } from "../src/interfaces/IBondPricing.sol";
 
