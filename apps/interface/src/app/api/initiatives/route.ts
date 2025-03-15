@@ -120,12 +120,5 @@ export const GET = async () => {
     initiatives.push(data)
   }
 
-  // TODO: Add caching
-  // let cachedInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
-  // // Retrieve the entire list of initiatives from the cache
-  // const allInitiatives = await kv.get<NormalisedInitiative[]>(initiativesKey)
-
-  // console.log('allInitattractiveiatives', allInitiatives?.length)
-
   return NextResponse.json(initiatives)
 }
