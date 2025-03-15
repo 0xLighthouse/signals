@@ -1,0 +1,22 @@
+{
+  "name": "sdk",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "types": "graphql-codegen --config codegen.yml"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.5",
+    "@graphql-codegen/typescript": "^4.1.5",
+    "@graphql-codegen/typescript-operations": "^4.5.1",
+    "@types/bun": "latest",
+    "graphql": "^16.10.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "graphql-request": "^7.1.2",
+    "viem": "^2.23.11"
+  }
+}
