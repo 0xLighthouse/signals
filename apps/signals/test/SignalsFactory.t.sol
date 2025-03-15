@@ -13,12 +13,17 @@ import {Signals} from "../src/Signals.sol";
 
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
+import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
 
 contract SignalsFactoryTest is Test, SignalsHarness {
     SignalsFactory _factory;
 
     function setUp() public {
         _factory = new SignalsFactory();
+    }
+
+    function testVersion() public {
+        assertEq(_factory.version(), "0.1.0");
     }
 
     function testFactoryDeployment() public {
@@ -29,7 +34,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _decayCurveParameters[0] = 9e17;
 
         // Deploy a new instance using the factory
-        ISignals.SignalsConfig memory _defaultConfig = ISignals.SignalsConfig({
+        ISignalsFactory.FactoryDeployment memory _defaultConfig = ISignalsFactory.FactoryDeployment({
             owner: _alice,
             underlyingToken: address(_token),
             proposalThreshold: defaultConfig.proposalThreshold,
@@ -59,6 +64,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
         assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
         assertEq(_instance.decayCurveType(), defaultConfig.decayCurveType);
+        assertEq(_instance.version(), _factory.version());
     }
 
     function testRevertsWithInvalidOwnerAddress() public {
@@ -70,7 +76,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _decayCurveParameters[0] = 9e17;
 
         _factory.create(
-            ISignals.SignalsConfig({
+            ISignalsFactory.FactoryDeployment({
                 owner: address(0), // --- invalid owner address
                 underlyingToken: address(_token),
                 proposalThreshold: defaultConfig.proposalThreshold,

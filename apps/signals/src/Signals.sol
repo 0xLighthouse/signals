@@ -39,6 +39,12 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Maximum number of proposals allowed
     uint256 public proposalCap;
 
+    /// @notice Vanity title for the Board. eg. "Season 1: The Great Reset"
+    string public title;
+
+    /// @notice The version of the Signals contract
+    string public version;
+
     /**
      * @notice Interval used for lockup duration and calculating the decay curve
      *
@@ -100,8 +106,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         _;
     }
 
-    modifier hasValidInput(string memory title, string memory body) {
-        if (bytes(title).length == 0 || bytes(body).length == 0) {
+    modifier hasValidInput(string memory _title, string memory _body) {
+        if (bytes(_title).length == 0 || bytes(_body).length == 0) {
             revert ISignals.InvalidInput("Title or body cannot be empty");
         }
         _;
@@ -112,6 +118,14 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     IIncentives public incentives;
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
+
+    function setTitle(string memory _title) external onlyOwner {
+        title = _title;
+    }
+
+    function getTitle() external view returns (string memory) {
+        return title;
+    }
 
     function name() public view override returns (string memory) {
         return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), " Locked Support"));
@@ -125,15 +139,15 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return ""; // Return empty string for now
     }
 
-    function _addInitiative(string memory title, string memory body)
+    function _addInitiative(string memory _title, string memory _body)
         internal
         hasSufficientTokens(proposalThreshold)
         returns (uint256 id)
     {
         Initiative memory newInitiative = Initiative({
             state: ISignals.InitiativeState.Proposed,
-            title: title,
-            body: body,
+            title: _title,
+            body: _body,
             proposer: msg.sender,
             timestamp: block.timestamp,
             lastActivity: block.timestamp,
@@ -144,7 +158,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         initiativeCount++;
         _initiatives[initiativeCount] = newInitiative;
 
-        emit InitiativeProposed(initiativeCount, msg.sender, title, body);
+        emit InitiativeProposed(initiativeCount, msg.sender, _title, _body);
         return initiativeCount;
     }
 
@@ -251,6 +265,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @notice Permit initializing the contract exactly once
      */
     function initialize(ISignals.SignalsConfig calldata config) external isNotInitialized {
+        version = config.version;
         underlyingToken = config.underlyingToken;
         proposalThreshold = config.proposalThreshold;
         acceptanceThreshold = config.acceptanceThreshold;
@@ -266,33 +281,33 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Proposes a new initiative
      *
-     * @param title Title of the initiative
-     * @param body Body of the initiative
+     * @param _title Title of the initiative
+     * @param _body Body of the initiative
      */
-    function proposeInitiative(string memory title, string memory body)
+    function proposeInitiative(string memory _title, string memory _body)
         external
         hasSufficientTokens(proposalThreshold)
-        hasValidInput(title, body)
+        hasValidInput(_title, _body)
     {
-        _addInitiative(title, body);
+        _addInitiative(_title, _body);
     }
 
     /**
      * @notice Proposes a new initiative with locked tokens
      *
-     * @param title Title of the initiative
-     * @param body Body of the initiative
-     * @param amount Amount of tokens to lock
-     * @param lockDuration Duration for which tokens are locked (in intervals)
+     * @param _title Title of the initiative
+     * @param _body Body of the initiative
+     * @param _amount Amount of tokens to lock
+     * @param _lockDuration Duration for which tokens are locked (in intervals)
      */
-    function proposeInitiativeWithLock(string memory title, string memory body, uint256 amount, uint256 lockDuration)
-        external
-        hasSufficientTokens(proposalThreshold)
-        hasValidInput(title, body)
-        returns (uint256 tokenId)
-    {
-        uint256 id = _addInitiative(title, body);
-        tokenId = _addLock(id, msg.sender, amount, lockDuration);
+    function proposeInitiativeWithLock(
+        string memory _title,
+        string memory _body,
+        uint256 _amount,
+        uint256 _lockDuration
+    ) external hasSufficientTokens(proposalThreshold) hasValidInput(_title, _body) returns (uint256 tokenId) {
+        uint256 id = _addInitiative(_title, _body);
+        tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
     }
 
     /**

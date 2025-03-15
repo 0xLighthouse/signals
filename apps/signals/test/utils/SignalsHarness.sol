@@ -23,6 +23,7 @@ import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {PipsLib} from "../../src/PipsLib.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
+import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
 
 contract SignalsHarness is Test, Deployers {
     address _deployer = address(this);
@@ -34,6 +35,9 @@ contract SignalsHarness is Test, Deployers {
     MockERC20 internal _token = new MockERC20("SomeGovToken", "GOV", 18);
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
     MockERC20 internal _dai = new MockERC20("DAI", "DAI", 18);
+
+    // --- Factory ---
+    SignalsFactory internal factory = new SignalsFactory();
 
     // tokens expressed as Currency
     Currency tokenCurrency;
@@ -50,6 +54,7 @@ contract SignalsHarness is Test, Deployers {
     bool _keyBIsGovZero;
 
     ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
+        version: factory.version(),
         owner: _deployer,
         underlyingToken: address(_token),
         proposalThreshold: 50_000 * 1e18, // 50k
@@ -70,9 +75,10 @@ contract SignalsHarness is Test, Deployers {
         return signals;
     }
 
-    function deploySignalsWithFactory(bool _dealTokens) public returns (SignalsFactory factory, Signals signals) {
-        factory = new SignalsFactory();
-        signals = Signals(factory.create(defaultConfig));
+    function deploySignalsWithFactory(bool _dealTokens) public returns (SignalsFactory _factory, Signals signals) {
+        _factory = new SignalsFactory();
+        address _instance = _factory.create(_toFactoryDeployment(defaultConfig));
+        signals = Signals(_instance);
         if (_dealTokens) {
             _dealDefaultTokens();
         }
@@ -164,5 +170,23 @@ contract SignalsHarness is Test, Deployers {
         MockERC20 b0 = MockERC20(Currency.unwrap(_keyB.currency0));
         MockERC20 b1 = MockERC20(Currency.unwrap(_keyB.currency1));
         console.log("Pool B: ", b0.symbol(), b1.symbol());
+    }
+
+    function _toFactoryDeployment(ISignals.SignalsConfig storage config)
+        internal
+        view
+        returns (ISignalsFactory.FactoryDeployment memory)
+    {
+        return ISignalsFactory.FactoryDeployment({
+            owner: config.owner,
+            underlyingToken: config.underlyingToken,
+            proposalThreshold: config.proposalThreshold,
+            acceptanceThreshold: config.acceptanceThreshold,
+            maxLockIntervals: config.maxLockIntervals,
+            proposalCap: config.proposalCap,
+            lockInterval: config.lockInterval,
+            decayCurveType: config.decayCurveType,
+            decayCurveParameters: config.decayCurveParameters
+        });
     }
 }

@@ -12,6 +12,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      *
      * @param owner The address which will own the contract
      * @param underlyingToken The address of the underlying ERC20 token
+     * @param version The version of the Signals contract
      * @param proposalThreshold Minimum tokens to propose an initiative
      * @param acceptanceThreshold Minimum tokens to accept an initiative
      * @param maxLockIntervals Maximum lock intervals allowed
@@ -21,6 +22,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param decayCurveParameters Parameters to control the decay curve behavior
      */
     struct SignalsConfig {
+        string version;
         address owner;
         address underlyingToken;
         uint256 proposalThreshold;
@@ -129,7 +131,9 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     // Public functions
     function initialize(SignalsConfig calldata config) external;
     function proposeInitiative(string memory title, string memory body) external;
-    function proposeInitiativeWithLock(string memory title, string memory body, uint256 amount, uint256 lockDuration) external returns (uint256);
+    function proposeInitiativeWithLock(string memory title, string memory body, uint256 amount, uint256 lockDuration)
+        external
+        returns (uint256);
     function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
@@ -139,7 +143,10 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function getSupporters(uint256 initiativeId) external view returns (address[] memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);
     function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256);
-    function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp) external view returns (uint256);
+    function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
+        external
+        view
+        returns (uint256);
     function token() external view returns (address);
     function totalInitiatives() external view returns (uint256);
     function totalSupporters(uint256 initiativeId) external view returns (uint256);
