@@ -5,6 +5,9 @@
 ```shell
 # Reset forge submodules
 git submodule update --recursive
+
+# Generate ABIs
+sh script/abi.sh
 ```
 
 ## TODO
