@@ -6,7 +6,8 @@
 
 ```shell
 # tty0
-anvil
+# Produce a block every 5 secs
+anvil --block-time 5
 
 # tty1
 bash scripts/dev.sh
