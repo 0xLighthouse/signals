@@ -1,6 +1,7 @@
 import { GraphQLClient } from 'graphql-request'
 import { createPublicClient, getContract, http } from 'viem'
 import * as chains from 'viem/chains'
+import { ContractAddresses, Network, type ContractInstance, type ContractType } from './constants'
 
 const getChain = (chainId: number): chains.Chain => {
   const chain = Object.values(chains).find((chain) => chain.id === chainId)
@@ -27,14 +28,13 @@ export const getReadClient = (chainId: number) => {
   })
 }
 
-const ContractABI = [] as const
-
-export const getContractInstance = async (chainId: number, address: `0x${string}`) => {
+export const getContractInstance = <T extends ContractType>(chainId: Network, contractType: T) => {
   const client = getReadClient(chainId)
+  const { address, abi } = ContractAddresses[chainId][contractType]
   return getContract({
     address,
-    abi: ContractABI,
-    client,
+    abi,
+    client: client,
   })
 }
 

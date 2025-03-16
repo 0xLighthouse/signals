@@ -13,8 +13,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "ponder": "^0.9.28",
     "hono": "^4.5.0",
+    "lru-cache": "^11.0.2",
+    "ponder": "^0.9.28",
     "viem": "^2.21.3"
   },
   "devDependencies": {

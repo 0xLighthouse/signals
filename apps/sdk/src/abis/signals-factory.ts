@@ -1,3 +1,5 @@
+import type { Abi } from 'viem'
+
 export const signalsFactoryAbi = [
   {
     type: 'function',
@@ -94,4 +96,4 @@ export const signalsFactoryAbi = [
     name: 'InvalidOwnerAddress',
     inputs: [],
   },
-] as const
+] as const satisfies Abi

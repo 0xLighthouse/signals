@@ -1,3 +1,5 @@
+import type { Abi } from 'viem'
+
 export const signalsAbi = [
   {
     type: 'constructor',
@@ -1640,4 +1642,4 @@ export const signalsAbi = [
     name: 'TokenTransferFailed',
     inputs: [],
   },
-] as const
+] as const satisfies Abi

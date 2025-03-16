@@ -13,7 +13,7 @@
     "graphql": "^16.10.0"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "graphql-request": "^7.1.2",
