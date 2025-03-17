@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
@@ -13,7 +14,7 @@ import {MockIssuer} from "./MockIssuer.m.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 
-import {BondHook, DesiredCurrency, LiquidityData} from "../../src/BondHook.sol";
+import {BondHook, DesiredCurrency, LiquidityData, BondHookOptions} from "../../src/BondHook.sol";
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
@@ -75,7 +76,14 @@ contract BondHookHarness is Test, Deployers {
                 | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
         ));
 
-        bytes memory args = abi.encode(address(manager), address(bondIssuer), address(pricingContract));
+        bytes memory args = abi.encode(BondHookOptions({
+            poolManager: IPoolManager(manager),
+            bondIssuer: address(bondIssuer),
+            bondPricing: address(pricingContract),
+            ownerFeeAsPips: 0,
+            profitShareRatioAsPips: 0,
+            swapFeeDiscountAsPips: 0
+        }));
 
         deployCodeTo("BondHook.sol", args, _hookAddress);
         bondhook = BondHook(_hookAddress);

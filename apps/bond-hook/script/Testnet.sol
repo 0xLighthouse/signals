@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
 
-import {BondHook} from "../src/BondHook.sol";
+import {BondHook, BondHookOptions} from "../src/BondHook.sol";
 import {BondHookLibrary} from "../src/interfaces/IBondHook.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {ExampleLinearPricing} from "../src/pricing/ExampleLinearPricing.sol";
@@ -56,7 +56,16 @@ contract DeployManagerAndHook is Script {
 
         // 3. Deploy the hook
         vm.startBroadcast(_deployer);
-        BondHook hook = new BondHook{salt: salt}(IPoolManager(manager), address(bondIssuer), address(pricing));
+        BondHook hook = new BondHook{salt: salt}(
+            BondHookOptions({
+                poolManager: IPoolManager(manager),
+                bondIssuer: address(bondIssuer),
+                bondPricing: address(pricing),
+                ownerFeeAsPips: 1000,
+                profitShareRatioAsPips: 1000,
+                swapFeeDiscountAsPips: 1000
+            })
+        );
         console.log("BondHookContract", address(hook));
         vm.stopBroadcast();
     }
