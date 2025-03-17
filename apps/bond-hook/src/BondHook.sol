@@ -30,6 +30,8 @@ struct BondPoolState {
     uint256 totalSharesAdded;
     // The profit generated per 1e18 of liquidity provided to the pool
     uint256 profitPerShare;
+    // Profit available to reduce fees
+    uint256 liquidityForFeeReduction;
 }
 
 struct CallbackData {
@@ -75,6 +77,17 @@ struct LiquidityPosition {
     int256 profitDebt;
 }
 
+struct BondHookOptions {
+    IPoolManager poolManager;
+    address bondIssuer;
+    address bondPricing;
+    uint256 ownerFeeAsPips;
+    uint256 profitShareRatioAsPips;
+    uint256 swapFeeDiscountAsPips;
+}
+
+uint256 constant ONE_HUNDRED_PERCENT = 100_00;
+
 /**
  * - LPs provide need to provide single sided liquidity to a pool
  * - Bonds can be sold into the pool
@@ -87,23 +100,35 @@ contract BondHook is BaseHook {
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
+    
+
     IBondIssuer public immutable bondIssuer;
     IBondPricing public bondPricing;
 
-    address public immutable owner;
     // The address of the token that is contained in the bonds
     Currency public immutable bondToken;
+
+    address public immutable owner;
+    // When profit is generated, how much goes to the owner
+    uint256 public immutable ownerFeeAsPips;
+    // OWner's balance of fees
+    uint256 public ownerFees;
+
+    // When profit is generated, how much goes to reducing the fees of swappers
+    uint256 public immutable profitShareRatioAsPips;
+    // When fee reductions are available, how much is reduced per swap (as percent of whole fee)
+    uint256 public immutable swapFeeDiscountAsPips;
 
     // Record whether the bond token is currency 0 or 1 for each pool
     mapping(PoolId => BondPoolState) internal bondPools;
 
-    // Modify the mapping
+    // Record all LPs
     mapping(PoolId => mapping(address => LiquidityPosition)) internal liquidityProviders;
 
     // Record which pool each bond belongs to
     mapping(uint256 => PoolId) public bondBelongsTo;
 
-    // Record the amount paid out for each bond
+    // Record the amount paid out for each bond, as liquidity
     mapping(uint256 => uint256) internal amountPaidOutFor;
 
     // Errors
@@ -121,11 +146,16 @@ contract BondHook is BaseHook {
     event LiquidityRemoved(PoolId indexed poolId, address indexed provider, uint256 amount);
     event RewardsClaimed(PoolId indexed poolId, address indexed provider, int256 profit);
 
-    constructor(IPoolManager _poolManager, address _bondIssuer, address _bondPricing) BaseHook(_poolManager) {
-        bondIssuer = IBondIssuer(_bondIssuer);
+    constructor(BondHookOptions memory options) BaseHook(options.poolManager) {
+        bondIssuer = IBondIssuer(options.bondIssuer);
         bondToken = Currency.wrap(bondIssuer.getUnderlyingToken());
-        bondPricing = IBondPricing(_bondPricing);
+        bondPricing = IBondPricing(options.bondPricing);
         owner = msg.sender;
+
+        require(options.ownerFeeAsPips + options.profitShareRatioAsPips <= ONE_HUNDRED_PERCENT, "BondHook: Fees must not exceed 100%");
+        ownerFeeAsPips = options.ownerFeeAsPips;
+        profitShareRatioAsPips = options.profitShareRatioAsPips;
+        swapFeeDiscountAsPips = options.swapFeeDiscountAsPips;
     }
 
     // We receive an int128, to leave room for casting negative values to uint
@@ -265,11 +295,11 @@ contract BondHook is BaseHook {
         // The user is buying from us
         uint256 price = getPoolSellPrice(data.tokenId);
         require(price <= data.bondPriceLimit, "BondHook: Desired price exceeded");
+        require(price/2 > amountPaidOutFor[data.tokenId], "BondHook: Bond is priced less than purchase price");
 
-        // record how much profit was generated
+        // record how much profit was generated, as liqduitiy
         uint256 profit = price / 2 - amountPaidOutFor[data.tokenId];
-        uint256 _totalShares = bondPools[data.poolKey.toId()].totalSharesAdded;
-        bondPools[data.poolKey.toId()].profitPerShare += profit / _totalShares;
+        _addProfitToPool(data.poolKey, profit);
 
         _modifyLiquidity({
             key: data.poolKey,
@@ -279,9 +309,10 @@ contract BondHook is BaseHook {
             swapPriceLimit: data.swapPriceLimit
         });
 
-        // Transfer the bond to the user
+        // Transfer the bond to the user and zero out records
         bondIssuer.transferFrom(address(this), sender, data.tokenId);
         bondBelongsTo[data.tokenId] = PoolId.wrap(0);
+        amountPaidOutFor[data.tokenId] = 0;
 
         emit BondPurchased(data.poolKey.toId(), data.tokenId, sender, uint256(uint128(price)));
     }
@@ -364,6 +395,23 @@ contract BondHook is BaseHook {
             );
             poolManager.settle();
         }
+    }
+
+    function _addProfitToPool(PoolKey memory key, uint256 profit) internal {
+
+        // take fees for owner
+        uint256 _ownerFee = profit * ownerFeeAsPips / ONE_HUNDRED_PERCENT;
+        profit -= _ownerFee;
+        ownerFees += _ownerFee;
+
+        // how much profit goes to fee reduction
+        uint256 _feeReductionProfit = profit * profitShareRatioAsPips / ONE_HUNDRED_PERCENT;
+        profit -= _feeReductionProfit;
+        bondPools[key.toId()].liquidityForFeeReduction += _feeReductionProfit;
+
+        // add profit to pool
+        uint256 _totalShares = bondPools[key.toId()].totalSharesAdded;
+        bondPools[key.toId()].profitPerShare += profit / _totalShares;
     }
 
     function claimRewards(PoolKey calldata key) public {
@@ -474,7 +522,8 @@ contract BondHook is BaseHook {
             }),
             bondTokenIsCurrency0: key.currency0 == bondToken,
             totalSharesAdded: 0,
-            profitPerShare: 0
+            profitPerShare: 0,
+            liquidityForFeeReduction: 0
         });
 
         emit PoolAdded(key.toId());
