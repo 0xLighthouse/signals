@@ -41,7 +41,7 @@ contract BondHookTest is Test, Deployers, BondHookHarness {
     // A non-hook swap should work fine
     function test_NormalSwap() public {
         dealMockTokens();
-        addLiquidity(poolA);
+        modifyLiquidityFromProvider(poolA, 1_000_000 ether);
 
         vm.startPrank(_alice);
         // _token.approve(address(swapRouter), 100_000 either);

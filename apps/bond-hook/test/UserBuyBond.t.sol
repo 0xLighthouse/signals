@@ -32,52 +32,22 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
         deployFreshManagerAndRouters();
         deployHookAndPools();
         dealMockTokens();
-        addLiquidity(poolA);
+        modifyLiquidityFromProvider(poolA, 1_000_000 ether);
     }
 
     function test_UserBuysBond() public {
-        // Alice locks 50k against an initiative for 1 year
-        vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
-        vm.stopPrank();
-        // Jump ahead to when bond is worth 50%
-        vm.warp(block.timestamp + 365 days / 2);
+        uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
 
         // record pool balances
         uint256 _poolLiquidity = StateLibrary.getLiquidity(manager, poolA.toId());
 
-        // approve and swap the bond into the pool
-        vm.startPrank(_alice);
-        bondIssuer.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            SwapData({
-                poolKey: poolA,
-                tokenId: tokenId,
-                bondPriceLimit: 0,
-                swapPriceLimit: 0,
-                desiredCurrency: DesiredCurrency.Mixed
-            })
-        );
-        vm.stopPrank();
+        // alice sells bond for any price
+        aliceSellBond(tokenId, 0);
 
         // The maximum price we would pay for the bond.
         // 50% of 50k is 25k, plus the 10% fee is 27.5k
         uint256 bondPriceLimit = 27_500 ether;
-
-        vm.startPrank(_bob);
-        _token.approve(address(bondhook), type(uint256).max);
-        _dai.approve(address(bondhook), type(uint256).max);
-
-        bondhook.swapBond(
-            SwapData({
-                poolKey: poolA,
-                tokenId: tokenId,
-                bondPriceLimit: bondPriceLimit,
-                swapPriceLimit: 0,
-                desiredCurrency: DesiredCurrency.Mixed
-            })
-        );
-        vm.stopPrank();
+        bobBuyBond(tokenId, bondPriceLimit);
 
         // record pool balances
         uint256 _poolLiquidityAfter = StateLibrary.getLiquidity(manager, poolA.toId());
@@ -90,29 +60,13 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
     }
 
     function test_UserBuysBondSingleCurrency() public {
-        // Alice locks 50k against an initiative for 1 year
-        vm.startPrank(_alice);
-        uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
-        vm.stopPrank();
-        // Jump ahead to when bond is worth 50%
-        vm.warp(block.timestamp + 365 days / 2);
+        uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
 
         // record pool balances
         uint256 _poolLiquidity = StateLibrary.getLiquidity(manager, poolA.toId());
 
-        // approve and swap the bond into the pool
-        vm.startPrank(_alice);
-        bondIssuer.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            SwapData({
-                poolKey: poolA,
-                tokenId: tokenId,
-                bondPriceLimit: 0,
-                swapPriceLimit: 0,
-                desiredCurrency: DesiredCurrency.Mixed
-            })
-        );
-        vm.stopPrank();
+        // alice sells bond for any price
+        aliceSellBond(tokenId, 0);
 
         // The maximum price we would pay for the bond.
         // 50% of 50k is 25k, plus the 10% fee is 27.5k
