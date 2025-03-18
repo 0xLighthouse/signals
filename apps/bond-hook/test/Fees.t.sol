@@ -12,7 +12,7 @@ import {PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
-import {BondHook, LiquidityData, DesiredCurrency, SwapData, ONE_HUNDRED_PERCENT} from "../src/BondHook.sol";
+import {BondHook, BondPoolState, LiquidityData, DesiredCurrency, SwapData, ONE_HUNDRED_PERCENT} from "../src/BondHook.sol";
 
 contract FeesTest is Test, Deployers, BondHookHarness {
     using CurrencyLibrary for Currency;
@@ -23,10 +23,11 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         dealMockTokens();
     }
 
-    function test_OwnerFee() public {
+    function test_ProfitShare() public {
         uint256 feeRate = 3_0000;
+        uint256 feeReductionRate = 50_0000;       
 
-        deployHookWithFeesAndPools(feeRate, 0, 0); // 3% fee for owner
+        deployHookWithFeesAndPools(feeRate, feeReductionRate, 0); // 3% fee for owner, 50% credited towards fee reduction
         modifyLiquidityFromProvider(poolA, 1_000_000 ether);
 
          uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
@@ -35,6 +36,7 @@ contract FeesTest is Test, Deployers, BondHookHarness {
 
         // 2_500 in profit should have been generated, generating 3% for the owner
         assertApproxEqAbs(bondhook.ownerFees(), 2_500 ether * feeRate / ONE_HUNDRED_PERCENT, 100, "Owner fee should be 3% of profit");
+        assertApproxEqAbs(bondhook.liquidityForFeeReduction(poolA.toId()), 2_500 ether * feeReductionRate / ONE_HUNDRED_PERCENT, 100, "Fee reduction should be 50% of profit");
     }
 
     // function test_earnFees() public {
