@@ -39,83 +39,42 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         assertApproxEqAbs(bondhook.liquidityForFeeReduction(poolA.toId()), 2_500 ether * feeReductionRate / ONE_HUNDRED_PERCENT, 100, "Fee reduction should be 50% of profit");
     }
 
-    // function test_earnFees() public {
-    //     return;
-    //     uint256 _initialDaiBalance = _dai.balanceOf(address(_liquidityProvider));
-    //     uint256 _initialTokenBalance = _token.balanceOf(address(_liquidityProvider));
+    function test_lpEarnFees() public {
+        deployHookAndPools(); 
 
-    //     // Add liquidity to pool as liquidity provider
-    //     modifyLiquidityFromProvider(poolA, 100_000 ether);
+        uint256 _initialDaiBalance = _dai.balanceOf(address(_liquidityProvider));
+        uint256 _initialTokenBalance = _token.balanceOf(address(_liquidityProvider));
 
-    //     vm.startPrank(_alice);
-    //     uint256 tokenId = bondIssuer.createBond(1, 50_000 ether, 365 days);
+        // Add liquidity, bond gets sold and bought, remove original liquidity
+        modifyLiquidityFromProvider(poolA, 100_000 ether);
+        uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
+        aliceSellBond(tokenId, 22_500 ether);
+        bobBuyBond(tokenId, 27_500 ether);
+        modifyLiquidityFromProvider(poolA, -100_000 ether);
 
-    //     // Jump ahead to when bond is worth 50%
-    //     vm.warp(block.timestamp + 365 days / 2);
+        // we should have earned all of the profit.
+        assertEq(
+            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
+        );
 
-    //     // approve and sell bond into the pool
-    //     bondIssuer.approve(address(bondhook), tokenId);
-    //     bondhook.swapBond(
-    //         SwapData({
-    //             poolKey: poolA,
-    //             tokenId: tokenId,
-    //             bondPriceLimit: 0,
-    //             swapPriceLimit: 0,
-    //             desiredCurrency: DesiredCurrency.Mixed
-    //         })
-    //     );
-    //     vm.stopPrank();
+        vm.prank(_liquidityProvider);
+        bondhook.claimRewards(poolA);
+        uint256 _profit = bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider));
+        assertEq(_profit, 2_500 ether, "Incorrect amount of profit earned"); 
 
-    //     // The maximum price we would pay for the bond.
-    //     // 50% of 50k is 25k, plus the 10% fee is 27.5k
-    //     uint256 bondPriceLimit = 27_500 ether;
+        // Withdraw the profit
+        modifyLiquidityFromProvider(poolA, -int128(int256(_profit)));
 
-    //     // Bob buys the bond
-    //     vm.startPrank(_bob);
-    //     _token.approve(address(bondhook), type(uint256).max);
-    //     _dai.approve(address(bondhook), type(uint256).max);
-
-    //     bondhook.swapBond(
-    //         SwapData({
-    //             poolKey: poolA,
-    //             tokenId: tokenId,
-    //             bondPriceLimit: bondPriceLimit,
-    //             swapPriceLimit: 0,
-    //             desiredCurrency: DesiredCurrency.Mixed
-    //         })
-    //     );
-    //     vm.stopPrank();
-
-    //     // Finally, LP removes original liquidity from pool
-    //     // TODO: What happens when LP is in an IL position?
-    //     modifyLiquidityFromProvider(poolA, -100_000 ether);
-
-    //     // we should have earned all of the profit.
-    //     assertEq(
-    //         bondhook.balanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
-    //     );
-
-    //     bondhook.claimRewards(poolA);
-    //     uint256 _profit = bondhook.balanceOf(poolA.toId(), address(_liquidityProvider));
-    //     assertEq(_profit, 2_500 ether, "Incorrect amount of profit earned");
-
-    //     uint128 _liquidity = StateLibrary.getLiquidity(manager, poolA.toId());
-    //     console.log("liquidity", _liquidity);
-
-    //     // Withdraw the profit
-    //     modifyLiquidityFromProvider(poolA, -int128(int256(_profit)));
-
-    //     // Assert how much profit was generated from this position
-    //     // Users should have ended up with 2.5k more than they started with
-    //     assertApproxEqAbs(
-    //         _dai.balanceOf(address(_liquidityProvider)), _initialDaiBalance + 2_500 ether, 1000, "Incorrect dai balance"
-    //     );
-    //     assertApproxEqAbs(
-    //         _token.balanceOf(address(_liquidityProvider)),
-    //         _initialTokenBalance + 2_500 ether,
-    //         1000,
-    //         "Incorrect token balance"
-    //     );
-    // }
+        // Users should have ended up with 2.5k more than they started with
+        assertApproxEqAbs(
+            _dai.balanceOf(address(_liquidityProvider)), _initialDaiBalance + 2_500 ether, 1000, "Incorrect dai balance"
+        );
+        assertApproxEqAbs(
+            _token.balanceOf(address(_liquidityProvider)),
+            _initialTokenBalance + 2_500 ether,
+            1000,
+            "Incorrect token balance"
+        );
+    }
 
 }
