@@ -119,7 +119,7 @@ contract BondHook is BaseHook {
     // When fee reductions are available, how much is reduced per swap (as percent of whole fee)
     uint256 public immutable swapFeeDiscountAsPips;
 
-    // Record whether the bond token is currency 0 or 1 for each pool
+    // Record state of each pool
     mapping(PoolId => BondPoolState) internal bondPools;
 
     // Record all LPs
@@ -437,6 +437,12 @@ contract BondHook is BaseHook {
      */
     function balanceOf(PoolId id, address user) public view returns (uint256) {
         return liquidityProviders[id][user].amount;
+    }
+
+    
+
+    function liquidityForFeeReduction(PoolId id) public view returns (uint256) {
+        return bondPools[id].liquidityForFeeReduction;
     }
 
     /**
