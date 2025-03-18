@@ -13,8 +13,8 @@ import {MockIssuer} from "./MockIssuer.m.sol";
 
 import {Currency} from "v4-core/types/Currency.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
-
-import {BondHook, DesiredCurrency, LiquidityData, BondHookOptions} from "../../src/BondHook.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {BondHook, DesiredCurrency, LiquidityData, BondHookOptions, SwapData} from "../../src/BondHook.sol";
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
@@ -70,6 +70,10 @@ contract BondHookHarness is Test, Deployers {
     }
 
     function deployHookAndPools() public {
+        deployHookWithFeesAndPools(0, 0, 0);
+    }
+
+    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 profitShareRatioAsPips, uint256 swapFeeDiscountAsPips) public {
         // Deploy hook with correct flags
         address _hookAddress = address(uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
@@ -80,9 +84,9 @@ contract BondHookHarness is Test, Deployers {
             poolManager: IPoolManager(manager),
             bondIssuer: address(bondIssuer),
             bondPricing: address(pricingContract),
-            ownerFeeAsPips: 0,
-            profitShareRatioAsPips: 0,
-            swapFeeDiscountAsPips: 0
+            ownerFeeAsPips: ownerFeeAsPips,
+            profitShareRatioAsPips: profitShareRatioAsPips,
+            swapFeeDiscountAsPips: swapFeeDiscountAsPips
         }));
 
         deployCodeTo("BondHook.sol", args, _hookAddress);
@@ -96,7 +100,7 @@ contract BondHookHarness is Test, Deployers {
         poolBIsGovZero = Currency.unwrap(poolB.currency0) == address(_token);
     }
 
-    function addLiquidity(PoolKey memory _key) public {
+    function modifyLiquidityFromProvider(PoolKey memory _key, int128 _liquidityDelta) public {
         MockERC20 currency0 = MockERC20(Currency.unwrap(_key.currency0));
         MockERC20 currency1 = MockERC20(Currency.unwrap(_key.currency1));
 
@@ -106,7 +110,7 @@ contract BondHookHarness is Test, Deployers {
 
         bondhook.modifyLiquidity(LiquidityData({
             poolKey: _key,
-            liquidityDelta: 1_000_000 ether,
+            liquidityDelta: _liquidityDelta,
             desiredCurrency: DesiredCurrency.Mixed,
             swapPriceLimit: 0
         }));
@@ -126,6 +130,55 @@ contract BondHookHarness is Test, Deployers {
         vm.startPrank(_user);
         _token.approve(address(bondIssuer), _amount);
         tokenId = bondIssuer.createBond(1, _amount, _duration);
+        vm.stopPrank();
+    }
+
+    // Create bond using the specified abmoutn of lockup. Wait time is a percent (e.g. 50 = 50% of duration)
+    function aliceCreateBondAndWaits(uint256 _amount, uint256 _waitTimeAsPercentOfDuration) public returns (uint256 _tokenId) {
+        vm.startPrank(_alice);
+        _tokenId = bondIssuer.createBond(1, _amount, 365 days);
+        vm.stopPrank();
+
+        // Jump ahead to when bond is worth 50%
+        vm.warp(block.timestamp + 365 days * _waitTimeAsPercentOfDuration / 100);
+    }
+
+    // Alice sells the bond for mixed currency
+    function aliceSellBond(uint256 _tokenId, uint256 _bondPriceLimit) public {
+
+        vm.startPrank(_alice);
+        bondIssuer.approve(address(bondhook), _tokenId);
+        bondhook.swapBond(
+            SwapData({
+                poolKey: poolA,
+                tokenId: _tokenId,
+                bondPriceLimit: _bondPriceLimit,
+                swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+                desiredCurrency: DesiredCurrency.Mixed
+            })
+        );
+        vm.stopPrank();
+    }
+
+    // Bob buys the bond for mixed currency
+    function bobBuyBond(uint256 _tokenId, uint256 _bondPriceLimit) public {
+        if (_bondPriceLimit == 0) {
+            _bondPriceLimit = type(uint256).max;
+        }
+
+        vm.startPrank(_bob);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
+
+        bondhook.swapBond(
+            SwapData({
+                poolKey: poolA,
+                tokenId: _tokenId,
+                bondPriceLimit: _bondPriceLimit,
+                swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+                desiredCurrency: DesiredCurrency.Mixed
+            })
+        );
         vm.stopPrank();
     }
 

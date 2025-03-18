@@ -34,7 +34,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         deployFreshManagerAndRouters();
         deployHookAndPools();
         dealMockTokens();
-        addLiquidity(poolA);
+        modifyLiquidityFromProvider(poolA, 1_000_000 ether);
     }
 
     function test_UserSellsBond() public {
@@ -56,19 +56,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         uint256 _govBefore = _token.balanceOf(address(_alice));
         uint256 _daiBefore = _dai.balanceOf(address(_alice));
 
-        // approve and swap the bond into the pool
-        vm.startPrank(_alice);
-        bondIssuer.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            SwapData({
-                poolKey: poolA,
-                tokenId: tokenId,
-                bondPriceLimit: bondPriceLimit,
-                swapPriceLimit: 0,
-                desiredCurrency: DesiredCurrency.Mixed
-            })
-        );
-        vm.stopPrank();
+        aliceSellBond(tokenId, bondPriceLimit);
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
         uint256 _daiAfter = _dai.balanceOf(address(_alice));

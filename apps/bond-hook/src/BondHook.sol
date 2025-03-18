@@ -30,7 +30,7 @@ struct BondPoolState {
     uint256 totalSharesAdded;
     // The profit generated per 1e18 of liquidity provided to the pool
     uint256 profitPerShare;
-    // Profit available to reduce fees
+    // Amount of credit for reducing fees
     uint256 liquidityForFeeReduction;
 }
 
@@ -86,7 +86,7 @@ struct BondHookOptions {
     uint256 swapFeeDiscountAsPips;
 }
 
-uint256 constant ONE_HUNDRED_PERCENT = 100_00;
+uint256 constant ONE_HUNDRED_PERCENT = 100_0000;
 
 /**
  * - LPs provide need to provide single sided liquidity to a pool
@@ -152,7 +152,7 @@ contract BondHook is BaseHook {
         bondPricing = IBondPricing(options.bondPricing);
         owner = msg.sender;
 
-        require(options.ownerFeeAsPips + options.profitShareRatioAsPips <= ONE_HUNDRED_PERCENT, "BondHook: Fees must not exceed 100%");
+        require(options.ownerFeeAsPips <= ONE_HUNDRED_PERCENT, "BondHook: Owner fee must not exceed 100%");
         ownerFeeAsPips = options.ownerFeeAsPips;
         profitShareRatioAsPips = options.profitShareRatioAsPips;
         swapFeeDiscountAsPips = options.swapFeeDiscountAsPips;
@@ -398,16 +398,14 @@ contract BondHook is BaseHook {
     }
 
     function _addProfitToPool(PoolKey memory key, uint256 profit) internal {
-
-        // take fees for owner
-        uint256 _ownerFee = profit * ownerFeeAsPips / ONE_HUNDRED_PERCENT;
-        profit -= _ownerFee;
-        ownerFees += _ownerFee;
-
-        // how much profit goes to fee reduction
+        // how much profit gets credited to fee reduction
         uint256 _feeReductionProfit = profit * profitShareRatioAsPips / ONE_HUNDRED_PERCENT;
-        profit -= _feeReductionProfit;
         bondPools[key.toId()].liquidityForFeeReduction += _feeReductionProfit;
+
+        // take profit for owner
+        uint256 _ownerFee = profit * ownerFeeAsPips / ONE_HUNDRED_PERCENT;
+        ownerFees += _ownerFee;
+        profit -= _ownerFee;
 
         // add profit to pool
         uint256 _totalShares = bondPools[key.toId()].totalSharesAdded;
