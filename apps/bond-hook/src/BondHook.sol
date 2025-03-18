@@ -435,12 +435,16 @@ contract BondHook is BaseHook {
      * @param user The address of the user
      * @return balance The balance of the user
      */
-    function balanceOf(PoolId id, address user) public view returns (uint256) {
+    function liquidityBalanceOf(PoolId id, address user) public view returns (uint256) {
         return liquidityProviders[id][user].amount;
     }
 
-    
 
+    /**
+     * @notice Get the balance of liquidity currently available for fee reduction
+     * @param id The ID of the pool
+     * @return balance The balance of liquidity available for fee reduction
+     */
     function liquidityForFeeReduction(PoolId id) public view returns (uint256) {
         return bondPools[id].liquidityForFeeReduction;
     }

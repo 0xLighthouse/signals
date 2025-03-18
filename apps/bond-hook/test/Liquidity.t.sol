@@ -56,7 +56,7 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
 
         // Check that the user was credited with the liquidity
         assertEq(
-            bondhook.balanceOf(poolA.toId(), address(_liquidityProvider)),
+            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)),
             10 ether,
             "Incorrect user liquidity deposited"
         );
@@ -77,7 +77,7 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
 
         // Check that the balance of the user is 0 ether
         assertEq(
-            bondhook.balanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
+            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
         );
 
         // Check that the total liquidity is 0 ether
