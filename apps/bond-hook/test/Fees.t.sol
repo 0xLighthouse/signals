@@ -18,7 +18,9 @@ import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
 
-import {BondHook, BondPoolState, LiquidityData, DesiredCurrency, SwapData, ONE_HUNDRED_PERCENT} from "../src/BondHook.sol";
+import {BondHook, LiquidityData, DesiredCurrency, SwapData} from "../src/BondHook.sol";
+import {BondPoolState, BondPoolLibrary} from "../src/utils/BondPool.sol";
+
 
 contract FeesTest is Test, Deployers, BondHookHarness {
     using CurrencyLibrary for Currency;
@@ -85,24 +87,26 @@ contract FeesTest is Test, Deployers, BondHookHarness {
 
     function test_playground() public {
         // deployHookAndPools();
-        // modifyLiquidityFromProvider(poolA, 10_000 ether);
+        // modifyLiquidityFromProvider(poolA, 100_000 ether);
 
-        // // get current sqrt price
-        // // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, poolA.toId());
+        // BondPoolState memory state = bondhook.getBondPoolState(poolA.toId());
+        // uint256 liquidity = BondPoolLibrary.getLiquidityForBondTokenAmount(state, manager, 10 ether);
 
-        // uint256 liquidity = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
-        // console.log("liquidity", liquidity);
+        // uint256 amountToSwap = BondPoolLibrary.getSwapAmountForLiquidityConversion(state, manager, 10 ether);
 
-        // // Do a swap
-        //  vm.startPrank(_alice);
-        //  _dai.approve(address(swapRouter), 10000 ether);
-        //  _token.approve(address(swapRouter), 10000 ether);
+        // console.log("amountToSwap", amountToSwap);
+
+        // // Performa a swap
+        // vm.startPrank(_alice);
+        // _dai.approve(address(swapRouter), 10000 ether);
+        // _token.approve(address(swapRouter), 10000 ether);
+
         // swapRouter.swap(
         //     poolA,
         //     IPoolManager.SwapParams({
-        //         zeroForOne: !poolAIsGovZero,
-        //         amountSpecified: 100 ether,
-        //         sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
+        //         zeroForOne: true,
+        //         amountSpecified: -10000 ether,
+        //         sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         //     }),
         //     PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
         //     // hookData
@@ -110,8 +114,51 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         // );
         // vm.stopPrank();
 
-        // uint256 liquidity2 = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
-        // console.log("liquidity2", liquidity2);
+        // amountToSwap = BondPoolLibrary.getSwapAmountForLiquidityConversion(state, manager, 10 ether);
+        // console.log("amountToSwap", amountToSwap);
+
+        // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(manager, poolA.toId());
+        // int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
+        // int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
+
+        // uint256 a1 = 10 ether - amountToSwap;
+        // uint256 a0 = amountToSwap;
+
+        // if (!state.bondTokenIsCurrency0) {
+        //     (a0, a1) = (a1, a0);
+        // }
+
+        // uint128 results = LiquidityAmounts.getLiquidityForAmounts(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), TickMath.getSqrtPriceAtTick(minTick),  a0, a1);
+        // console.log("results", results);
+
+        // // deployHookAndPools();
+        // // modifyLiquidityFromProvider(poolA, 10_000 ether);
+
+        // // // get current sqrt price
+        // // // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, poolA.toId());
+
+        // // uint256 liquidity = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
+        // // console.log("liquidity", liquidity);
+
+        // // // Do a swap
+        // //  vm.startPrank(_alice);
+        // //  _dai.approve(address(swapRouter), 10000 ether);
+        // //  _token.approve(address(swapRouter), 10000 ether);
+        // // swapRouter.swap(
+        // //     poolA,
+        // //     IPoolManager.SwapParams({
+        // //         zeroForOne: !poolAIsGovZero,
+        // //         amountSpecified: 100 ether,
+        // //         sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
+        // //     }),
+        // //     PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
+        // //     // hookData
+        // //     ZERO_BYTES
+        // // );
+        // // vm.stopPrank();
+
+        // // uint256 liquidity2 = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
+        // // console.log("liquidity2", liquidity2);
 
 
     }

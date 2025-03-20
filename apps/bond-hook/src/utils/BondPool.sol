@@ -9,6 +9,8 @@ import {FullMath} from "v4-core/libraries/FullMath.sol";
 import {FixedPoint96} from "v4-core/libraries/FixedPoint96.sol";
 import {LiquidityAmounts} from "./LiquidityAmounts.sol";
 
+import {console} from "forge-std/console.sol";
+
 uint256 constant ONE_HUNDRED_PERCENT = 100_0000;
 
 struct BondPoolState {
@@ -95,31 +97,35 @@ library BondPoolLibrary {
         }
     }
 
-    /// @notice Get the amount of bond token that should be swapped for the other asset in order to convert
-    /// the whole into liquidity.
+    /// @notice Given an amount of bond token, how much should we swap to the other asset
+    /// in order to be able to deposit all as liquidity
     /// @param state The state of the pool
     /// @param poolManager The pool manager
     /// @return amountInBondToken The amount of bond token that would be swapped for the liquidity
-    function getSwapAmountForLiquidityConversion(BondPoolState memory state, IPoolManager poolManager, uint256 amountInBondToken) internal view returns (uint256) {
-        // Find the ratio of bond token to other asset at current exchange rate, then use that to figure out
-        // how much we should swap
+    function getSwapAmountForConvertBondTokenToLiquidity(BondPoolState memory state, IPoolManager poolManager, uint256 amountInBondToken) internal view returns (uint256) {
 
         (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, state.key.toId());
+        int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
+        int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
 
-        // Find the amount of liquidity for our baseline amount at the current rate
-        uint256 liquidity = getLiquidityForBondTokenAmount(state, poolManager, ONE_HUNDRED_PERCENT);
-        
-        uint256 amountInOtherAsset;
-        if (state.bondTokenIsCurrency0) {
-            int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
-            amountInOtherAsset = LiquidityAmounts.getAmount1ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(liquidity));
-        } else {
-            int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
-            amountInOtherAsset = LiquidityAmounts.getAmount0ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(liquidity));
-        }
-
-        uint256 otherAsset = FullMath.mulDiv(amountInBondToken, amountInOtherAsset, ONE_HUNDRED_PERCENT);
-        return otherAsset;
+        return _calculateSwapAmountForLiquidityConversion(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), TickMath.getSqrtPriceAtTick(minTick), amountInBondToken, state.bondTokenIsCurrency0);
     }
 
+    function _calculateSwapAmountForLiquidityConversion(uint160 priceX96,uint160 maxPriceX96, uint160 minPriceX96, uint256 amountInBondToken, bool bondTokenIsCurrency0) public pure returns (uint256) {
+         uint160 liquidity;
+
+         if (bondTokenIsCurrency0) {
+            liquidity = LiquidityAmounts.getLiquidityForAmount0(priceX96, maxPriceX96, amountInBondToken);
+         } else {
+            liquidity = LiquidityAmounts.getLiquidityForAmount1(priceX96, minPriceX96, amountInBondToken);
+         }
+         
+         (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(priceX96, minPriceX96, maxPriceX96, uint128(liquidity/2));
+
+        if (bondTokenIsCurrency0) {
+            return amount1;
+        } else {
+            return amount0;
+        }
+    }
 }
