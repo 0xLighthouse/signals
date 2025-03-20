@@ -20,8 +20,6 @@ import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
 
 import { BondPoolState, BondPoolLibrary } from "./utils/BondPool.sol";
 
-
-
 import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
 
 struct CallbackData {
@@ -110,7 +108,7 @@ contract BondHook is BaseHook {
     uint24 defaultSwapFeeDiscounted;
 
     // Record state of each pool
-    mapping(PoolId => BondPoolState) internal bondPools;
+    mapping(PoolId => BondPoolState) public bondPools; //TODO: return to internal after tests
 
     // Record all LPs
     mapping(PoolId => mapping(address => LiquidityPosition)) internal liquidityProviders;
@@ -601,5 +599,11 @@ contract BondHook is BaseHook {
     // Calculate how many shares of profit sharing an amount of liquidity is worth
     function _getSharesFromLiquidity(uint256 liquidity) internal pure returns (uint256) {
         return liquidity / 1e6;
+    }
+
+
+    //TODO: Temporary
+    function getBondPoolState(PoolId id) public view returns (BondPoolState memory) {
+        return bondPools[id];
     }
 }

@@ -47,6 +47,9 @@ contract BondHookHarness is Test, Deployers {
     PoolKey poolB; // DAI/GOV
     bool poolBIsGovZero;
 
+    PoolKey poolC; // USDC/GOV at price ratio of 1:4
+    bool poolCIsGovZero;
+
     function dealMockTokens() public {
         _dealToken(_token);
         _dealToken(_usdc);
@@ -70,10 +73,10 @@ contract BondHookHarness is Test, Deployers {
     }
 
     function deployHookAndPools() public {
-        deployHookWithFeesAndPools(0, 0, 0, 0);
+        deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_1);
     }
 
-    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted) public {
+    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted, uint160 startingPriceX96) public {
         // Deploy hook with correct flags
         address _hookAddress = address(uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
@@ -94,10 +97,10 @@ contract BondHookHarness is Test, Deployers {
         bondhook = BondHook(_hookAddress);
 
         // Deploy the pools
-        poolA = _deployPool(_dai, _token); // DAI/GOV
+        poolA = _deployPool(_dai, _token, startingPriceX96); // DAI/GOV
         poolAIsGovZero = Currency.unwrap(poolA.currency0) == address(_token);
 
-        poolB = _deployPool(_usdc, _token); // USDC/GOV
+        poolB = _deployPool(_usdc, _token, startingPriceX96); // USDC/GOV
         poolBIsGovZero = Currency.unwrap(poolB.currency0) == address(_token);
     }
 
@@ -118,9 +121,9 @@ contract BondHookHarness is Test, Deployers {
         vm.stopPrank();
     }
 
-    function _deployPool(MockERC20 currencyA, MockERC20 currencyB) public returns (PoolKey memory _key) {
+    function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96) public returns (PoolKey memory _key) {
         (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
-        (_key,) = initPool(_currency0, _currency1, bondhook, 0x800000, SQRT_PRICE_1_1);
+        (_key,) = initPool(_currency0, _currency1, bondhook, 0x800000, priceX96);
         return _key;
     }
 
