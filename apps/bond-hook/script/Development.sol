@@ -55,9 +55,10 @@ contract DeployManagerAndHook is Script, Deployers {
                 poolManager: IPoolManager(manager),
                 bondIssuer: address(bondIssuer),
                 bondPricing: address(pricing),
-                ownerFeeAsPips: 1000,
-                profitShareRatioAsPips: 1000,
-                swapFeeDiscountAsPips: 1000
+                ownerFeeAsPips: 0,
+                feeCreditRatioAsPips: 0,
+                swapFeeNormal: 0,
+                swapFeeDiscounted: 0
             })
         );
         console.log("BondHookContract", address(hook));
