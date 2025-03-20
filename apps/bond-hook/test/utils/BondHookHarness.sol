@@ -70,10 +70,10 @@ contract BondHookHarness is Test, Deployers {
     }
 
     function deployHookAndPools() public {
-        deployHookWithFeesAndPools(0, 0, 0);
+        deployHookWithFeesAndPools(0, 0, 0, 0);
     }
 
-    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 profitShareRatioAsPips, uint256 swapFeeDiscountAsPips) public {
+    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted) public {
         // Deploy hook with correct flags
         address _hookAddress = address(uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
@@ -85,8 +85,9 @@ contract BondHookHarness is Test, Deployers {
             bondIssuer: address(bondIssuer),
             bondPricing: address(pricingContract),
             ownerFeeAsPips: ownerFeeAsPips,
-            profitShareRatioAsPips: profitShareRatioAsPips,
-            swapFeeDiscountAsPips: swapFeeDiscountAsPips
+            feeCreditRatioAsPips: feeCreditRatioAsPips,
+            swapFeeNormal: swapFeeNormal,
+            swapFeeDiscounted: swapFeeDiscounted
         }));
 
         deployCodeTo("BondHook.sol", args, _hookAddress);
@@ -119,7 +120,7 @@ contract BondHookHarness is Test, Deployers {
 
     function _deployPool(MockERC20 currencyA, MockERC20 currencyB) public returns (PoolKey memory _key) {
         (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
-        (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
+        (_key,) = initPool(_currency0, _currency1, bondhook, 0x800000, SQRT_PRICE_1_1);
         return _key;
     }
 

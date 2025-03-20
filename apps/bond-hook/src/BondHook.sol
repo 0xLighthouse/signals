@@ -18,21 +18,11 @@ import { SafeCallback } from "v4-periphery/base/SafeCallback.sol";
 
 import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
 
+import { BondPoolState, BondPoolLibrary } from "./utils/BondPool.sol";
+
+
 
 import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
-
-struct BondPoolState {
-    // The liquidity position id of the pool
-    bytes32 positionId;
-    // If the underlying currency is currency0 or currency1.
-    bool bondTokenIsCurrency0;
-    // The total liquidity provided by LPs
-    uint256 totalSharesAdded;
-    // The profit generated per 1e18 of liquidity provided to the pool
-    uint256 profitPerShare;
-    // Amount of credit for reducing fees
-    uint256 liquidityForFeeReduction;
-}
 
 struct CallbackData {
     Action action;
@@ -82,11 +72,13 @@ struct BondHookOptions {
     address bondIssuer;
     address bondPricing;
     uint256 ownerFeeAsPips;
-    uint256 profitShareRatioAsPips;
-    uint256 swapFeeDiscountAsPips;
+    uint256 feeCreditRatioAsPips;
+    uint24 swapFeeNormal;
+    uint24 swapFeeDiscounted;
 }
 
 uint256 constant ONE_HUNDRED_PERCENT = 100_0000;
+uint24 constant DYNAMIC_FEE_FLAG = 0x800000; // Recreated here instead of importing PoolManager lib
 
 /**
  * - LPs provide need to provide single sided liquidity to a pool
@@ -99,8 +91,7 @@ uint256 constant ONE_HUNDRED_PERCENT = 100_0000;
 contract BondHook is BaseHook {
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
-
-    
+    using BondPoolLibrary for BondPoolState;
 
     IBondIssuer public immutable bondIssuer;
     IBondPricing public bondPricing;
@@ -114,10 +105,9 @@ contract BondHook is BaseHook {
     // OWner's balance of fees
     uint256 public ownerFees;
 
-    // When profit is generated, how much goes to reducing the fees of swappers
-    uint256 public immutable profitShareRatioAsPips;
-    // When fee reductions are available, how much is reduced per swap (as percent of whole fee)
-    uint256 public immutable swapFeeDiscountAsPips;
+    uint256 defaultFeeCreditRatio;
+    uint24 defaultSwapFeeNormal;
+    uint24 defaultSwapFeeDiscounted;
 
     // Record state of each pool
     mapping(PoolId => BondPoolState) internal bondPools;
@@ -154,8 +144,12 @@ contract BondHook is BaseHook {
 
         require(options.ownerFeeAsPips <= ONE_HUNDRED_PERCENT, "BondHook: Owner fee must not exceed 100%");
         ownerFeeAsPips = options.ownerFeeAsPips;
-        profitShareRatioAsPips = options.profitShareRatioAsPips;
-        swapFeeDiscountAsPips = options.swapFeeDiscountAsPips;
+
+        require(options.swapFeeNormal <= ONE_HUNDRED_PERCENT, "BondHook: Swap fee must not exceed 100%");
+        defaultSwapFeeNormal = options.swapFeeNormal;
+        require(options.swapFeeDiscounted <= options.swapFeeNormal, "BondHook: Discounted swap fee must be less than or equal to normal swap fee");
+        defaultSwapFeeDiscounted = options.swapFeeDiscounted;
+        defaultFeeCreditRatio = options.feeCreditRatioAsPips;
     }
 
     // We receive an int128, to leave room for casting negative values to uint
@@ -272,6 +266,7 @@ contract BondHook is BaseHook {
         bondIssuer.transferFrom(sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
 
+        //TODO: Convert real token value to liquidity
         // Record how much liquidity was spent on it
         amountPaidOutFor[data.tokenId] = price / 2;
 
@@ -299,7 +294,7 @@ contract BondHook is BaseHook {
 
         // record how much profit was generated, as liqduitiy
         uint256 profit = price / 2 - amountPaidOutFor[data.tokenId];
-        _addProfitToPool(data.poolKey, profit);
+        // _addProfitToPool(data.poolKey, profit, 0);
 
         _modifyLiquidity({
             key: data.poolKey,
@@ -397,21 +392,6 @@ contract BondHook is BaseHook {
         }
     }
 
-    function _addProfitToPool(PoolKey memory key, uint256 profit) internal {
-        // how much profit gets credited to fee reduction
-        uint256 _feeReductionProfit = profit * profitShareRatioAsPips / ONE_HUNDRED_PERCENT;
-        bondPools[key.toId()].liquidityForFeeReduction += _feeReductionProfit;
-
-        // take profit for owner
-        uint256 _ownerFee = profit * ownerFeeAsPips / ONE_HUNDRED_PERCENT;
-        ownerFees += _ownerFee;
-        profit -= _ownerFee;
-
-        // add profit to pool
-        uint256 _totalShares = bondPools[key.toId()].totalSharesAdded;
-        bondPools[key.toId()].profitPerShare += profit / _totalShares;
-    }
-
     function claimRewards(PoolKey calldata key) public {
         // Get user's supplied liquidity, equivalent shares, and profit per share
         LiquidityPosition memory position = liquidityProviders[key.toId()][msg.sender];
@@ -439,14 +419,13 @@ contract BondHook is BaseHook {
         return liquidityProviders[id][user].amount;
     }
 
-
     /**
      * @notice Get the balance of liquidity currently available for fee reduction
      * @param id The ID of the pool
      * @return balance The balance of liquidity available for fee reduction
      */
-    function liquidityForFeeReduction(PoolId id) public view returns (uint256) {
-        return bondPools[id].liquidityForFeeReduction;
+    function liquidityForFeeReduction(PoolId id) public view returns (int256) {
+        return bondPools[id].creditForSwapFeesInBondToken;
     }
 
     /**
@@ -521,7 +500,13 @@ contract BondHook is BaseHook {
             revert InvalidPool();
         }
 
+        // If the pool doesn't support dynamic fees, we can't use this hook
+        if (key.fee != DYNAMIC_FEE_FLAG) {
+            revert InvalidPool();
+        }
+
         bondPools[key.toId()] = BondPoolState({
+            key: key,
             positionId: Position.calculatePositionKey({
                 owner: address(this),
                 tickLower: TickMath.minUsableTick(key.tickSpacing),
@@ -529,9 +514,13 @@ contract BondHook is BaseHook {
                 salt: bytes32(0)
             }),
             bondTokenIsCurrency0: key.currency0 == bondToken,
+            normalSwapFee: defaultSwapFeeNormal,
+            reducedSwapFee: defaultSwapFeeDiscounted,
+            feeCreditPercentAsPips: defaultFeeCreditRatio,
+
             totalSharesAdded: 0,
             profitPerShare: 0,
-            liquidityForFeeReduction: 0
+            creditForSwapFeesInBondToken: 0
         });
 
         emit PoolAdded(key.toId());
@@ -547,12 +536,58 @@ contract BondHook is BaseHook {
         return this.beforeAddLiquidity.selector;
     }
 
-    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
+    function _beforeSwap(address sender, PoolKey calldata, IPoolManager.SwapParams calldata params, bytes calldata hookData)
         internal
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
+        // If this is an internal swap, charge no fees
+        if (sender == address(this)) {
+            return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), DYNAMIC_FEE_FLAG);
+        }
+
+        // // The amount we are dealing with
+        // uint128 _amount = params.amountSpecified < 0 ? uint128(-params.amountSpecified) : uint128(params.amountSpecified);
+        
+        // // get the current sqrt price of the pool
+        // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, key.toId());
+        
+        // // Convert to liquidity given the amount in the specified currency
+        // uint256 _liquidity;
+        // if ((params.zeroForOne && params.amountSpecified < 0) || (!params.zeroForOne && params.amountSpecified > 0)) {
+        //     uint256 intermediate = FullMath.mulDiv(sqrtPriceAX96, sqrtPriceBX96, FixedPoint96.Q96);
+        // return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtPriceBX96 - sqrtPriceAX96));
+        // } else {
+        //     _currency0 = false;
+        // }
+
+
+
+        //     _liquidity = LiquidityAmounts.getLiquidityForAmount0(params.sqrtPriceLimitX96, params.sqrtPriceLimitX96, uint128(params.amountSpecified < 0 ? -params.amountSpecified : params.amountSpecified));
+
+        //     // If the liquidity is greater than the liquidity for fee reduction, we need to subtract the amount of liquidity for fee reduction from the liquidity  if (sqrtPriceAX96 > sqrtPriceBX96) (sqrtPriceAX96, sqrtPriceBX96) = (sqrtPriceBX96, sqrtPriceAX96);
+        // uint256 intermediate = FullMath.mulDiv(sqrtPriceAX96, sqrtPriceBX96, FixedPoint96.Q96);
+        // return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtPriceBX96 - sqrtPriceAX96));
+        // } else {
+        //     _liquidity = LiquidityAmounts.getLiquidityForAmount1(params.sqrtPriceLimitX96, params.sqrtPriceLimitX96, uint128(params.amountSpecified < 0 ? -params.amountSpecified : params.amountSpecified));
+        // }
+
+        // uint24 _customFee;  
+        // if (bondPools[key.toId()].liquidityForFeeReduction >= _liquidity) {
+        //     // Set fee to reduced level and subtract amount of credit
+        //     _customFee = swapFeeDiscounted | DYNAMIC_FEE_FLAG;
+        //     // Calculate amount of fee that would have been had
+        //     uint256 _potentialFee = _liquidity * swapFeeNormal / ONE_HUNDRED_PERCENT;
+        //     // Calculate new fee
+        //     uint256 _newFee = _liquidity * swapFeeDiscounted / ONE_HUNDRED_PERCENT;
+        //     // Reduce remainging credit by the amount of fees that were missed out on
+        //     bondPools[key.toId()].liquidityForFeeReduction -= _potentialFee - _newFee;
+        // } else {
+        //     _customFee = swapFeeNormal;
+        // }
+
         return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
+        // return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), _customFee);
     }
 
     function _afterSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
