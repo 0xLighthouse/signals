@@ -324,6 +324,19 @@
   },
   {
     "type": "function",
+    "name": "getTitle",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getTokenLock",
     "inputs": [
       {
@@ -475,6 +488,11 @@
         "type": "tuple",
         "internalType": "struct ISignals.SignalsConfig",
         "components": [
+          {
+            "name": "version",
+            "type": "string",
+            "internalType": "string"
+          },
           {
             "name": "owner",
             "type": "address",
@@ -745,12 +763,12 @@
     "name": "proposeInitiative",
     "inputs": [
       {
-        "name": "title",
+        "name": "_title",
         "type": "string",
         "internalType": "string"
       },
       {
-        "name": "body",
+        "name": "_body",
         "type": "string",
         "internalType": "string"
       }
@@ -763,22 +781,22 @@
     "name": "proposeInitiativeWithLock",
     "inputs": [
       {
-        "name": "title",
+        "name": "_title",
         "type": "string",
         "internalType": "string"
       },
       {
-        "name": "body",
+        "name": "_body",
         "type": "string",
         "internalType": "string"
       },
       {
-        "name": "amount",
+        "name": "_amount",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "lockDuration",
+        "name": "_lockDuration",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -927,6 +945,19 @@
   },
   {
     "type": "function",
+    "name": "setTitle",
+    "inputs": [
+      {
+        "name": "_title",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "supportInitiative",
     "inputs": [
       {
@@ -1024,6 +1055,19 @@
   {
     "type": "function",
     "name": "symbol",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "title",
     "inputs": [],
     "outputs": [
       {
@@ -1199,6 +1243,19 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "version",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"

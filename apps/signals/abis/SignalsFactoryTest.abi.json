@@ -167,6 +167,11 @@
     "inputs": [],
     "outputs": [
       {
+        "name": "version",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
         "name": "owner",
         "type": "address",
         "internalType": "address"
@@ -240,7 +245,7 @@
     ],
     "outputs": [
       {
-        "name": "factory",
+        "name": "_factory",
         "type": "address",
         "internalType": "contract SignalsFactory"
       },
@@ -501,6 +506,13 @@
   {
     "type": "function",
     "name": "testRevertsWithInvalidOwnerAddress",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "testVersion",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"

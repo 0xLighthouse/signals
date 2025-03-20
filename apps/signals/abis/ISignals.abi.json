@@ -458,6 +458,11 @@
         "internalType": "struct ISignals.SignalsConfig",
         "components": [
           {
+            "name": "version",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
             "name": "owner",
             "type": "address",
             "internalType": "address"
