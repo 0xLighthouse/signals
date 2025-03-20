@@ -15,7 +15,7 @@
   "dependencies": {
     "hono": "^4.5.0",
     "lru-cache": "^11.0.2",
-    "ponder": "^0.9.28",
+    "ponder": "^0.10.1",
     "viem": "^2.21.3"
   },
   "devDependencies": {

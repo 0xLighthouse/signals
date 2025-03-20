@@ -9455,10 +9455,10 @@ pngjs@^5.0.0:
   resolved "https://registry.npmjs.org/pngjs/-/pngjs-5.0.0.tgz"
   integrity sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==
 
-ponder@^0.9.28:
-  version "0.9.28"
-  resolved "https://registry.yarnpkg.com/ponder/-/ponder-0.9.28.tgz#c9ef6fd5272aad30923833dd118ceb8250868b91"
-  integrity sha512-fQDhnshLxZVwKeyXfgtQ4ZqnxNkpypFBSdQim8rnwOy8iMODLOlrQqFVE8NZrX/9vOL9TdqWi1MaMDq7wy4XUA==
+ponder@^0.10.1:
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/ponder/-/ponder-0.10.1.tgz#8f16abcc04d4268b669fbe32d5bd7f8df404ddb4"
+  integrity sha512-3zMEbtvKEcBYjGLq31yF9AQGQSFg5uyxfWXdqlI8O3jjBeuCr/ILLcnMYsJYTEsWspRIwupPf+96RucjNZUufQ==
   dependencies:
     "@babel/code-frame" "^7.23.4"
     "@commander-js/extra-typings" "^12.0.1"
