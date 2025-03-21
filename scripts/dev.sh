@@ -33,3 +33,10 @@ cd apps/bond-hook
 forge clean && forge install
 forge script script/Development.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
 cd ../..
+
+# Create Signals test data
+#
+#  - This script creates three initiatives, with minimum support amounts and a 12 month lock duration
+cd apps/signals
+forge script script/TestData.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
+cd ../..
