@@ -27,7 +27,7 @@ contract DeployManagerAndHook is Script {
         uint256 deployerPrivateKey = vm.envUint("TESTNET_DEPLOYER_PRIVATE_KEY");
         address _deployer = vm.addr(deployerPrivateKey);
 
-        address manager = vm.envAddress("TESTNET_V4_POOL_MANAGER");
+        address manager = vm.envAddress("TESTNET_POOL_MANAGER");
         address bondIssuer = vm.envAddress("TESTNET_BOND_ISSUER");
 
         // Log the deployer addresses

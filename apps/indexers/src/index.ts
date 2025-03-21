@@ -41,17 +41,17 @@ ponder.on('Signals:InitiativeSupported', async ({ event, context }) => {
   })
 })
 
+// FIXME: wtf is up with the types?
 ponder.on('PoolManager:Initialize', async ({ event, context }) => {
-  console.log('PoolManager:Initialize()')
-  console.log('PoolManager:Initialize()')
-  console.log('PoolManager:Initialize()')
   await context.db.insert(schema.PoolManagerInitializeEvent).values({
     id: event.id,
     chainId: context.network.chainId,
     contractAddress: event.log.address,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
+    // --- pool data
+    hookAddress: event.args.hooks,
     // --- event data
-    poolId: event.args.poolId,
+    poolId: event.args.id,
   })
 })

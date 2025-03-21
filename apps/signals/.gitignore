@@ -6,6 +6,8 @@ out/
 !/broadcast
 /broadcast/*/31337/
 /broadcast/**/dry-run/
+/broadcast/*/421614/*
+!/broadcast/*/421614/run-latest.json
 
 # Docs
 docs/
