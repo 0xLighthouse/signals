@@ -28,7 +28,7 @@ contract BondPoolLibraryTest is Test, Deployers, BondHookHarness {
         dealMockTokens();
         
         // Get initial state from the deployed pool
-        state = bondhook.getBondPoolState(poolA.toId());
+        state = bondhook._getPoolState(poolA.toId());
     }
 
     function test_swapAmountForConversion() public {

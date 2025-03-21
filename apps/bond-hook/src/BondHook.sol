@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.24;
+
+import "forge-std/console.sol";
 
 import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
 import { IBondIssuer } from "./interfaces/IBondIssuer.sol";
@@ -127,7 +129,6 @@ contract BondHook is BaseHook {
     error InvalidLiquidityDelta();
     // Events
 
-    event PoolAdded(PoolId indexed poolId);
     event BondSold(PoolId indexed poolId, uint256 indexed tokenId, address indexed buyer, uint256 amount);
     event BondPurchased(PoolId indexed poolId, uint256 indexed tokenId, address indexed seller, uint256 amount);
     event LiquidityAdded(PoolId indexed poolId, address indexed provider, uint256 amount);
@@ -264,14 +265,20 @@ contract BondHook is BaseHook {
         bondIssuer.transferFrom(sender, address(this), data.tokenId);
         bondBelongsTo[data.tokenId] = data.poolKey.toId();
 
-        //TODO: Convert real token value to liquidity
+        uint160 sqrtPriceX96 = bondPools[data.poolKey.toId()].getPriceX96(poolManager);
+
+        uint256 priceAsLiquidity = uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
+
+        console.log("price", price);
+        console.log("priceAsLiquidity", priceAsLiquidity);
+
         // Record how much liquidity was spent on it
-        amountPaidOutFor[data.tokenId] = price / 2;
+        amountPaidOutFor[data.tokenId] = priceAsLiquidity;
 
         _modifyLiquidity({
             key: data.poolKey,
             sender: sender,
-            liquidityDelta: -int256(price / 2),
+            liquidityDelta: -int256(priceAsLiquidity),
             desiredCurrency: data.desiredCurrency,
             swapPriceLimit: data.swapPriceLimit
         });
@@ -285,22 +292,33 @@ contract BondHook is BaseHook {
             revert InvalidPool();
         }
 
+        uint160 sqrtPriceX96 = bondPools[data.poolKey.toId()].getPriceX96(poolManager);
+
         // The user is buying from us
+        // This operation can only provide profit, quoted as liquidity. Therefore we can cast everything to uint256
         uint256 price = getPoolSellPrice(data.tokenId);
-        require(price <= data.bondPriceLimit, "BondHook: Desired price exceeded");
-        require(price/2 > amountPaidOutFor[data.tokenId], "BondHook: Bond is priced less than purchase price");
+        uint256 priceAsLiquidity = uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
 
-        // record how much profit was generated, as liqduitiy
-        uint256 profit = price / 2 - amountPaidOutFor[data.tokenId];
-        // _addProfitToPool(data.poolKey, profit, 0);
+        // We must get at least as much as we paid
+        uint256 originalPriceAsLiquidity = amountPaidOutFor[data.tokenId];
+        if (priceAsLiquidity > originalPriceAsLiquidity) {
+            priceAsLiquidity = originalPriceAsLiquidity;
+        }
 
+        require(priceAsLiquidity < data.bondPriceLimit, "BondHook: Bond price exceeds desired purchase price");
+
+        // Take the user's assets and deposit as liquidity
         _modifyLiquidity({
             key: data.poolKey,
-            sender: sender,
-            liquidityDelta: int256(price / 2),
+            sender: sender, 
+            liquidityDelta: int256(priceAsLiquidity),
             desiredCurrency: data.desiredCurrency,
             swapPriceLimit: data.swapPriceLimit
         });
+
+        // record how much profit was generated
+        uint256 profit = priceAsLiquidity - originalPriceAsLiquidity;
+        bondPools[data.poolKey.toId()].addProfit(int256(profit), sqrtPriceX96);
 
         // Transfer the bond to the user and zero out records
         bondIssuer.transferFrom(address(this), sender, data.tokenId);
@@ -521,7 +539,6 @@ contract BondHook is BaseHook {
             creditForSwapFeesInBondToken: 0
         });
 
-        emit PoolAdded(key.toId());
         return this.beforeInitialize.selector;
     }
 
@@ -530,7 +547,6 @@ contract BondHook is BaseHook {
         override
         returns (bytes4)
     {
-        // TODO: Block usage through uniswap interface? (only allow direct call)
         return this.beforeAddLiquidity.selector;
     }
 
@@ -601,9 +617,7 @@ contract BondHook is BaseHook {
         return liquidity / 1e6;
     }
 
-
-    //TODO: Temporary
-    function getBondPoolState(PoolId id) public view returns (BondPoolState memory) {
+    function _getPoolState(PoolId id) public view returns (BondPoolState memory) {
         return bondPools[id];
     }
 }
