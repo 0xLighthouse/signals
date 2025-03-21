@@ -1,17 +1,22 @@
 import { createConfig } from 'ponder'
 import { getAddress, hexToNumber, http } from 'viem'
 
-import { signalsFactoryAbi } from '../sdk/src/abis/signals-factory'
+import { bondHookAbi, poolManagerAbi, signalsAbi, signalsFactoryAbi } from '../sdk/src/abis'
 
-// Note: This will hot-reload when the file is changed
+// Note: This should hot-reload when the file is changed
 import signalsDeployment from '../signals/broadcast/Development.s.sol/31337/run-latest.json'
+import bondHookDeployment from '../bond-hook/broadcast/Development.sol/31337/run-latest.json'
 
-const resolveDeployment = (name: string) => {
-  const idx = signalsDeployment.transactions.findIndex((t) => t.contractName === name)
-  return {
-    address: getAddress(signalsDeployment.transactions[idx]!.contractAddress),
-    startBlock: hexToNumber(signalsDeployment.receipts[idx]!.blockNumber as `0x${string}`),
+const resolveDeployment = (name: string, metadata: any) => {
+  const idx = metadata.transactions.findIndex((t: any) => t.contractName === name)
+  const deployment = {
+    address: getAddress(metadata.transactions[idx]!.contractAddress),
+    startBlock: hexToNumber(metadata.receipts[idx]!.blockNumber as `0x${string}`),
   }
+  console.log('----- [', name, '] -----')
+  console.log(deployment)
+
+  return deployment
 }
 
 // https://ponder.sh/docs/advanced/foundry
@@ -27,7 +32,22 @@ export default createConfig({
     SignalsFactory: {
       network: 'anvil',
       abi: signalsFactoryAbi,
-      ...resolveDeployment('SignalsFactory'),
+      ...resolveDeployment('SignalsFactory', signalsDeployment),
+    },
+    Signals: {
+      network: 'anvil',
+      abi: signalsAbi,
+      ...resolveDeployment('Signals', signalsDeployment),
+    },
+    PoolManager: {
+      network: 'anvil',
+      abi: poolManagerAbi,
+      ...resolveDeployment('PoolManager', bondHookDeployment),
+    },
+    BondHook: {
+      network: 'anvil',
+      abi: bondHookAbi,
+      ...resolveDeployment('BondHook', bondHookDeployment),
     },
   },
 })

@@ -7,6 +7,7 @@
     "dev": "ponder dev",
     "start": "ponder start",
     "db": "ponder db",
+    "clean": "rm -rf .ponder",
     "codegen": "ponder codegen",
     "serve": "ponder serve",
     "lint": "eslint .",
