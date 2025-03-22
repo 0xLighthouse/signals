@@ -1,8 +1,7 @@
 import { createPublicClient, http, erc20Abi } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
-import signalsAbi from '../abis/signals.abi.json'
-import incentivesAbi from '../abis/incentives.abi.json'
+import { SignalsABI, IncentivesABI } from '../../../../packages/abis'
 
 // Default public client for server components or initial loading
 // Components should prefer using the context via useWeb3() whenever possible
@@ -28,8 +27,8 @@ export const ABI = [
   },
 ]
 
-export const SIGNALS_ABI = [...signalsAbi]
-export const INCENTIVES_ABI = [...incentivesAbi]
+export const SIGNALS_ABI = SignalsABI
+export const INCENTIVES_ABI = IncentivesABI
 
 /**
  * Critical addresses

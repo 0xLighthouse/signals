@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "abis": "npx ts-node scripts/generate-types.ts",
     "clean": "rm -rf .next",
     "lint": "next lint"
   },
