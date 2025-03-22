@@ -1,19 +1,14 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
+import { SignalsABI } from '../abis'
 
-ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
-  await context.db.insert(schema.BoardCreatedEvent).values({
-    id: event.id,
-    chainId: context.network.chainId,
-    blockTimestamp: event.block.timestamp,
-    transactionHash: event.transaction.hash,
-    owner: event.args.owner,
-    board: event.args.board,
-  })
-})
-
-ponder.on('Signals:InitiativeProposed', async ({ event, context }) => {
-  await context.db.insert(schema.InitiativeProposedEvent).values({
+ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
+  // const hooks = await context.client.readContract({
+  //   address: event.log.address,
+  //   abi: SignalsABI,
+  //   functionName: ,
+  // })
+  await context.db.insert(schema.Initiative).values({
     id: event.id,
     chainId: context.network.chainId,
     contractAddress: event.log.address,
@@ -26,23 +21,63 @@ ponder.on('Signals:InitiativeProposed', async ({ event, context }) => {
   })
 })
 
-ponder.on('Signals:InitiativeSupported', async ({ event, context }) => {
-  await context.db.insert(schema.InitiativeSupportedEvent).values({
+ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
+  await context.db.insert(schema.Board).values({
+    id: event.id,
+    chainId: context.network.chainId,
+    blockTimestamp: event.block.timestamp,
+    transactionHash: event.transaction.hash,
+    owner: event.args.owner,
+    board: event.args.board,
+  })
+})
+
+// ponder.on('Signals:InitiativeProposed', async ({ event, context }) => {
+//   await context.db.insert(schema.InitiativeProposedEvent).values({
+//     id: event.id,
+//     chainId: context.network.chainId,
+//     contractAddress: event.log.address,
+//     blockTimestamp: event.block.timestamp,
+//     transactionHash: event.transaction.hash,
+//     initiativeId: Number(event.args.initiativeId),
+//     proposer: event.args.proposer,
+//     title: event.args.title,
+//     body: event.args.body,
+//   })
+// })
+
+// ponder.on('Signals:InitiativeSupported', async ({ event, context }) => {
+//   await context.db.insert(schema.InitiativeSupportedEvent).values({
+//     id: event.id,
+//     chainId: context.network.chainId,
+//     contractAddress: event.log.address,
+//     blockTimestamp: event.block.timestamp,
+//     transactionHash: event.transaction.hash,
+//     initiativeId: Number(event.args.initiativeId),
+//     supporter: event.args.supporter,
+//     amount: event.args.tokenAmount,
+//     lockDuration: Number(event.args.lockDuration),
+//     // timestamp: event.block.timestamp,
+//   })
+// })
+
+// FIXME: wtf is up with the types?
+ponder.on('PoolManager:Initialize', async ({ event, context }) => {
+  await context.db.insert(schema.PoolManagerInitializeEvent).values({
     id: event.id,
     chainId: context.network.chainId,
     contractAddress: event.log.address,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
-    initiativeId: Number(event.args.initiativeId),
-    supporter: event.args.supporter,
-    amount: event.args.tokenAmount,
-    lockDuration: Number(event.args.lockDuration),
-    // timestamp: event.block.timestamp,
+    // --- pool data
+    hookAddress: event.args.hooks,
+    // --- event data
+    poolId: event.args.id,
   })
 })
 
 // FIXME: wtf is up with the types?
-ponder.on('PoolManager:Initialize', async ({ event, context }) => {
+ponder.on('BondMarket:PoolInitialized', async ({ event, context }) => {
   await context.db.insert(schema.PoolManagerInitializeEvent).values({
     id: event.id,
     chainId: context.network.chainId,

@@ -1,13 +1,14 @@
 import { onchainTable } from 'ponder'
 
 /**
- * Note: The variable name eventually becomes the GraphQL type name so use PascalCase.
+ * Note: The variable name eventually becomes the GraphQL type name so prefer PascalCase.
  */
 
-/**
- * SignalsFactory events
- */
-export const BoardCreatedEvent = onchainTable('board_created_events', (t) => ({
+// ===========================================================================
+//                                   ENTITIES
+// ===========================================================================
+
+export const Board = onchainTable('boards', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),
@@ -17,10 +18,7 @@ export const BoardCreatedEvent = onchainTable('board_created_events', (t) => ({
   board: t.hex().notNull(),
 }))
 
-/**
- * Signals events
- */
-export const InitiativeProposedEvent = onchainTable('initiative_proposed_events', (t) => ({
+export const Initiative = onchainTable('initiatives', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),
@@ -33,7 +31,7 @@ export const InitiativeProposedEvent = onchainTable('initiative_proposed_events'
   body: t.text().notNull(),
 }))
 
-export const InitiativeSupportedEvent = onchainTable('initiative_supported_events', (t) => ({
+export const Weight = onchainTable('weights', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),
@@ -48,9 +46,7 @@ export const InitiativeSupportedEvent = onchainTable('initiative_supported_event
   // timestamp: t.bigint().notNull(),
 }))
 
-/**
- * Pool Manager events
- */
+// Pool Manager events
 export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_events', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
@@ -60,3 +56,9 @@ export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_
   // --- event data
   poolId: t.hex().notNull(),
 }))
+
+// ===========================================================================
+//                                   RELATIONS
+// ===========================================================================
+
+// FIXME: TODO
