@@ -18,6 +18,8 @@ export const InitiativesList = () => {
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
   const isInitialized = useInitiativesStore((state) => state.isInitialized)
 
+  console.log('initiatives', initiatives)
+
   useEffect(() => {
     if (!isInitialized) fetchInitiatives()
   }, [isInitialized, fetchInitiatives])

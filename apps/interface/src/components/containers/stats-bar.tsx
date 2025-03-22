@@ -7,6 +7,21 @@ import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'
 import { normaliseNumber } from '@/lib/utils'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from '../ui/button'
+import { PlusIcon } from 'lucide-react'
+
+
+const StatsBarItem = ({ title, value }: { title: string, value: string | number }) => {
+  return (
+    <div>
+      <span className="text-xl font-bold">{value}</span>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        {title}
+      </p>
+    </div>
+  )
+}
 
 export const StatsBar = () => {
   const { address } = useAccount()
@@ -27,6 +42,8 @@ export const StatsBar = () => {
 
   if (!address) return null
 
+  const boardOwner = '0x0000000000000000000000000000000000000000'
+  const txHash = '0x0000000000000000000000000000000000000000000000000000000000000000'
   return (
     <div className="flex items-center justify-between p-4 bg-white dark:border-neutral-700 dark:bg-neutral-900 rounded-lg border">
       <div className="flex flex-1 justify-evenly text-center">
@@ -67,6 +84,7 @@ export const StatsBar = () => {
           </p>
         </div>
       </div>
-    </div>
+
+    </div >
   )
 }

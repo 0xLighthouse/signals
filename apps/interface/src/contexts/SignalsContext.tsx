@@ -68,7 +68,7 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
         ] = await Promise.all([
           protocol.read.proposalThreshold(),
           protocol.read.acceptanceThreshold(),
-          protocol.read.count(),
+          protocol.read.initiativeCount(),
           protocol.read.lockInterval(),
           protocol.read.decayCurveType(),
           protocol.read.decayCurveParameters([0]),
