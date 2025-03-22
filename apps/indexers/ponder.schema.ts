@@ -1,7 +1,9 @@
 import { onchainTable } from 'ponder'
 
 /**
- * Note: The variable name eventually becomes the GraphQL type name so prefer PascalCase.
+ * Notes:
+ *  - The variable name eventually becomes the GraphQL type name so prefer PascalCase.
+ *  - https://ponder.sh/docs/schema#column-types
  */
 
 // ===========================================================================
@@ -13,9 +15,11 @@ export const Board = onchainTable('boards', (t) => ({
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
-  // --- event data
-  owner: t.hex().notNull(),
+  // --- attributes
   board: t.hex().notNull(),
+  owner: t.hex().notNull(),
+  proposalThreshold: t.bigint().notNull(),
+  acceptanceThreshold: t.bigint().notNull(),
 }))
 
 export const Initiative = onchainTable('initiatives', (t) => ({

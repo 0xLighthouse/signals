@@ -1,8 +1,9 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
-import { SignalsABI } from '../abis'
+import { SignalsABI } from '../../../packages/abis'
 
 ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
+  console.log('SignalsBoard:InitiativeProposed', event.args)
   // const hooks = await context.client.readContract({
   //   address: event.log.address,
   //   abi: SignalsABI,
@@ -22,6 +23,22 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
 })
 
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
+  /**
+   * TODO: Patch additional board metadata
+   */
+  const [proposalThreshold, acceptanceThreshold] = await Promise.all([
+    context.client.readContract({
+      address: event.args.board,
+      abi: SignalsABI,
+      functionName: 'proposalThreshold',
+    }),
+    context.client.readContract({
+      address: event.args.board,
+      abi: SignalsABI,
+      functionName: 'acceptanceThreshold',
+    }),
+  ])
+
   await context.db.insert(schema.Board).values({
     id: event.id,
     chainId: context.network.chainId,
@@ -29,6 +46,8 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
     owner: event.args.owner,
     board: event.args.board,
+    proposalThreshold,
+    acceptanceThreshold,
   })
 })
 
