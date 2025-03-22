@@ -1,5 +1,8 @@
 import type { Abi } from 'abitype'
 
+/**
+ * Src: https://github.com/Uniswap/v4-periphery/blob/main/broadcast/01_PoolManager.s.sol/421614/run-latest.json
+ */
 export const poolManagerAbi: Abi = [
   {
     inputs: [{ internalType: 'address', name: 'initialOwner', type: 'address' }],
