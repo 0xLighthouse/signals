@@ -57,72 +57,37 @@ export const GET = async (request: NextRequest) => {
     blockRanges.push({ fromBlock: start, toBlock: end })
   }
 
-  for await (const { fromBlock, toBlock } of blockRanges) {
-    const logs = await publicClient.getLogs({
-      address: SIGNALS_PROTOCOL,
-      event: {
-        type: 'event',
-        name: 'InitiativeSupported',
-        inputs: [
-          { name: 'initiativeId', type: 'uint256', indexed: true, internalType: 'uint256' },
-          { name: 'supporter', type: 'address', indexed: true, internalType: 'address' },
-          { name: 'tokenAmount', type: 'uint256', indexed: false, internalType: 'uint256' },
-          { name: 'lockDuration', type: 'uint256', indexed: false, internalType: 'uint256' },
-          { name: 'timestamp', type: 'uint256', indexed: false, internalType: 'uint256' },
-        ],
-      },
-      args: {
-        supporter: getAddress(supporter) as `0x${string}`,
-      },
-      fromBlock: BigInt(fromBlock),
-      toBlock: BigInt(toBlock),
-    })
-
-    const initiativesSupported = logs.map((log) => ({
-      initiativeId: Number(log.args.initiativeId),
-      supporter: log.args.supporter,
-      tokenAmount: Number(log.args.tokenAmount) / 1e18,
-      lockDuration: Number(log.args.lockDuration),
-      timestamp: Number(log.args.timestamp),
-    }))
-
-    // Append initiatives to the cache
-    let cachedHistory = await kv.get<InitiativeSupported[]>(historyKey)
-    if (!cachedHistory) {
-      cachedHistory = []
-    }
-    // Store updated initiatives back to cache
-    await kv.set(historyKey, [...cachedHistory, ...initiativesSupported])
-
-    // Update last indexed block
-    lastIndexedBlock = toBlock
-    await kv.set(lastIndexedBlockKey, lastIndexedBlock)
-  }
-
-  // Retrieve the entire list of initiatives from the cache
-  const allHistory = await kv.get<InitiativeSupported[]>(historyKey)
-
-  // console.log('----- ALL HISTORY -----')
-  // console.log(allHistory)
-
-  if (allHistory?.length === 0) {
-    return NextResponse.json({
-      supported: 0,
-      locked: 0,
-      byInitiative: {},
-    })
-  }
-
+  // TODO: Get list of initiatives this user has supported
   return NextResponse.json({
-    // @ts-ignore
-    supported: allHistory.length,
-    // @ts-ignore
-    locked: allHistory.reduce((acc, log) => acc + log.tokenAmount, 0),
-    // @ts-ignore
-    byInitiative: allHistory.reduce((acc, log) => {
-      // @ts-ignore
-      acc[log.initiativeId.toString()] = (acc[log.initiativeId.toString()] || 0) + log.tokenAmount
-      return acc
-    }, {}),
+    supported: 0,
+    locked: 0,
+    byInitiative: {},
   })
+
+  // // Retrieve the entire list of initiatives from the cache
+  // const allHistory = await kv.get<InitiativeSupported[]>(historyKey)
+
+  // // console.log('----- ALL HISTORY -----')
+  // // console.log(allHistory)
+
+  // if (allHistory?.length === 0) {
+  //   return NextResponse.json({
+  //     supported: 0,
+  //     locked: 0,
+  //     byInitiative: {},
+  //   })
+  // }
+
+  // return NextResponse.json({
+  //   // @ts-ignore
+  //   supported: allHistory.length,
+  //   // @ts-ignore
+  //   locked: allHistory.reduce((acc, log) => acc + log.tokenAmount, 0),
+  //   // @ts-ignore
+  //   byInitiative: allHistory.reduce((acc, log) => {
+  //     // @ts-ignore
+  //     acc[log.initiativeId.toString()] = (acc[log.initiativeId.toString()] || 0) + log.tokenAmount
+  //     return acc
+  //   }, {}),
+  // })
 }
