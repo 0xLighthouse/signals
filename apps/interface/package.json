@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@nextui-org/spinner": "^2.0.34",
+    "@noble/hashes": "^1.7.1",
     "@phosphor-icons/react": "^2.1.7",
+    "@ponder/client": "^0.10.4",
     "@privy-io/react-auth": "^2.5.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-avatar": "^1.1.1",

@@ -44,8 +44,8 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     chainId: context.network.chainId,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
+    contractAddress: event.args.board,
     owner: event.args.owner,
-    board: event.args.board,
     proposalThreshold,
     acceptanceThreshold,
   })

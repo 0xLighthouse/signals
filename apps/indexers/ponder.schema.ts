@@ -16,7 +16,7 @@ export const Board = onchainTable('boards', (t) => ({
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
   // --- attributes
-  board: t.hex().notNull(),
+  contractAddress: t.hex().notNull(),
   owner: t.hex().notNull(),
   proposalThreshold: t.bigint().notNull(),
   acceptanceThreshold: t.bigint().notNull(),
