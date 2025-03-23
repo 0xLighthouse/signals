@@ -38,7 +38,7 @@ export function CreateInitiativeDrawer() {
   const { formatter, board } = useSignals()
 
   const [duration, setDuration] = useState(1)
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(0)
   const [lockTokens, setLockTokens] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -48,14 +48,15 @@ export function CreateInitiativeDrawer() {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
+    spender: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
+    tokenDecimals: 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
     setLockTokens(false)
     setTitle('')
     setDescription('')
@@ -235,7 +236,7 @@ export function CreateInitiativeDrawer() {
                       id="amount"
                       type="number"
                       value={amount ?? ''}
-                      onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                      onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                       min="0"
                     />
                     {lockTokens && !amount && (

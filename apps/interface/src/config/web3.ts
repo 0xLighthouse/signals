@@ -52,5 +52,9 @@ export const context = {
       abi: ERC20WithFaucetABI,
       address: '0x26D04e0D3050b7b11054B5A48639D1FE88aA7Be7' as `0x${string}`,
     },
+    SignalsProtocol: {
+      abi: SIGNALS_ABI,
+      address: '0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc',
+    },
   },
 }

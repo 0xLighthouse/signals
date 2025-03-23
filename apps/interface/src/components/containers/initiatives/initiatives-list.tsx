@@ -18,15 +18,11 @@ export const InitiativesList = () => {
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
   const isInitialized = useInitiativesStore((state) => state.isInitialized)
 
-  console.log('initiatives', initiatives)
-
   useEffect(() => {
     if (!isInitialized) fetchInitiatives()
   }, [isInitialized, fetchInitiatives])
 
   const [sortBy, setSortBy] = useState('support')
-
-  console.log('initiative-count', board.initiativesCount)
 
   // Ensure initiatives is always an array before filtering
   const _initiativesSorted = initiatives.sort((a, b) =>

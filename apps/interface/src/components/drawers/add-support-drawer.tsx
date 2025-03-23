@@ -36,7 +36,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { formatter, board } = useSignals()
 
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState(0)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,11 +44,19 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     undefined,
   )
 
-  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
+  const {
+    isApproving,
+    hasAllowance,
+    handleApprove,
+    allowance,
+    formattedAllowance,
+    handleRevokeAllowance,
+  } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
+    spender: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
+    tokenDecimals: 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -56,7 +64,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const weight = amount ? amount * duration : 0
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
     setDuration(1)
   }
 
@@ -103,10 +111,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
         abi: SIGNALS_ABI,
         functionName: 'supportInitiative',
         nonce,
-        // @ts-ignore
-        args: [initiative.initiativeId, amount * 1e18, duration],
+        args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
       })
-
       const hash = await walletClient.writeContract(request)
 
       const receipt = await publicClient.waitForTransactionReceipt({
@@ -120,9 +126,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       toast('Upvote submitted!')
       fetchInitiatives()
       fetchContractMetadata()
-    } catch (error) {
-      console.error(error)
-      toast('Error submitting upvote :(')
+    } catch (err) {
+      console.error(err)
+      toast('Error adding support')
       setIsSubmitting(false)
     }
   }
@@ -242,11 +248,23 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                     type="number"
                     value={amount ?? undefined}
                     defaultValue={0}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                     min="0"
                   />
                   {!amount && (
                     <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
+                  )}
+                  {allowance && (
+                    <Label className="text-gray-500 mt-2">
+                      Current allowance is: {formattedAllowance}.{' '}
+                      <Button
+                        variant="link"
+                        className="text-gray-500 underline"
+                        onClick={handleRevokeAllowance}
+                      >
+                        Revoke?
+                      </Button>
+                    </Label>
                   )}
                 </div>
               </div>

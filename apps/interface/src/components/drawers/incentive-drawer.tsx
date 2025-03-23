@@ -36,7 +36,7 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(0)
   const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,13 +44,13 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: INCENTIVES,
+    spender: INCENTIVES,
     tokenAddress: USDC_ADDRESS,
-    decimals: 6,
+    tokenDecimals: 6,
   })
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -198,7 +198,7 @@ export function IncentiveDrawer({ initiative }: Props) {
                 id="amount"
                 type="number"
                 value={amount ?? ''}
-                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                 min="0"
               />
               {!amount && (
