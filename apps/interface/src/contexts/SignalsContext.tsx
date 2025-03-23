@@ -7,7 +7,7 @@ import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
 // Types for contract metadata
-type ProtocolContextType = {
+type ISignalsContext = {
   initiativesCount: number | null
   proposalThreshold: number | null
   meetsThreshold: boolean
@@ -19,13 +19,13 @@ type ProtocolContextType = {
 }
 
 // Default values for the context
-export const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined)
+export const SignalsContext = createContext<ISignalsContext | undefined>(undefined)
 
 // Custom hook to use the contract context
 export const useSignals = () => {
-  const context = useContext(ProtocolContext)
+  const context = useContext(SignalsContext)
   if (!context) {
-    throw new Error('useSignals must be used within a ProtocolContext')
+    throw new Error('useSignals must be used within a SignalsContext')
   }
   return context
 }
@@ -34,7 +34,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const ProtocolProvider: React.FC<Props> = ({ children }) => {
+export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
   const { decimals, balance } = useUnderlying()
 
@@ -108,7 +108,7 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
 
   // Provide contract data to children
   return (
-    <ProtocolContext.Provider
+    <SignalsContext.Provider
       value={{
         formatter: formatter as (value?: number | null) => number,
         initiativesCount,
@@ -121,6 +121,6 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
       }}
     >
       {children}
-    </ProtocolContext.Provider>
+    </SignalsContext.Provider>
   )
 }

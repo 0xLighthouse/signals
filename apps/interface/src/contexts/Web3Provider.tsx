@@ -3,7 +3,15 @@
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { createPublicClient, http, Address, PublicClient, WalletClient } from 'viem'
+import {
+  createPublicClient,
+  http,
+  Address,
+  PublicClient,
+  WalletClient,
+  createWalletClient,
+  custom,
+} from 'viem'
 
 const chain = process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia
 
@@ -30,8 +38,8 @@ interface IWeb3Context {
 const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [address, setAddress] = useState<Address | null>(null)
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
-  const { authenticated, ready: privyReady, user } = usePrivy()
-  const { ready: walletReady } = useWallets()
+  const { ready: privyReady, user } = usePrivy()
+  const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
 
   const publicClient = createPublicClient({
@@ -46,12 +54,23 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [privyReady, walletReady])
 
+  // Make a viem signer available once the app has initialized
   useEffect(() => {
-    if (isInitialized) {
-      console.info('TODO: connect wallet')
-      console.log('authenticated', authenticated)
+    const makeWalletClient = async () => {
+      const provider = await wallets[0].getEthereumProvider()
+      if (provider) {
+        const walletClient = createWalletClient({
+          chain,
+          transport: custom(provider),
+        })
+        setWalletClient(walletClient)
+      }
     }
-  }, [isInitialized, authenticated])
+
+    if (isInitialized) {
+      makeWalletClient()
+    }
+  }, [isInitialized, wallets])
 
   return (
     <Web3Context.Provider value={{ publicClient, walletClient, address, isInitialized }}>
