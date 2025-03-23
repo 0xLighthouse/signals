@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
 
 import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
-import { readClient } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -30,14 +28,12 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
-import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
-  const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
   const {
     acceptanceThreshold,

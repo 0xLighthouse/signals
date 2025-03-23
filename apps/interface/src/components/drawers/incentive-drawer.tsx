@@ -24,7 +24,6 @@ import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
 interface Props {
@@ -34,7 +33,6 @@ interface Props {
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
-  const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()

@@ -3,25 +3,28 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ERC20_ADDRESS, USDC_ADDRESS, ABI } from '@/config/web3'
-import { createWalletClient, custom } from 'viem'
+import { readClient, ABI, context } from '@/config/web3'
+import { createWalletClient, custom, WalletClient } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
+import { useWallets } from '@privy-io/react-auth'
 
-const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
+const claimTokens = async (
+  { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
+  signer: WalletClient,
+) => {
   if (!address) throw new Error('Address not available.')
   try {
-    const nonce = await readClient.getTransactionCount({ address })
-    const signer = createWalletClient({
-      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-      transport: custom(window.ethereum),
-    })
+    // const nonce = await readClient.getTransactionCount({ address })
+    // const signer = createWalletClient({
+    //   chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
+    //   transport: custom(window.ethereum),
+    // })
 
     const transactionHash = await signer.writeContract({
       account: address,
-      nonce,
       address: token,
       abi: ABI,
       functionName: 'faucet',
@@ -55,20 +58,37 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
+  const { wallets } = useWallets()
 
   const handleClaimUSDC = async () => {
-    setIsLoadingUSDC(true)
-    try {
-      await claimTokens(USDC_ADDRESS, address as `0x${string}`, 'mUSDC')
-    } finally {
-      setIsLoadingUSDC(false)
-    }
+    // setIsLoadingUSDC(true)
+    // try {
+    //   await claimTokens({ token: USDC_ADDRESS, address: address as `0x${string}`, symbol: 'mUSDC' })
+    // } finally {
+    //   setIsLoadingUSDC(false)
+    // }
   }
 
   const handleClaimTokens = async () => {
     setIsLoadingTokens(true)
+
+    const provider = await wallets[0].getEthereumProvider()
+    if (!provider) return
+
+    const signer = createWalletClient({
+      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
+      transport: custom(provider),
+    })
+
     try {
-      await claimTokens(ERC20_ADDRESS, address as `0x${string}`, 'SGNL')
+      await claimTokens(
+        {
+          token: context.contracts.BoardUnderlyingToken.address,
+          address: address as `0x${string}`,
+          symbol: 'SGNL',
+        },
+        signer,
+      )
     } finally {
       setIsLoadingTokens(false)
     }
@@ -79,8 +99,8 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   return (
     <div className="mt-10 md:mt-20">
       <div className="space-y-2">
-        <h4 className="text-md font-bold leading-none">Faucet</h4>
-        <p className="text-sm text-muted-foreground">Claim your test tokens</p>
+        <h5 className="text-md font-bold leading-none">Faucet</h5>
+        <p className="text-sm text-muted-foreground">Claim test tokens</p>
       </div>
       <Separator className="my-4" />
       <div className={cn('flex gap-2', vertical && 'flex-col')}>

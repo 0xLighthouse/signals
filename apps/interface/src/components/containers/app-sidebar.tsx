@@ -12,6 +12,7 @@ import { Footer } from '../footer'
 import { FaucetActions } from './faucet-actions'
 import { ConnectButton } from '../web3/connect-button'
 import { ThemeToggle } from '../ui/theme-toggle'
+
 export function AppSidebar() {
   // const { state, open, setOpen, openMobile, setOpenMobile, toggleSidebar } = useSidebar()
   return (

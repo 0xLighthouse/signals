@@ -64,7 +64,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
           }
         />
         <CardDescription className="text-xs">
-          Last active,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
+          Last activity,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
         </CardDescription>
       </div>
     </Card>
