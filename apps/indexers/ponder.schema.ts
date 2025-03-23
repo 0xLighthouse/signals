@@ -20,6 +20,7 @@ export const Board = onchainTable('boards', (t) => ({
   owner: t.hex().notNull(),
   proposalThreshold: t.bigint().notNull(),
   acceptanceThreshold: t.bigint().notNull(),
+  underlyingToken: t.hex().notNull(),
 }))
 
 export const Initiative = onchainTable('initiatives', (t) => ({

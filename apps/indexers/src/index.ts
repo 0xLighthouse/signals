@@ -26,7 +26,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   /**
    * TODO: Patch additional board metadata
    */
-  const [proposalThreshold, acceptanceThreshold] = await Promise.all([
+  const [proposalThreshold, acceptanceThreshold, underlyingToken] = await Promise.all([
     context.client.readContract({
       address: event.args.board,
       abi: SignalsABI,
@@ -36,6 +36,11 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
       address: event.args.board,
       abi: SignalsABI,
       functionName: 'acceptanceThreshold',
+    }),
+    context.client.readContract({
+      address: event.args.board,
+      abi: SignalsABI,
+      functionName: 'underlyingToken',
     }),
   ])
 
@@ -48,6 +53,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     owner: event.args.owner,
     proposalThreshold,
     acceptanceThreshold,
+    underlyingToken,
   })
 })
 
