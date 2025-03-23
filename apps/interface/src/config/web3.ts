@@ -54,7 +54,7 @@ export const context = {
     },
     SignalsProtocol: {
       abi: SIGNALS_ABI,
-      address: '0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc',
+      address: '0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc' as `0x${string}`,
     },
   },
 }

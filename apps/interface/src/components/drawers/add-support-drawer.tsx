@@ -3,7 +3,7 @@
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { context } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -54,8 +54,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   } = useApproveTokens({
     amount,
     actor: address,
-    spender: SIGNALS_PROTOCOL,
-    tokenAddress: ERC20_ADDRESS,
+    spender: context.contracts.SignalsProtocol.address,
+    tokenAddress: context.contracts.BoardUnderlyingToken.address,
     tokenDecimals: 18,
   })
 
@@ -107,12 +107,14 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: SIGNALS_PROTOCOL,
-        abi: SIGNALS_ABI,
+        address: context.contracts.SignalsProtocol.address,
+        abi: context.contracts.SignalsProtocol.abi,
         functionName: 'supportInitiative',
         nonce,
         args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
       })
+
+      console.log('Request:', request)
       const hash = await walletClient.writeContract(request)
 
       const receipt = await publicClient.waitForTransactionReceipt({
