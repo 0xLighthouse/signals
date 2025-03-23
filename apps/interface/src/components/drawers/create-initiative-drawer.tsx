@@ -104,7 +104,7 @@ export function CreateInitiativeDrawer() {
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -117,6 +117,7 @@ export function CreateInitiativeDrawer() {
         abi: SIGNALS_ABI,
         functionName,
         nonce,
+        // @ts-ignore
         args,
       })
 

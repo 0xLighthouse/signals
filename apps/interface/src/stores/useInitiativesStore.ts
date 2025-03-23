@@ -1,10 +1,9 @@
-import type { InitiativeResponse } from '../../../indexers/src/api/types'
-import type { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative, InitiativeResponse } from '../../../indexers/src/api/types'
 import { client, schema } from '@/config/ponder'
 import { create } from 'zustand'
 
 interface InitiativesState {
-  initiatives: NormalisedInitiative[]
+  initiatives: Initiative[]
   isFetching: boolean
   isInitialized: boolean
   fetchInitiatives: () => Promise<void>

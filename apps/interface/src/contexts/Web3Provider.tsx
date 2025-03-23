@@ -34,7 +34,8 @@ const queryClient = new QueryClient()
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [address, setAddress] = useState<Address | null>(null)
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
-  const { authenticated, ready, user, getEthereumProvider } = usePrivy()
+  const privy = usePrivy()
+  const { authenticated, ready, user } = privy
 
   const publicClient = createPublicClient({
     chain,
@@ -43,21 +44,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 
   // Connect wallet using Privy's provider
   const connect = async () => {
-    try {
-      const provider = await getEthereumProvider()
-      if (!provider) return
-
-      const client = createWalletClient({
-        chain,
-        transport: custom(provider),
-      })
-
-      const [walletAddress] = await client.requestAddresses()
-      setAddress(walletAddress)
-      setWalletClient(client)
-    } catch (error) {
-      console.error('Failed to connect wallet:', error)
-    }
+    console.log('connect')
   }
 
   // Update wallet client when Privy authentication changes

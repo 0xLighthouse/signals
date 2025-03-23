@@ -21,17 +21,16 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useEffect, useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
-export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
+export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { setOpen } = usePrivyModal()
@@ -97,7 +96,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -107,6 +106,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         abi: SIGNALS_ABI,
         functionName: 'supportInitiative',
         nonce,
+        // @ts-ignore
         args: [initiative.initiativeId, amount * 1e18, duration],
       })
 

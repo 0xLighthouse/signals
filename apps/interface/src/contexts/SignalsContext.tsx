@@ -71,7 +71,7 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
           protocol.read.initiativeCount(),
           protocol.read.lockInterval(),
           protocol.read.decayCurveType(),
-          protocol.read.decayCurveParameters([0]),
+          protocol.read.decayCurveParameters([0n]),
         ])
 
         console.log('----- SIGNALS CONTEXT -----')

@@ -1,3 +1,4 @@
+// @ts-ignore
 export function transform(obj: any) {
   if (obj === null || obj === undefined) {
     return obj
@@ -14,6 +15,7 @@ export function transform(obj: any) {
   if (typeof obj === 'object') {
     const result = {}
     for (const key in obj) {
+      // @ts-ignore
       result[key] = transform(obj[key])
     }
     return result

@@ -8,8 +8,8 @@ import { getContract } from 'viem'
 interface ContextValues {
   address: string
   version: number | null
-  allocations: number[] | null
-  receivers: string[] | null
+  allocations: bigint[] | null
+  receivers: `0x${string}`[] | null
 }
 
 interface Props {
@@ -21,8 +21,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
 
   const [version, setVersion] = useState<number | null>(null)
-  const [allocations, setAllocations] = useState<number[] | null>(null)
-  const [receivers, setReceivers] = useState<string[] | null>(null)
+  const [allocations, setAllocations] = useState<bigint[] | null>(null)
+  const [receivers, setReceivers] = useState<`0x${string}`[] | null>(null)
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -40,8 +40,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
         const [_, allocations, receivers] = await incentives.read.config([version])
 
         setVersion(Number(version))
-        setAllocations(allocations)
-        setReceivers(receivers)
+        setAllocations([...allocations])
+        setReceivers([...receivers])
       } catch (error) {
         console.error('Error fetching contract metadata:', error)
       }

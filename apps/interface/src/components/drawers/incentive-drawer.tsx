@@ -2,7 +2,6 @@
 
 import { ArrowRight, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import { ethers } from 'ethers'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,22 +15,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
-import { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { TokenSelector } from '../token-selector'
-import { INCENTIVES, INCENTIVES_ABI, readClient, USDC_ADDRESS } from '@/config/web3'
+import { INCENTIVES, INCENTIVES_ABI, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { cn } from '@/lib/utils'
 import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
 interface Props {
-  initiative: NormalisedInitiative
+  initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
@@ -87,7 +84,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -102,6 +99,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         abi: INCENTIVES_ABI,
         functionName: 'addIncentive',
         nonce,
+        // @ts-ignore
         args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
       })
 

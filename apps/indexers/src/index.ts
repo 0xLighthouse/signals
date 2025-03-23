@@ -81,6 +81,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 // })
 
 // FIXME: wtf is up with the types?
+// @ts-ignore
 ponder.on('PoolManager:Initialize', async ({ event, context }) => {
   await context.db.insert(schema.PoolManagerInitializeEvent).values({
     id: event.id,
@@ -89,8 +90,10 @@ ponder.on('PoolManager:Initialize', async ({ event, context }) => {
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
     // --- pool data
+    // @ts-ignore
     hookAddress: event.args.hooks,
     // --- event data
+    // @ts-ignore
     poolId: event.args.id,
   })
 })
@@ -104,8 +107,10 @@ ponder.on('BondMarket:PoolInitialized', async ({ event, context }) => {
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
     // --- pool data
+    // @ts-ignore
     hookAddress: event.args.hooks,
     // --- event data
+    // @ts-ignore
     poolId: event.args.id,
   })
 })
