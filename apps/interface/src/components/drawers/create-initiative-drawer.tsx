@@ -35,15 +35,7 @@ export function CreateInitiativeDrawer() {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const {
-    acceptanceThreshold,
-    proposalThreshold,
-    formatter,
-    meetsThreshold,
-    lockInterval,
-    decayCurveType,
-    decayCurveParameters,
-  } = useSignals()
+  const { formatter, board } = useSignals()
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number | null>(null)
@@ -182,7 +174,7 @@ export function CreateInitiativeDrawer() {
                 <AlertTitle>
                   Heads up! This board requires your wallet to hold{' '}
                   <strong>
-                    {formatter(proposalThreshold)} {symbol}
+                    {formatter(board.proposalThreshold)} {symbol}
                   </strong>{' '}
                   tokens to propose an idea.
                 </AlertTitle>
@@ -192,7 +184,7 @@ export function CreateInitiativeDrawer() {
                     {formatter(balance)} {symbol}
                   </strong>{' '}
                   tokens.{' '}
-                  {meetsThreshold ? (
+                  {board.meetsThreshold ? (
                     <strong>You have enough tokens to propose an idea.</strong>
                   ) : (
                     <strong>You do not have enough tokens to propose an idea.</strong>
@@ -270,12 +262,12 @@ export function CreateInitiativeDrawer() {
                   <SubmissionLockDetails
                     amount={amount}
                     duration={duration}
-                    threshold={formatter(acceptanceThreshold)}
+                    threshold={formatter(board.acceptanceThreshold)}
                     initiative={{
                       createdAt: DateTime.now().toSeconds(),
-                      lockInterval,
-                      decayCurveType,
-                      decayCurveParameters,
+                      lockInterval: board.lockInterval,
+                      decayCurveType: board.decayCurveType,
+                      decayCurveParameters: board.decayCurveParameters,
                     }}
                     existingLocks={[]}
                     proposeNewInitiative={true}
@@ -291,12 +283,12 @@ export function CreateInitiativeDrawer() {
             <SubmissionLockDetails
               amount={amount}
               duration={duration}
-              threshold={formatter(acceptanceThreshold)}
+              threshold={formatter(board.acceptanceThreshold)}
               initiative={{
                 createdAt: DateTime.now().toSeconds(),
-                lockInterval,
-                decayCurveType,
-                decayCurveParameters,
+                lockInterval: board.lockInterval,
+                decayCurveType: board.decayCurveType,
+                decayCurveParameters: board.decayCurveParameters,
               }}
               existingLocks={[]}
               proposeNewInitiative={true}

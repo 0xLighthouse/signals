@@ -34,8 +34,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
-  const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
-    useSignals()
+  const { formatter, board } = useSignals()
 
   const [amount, setAmount] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -271,14 +270,14 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                 <SubmissionLockDetails
                   initiative={{
                     createdAt: initiative.createdAtTimestamp,
-                    lockInterval,
-                    decayCurveType,
-                    decayCurveParameters,
+                    lockInterval: board.lockInterval,
+                    decayCurveType: board.decayCurveType,
+                    decayCurveParameters: board.decayCurveParameters,
                   }}
                   supporters={initiative.supporters}
                   amount={amount}
                   duration={duration}
-                  threshold={formatter(acceptanceThreshold)}
+                  threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
                   existingLocks={existingLocks || []}
                 />
@@ -291,14 +290,14 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
             <SubmissionLockDetails
               initiative={{
                 createdAt: initiative.createdAtTimestamp,
-                lockInterval,
-                decayCurveType,
-                decayCurveParameters,
+                lockInterval: board.lockInterval,
+                decayCurveType: board.decayCurveType,
+                decayCurveParameters: board.decayCurveParameters,
               }}
               supporters={initiative.supporters}
               amount={amount}
               duration={duration}
-              threshold={formatter(acceptanceThreshold)}
+              threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
               existingLocks={existingLocks || []}
             />

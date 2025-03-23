@@ -7,18 +7,12 @@ import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'
 import { normaliseNumber } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from '../ui/button'
-import { PlusIcon } from 'lucide-react'
 
-
-const StatsBarItem = ({ title, value }: { title: string, value: string | number }) => {
+const StatsBarItem = ({ title, value }: { title: string; value: string | number }) => {
   return (
     <div>
       <span className="text-xl font-bold">{value}</span>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        {title}
-      </p>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400">{title}</p>
     </div>
   )
 }
@@ -32,7 +26,7 @@ export const StatsBar = () => {
     formatter: formatUSDC,
   } = useRewardsStore()
   const { symbol: underlyingSymbol, totalSupply, balance: underlyingBalance } = useUnderlying()
-  const { formatter, proposalThreshold, acceptanceThreshold } = useSignals()
+  const { formatter, board } = useSignals()
 
   useEffect(() => {
     if (address) {
@@ -69,7 +63,7 @@ export const StatsBar = () => {
         </div>
         <div>
           <span className="text-xl font-bold">
-            {normaliseNumber(formatter(proposalThreshold)) || '-'}
+            {normaliseNumber(formatter(board.proposalThreshold)) || '-'}
           </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Proposal threshold {underlyingSymbol ? `(${underlyingSymbol})` : ''}
@@ -77,14 +71,13 @@ export const StatsBar = () => {
         </div>
         <div>
           <span className="text-xl font-bold">
-            {normaliseNumber(formatter(acceptanceThreshold)) || '-'}
+            {normaliseNumber(formatter(board.acceptanceThreshold)) || '-'}
           </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Acceptance threshold {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
       </div>
-
-    </div >
+    </div>
   )
 }

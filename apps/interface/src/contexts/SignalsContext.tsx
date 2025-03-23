@@ -6,15 +6,38 @@ import { getContract } from 'viem'
 import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
-// Types for contract metadata
-type ISignalsContext = {
+interface IBoard {
   initiativesCount: number | null
   proposalThreshold: number | null
+  // TODO: Move this out of IBoard as its related to the users balance
   meetsThreshold: boolean
   acceptanceThreshold: number | null
   lockInterval: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
+}
+
+// TODO: Surface underlying token metadata
+interface IUnderlyingToken {
+  name: string | null
+  symbol: string | null
+  decimals: number | null
+  totalSupply: number | null
+}
+
+// TODO: Surface incentives metadata, related to the board
+interface IIncentives {
+  address: string
+  version: number | null
+  allocations: bigint[] | null
+  receivers: `0x${string}`[] | null
+}
+
+// Types for contract metadata
+type ISignalsContext = {
+  board: IBoard
+  underlyingToken?: IUnderlyingToken
+  incentives?: IIncentives
   formatter: (value?: number | null) => number
 }
 
@@ -101,6 +124,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [address])
 
+  // Underlying token
+
   const formatter = (value?: number | null) => {
     if (!decimals || !value) return value
     return Math.ceil(value / 1e18)
@@ -111,13 +136,15 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
     <SignalsContext.Provider
       value={{
         formatter: formatter as (value?: number | null) => number,
-        initiativesCount,
-        proposalThreshold,
-        acceptanceThreshold,
-        meetsThreshold,
-        lockInterval,
-        decayCurveType,
-        decayCurveParameters,
+        board: {
+          initiativesCount,
+          proposalThreshold,
+          acceptanceThreshold,
+          meetsThreshold,
+          lockInterval,
+          decayCurveType,
+          decayCurveParameters,
+        },
       }}
     >
       {children}
