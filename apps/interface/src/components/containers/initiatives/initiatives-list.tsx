@@ -12,7 +12,7 @@ import { InitiativeCard } from './initiative-card'
 
 export const InitiativesList = () => {
   const { theme } = useTheme()
-  const { initiativesCount } = useSignals()
+  const { board } = useSignals()
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -26,7 +26,7 @@ export const InitiativesList = () => {
 
   const [sortBy, setSortBy] = useState('support')
 
-  console.log('initiative-count', initiativesCount)
+  console.log('initiative-count', board.initiativesCount)
 
   // Ensure initiatives is always an array before filtering
   const _initiativesSorted = initiatives.sort((a, b) =>

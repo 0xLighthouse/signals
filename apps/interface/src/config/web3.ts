@@ -1,4 +1,4 @@
-import { createPublicClient, http, erc20Abi } from 'viem'
+import { createPublicClient, http, erc20Abi, Abi } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 import { SignalsABI, IncentivesABI } from '../../../../packages/abis'
@@ -11,7 +11,7 @@ export const readClient = createPublicClient({
   transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
 })
 
-export const ABI = [
+export const ERC20WithFaucetABI = [
   ...erc20Abi,
   {
     inputs: [
@@ -26,7 +26,7 @@ export const ABI = [
     stateMutability: 'payable',
     type: 'function',
   },
-]
+] satisfies Abi
 
 export const SIGNALS_ABI = SignalsABI
 export const INCENTIVES_ABI = IncentivesABI
@@ -49,7 +49,7 @@ export const context = {
   },
   contracts: {
     BoardUnderlyingToken: {
-      abi: ABI,
+      abi: ERC20WithFaucetABI,
       address: '0x26D04e0D3050b7b11054B5A48639D1FE88aA7Be7' as `0x${string}`,
     },
   },

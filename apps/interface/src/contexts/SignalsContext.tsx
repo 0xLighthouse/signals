@@ -7,6 +7,7 @@ import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
 interface IBoard {
+  // TODO: Move this out of IBoard as its metadata
   initiativesCount: number | null
   proposalThreshold: number | null
   // TODO: Move this out of IBoard as its related to the users balance

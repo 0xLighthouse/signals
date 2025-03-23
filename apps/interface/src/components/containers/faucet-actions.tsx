@@ -3,30 +3,24 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ABI, context } from '@/config/web3'
-import { createWalletClient, custom, WalletClient } from 'viem'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { readClient, ERC20WithFaucetABI, context } from '@/config/web3'
+import { WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
-import { useWallets } from '@privy-io/react-auth'
+import { useWeb3 } from '@/contexts/Web3Provider'
 
-const claimTokens = async (
+const handleFaucetClaim = async (
   { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
   signer: WalletClient,
 ) => {
   if (!address) throw new Error('Address not available.')
   try {
-    // const nonce = await readClient.getTransactionCount({ address })
-    // const signer = createWalletClient({
-    //   chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-    //   transport: custom(window.ethereum),
-    // })
-
+    // @ts-ignore
     const transactionHash = await signer.writeContract({
       account: address,
       address: token,
-      abi: ABI,
+      abi: ERC20WithFaucetABI,
       functionName: 'faucet',
       args: [address],
       gas: 100_000n,
@@ -58,7 +52,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
-  const { wallets } = useWallets()
+  const { walletClient } = useWeb3()
 
   const handleClaimUSDC = async () => {
     // setIsLoadingUSDC(true)
@@ -72,22 +66,20 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const handleClaimTokens = async () => {
     setIsLoadingTokens(true)
 
-    const provider = await wallets[0].getEthereumProvider()
-    if (!provider) return
-
-    const signer = createWalletClient({
-      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-      transport: custom(provider),
-    })
+    if (!walletClient) {
+      toast('No wallet client found')
+      setIsLoadingTokens(false)
+      return
+    }
 
     try {
-      await claimTokens(
+      await handleFaucetClaim(
         {
           token: context.contracts.BoardUnderlyingToken.address,
           address: address as `0x${string}`,
           symbol: 'SGNL',
         },
-        signer,
+        walletClient,
       )
     } finally {
       setIsLoadingTokens(false)
