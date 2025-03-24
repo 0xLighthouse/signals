@@ -51,7 +51,7 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         uint256 feeForReductionAsLiquidity = profitMinusFees * feeCreditRatio / ONE_HUNDRED_PERCENT;
         int256 feeForReductionAsBondToken = BondPoolLibrary.getBondTokenAmountForLiquidity(bondhook._getPoolState(poolA.toId()), int256(feeForReductionAsLiquidity), SQRT_PRICE_1_1);
 
-        assertApproxEqAbs(uint256(bondhook.liquidityForFeeReduction(poolA.toId())), uint256(feeForReductionAsBondToken), 1000, "Fee reduction should be 50% of profit");
+        assertApproxEqAbs(uint256(bondhook.creditForFeeReduction(poolA.toId())), uint256(feeForReductionAsBondToken), 1000, "Fee reduction should be 50% of profit");
     } 
 
     function test_lpEarnFees() public {
@@ -92,81 +92,33 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         );
     }
 
-    function test_playground() public {
+    function test_reducedFeesWhenAvailable() public {
+        // 0% fee for owner, 50% fee credit ratio, 10% normal fee, 0% reduced fee
+        deployHookWithFeesAndPools(0, 50_0000, 10_0000, 0, SQRT_PRICE_1_1); 
         // deployHookAndPools();
-        // modifyLiquidityFromProvider(poolA, 100_000 ether);
+        modifyLiquidityFromProvider(poolA, 100_000 ether);
 
-        // BondPoolState memory state = bondhook.getBondPoolState(poolA.toId());
-        // uint256 liquidity = BondPoolLibrary.getLiquidityForBondTokenAmount(state, manager, 10 ether);
+        // Alice does a swap, and gets charged fees
+        uint256 aliceBalanceBefore = _token.balanceOf(address(_alice));
+        aliceSwap(-100 ether, false);
 
-        // uint256 amountToSwap = BondPoolLibrary.getSwapAmountForLiquidityConversion(state, manager, 10 ether);
+        uint256 aliceBalanceAfter = _token.balanceOf(address(_alice));
+        assertApproxEqAbs(aliceBalanceAfter - aliceBalanceBefore, 90 ether, 1 ether, "Alice should have lost 3% in the trade");
 
-        // console.log("amountToSwap", amountToSwap);
+        // Create a bond
+        uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
+        aliceSellBond(tokenId, 22_500 ether);
+        bobBuyBond(tokenId, 27_500 ether);
 
-        // // Performa a swap
-        // vm.startPrank(_alice);
-        // _dai.approve(address(swapRouter), 10000 ether);
-        // _token.approve(address(swapRouter), 10000 ether);
+        int256 creditBefore = bondhook.creditForFeeReduction(poolA.toId());
+        assertGt(creditBefore, 0, "There should be some credit for fee reduction");
 
-        // swapRouter.swap(
-        //     poolA,
-        //     IPoolManager.SwapParams({
-        //         zeroForOne: true,
-        //         amountSpecified: -10000 ether,
-        //         sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-        //     }),
-        //     PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
-        //     // hookData
-        //     ZERO_BYTES
-        // );
-        // vm.stopPrank();
+        aliceBalanceBefore = _token.balanceOf(address(_alice));
+        aliceSwap(-100 ether, false);
+        aliceBalanceAfter = _token.balanceOf(address(_alice));
+        assertApproxEqAbs(aliceBalanceAfter - aliceBalanceBefore, 100 ether, 1 ether, "Alice should have traded with no fees");
 
-        // amountToSwap = BondPoolLibrary.getSwapAmountForLiquidityConversion(state, manager, 10 ether);
-        // console.log("amountToSwap", amountToSwap);
-
-        // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(manager, poolA.toId());
-        // int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
-        // int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
-
-        // uint256 a1 = 10 ether - amountToSwap;
-        // uint256 a0 = amountToSwap;
-
-        // if (!state.bondTokenIsCurrency0) {
-        //     (a0, a1) = (a1, a0);
-        // }
-
-        // uint128 results = LiquidityAmounts.getLiquidityForAmounts(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), TickMath.getSqrtPriceAtTick(minTick),  a0, a1);
-        // console.log("results", results);
-
-        // // deployHookAndPools();
-        // // modifyLiquidityFromProvider(poolA, 10_000 ether);
-
-        // // // get current sqrt price
-        // // // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, poolA.toId());
-
-        // // uint256 liquidity = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
-        // // console.log("liquidity", liquidity);
-
-        // // // Do a swap
-        // //  vm.startPrank(_alice);
-        // //  _dai.approve(address(swapRouter), 10000 ether);
-        // //  _token.approve(address(swapRouter), 10000 ether);
-        // // swapRouter.swap(
-        // //     poolA,
-        // //     IPoolManager.SwapParams({
-        // //         zeroForOne: !poolAIsGovZero,
-        // //         amountSpecified: 100 ether,
-        // //         sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
-        // //     }),
-        // //     PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
-        // //     // hookData
-        // //     ZERO_BYTES
-        // // );
-        // // vm.stopPrank();
-
-        // // uint256 liquidity2 = LiquidityAmounts.getLiquidityForAmount0(TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE, 10 ether);
-        // // console.log("liquidity2", liquidity2);
-
-
+        int256 creditAfter = bondhook.creditForFeeReduction(poolA.toId());
+        assertApproxEqAbs(creditAfter - 100 ether, creditBefore, 1 ether, "Fee credit should have reduced");
     }
 }

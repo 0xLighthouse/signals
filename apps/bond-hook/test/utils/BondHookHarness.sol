@@ -7,6 +7,8 @@ import "forge-std/console.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockIssuer} from "./MockIssuer.m.sol";
@@ -79,8 +81,7 @@ contract BondHookHarness is Test, Deployers {
     function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted, uint160 startingPriceX96) public {
         // Deploy hook with correct flags
         address _hookAddress = address(uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-                | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
         ));
 
         bytes memory args = abi.encode(BondHookOptions({
@@ -181,6 +182,24 @@ contract BondHookHarness is Test, Deployers {
                 swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
                 desiredCurrency: DesiredCurrency.Mixed
             })
+        );
+        vm.stopPrank();
+    }
+
+    function aliceSwap(int256 amount, bool sellGovToken) public {
+        vm.startPrank(_alice);
+        _token.approve(address(swapRouter), type(uint256).max);
+        _dai.approve(address(swapRouter), type(uint256).max);
+        swapRouter.swap(
+            poolA,
+            IPoolManager.SwapParams({
+                zeroForOne: sellGovToken ? poolAIsGovZero : !poolAIsGovZero,
+                amountSpecified: amount,
+                sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
+            }),
+            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
+            // hookData
+            ZERO_BYTES
         );
         vm.stopPrank();
     }

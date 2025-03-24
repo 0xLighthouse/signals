@@ -50,7 +50,8 @@ library BondPoolLibrary {
         int256 profitInBondToken = getBondTokenAmountForLiquidity(state, profitInLiquidity, sqrtPriceX96);
         
         // how much profit gets credited to fee reduction
-        state.creditForSwapFeesInBondToken += profitInBondToken * int256(state.feeCreditPercentAsPips) / int256(ONE_HUNDRED_PERCENT);
+        int256 profitForFeeReduction = profitInBondToken * int256(state.feeCreditPercentAsPips) / int256(ONE_HUNDRED_PERCENT);
+        state.creditForSwapFeesInBondToken += profitForFeeReduction;
 
         // add profit to pool
         uint256 _totalShares = state.totalSharesAdded;
