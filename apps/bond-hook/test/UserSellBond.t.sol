@@ -116,7 +116,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
 
         //Alice should end up with around 22.5k in gov, minus the 3% trading fee
-        assertApproxEqAbs(_govAfter - _govBefore, bondPriceLimit, _govAfter * 5 / 100, "Alice Gov balance incorrect");
+        assertApproxEqAbs(_govAfter - _govBefore, bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");
         assertEq(_daiAfter, _daiBefore, "Alice DAI balance incorrect");
         // The bond should be transfered to the pool
         assertEq(_aliceBondAfter, 0, "Alice Bond balance incorrect");

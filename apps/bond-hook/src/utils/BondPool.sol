@@ -107,9 +107,9 @@ library BondPoolLibrary {
         }
 
         if (amountInBondToken < 0) {
-            return -int256(liquidity);
+            return -int256(liquidity/2);
         } else {
-            return int256(liquidity);
+            return int256(liquidity/2);
         }
     }
 
@@ -121,15 +121,15 @@ library BondPoolLibrary {
 
         uint256 amount;
         if (state.bondTokenIsCurrency0) {
-             amount = LiquidityAmounts.getAmount0ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(_liquidity/2));
+             amount = LiquidityAmounts.getAmount0ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(_liquidity));
         } else {
-            amount = LiquidityAmounts.getAmount1ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(_liquidity/2));
+            amount = LiquidityAmounts.getAmount1ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(_liquidity));
         }
 
         if (liquidity < 0) {
-            return -int256(amount);
+            return -int256(amount*2);
         } else {
-            return int256(amount);
+            return int256(amount*2);
         }
     }
 

@@ -269,9 +269,6 @@ contract BondHook is BaseHook {
 
         uint256 priceAsLiquidity = uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
 
-        console.log("price", price);
-        console.log("priceAsLiquidity", priceAsLiquidity);
-
         // Record how much liquidity was spent on it
         amountPaidOutFor[data.tokenId] = priceAsLiquidity;
 
@@ -301,7 +298,7 @@ contract BondHook is BaseHook {
 
         // We must get at least as much as we paid
         uint256 originalPriceAsLiquidity = amountPaidOutFor[data.tokenId];
-        if (priceAsLiquidity > originalPriceAsLiquidity) {
+        if (priceAsLiquidity < originalPriceAsLiquidity) {
             priceAsLiquidity = originalPriceAsLiquidity;
         }
 
@@ -318,7 +315,8 @@ contract BondHook is BaseHook {
 
         // record how much profit was generated
         uint256 profit = priceAsLiquidity - originalPriceAsLiquidity;
-        bondPools[data.poolKey.toId()].addProfit(int256(profit), sqrtPriceX96);
+        uint256 profitMinusFees = _takeOwnerFees(profit);
+        bondPools[data.poolKey.toId()].addProfit(int256(profitMinusFees), sqrtPriceX96);
 
         // Transfer the bond to the user and zero out records
         bondIssuer.transferFrom(address(this), sender, data.tokenId);
@@ -406,6 +404,12 @@ contract BondHook is BaseHook {
             );
             poolManager.settle();
         }
+    }
+
+    function _takeOwnerFees(uint256 profit) internal returns (uint256 remaining) {
+        uint256 fee = profit * ownerFeeAsPips / ONE_HUNDRED_PERCENT;
+        ownerFees += fee;
+        return profit - fee;
     }
 
     function claimRewards(PoolKey calldata key) public {
