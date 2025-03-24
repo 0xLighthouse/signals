@@ -148,15 +148,14 @@ contract BondHookHarness is Test, Deployers {
     }
 
     // Alice sells the bond for mixed currency
-    function aliceSellBond(uint256 _tokenId, uint256 _bondPriceLimit) public {
-
+    function aliceSellBond(uint256 tokenId, uint256 bondPriceLimit) public {
         vm.startPrank(_alice);
-        bondIssuer.approve(address(bondhook), _tokenId);
+        bondIssuer.approve(address(bondhook), tokenId);
         bondhook.swapBond(
             SwapData({
                 poolKey: poolA,
-                tokenId: _tokenId,
-                bondPriceLimit: _bondPriceLimit,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
                 swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
                 desiredCurrency: DesiredCurrency.Mixed
             })
@@ -165,9 +164,9 @@ contract BondHookHarness is Test, Deployers {
     }
 
     // Bob buys the bond for mixed currency
-    function bobBuyBond(uint256 _tokenId, uint256 _bondPriceLimit) public {
-        if (_bondPriceLimit == 0) {
-            _bondPriceLimit = type(uint256).max;
+    function bobBuyBond(uint256 tokenId, uint256 bondPriceLimit) public {
+        if (bondPriceLimit == 0) {
+            bondPriceLimit = type(uint256).max;
         }
 
         vm.startPrank(_bob);
@@ -177,8 +176,8 @@ contract BondHookHarness is Test, Deployers {
         bondhook.swapBond(
             SwapData({
                 poolKey: poolA,
-                tokenId: _tokenId,
-                bondPriceLimit: _bondPriceLimit,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
                 swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
                 desiredCurrency: DesiredCurrency.Mixed
             })

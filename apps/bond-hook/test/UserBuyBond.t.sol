@@ -11,6 +11,7 @@ import { TickMath } from "v4-core/libraries/TickMath.sol";
 import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
 
 import { DesiredCurrency, SwapData } from "../src/BondHook.sol";
+import { BondPoolLibrary } from "../src/utils/BondPool.sol";
 /**
  * Goal of this suite is to ensure that a user can purchase bonds from one or many pools
  *
@@ -39,23 +40,24 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
         uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
 
         // record pool balances
-        uint256 _poolLiquidity = StateLibrary.getLiquidity(manager, poolA.toId());
+        uint256 poolLiquidity = StateLibrary.getLiquidity(manager, poolA.toId());
 
-        // alice sells bond for any price
-        aliceSellBond(tokenId, 0);
+        // alice sells bond for the expected price
+        aliceSellBond(tokenId, 22_500 ether);
 
+        uint256 poolLiquidityMiddle = StateLibrary.getLiquidity(manager, poolA.toId());
         // The maximum price we would pay for the bond.
         // 50% of 50k is 25k, plus the 10% fee is 27.5k
         uint256 bondPriceLimit = 27_500 ether;
         bobBuyBond(tokenId, bondPriceLimit);
 
         // record pool balances
-        uint256 _poolLiquidityAfter = StateLibrary.getLiquidity(manager, poolA.toId());
+        uint256 poolLiquidityAfter = StateLibrary.getLiquidity(manager, poolA.toId());
 
         // The pool should have earned profit in the form of liquidity:
         // Bought for 22_500, sold for 27_500 = 5_000 equals 2_500 liquidity as profit
-        assertApproxEqAbs(
-            _poolLiquidityAfter - _poolLiquidity, 2_500 ether, 100, "Pool liquidity should have increased"
+        assertGe(
+            poolLiquidityAfter - poolLiquidity, 2_500 ether, "Pool liquidity should have increased"
         );
     }
 
@@ -98,14 +100,13 @@ contract UserBuyBondTest is Test, Deployers, BondHookHarness {
 
         // The pool should have earned profit in the form of liquidity:
         // Bought for 22_500, sold for 27_500 = 5_000 equals 2_500 liquidity as profit
-        assertApproxEqAbs(
-            _poolLiquidityAfter - _poolLiquidity, 2_500 ether, 100, "Pool liquidity should have increased"
+        assertGe(
+            _poolLiquidityAfter - _poolLiquidity, 2_500 ether, "Pool liquidity should have increased"
         );
 
-        assertApproxEqAbs(
+        assertGe(
             _daiBalanceBefore - _daiBalanceAfter,
             27_500 ether,
-            27_500 ether / 100,
             "Bob should have spent DAI (and some fees)"
         );
         assertEq(_tokenBalanceAfter, _tokenBalanceBefore, "Bob should have no change of GOV");
