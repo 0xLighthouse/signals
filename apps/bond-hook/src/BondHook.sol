@@ -289,12 +289,13 @@ contract BondHook is BaseHook {
             revert InvalidPool();
         }
 
-        uint160 sqrtPriceX96 = bondPools[data.poolKey.toId()].getPriceX96(poolManager);
+        BondPoolState storage state = bondPools[data.poolKey.toId()];
+        uint160 sqrtPriceX96 = state.getPriceX96(poolManager);
 
         // The user is buying from us
         // This operation can only provide profit, quoted as liquidity. Therefore we can cast everything to uint256
         uint256 price = getPoolSellPrice(data.tokenId);
-        uint256 priceAsLiquidity = uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
+        uint256 priceAsLiquidity = uint256(state.getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
 
         // We must get at least as much as we paid
         uint256 originalPriceAsLiquidity = amountPaidOutFor[data.tokenId];
@@ -316,7 +317,12 @@ contract BondHook is BaseHook {
         // record how much profit was generated
         uint256 profit = priceAsLiquidity - originalPriceAsLiquidity;
         uint256 profitMinusFees = _takeOwnerFees(profit);
-        bondPools[data.poolKey.toId()].addProfit(int256(profitMinusFees), sqrtPriceX96);
+        bool feeCreditAvailable = state.creditForSwapFeesInBondToken > 0;
+        state.addProfit(int256(profitMinusFees), sqrtPriceX96);
+        if (!feeCreditAvailable && state.creditForSwapFeesInBondToken > 0) {
+            // Update the fee rate in the pool
+            poolManager.updateDynamicLPFee(data.poolKey, state.reducedSwapFee);
+        }
 
         // Transfer the bond to the user and zero out records
         bondIssuer.transferFrom(address(this), sender, data.tokenId);
@@ -444,7 +450,7 @@ contract BondHook is BaseHook {
      * @param id The ID of the pool
      * @return balance The balance of liquidity available for fee reduction
      */
-    function liquidityForFeeReduction(PoolId id) public view returns (int256) {
+    function creditForFeeReduction(PoolId id) public view returns (int256) {
         return bondPools[id].creditForSwapFeesInBondToken;
     }
 
@@ -494,7 +500,7 @@ contract BondHook is BaseHook {
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: true,
-            afterInitialize: false,
+            afterInitialize: true,
             beforeAddLiquidity: true,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
@@ -503,8 +509,8 @@ contract BondHook is BaseHook {
             afterSwap: true,
             beforeDonate: false,
             afterDonate: false,
-            beforeSwapReturnDelta: true,
-            afterSwapReturnDelta: true,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
         });
@@ -546,6 +552,12 @@ contract BondHook is BaseHook {
         return this.beforeInitialize.selector;
     }
 
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24) internal override returns (bytes4) {
+        poolManager.updateDynamicLPFee(key, bondPools[key.toId()].normalSwapFee);
+        return this.afterInitialize.selector;
+    }
+
+
     function _beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
         internal
         override
@@ -554,7 +566,7 @@ contract BondHook is BaseHook {
         return this.beforeAddLiquidity.selector;
     }
 
-    function _beforeSwap(address sender, PoolKey calldata, IPoolManager.SwapParams calldata params, bytes calldata hookData)
+    function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata hookData)
         internal
         override
         returns (bytes4, BeforeSwapDelta, uint24)
@@ -563,56 +575,42 @@ contract BondHook is BaseHook {
         if (sender == address(this)) {
             return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), DYNAMIC_FEE_FLAG);
         }
-
-        // // The amount we are dealing with
-        // uint128 _amount = params.amountSpecified < 0 ? uint128(-params.amountSpecified) : uint128(params.amountSpecified);
-        
-        // // get the current sqrt price of the pool
-        // (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, key.toId());
-        
-        // // Convert to liquidity given the amount in the specified currency
-        // uint256 _liquidity;
-        // if ((params.zeroForOne && params.amountSpecified < 0) || (!params.zeroForOne && params.amountSpecified > 0)) {
-        //     uint256 intermediate = FullMath.mulDiv(sqrtPriceAX96, sqrtPriceBX96, FixedPoint96.Q96);
-        // return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtPriceBX96 - sqrtPriceAX96));
-        // } else {
-        //     _currency0 = false;
-        // }
-
-
-
-        //     _liquidity = LiquidityAmounts.getLiquidityForAmount0(params.sqrtPriceLimitX96, params.sqrtPriceLimitX96, uint128(params.amountSpecified < 0 ? -params.amountSpecified : params.amountSpecified));
-
-        //     // If the liquidity is greater than the liquidity for fee reduction, we need to subtract the amount of liquidity for fee reduction from the liquidity  if (sqrtPriceAX96 > sqrtPriceBX96) (sqrtPriceAX96, sqrtPriceBX96) = (sqrtPriceBX96, sqrtPriceAX96);
-        // uint256 intermediate = FullMath.mulDiv(sqrtPriceAX96, sqrtPriceBX96, FixedPoint96.Q96);
-        // return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtPriceBX96 - sqrtPriceAX96));
-        // } else {
-        //     _liquidity = LiquidityAmounts.getLiquidityForAmount1(params.sqrtPriceLimitX96, params.sqrtPriceLimitX96, uint128(params.amountSpecified < 0 ? -params.amountSpecified : params.amountSpecified));
-        // }
-
-        // uint24 _customFee;  
-        // if (bondPools[key.toId()].liquidityForFeeReduction >= _liquidity) {
-        //     // Set fee to reduced level and subtract amount of credit
-        //     _customFee = swapFeeDiscounted | DYNAMIC_FEE_FLAG;
-        //     // Calculate amount of fee that would have been had
-        //     uint256 _potentialFee = _liquidity * swapFeeNormal / ONE_HUNDRED_PERCENT;
-        //     // Calculate new fee
-        //     uint256 _newFee = _liquidity * swapFeeDiscounted / ONE_HUNDRED_PERCENT;
-        //     // Reduce remainging credit by the amount of fees that were missed out on
-        //     bondPools[key.toId()].liquidityForFeeReduction -= _potentialFee - _newFee;
-        // } else {
-        //     _customFee = swapFeeNormal;
-        // }
-
-        return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
-        // return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), _customFee);
+            return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
     }
 
-    function _afterSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+    function _afterSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta delta, bytes calldata)
         internal
         override
         returns (bytes4, int128)
     {
+        BondPoolState storage state = bondPools[key.toId()];
+
+        if (sender == address(this) || state.creditForSwapFeesInBondToken <= 0) {
+            return (this.afterSwap.selector, int128(0));
+        }
+         
+        int128 creditDelta = 0;
+        if (state.bondTokenIsCurrency0) {
+            if (delta.amount0() < 0) {
+                creditDelta = delta.amount0();
+            } else {
+                creditDelta = -delta.amount0();
+            }
+        } else {
+            if (delta.amount1() < 0) {
+                creditDelta = delta.amount1();
+            } else {
+                creditDelta = -delta.amount1();
+            }
+        }
+
+        if (int256(creditDelta) > state.creditForSwapFeesInBondToken) {
+            // We will be running out of credit, so return fees to the normal rate
+            poolManager.updateDynamicLPFee(key, state.normalSwapFee);
+        } 
+        // Resuce the amount of credit available
+        state.creditForSwapFeesInBondToken -= int256(creditDelta);
+
         return (this.afterSwap.selector, int128(0));
     }
 
