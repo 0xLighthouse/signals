@@ -7,11 +7,21 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { TextInput } from '../inputs'
 import { DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DrawerClose } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 
-export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+export function DeploySignalsDrawer({
+  isOpen,
+  onOpenChange,
+  hideTrigger,
+}: { isOpen: boolean; onOpenChange: (open: boolean) => void; hideTrigger: boolean }) {
   const { address, isConnected } = useAccount()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -24,13 +34,13 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
     proposalCap: '100', // Max 100 proposals
     lockInterval: '604800', // 1 week in seconds
     decayCurveType: '0', // Linear
-    decayCurveParameters: ['1000000000000000000'] // 1.0 as a decimal with 18 decimals
+    decayCurveParameters: ['1000000000000000000'], // 1.0 as a decimal with 18 decimals
   })
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
@@ -55,7 +65,7 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
         proposalCap: '100',
         lockInterval: '604800',
         decayCurveType: '0',
-        decayCurveParameters: ['1000000000000000000']
+        decayCurveParameters: ['1000000000000000000'],
       })
     } catch (error) {
       console.error('Error deploying contract:', error)
@@ -67,11 +77,12 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerTrigger asChild>
-        <Button variant="outline" onClick={() => onOpenChange(true)}>Deploy Contract</Button>
+      <DrawerTrigger hidden={!!hideTrigger} asChild>
+        <Button variant="outline" onClick={() => onOpenChange(true)}>
+          Deploy Contract
+        </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90vh] max-h-[90vh] overflow-hidden">
-
         <DrawerHeader>
           <DrawerTitle>Deploy Signals Contract</DrawerTitle>
         </DrawerHeader>
@@ -107,7 +118,7 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 required
               />
             </div>
-            
+
             <div>
               <TextInput
                 id="acceptanceThreshold"
@@ -139,7 +150,7 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 required
               />
             </div>
-            
+
             <div className="md:col-span-2 lg:col-span-1">
               <TextInput
                 id="lockInterval"
@@ -165,9 +176,7 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                     <SelectItem value="1">Exponential (1)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Type of decay curve for lock-up bonuses
-                </p>
+                <p className="text-xs text-gray-500">Type of decay curve for lock-up bonuses</p>
               </div>
 
               <TextInput
@@ -187,20 +196,17 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-6 md:pt-8">
             <DrawerClose asChild>
               <Button variant="outline">Cancel</Button>
             </DrawerClose>
-            <Button
-              type="submit"
-              disabled={!isConnected || isLoading}
-            >
+            <Button type="submit" disabled={!isConnected || isLoading}>
               {isLoading ? 'Deploying...' : 'Deploy Contract'}
             </Button>
           </div>
         </form>
       </DrawerContent>
-    </Drawer >
+    </Drawer>
   )
 }

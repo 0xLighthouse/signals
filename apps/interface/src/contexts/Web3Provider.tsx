@@ -84,7 +84,6 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       config={{
         appearance: {
           theme: 'dark',
-          accentColor: '#6366f1',
         },
         supportedChains: [chain],
         defaultChain: chain,

@@ -1,8 +1,6 @@
 'use client'
 
-import { context } from '@/config/web3'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { shortAddress } from '@/lib/utils'
 import React, { useState } from 'react'
 import {
   Breadcrumb,
@@ -11,21 +9,21 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '../ui/breadcrumb'
-import { ChevronDownIcon, Slash } from 'lucide-react'
+import { Slash } from 'lucide-react'
 
 import { ArbitrumIcon } from '../icons/arbitrum'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu'
-import { ContactUsDialog } from '../dialogs/contact-us'
 import { DeploySignalsDrawer } from '../drawers/deploy-signals-drawer'
+import { BoardSelector } from './board-selector'
 
 export const Breadcrumbs: React.FC = () => {
   const { name, symbol } = useUnderlying()
-  const [isDialogOpen, setIsDialogOpen] = useState(false) // Manage dialog open state
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const handleBoardSelect = (boardAddress: string) => {
+    // TODO: Implement switching to a different board
+    console.log('Selected board:', boardAddress)
+  }
+
   return (
     <Breadcrumb className="flex items-center">
       <BreadcrumbList>
@@ -50,21 +48,18 @@ export const Breadcrumbs: React.FC = () => {
           <Slash />
         </BreadcrumbSeparator>
         <BreadcrumbItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 text-neutral-800 dark:text-neutral-200 font-bold">
-              {shortAddress(context.contracts.SignalsProtocol.address)}
-              <ChevronDownIcon size={16} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
-                Deploy contract
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <BoardSelector
+            onDeployBoard={() => setIsDialogOpen(true)}
+            onBoardSelect={handleBoardSelect}
+          />
         </BreadcrumbItem>
       </BreadcrumbList>
-      <DeploySignalsDrawer isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />{' '}
-      {/* Pass state and handler */}
+
+      <DeploySignalsDrawer
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        hideTrigger={true}
+      />
     </Breadcrumb>
   )
 }

@@ -5,8 +5,6 @@ import { CircleAlert, PlusIcon } from 'lucide-react'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
-
-import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -29,6 +27,7 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
+import { context } from '@/config/web3'
 
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
@@ -48,9 +47,9 @@ export function CreateInitiativeDrawer() {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: SIGNALS_PROTOCOL,
-    tokenAddress: ERC20_ADDRESS,
-    tokenDecimals: 18,
+    spender: context.contracts.SignalsProtocol.address,
+    tokenAddress: context.contracts.BoardUnderlyingToken.address,
+    tokenDecimals: context.contracts.BoardUnderlyingToken.decimals,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)

@@ -51,6 +51,7 @@ export const context = {
       abi: ERC20WithFaucetABI,
       address: '0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7' as `0x${string}`,
       label: 'SomeGovToken',
+      decimals: 18, // TODO: Should be dynamic
     },
     SignalsProtocol: {
       abi: SIGNALS_ABI,
