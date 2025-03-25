@@ -47,8 +47,7 @@ export const InitiativeWeight = onchainTable('initiative_weights', (t) => ({
   weight: t.bigint().notNull(),
   supporter: t.hex().notNull(),
   duration: t.bigint().notNull(),
-  // TODO: Deprecate this attribute
-  timestamp: t.bigint().notNull(),
+  tokenId: t.bigint().notNull(),
 }))
 
 // Pool Manager events

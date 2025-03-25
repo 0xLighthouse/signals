@@ -34,8 +34,7 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
     weight: event.args.tokenAmount,
     supporter: event.args.supporter,
     duration: event.args.lockDuration,
-    // TODO: Deprecate this attribute
-    timestamp: event.args.timestamp,
+    tokenId: event.args.tokenId,
   })
 })
 

@@ -7,14 +7,80 @@ export const bondHookAbi = [
     type: 'constructor',
     inputs: [
       {
-        name: '_poolManager',
-        internalType: 'contract IPoolManager',
-        type: 'address',
+        name: 'options',
+        internalType: 'struct BondHookOptions',
+        type: 'tuple',
+        components: [
+          {
+            name: 'poolManager',
+            internalType: 'contract IPoolManager',
+            type: 'address',
+          },
+          { name: 'bondIssuer', internalType: 'address', type: 'address' },
+          { name: 'bondPricing', internalType: 'address', type: 'address' },
+          { name: 'ownerFeeAsPips', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'feeCreditRatioAsPips',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'swapFeeNormal', internalType: 'uint24', type: 'uint24' },
+          { name: 'swapFeeDiscounted', internalType: 'uint24', type: 'uint24' },
+        ],
       },
-      { name: '_bondIssuer', internalType: 'address', type: 'address' },
-      { name: '_bondPricing', internalType: 'address', type: 'address' },
     ],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'id', internalType: 'PoolId', type: 'bytes32' }],
+    name: '_getPoolState',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct BondPoolState',
+        type: 'tuple',
+        components: [
+          {
+            name: 'key',
+            internalType: 'struct PoolKey',
+            type: 'tuple',
+            components: [
+              { name: 'currency0', internalType: 'Currency', type: 'address' },
+              { name: 'currency1', internalType: 'Currency', type: 'address' },
+              { name: 'fee', internalType: 'uint24', type: 'uint24' },
+              { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
+              {
+                name: 'hooks',
+                internalType: 'contract IHooks',
+                type: 'address',
+              },
+            ],
+          },
+          { name: 'bondTokenIsCurrency0', internalType: 'bool', type: 'bool' },
+          { name: 'positionId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'normalSwapFee', internalType: 'uint24', type: 'uint24' },
+          { name: 'reducedSwapFee', internalType: 'uint24', type: 'uint24' },
+          {
+            name: 'totalSharesAdded',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'profitPerShare', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'feeCreditPercentAsPips',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          {
+            name: 'creditForSwapFeesInBondToken',
+            internalType: 'int256',
+            type: 'int256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -178,16 +244,6 @@ export const bondHookAbi = [
       { name: '', internalType: 'int128', type: 'int128' },
     ],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'id', internalType: 'PoolId', type: 'bytes32' },
-      { name: 'user', internalType: 'address', type: 'address' },
-    ],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -359,6 +415,42 @@ export const bondHookAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: '', internalType: 'PoolId', type: 'bytes32' }],
+    name: 'bondPools',
+    outputs: [
+      {
+        name: 'key',
+        internalType: 'struct PoolKey',
+        type: 'tuple',
+        components: [
+          { name: 'currency0', internalType: 'Currency', type: 'address' },
+          { name: 'currency1', internalType: 'Currency', type: 'address' },
+          { name: 'fee', internalType: 'uint24', type: 'uint24' },
+          { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
+          { name: 'hooks', internalType: 'contract IHooks', type: 'address' },
+        ],
+      },
+      { name: 'bondTokenIsCurrency0', internalType: 'bool', type: 'bool' },
+      { name: 'positionId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'normalSwapFee', internalType: 'uint24', type: 'uint24' },
+      { name: 'reducedSwapFee', internalType: 'uint24', type: 'uint24' },
+      { name: 'totalSharesAdded', internalType: 'uint256', type: 'uint256' },
+      { name: 'profitPerShare', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'feeCreditPercentAsPips',
+        internalType: 'uint256',
+        type: 'uint256',
+      },
+      {
+        name: 'creditForSwapFeesInBondToken',
+        internalType: 'int256',
+        type: 'int256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'bondPricing',
     outputs: [
@@ -392,6 +484,13 @@ export const bondHookAbi = [
     name: 'claimRewards',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'id', internalType: 'PoolId', type: 'bytes32' }],
+    name: 'creditForFeeReduction',
+    outputs: [{ name: '', internalType: 'int256', type: 'int256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -447,6 +546,16 @@ export const bondHookAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'id', internalType: 'PoolId', type: 'bytes32' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'liquidityBalanceOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       {
         name: 'data',
         internalType: 'struct LiquidityData',
@@ -487,6 +596,20 @@ export const bondHookAbi = [
     inputs: [],
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ownerFeeAsPips',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ownerFees',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {

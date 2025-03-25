@@ -1157,7 +1157,7 @@ export const signalsAbi = [
         indexed: false,
       },
       {
-        name: 'timestamp',
+        name: 'tokenId',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
