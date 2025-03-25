@@ -1,4 +1,4 @@
-import { onchainTable } from 'ponder'
+import { onchainTable, relations } from 'ponder'
 
 /**
  * Notes:
@@ -29,11 +29,26 @@ export const Initiative = onchainTable('initiatives', (t) => ({
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
   contractAddress: t.hex().notNull(),
-  // --- event data
+  // --- attributes
   initiativeId: t.integer().notNull(),
   proposer: t.hex().notNull(),
   title: t.text().notNull(),
   body: t.text().notNull(),
+}))
+
+export const InitiativeWeight = onchainTable('initiative_weights', (t) => ({
+  id: t.text().primaryKey(),
+  chainId: t.integer().notNull(),
+  blockTimestamp: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
+  contractAddress: t.hex().notNull(),
+  // --- attributes
+  initiativeId: t.integer().notNull(),
+  weight: t.bigint().notNull(),
+  supporter: t.hex().notNull(),
+  duration: t.bigint().notNull(),
+  // TODO: Deprecate this attribute
+  timestamp: t.bigint().notNull(),
 }))
 
 export const Weight = onchainTable('weights', (t) => ({
@@ -42,7 +57,7 @@ export const Weight = onchainTable('weights', (t) => ({
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
   contractAddress: t.hex().notNull(),
-  // --- event data
+  // --- attributes
   initiativeId: t.integer().notNull(),
   supporter: t.hex().notNull(),
   amount: t.bigint().notNull(),
@@ -58,7 +73,7 @@ export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
   contractAddress: t.hex().notNull(),
-  // --- event data
+  // --- attributes
   poolId: t.hex().notNull(),
 }))
 
@@ -66,4 +81,18 @@ export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_
 //                                   RELATIONS
 // ===========================================================================
 
-// FIXME: TODO
+export const boardRelations = relations(Board, ({ many }) => ({
+  initiatives: many(Initiative),
+}))
+
+export const initiativeRelations = relations(Initiative, ({ one, many }) => ({
+  board: one(Board),
+  weights: many(Weight),
+}))
+
+export const weightRelations = relations(Weight, ({ one }) => ({
+  initiative: one(Initiative, {
+    fields: [Weight.initiativeId],
+    references: [Initiative.initiativeId],
+  }),
+}))
