@@ -16,7 +16,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param proposalThreshold Minimum tokens to propose an initiative
      * @param acceptanceThreshold Minimum tokens to accept an initiative
      * @param maxLockIntervals Maximum lock intervals allowed
-     * @param proposalCap The maximum number of proposals
+     * @param proposalCap The maximum active proposals a user can submit (TODO: Verify this, rename to activeProposalLimit)
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior

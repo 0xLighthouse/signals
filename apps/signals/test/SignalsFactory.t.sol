@@ -77,7 +77,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
 
         _factory.create(
             ISignalsFactory.FactoryDeployment({
-                owner: address(0), // --- invalid owner address
+                owner: address(0), // This is an invalid owner address
                 underlyingToken: address(_token),
                 proposalThreshold: defaultConfig.proposalThreshold,
                 acceptanceThreshold: defaultConfig.acceptanceThreshold,

@@ -22,7 +22,6 @@ import {Incentives} from "../src/Incentives.sol";
  * - a TokenRegistry
  * - an Incentives contract
  *
- *
  * @notice forge script script/Testnet.s.sol --fork-url $TESTNET_RPC --broadcast
  */
 contract TestnetScript is Script {
@@ -89,9 +88,9 @@ contract TestnetScript is Script {
                 underlyingToken: address(_token),
                 proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold
                 acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
-                maxLockIntervals: 12, // lockDurationCap
+                maxLockIntervals: 14, // Lock for a maximum of 14 days
                 proposalCap: 5, // map active initiatives
-                lockInterval: 1 hours, // decayInterval
+                lockInterval: 1 days, // 1 day
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params // decayCurveParameters
             })
