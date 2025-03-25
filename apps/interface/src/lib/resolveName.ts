@@ -3,14 +3,14 @@ import { shortAddress } from './utils'
 interface QueryResponse {
   Domains: {
     Domain:
-    | [
-      {
-        dappName: string
-        name: string
-        isPrimary: boolean
-      },
-    ]
-    | null
+      | [
+          {
+            dappName: string
+            name: string
+            isPrimary: boolean
+          },
+        ]
+      | null
   }
 }
 
@@ -53,10 +53,10 @@ export const resolveName = async (address: string) => {
   ).then((res) => res.json())
 
   if (errors) {
-    console.log('fetchAnnouncement() ERROR', errors)
+    console.log('resolveName() ERROR', errors)
   }
   if (!data) {
-    throw new Error('Error fetching announcement')
+    throw new Error('Error fetching ENS metadata')
   }
 
   const { Domains } = data as QueryResponse

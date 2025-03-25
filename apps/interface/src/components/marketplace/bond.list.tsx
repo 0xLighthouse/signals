@@ -8,9 +8,9 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
-import { InitiativeCard } from './initiative-card'
+import { BondCard } from './bond.card'
 
-export const InitiativesList = () => {
+export const BondsList = () => {
   const { theme } = useTheme()
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
@@ -45,9 +45,9 @@ export const InitiativesList = () => {
       <ScrollArea className="w-full mb-24">
         <div>
           {_initiativesSorted.map((item, index) => (
-            <InitiativeCard
+            <BondCard
               key={item.initiativeId}
-              initiative={item}
+              bond={item}
               index={index}
               isFirst={index === 0}
               isLast={index === _initiativesSorted.length - 1}
