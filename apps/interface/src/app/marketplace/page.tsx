@@ -1,25 +1,10 @@
-import { TopNav } from '@/components/containers/topnav'
-import { Footer } from '@/components/footer'
-import { FAQs } from '@/components/faqs'
-import { FaucetActions } from '@/components/containers/faucet-actions'
+import { PageLayout } from '@/components/containers/page-layout'
 import { BondsList } from '@/components/containers/marketplace/bond.list'
 
 export default function Marketplace() {
   return (
-    <main className="w-full">
-      <TopNav />
-      <div className="container mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-[800px_1fr]">
-          <div className="px-4 py-8 space-y-6">
-            <BondsList />
-          </div>
-          <div className="hidden lg:block px-4 py-8">
-            <FAQs />
-            <FaucetActions />
-            <Footer />
-          </div>
-        </div>
-      </div>
-    </main>
+    <PageLayout>
+      <BondsList />
+    </PageLayout>
   )
 }

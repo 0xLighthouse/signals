@@ -26,7 +26,7 @@ export function NavList({ items, className }: Props) {
         className,
       )}
     >
-      <nav className={cn('grid w-full', `grid-cols-${items.length}`)}>
+      <nav className={cn('flex w-full')}>
         {items.map((item) => {
           const isActive = pathname === item.href
           return (
