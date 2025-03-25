@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ERC20WithFaucetABI, context, USDC_ADDRESS } from '@/config/web3'
+import { readClient, ERC20WithFaucetABI, context } from '@/config/web3'
 import { WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
@@ -94,9 +94,9 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
           variant="outline"
           onClick={() =>
             handleClaim({
-              token: USDC_ADDRESS,
+              token: context.contracts.USDC.address,
               address: address as `0x${string}`,
-              symbol: 'mUSDC',
+              symbol: context.contracts.USDC.label,
               isLoadingHandler: setIsLoadingUSDC,
             })
           }
@@ -111,7 +111,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
             handleClaim({
               token: context.contracts.BoardUnderlyingToken.address,
               address: address as `0x${string}`,
-              symbol: 'SGNL',
+              symbol: context.contracts.BoardUnderlyingToken.label,
               isLoadingHandler: setIsLoadingTokens,
             })
           }

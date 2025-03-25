@@ -2,12 +2,11 @@ import { createConfig, factory } from 'ponder'
 import { http, parseAbiItem } from 'viem'
 
 // Note: This should hot-reload when the file is changed
-// import signalsDeployment from '../signals/broadcast/Development.s.sol/31337/run-latest.json'
-import signals421614 from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
+import signalsTestnet from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
 import { resolveDeployment } from './src/utils/resolve-deployment'
 import { BondHookABI, PoolManagerABI, SignalsABI, SignalsFactoryABI } from '../../packages/abis'
 
-const latestFactory = resolveDeployment('SignalsFactory', signals421614)
+const latestFactory = resolveDeployment('SignalsFactory', signalsTestnet)
 
 const factoryBoardCreatedEvent = parseAbiItem(
   'event BoardCreated(address indexed board, address indexed owner)',
@@ -34,13 +33,14 @@ export default createConfig({
         event: factoryBoardCreatedEvent,
         parameter: 'board',
       }),
+      // Start indexing from the last factory deployment
       startBlock: latestFactory.startBlock,
     },
     SignalsFactory: {
       abi: SignalsFactoryABI,
       network: {
         arbitrumSepolia: {
-          ...resolveDeployment('SignalsFactory', signals421614),
+          ...resolveDeployment('SignalsFactory', signalsTestnet),
         },
       },
     },
@@ -49,7 +49,8 @@ export default createConfig({
       network: {
         arbitrumSepolia: {
           address: '0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317',
-          startBlock: 134471651,
+          // Start indexing from the last factory deployment
+          startBlock: latestFactory.startBlock,
         },
       },
     },
@@ -61,7 +62,8 @@ export default createConfig({
         event: poolManagerInitializeEvent,
         parameter: 'hooks',
       }),
-      startBlock: 134471651,
+      // Start indexing from the last factory deployment
+      startBlock: latestFactory.startBlock,
     },
   },
 })

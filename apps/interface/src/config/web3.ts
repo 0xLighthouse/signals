@@ -29,16 +29,10 @@ export const ERC20WithFaucetABI = [
 ] satisfies Abi
 
 export const SIGNALS_ABI = SignalsABI
-export const INCENTIVES_ABI = IncentivesABI
 
 /**
  * Critical addresses
  */
-export const ERC20_ADDRESS = process.env.NEXT_PUBLIC_GOV_TOKEN as `0x${string}`
-export const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_TOKEN as `0x${string}`
-export const SIGNALS_PROTOCOL = process.env.NEXT_PUBLIC_SIGNALS_PROTOCOL as `0x${string}`
-export const TOKEN_REGISTRY = process.env.NEXT_PUBLIC_TOKEN_REGISTRY as `0x${string}`
-export const INCENTIVES = process.env.NEXT_PUBLIC_INCENTIVES as `0x${string}`
 
 export const context = {
   network: {
@@ -48,13 +42,26 @@ export const context = {
     },
   },
   contracts: {
+    USDC: {
+      abi: ERC20WithFaucetABI,
+      address: '0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635' as `0x${string}`,
+      label: 'mUSDC',
+    },
     BoardUnderlyingToken: {
       abi: ERC20WithFaucetABI,
-      address: '0x26D04e0D3050b7b11054B5A48639D1FE88aA7Be7' as `0x${string}`,
+      address: '0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7' as `0x${string}`,
+      label: 'SomeGovToken',
     },
     SignalsProtocol: {
       abi: SIGNALS_ABI,
-      address: '0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc' as `0x${string}`,
+      address: '0xa6c364E36bB6329EE55BDBfA62318108275662a7' as `0x${string}`,
+    },
+    TokenRegistry: {
+      address: '0x2817374F735fcA6C775B31e48bEc5e52d0b0D12B' as `0x${string}`,
+    },
+    Incentives: {
+      abi: IncentivesABI,
+      address: '0xdC81693e3601B4b9252ec3060204415408AA4350' as `0x${string}`,
     },
   },
 }

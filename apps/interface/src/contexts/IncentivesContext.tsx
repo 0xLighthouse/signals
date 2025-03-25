@@ -1,6 +1,6 @@
 'use client'
 
-import { INCENTIVES, INCENTIVES_ABI, readClient } from '@/config/web3'
+import { context, readClient } from '@/config/web3'
 import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
@@ -30,8 +30,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
       try {
         const incentives = getContract({
-          address: INCENTIVES,
-          abi: INCENTIVES_ABI,
+          address: context.contracts.Incentives.address,
+          abi: context.contracts.Incentives.abi,
           client: readClient,
         })
 

@@ -17,7 +17,6 @@ import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import type { Initiative } from 'indexers/src/api/types'
 import { TokenSelector } from '../token-selector'
-import { INCENTIVES, INCENTIVES_ABI, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
@@ -25,6 +24,7 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { usePrivy } from '@privy-io/react-auth'
+import { context } from '@/config/web3'
 
 interface Props {
   initiative: Initiative
@@ -44,8 +44,8 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: INCENTIVES,
-    tokenAddress: USDC_ADDRESS,
+    spender: context.contracts.Incentives.address,
+    tokenAddress: context.contracts.USDC.address,
     tokenDecimals: 6,
   })
 
@@ -87,14 +87,14 @@ export function IncentiveDrawer({ initiative }: Props) {
       const nonce = await publicClient.getTransactionCount({ address })
 
       // Define the token address and other required parameters
-      const tokenAddress = USDC_ADDRESS // Replace with the selected token if dynamic
+      const tokenAddress = context.contracts.USDC.address // Replace with the selected token if dynamic
       const expiresAt = 0
       const terms = 0
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: INCENTIVES,
-        abi: INCENTIVES_ABI,
+        address: context.contracts.Incentives.address,
+        abi: context.contracts.Incentives.abi,
         functionName: 'addIncentive',
         nonce,
         // @ts-ignore

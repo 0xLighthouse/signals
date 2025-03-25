@@ -1,4 +1,4 @@
-import { ERC20WithFaucetABI, USDC_ADDRESS } from '@/config/web3'
+import { context } from '@/config/web3'
 import { createPublicClient, getContract, http } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { create } from 'zustand'
@@ -32,8 +32,8 @@ export const useRewardsStore = create<RewardsState>((set) => ({
     })
 
     const token = getContract({
-      address: USDC_ADDRESS,
-      abi: ERC20WithFaucetABI,
+      address: context.contracts.USDC.address,
+      abi: context.contracts.USDC.abi,
       client: readClient,
     })
 
