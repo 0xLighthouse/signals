@@ -1,5 +1,3 @@
 {
-    "editor.defaultFormatter": "JuanBlanco.solidity",
-    "solidity.formatter": "forge",
     "vscode_custom_css.imports": ["file://${userHome}/.config/cursor.css"]
 }
