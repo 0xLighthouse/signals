@@ -50,8 +50,7 @@ export const InitiativeWeight = onchainTable('initiative_weights', (t) => ({
   tokenId: t.bigint().notNull(),
 }))
 
-// Pool Manager events
-export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_events', (t) => ({
+export const Pool = onchainTable('pools', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),

@@ -117,7 +117,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 ponder.on('PoolManager:Initialize', async ({ event, context }) => {
   console.log('PoolManager:Initialize', event)
 
-  await context.db.insert(schema.PoolManagerInitializeEvent).values({
+  await context.db.insert(schema.Pool).values({
     id: event.id,
     chainId: context.network.chainId,
     contractAddress: event.log.address,

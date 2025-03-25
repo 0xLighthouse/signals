@@ -77,11 +77,11 @@ export function DeploySignalsDrawer({
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerTrigger hidden={!!hideTrigger} asChild>
+      {/* <DrawerTrigger hidden={true} asChild>
         <Button variant="outline" onClick={() => onOpenChange(true)}>
           Deploy Contract
         </Button>
-      </DrawerTrigger>
+      </DrawerTrigger> */}
       <DrawerContent className="h-[90vh] max-h-[90vh] overflow-hidden">
         <DrawerHeader>
           <DrawerTitle>Deploy Signals Contract</DrawerTitle>
