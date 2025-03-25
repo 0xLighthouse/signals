@@ -76,14 +76,6 @@ struct BondHookOptions {
 uint256 constant ONE_HUNDRED_PERCENT = 100_0000;
 uint24 constant DYNAMIC_FEE_FLAG = 0x800000; // Recreated here instead of importing PoolManager lib
 
-/**
- * - LPs provide need to provide single sided liquidity to a pool
- * - Bonds can be sold into the pool
- *    - revert when not enough liquidity is provided
- * - Bonds can be purchased from the pool
- * - Bonds can be redeemed for the underlying asset into the pool
- *    - revert when bond is not mature
- */
 contract BondHook is BaseHook {
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
@@ -93,7 +85,7 @@ contract BondHook is BaseHook {
     IBondPricing public bondPricing;
 
     // The address of the token that is contained in the bonds
-    Currency public immutable bondToken;
+    Currency public immutable underlyingToken;
 
     address public immutable owner;
     // When profit is generated, how much goes to the owner
@@ -134,7 +126,7 @@ contract BondHook is BaseHook {
 
     constructor(BondHookOptions memory options) BaseHook(options.poolManager) {
         bondIssuer = IBondIssuer(options.bondIssuer);
-        bondToken = Currency.wrap(bondIssuer.getUnderlyingToken());
+        underlyingToken = Currency.wrap(bondIssuer.getUnderlyingToken());
         bondPricing = IBondPricing(options.bondPricing);
         owner = msg.sender;
 
@@ -172,7 +164,7 @@ contract BondHook is BaseHook {
     }
 
     // poolManager.unlock will call back to here, so we need to figure out which action we are taking
-    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory empty) {
+    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
         CallbackData memory callbackData = abi.decode(data, (CallbackData));
         if (callbackData.action > Action.Swap) {
             revert InvalidAction();
@@ -199,6 +191,7 @@ contract BondHook is BaseHook {
                 _buyBond(callbackData.sender, swapData);
             }
         }
+        return abi.encode("");
     }
 
     function _addLiquidity(address sender, LiquidityData memory data) internal {
@@ -266,7 +259,7 @@ contract BondHook is BaseHook {
         uint160 sqrtPriceX96 = bondPools[data.poolKey.toId()].getPriceX96(poolManager);
 
         uint256 priceAsLiquidity =
-            uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
+            uint256(bondPools[data.poolKey.toId()].getLiquidityForUnderlyingAmount(int256(price), sqrtPriceX96));
 
         // Record how much liquidity was spent on it
         amountPaidOutFor[data.tokenId] = priceAsLiquidity;
@@ -294,7 +287,7 @@ contract BondHook is BaseHook {
         // The user is buying from us
         // This operation can only provide profit, quoted as liquidity. Therefore we can cast everything to uint256
         uint256 price = getPoolSellPrice(data.tokenId);
-        uint256 priceAsLiquidity = uint256(state.getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
+        uint256 priceAsLiquidity = uint256(state.getLiquidityForUnderlyingAmount(int256(price), sqrtPriceX96));
 
         // We must get at least as much as we paid
         uint256 originalPriceAsLiquidity = amountPaidOutFor[data.tokenId];
@@ -458,8 +451,50 @@ contract BondHook is BaseHook {
      * @param id The ID of the pool
      * @return totalShares The total number of shares added to the pool
      */
-    function totalShares(PoolId id) public view returns (uint256) {
+    function getTotalShares(PoolId id) public view returns (uint256) {
         return bondPools[id].totalSharesAdded;
+    }
+
+    /**
+     * @notice Return the percentage of the pool the user will own if they make this liquidity change
+     * @param id The ID of the pool
+     * @param liquidity The liquidity to calculate the percentage of
+     * @return pips The percentage of total shares as pips
+     */
+    function previewPercentOfTotalSharesAsPips(PoolId id, int256 liquidity) public view returns (uint256) {
+        int256 newUserLiquidity = int256(liquidityProviders[id][msg.sender].amount) + liquidity;
+        if (newUserLiquidity <= 0) {
+            return 0;
+        }
+        uint256 newUserShares = _getSharesFromLiquidity(uint256(newUserLiquidity));
+
+        uint256 newTotalShares = liquidity < 0
+            ? bondPools[id].totalSharesAdded - _getSharesFromLiquidity(uint256(-liquidity))
+            : bondPools[id].totalSharesAdded + _getSharesFromLiquidity(uint256(liquidity));
+
+        return (newUserShares * ONE_HUNDRED_PERCENT) / newTotalShares;
+    }
+
+    function getPoolPrice(PoolId id) public view returns (uint256) {
+        (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, id);
+        uint256 price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        price = price * 1e18 >> 192; // Multiply by 1e18 for 18 decimal places of precision
+        return price;
+    }
+
+    /**
+     * @notice Get the liquidity of the pool as underlying token
+     * @param id The ID of the pool
+     * @return liquidity The liquidity of the pool as underlying token
+     */
+    function getPoolLiquidityAsUnderlying(PoolId id) public view returns (uint256) {
+        BondPoolState memory state = bondPools[id];
+        uint256 liquidity = _getLiquidityFromShares(state.totalSharesAdded);
+        return uint256(bondPools[id].getUnderlyingAmountForLiquidity(int256(liquidity), state.getPriceX96(poolManager)));
+    }
+
+    function getBondInfo(uint256 tokenId) public view returns (IBondIssuer.BondInfo memory) {
+        return bondIssuer.getBondInfo(tokenId);
     }
 
     /**
@@ -516,7 +551,7 @@ contract BondHook is BaseHook {
     }
 
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
-        if (!(key.currency0 == bondToken) && !(key.currency1 == bondToken)) {
+        if (!(key.currency0 == underlyingToken) && !(key.currency1 == underlyingToken)) {
             revert InvalidPool();
         }
 
@@ -538,7 +573,7 @@ contract BondHook is BaseHook {
                 tickUpper: TickMath.maxUsableTick(key.tickSpacing),
                 salt: bytes32(0)
             }),
-            bondTokenIsCurrency0: key.currency0 == bondToken,
+            underlyingIsCurrency0: key.currency0 == underlyingToken,
             normalSwapFee: defaultSwapFeeNormal,
             reducedSwapFee: defaultSwapFeeDiscounted,
             feeCreditPercentAsPips: defaultFeeCreditRatio,
@@ -565,12 +600,12 @@ contract BondHook is BaseHook {
         return this.beforeAddLiquidity.selector;
     }
 
-    function _beforeSwap(
-        address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
-    ) internal view override returns (bytes4, BeforeSwapDelta, uint24) {
+    function _beforeSwap(address sender, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
+        internal
+        view
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         // If this is an internal swap, charge no fees
         if (sender == address(this)) {
             return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), DYNAMIC_FEE_FLAG);
@@ -592,7 +627,7 @@ contract BondHook is BaseHook {
         }
 
         int128 creditDelta = 0;
-        if (state.bondTokenIsCurrency0) {
+        if (state.underlyingIsCurrency0) {
             if (delta.amount0() < 0) {
                 creditDelta = delta.amount0();
             } else {
@@ -619,6 +654,10 @@ contract BondHook is BaseHook {
     // Calculate how many shares of profit sharing an amount of liquidity is worth
     function _getSharesFromLiquidity(uint256 liquidity) internal pure returns (uint256) {
         return liquidity / 1e6;
+    }
+
+    function _getLiquidityFromShares(uint256 shares) internal pure returns (uint256) {
+        return shares * 1e6;
     }
 
     function _getPoolState(PoolId id) public view returns (BondPoolState memory) {

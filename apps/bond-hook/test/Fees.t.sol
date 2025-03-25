@@ -17,10 +17,8 @@ import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 
-
 import {BondHook, LiquidityData, DesiredCurrency, SwapData} from "../src/BondHook.sol";
 import {BondPoolState, BondPoolLibrary, ONE_HUNDRED_PERCENT} from "../src/utils/BondPool.sol";
-
 
 contract FeesTest is Test, Deployers, BondHookHarness {
     using CurrencyLibrary for Currency;
@@ -33,29 +31,38 @@ contract FeesTest is Test, Deployers, BondHookHarness {
 
     function test_ProfitShare() public {
         uint256 feeRate = 3_0000; // %3
-        uint256 feeCreditRatio = 50_0000;  // 50% 
+        uint256 feeCreditRatio = 50_0000; // 50%
         uint24 swapFeeNormal = 1_0000; // %1
         uint24 swapFeeDiscounted = 0; // %0
 
         deployHookWithFeesAndPools(feeRate, feeCreditRatio, swapFeeNormal, swapFeeDiscounted, SQRT_PRICE_1_1); // 3% fee for owner, 50% credited towards fee reduction
         modifyLiquidityFromProvider(poolA, 1_000_000 ether);
 
-         uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
+        uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
         aliceSellBond(tokenId, 22_500 ether);
         bobBuyBond(tokenId, 27_500 ether);
 
         // 2_500 in profit should have been generated, generating 3% for the owner
-        assertApproxEqAbs(bondhook.ownerFees(), 2_500 ether * feeRate / ONE_HUNDRED_PERCENT, 100, "Owner fee should be 3% of profit");
+        assertApproxEqAbs(
+            bondhook.ownerFees(), 2_500 ether * feeRate / ONE_HUNDRED_PERCENT, 100, "Owner fee should be 3% of profit"
+        );
 
         uint256 profitMinusFees = 2_500 ether - bondhook.ownerFees();
         uint256 feeForReductionAsLiquidity = profitMinusFees * feeCreditRatio / ONE_HUNDRED_PERCENT;
-        int256 feeForReductionAsBondToken = BondPoolLibrary.getBondTokenAmountForLiquidity(bondhook._getPoolState(poolA.toId()), int256(feeForReductionAsLiquidity), SQRT_PRICE_1_1);
+        int256 feeForReductionAsBondToken = BondPoolLibrary.getUnderlyingAmountForLiquidity(
+            bondhook._getPoolState(poolA.toId()), int256(feeForReductionAsLiquidity), SQRT_PRICE_1_1
+        );
 
-        assertApproxEqAbs(uint256(bondhook.creditForFeeReduction(poolA.toId())), uint256(feeForReductionAsBondToken), 1000, "Fee reduction should be 50% of profit");
-    } 
+        assertApproxEqAbs(
+            uint256(bondhook.creditForFeeReduction(poolA.toId())),
+            uint256(feeForReductionAsBondToken),
+            1000,
+            "Fee reduction should be 50% of profit"
+        );
+    }
 
     function test_lpEarnFees() public {
-        deployHookAndPools(); 
+        deployHookAndPools();
 
         uint256 _initialDaiBalance = _dai.balanceOf(address(_liquidityProvider));
         uint256 _initialTokenBalance = _token.balanceOf(address(_liquidityProvider));
@@ -69,13 +76,15 @@ contract FeesTest is Test, Deployers, BondHookHarness {
 
         // we should have earned all of the profit.
         assertEq(
-            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
+            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)),
+            0 ether,
+            "Incorrect user liquidity removed"
         );
 
         vm.prank(_liquidityProvider);
         bondhook.claimRewards(poolA);
         uint256 _profit = bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider));
-        assertEq(_profit, 2_500 ether, "Incorrect amount of profit earned"); 
+        assertEq(_profit, 2_500 ether, "Incorrect amount of profit earned");
 
         // Withdraw the profit
         modifyLiquidityFromProvider(poolA, -int128(int256(_profit)));
@@ -94,7 +103,7 @@ contract FeesTest is Test, Deployers, BondHookHarness {
 
     function test_reducedFeesWhenAvailable() public {
         // 0% fee for owner, 50% fee credit ratio, 10% normal fee, 0% reduced fee
-        deployHookWithFeesAndPools(0, 50_0000, 10_0000, 0, SQRT_PRICE_1_1); 
+        deployHookWithFeesAndPools(0, 50_0000, 10_0000, 0, SQRT_PRICE_1_1);
         // deployHookAndPools();
         modifyLiquidityFromProvider(poolA, 100_000 ether);
 
@@ -103,7 +112,9 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         aliceSwap(-100 ether, false);
 
         uint256 aliceBalanceAfter = _token.balanceOf(address(_alice));
-        assertApproxEqAbs(aliceBalanceAfter - aliceBalanceBefore, 90 ether, 1 ether, "Alice should have lost 3% in the trade");
+        assertApproxEqAbs(
+            aliceBalanceAfter - aliceBalanceBefore, 90 ether, 1 ether, "Alice should have lost 3% in the trade"
+        );
 
         // Create a bond
         uint256 tokenId = aliceCreateBondAndWaits(50_000 ether, 50);
@@ -116,7 +127,9 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         aliceBalanceBefore = _token.balanceOf(address(_alice));
         aliceSwap(-100 ether, false);
         aliceBalanceAfter = _token.balanceOf(address(_alice));
-        assertApproxEqAbs(aliceBalanceAfter - aliceBalanceBefore, 100 ether, 1 ether, "Alice should have traded with no fees");
+        assertApproxEqAbs(
+            aliceBalanceAfter - aliceBalanceBefore, 100 ether, 1 ether, "Alice should have traded with no fees"
+        );
 
         int256 creditAfter = bondhook.creditForFeeReduction(poolA.toId());
         assertApproxEqAbs(creditAfter - 100 ether, creditBefore, 1 ether, "Fee credit should have reduced");

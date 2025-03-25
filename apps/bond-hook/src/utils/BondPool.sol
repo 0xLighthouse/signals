@@ -17,14 +17,13 @@ struct BondPoolState {
     // The key of the pool
     PoolKey key;
     // Whether the bond token is the first or second currency
-    bool bondTokenIsCurrency0;
+    bool underlyingIsCurrency0;
     // The liquidity position id of the pool
     bytes32 positionId;
     // The normal swap fee
     uint24 normalSwapFee;
     // The swap fee when credit is available
     uint24 reducedSwapFee;
-
     // The total liquidity provided by LPs
     uint256 totalSharesAdded;
     // The profit generated per 1e18 of liquidity provided to the pool
@@ -36,28 +35,29 @@ struct BondPoolState {
 }
 
 library BondPoolLibrary {
-
     function getPriceX96(BondPoolState memory state, IPoolManager manager) internal view returns (uint160) {
         (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(manager, state.key.toId());
         return sqrtPriceX96;
     }
 
-    /// @notice Record profit being added to the pool. Liquidity is used to update profit share for LPS, 
+    /// @notice Record profit being added to the pool. Liquidity is used to update profit share for LPS,
     /// and bond token amount is used to update fee credit. Negative numbers are supported, in case of losses.
     /// @param state The state of the pool
     /// @param profitInLiquidity The profit in liquidity
     function addProfit(BondPoolState storage state, int256 profitInLiquidity, uint160 sqrtPriceX96) internal {
-        int256 profitInBondToken = getBondTokenAmountForLiquidity(state, profitInLiquidity, sqrtPriceX96);
-        
+        int256 profitInUnderlying = getUnderlyingAmountForLiquidity(state, profitInLiquidity, sqrtPriceX96);
+
         // how much profit gets credited to fee reduction
-        int256 profitForFeeReduction = profitInBondToken * int256(state.feeCreditPercentAsPips) / int256(ONE_HUNDRED_PERCENT);
+        int256 profitForFeeReduction =
+            profitInUnderlying * int256(state.feeCreditPercentAsPips) / int256(ONE_HUNDRED_PERCENT);
         state.creditForSwapFeesInBondToken += profitForFeeReduction;
 
         // add profit to pool
         uint256 _totalShares = state.totalSharesAdded;
         int256 _profitPerShare = profitInLiquidity / int256(_totalShares);
         if (profitInLiquidity < 0) {
-            state.profitPerShare = int256(state.profitPerShare) > _profitPerShare ? state.profitPerShare - uint256(-_profitPerShare) : 0;
+            state.profitPerShare =
+                int256(state.profitPerShare) > _profitPerShare ? state.profitPerShare - uint256(-_profitPerShare) : 0;
         } else {
             state.profitPerShare += uint256(_profitPerShare);
         }
@@ -70,7 +70,7 @@ library BondPoolLibrary {
     /// @return feeRate The fee rate for the trade
     function feeRateForTrade(BondPoolState storage state, uint256 tradeAmountInBondToken) internal returns (uint24) {
         if (state.creditForSwapFeesInBondToken <= 0) {
-            // There is no credit available, so we use the normal fee   
+            // There is no credit available, so we use the normal fee
             return state.normalSwapFee;
         } else {
             // Use available fee credit
@@ -91,46 +91,63 @@ library BondPoolLibrary {
         return state.creditForSwapFeesInBondToken;
     }
 
-    /// @notice Get the liquidity value of a given amount of bond token
+    /// @notice Get the liquidity value of a given amount of underlying token
     /// @param state The state of the pool
-    /// @param amountInBondToken The amount of bond token
-    /// @return liquidity The liquidity for the amount in bond token
-    function getLiquidityForBondTokenAmount(BondPoolState memory state, int256 amountInBondToken, uint160 sqrtPriceX96) internal pure returns (int256) {
-        uint256 _amountInBondToken = amountInBondToken < 0 ? uint256(-amountInBondToken) : uint256(amountInBondToken);
+    /// @param amountInUnderlying The amount of underlying token
+    /// @return liquidity The liquidity for the amount in underlying token
+    function getLiquidityForUnderlyingAmount(
+        BondPoolState memory state,
+        int256 amountInUnderlying,
+        uint160 sqrtPriceX96
+    ) internal pure returns (int256) {
+        uint256 _amountInUnderlying =
+            amountInUnderlying < 0 ? uint256(-amountInUnderlying) : uint256(amountInUnderlying);
         // Get the liquidity for the amount in bond token
         uint256 liquidity;
-        if (state.bondTokenIsCurrency0) {
-           int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
-           liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), _amountInBondToken);
+        if (state.underlyingIsCurrency0) {
+            int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
+            liquidity = LiquidityAmounts.getLiquidityForAmount0(
+                sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), _amountInUnderlying
+            );
         } else {
-           int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
-            liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), _amountInBondToken);
+            int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
+            liquidity = LiquidityAmounts.getLiquidityForAmount1(
+                sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), _amountInUnderlying
+            );
         }
 
-        if (amountInBondToken < 0) {
-            return -int256(liquidity/2);
+        if (amountInUnderlying < 0) {
+            return -int256(liquidity / 2);
         } else {
-            return int256(liquidity/2);
+            return int256(liquidity / 2);
         }
     }
 
-    function getBondTokenAmountForLiquidity(BondPoolState memory state, int256 liquidity, uint160 sqrtPriceX96) internal pure returns (int256) {
-        uint256 _liquidity = liquidity < 0  ? uint256(-liquidity) : uint256(liquidity);
+    function getUnderlyingAmountForLiquidity(BondPoolState memory state, int256 liquidity, uint160 sqrtPriceX96)
+        internal
+        pure
+        returns (int256)
+    {
+        uint256 _liquidity = liquidity < 0 ? uint256(-liquidity) : uint256(liquidity);
 
         int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
         int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
 
         uint256 amount;
-        if (state.bondTokenIsCurrency0) {
-             amount = LiquidityAmounts.getAmount0ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(_liquidity));
+        if (state.underlyingIsCurrency0) {
+            amount = LiquidityAmounts.getAmount0ForLiquidity(
+                sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(_liquidity)
+            );
         } else {
-            amount = LiquidityAmounts.getAmount1ForLiquidity(sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(_liquidity));
+            amount = LiquidityAmounts.getAmount1ForLiquidity(
+                sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(_liquidity)
+            );
         }
 
         if (liquidity < 0) {
-            return -int256(amount*2);
+            return -int256(amount * 2);
         } else {
-            return int256(amount*2);
+            return int256(amount * 2);
         }
     }
 
@@ -138,25 +155,42 @@ library BondPoolLibrary {
     /// in order to be able to deposit all as liquidity
     /// @param state The state of the pool
     /// @return amountInBondToken The amount of bond token that would be swapped for the liquidity
-    function getSwapAmountForConvertBondTokenToLiquidity(BondPoolState memory state, uint256 amountInBondToken, uint160 sqrtPriceX96) internal pure returns (uint256) {
+    function getSwapAmountForConvertBondTokenToLiquidity(
+        BondPoolState memory state,
+        uint256 amountInBondToken,
+        uint160 sqrtPriceX96
+    ) internal pure returns (uint256) {
         int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
         int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
 
-        return _calculateSwapAmountForLiquidityConversion(sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), TickMath.getSqrtPriceAtTick(minTick), amountInBondToken, state.bondTokenIsCurrency0);
+        return _calculateSwapAmountForLiquidityConversion(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(maxTick),
+            TickMath.getSqrtPriceAtTick(minTick),
+            amountInBondToken,
+            state.underlyingIsCurrency0
+        );
     }
 
-    function _calculateSwapAmountForLiquidityConversion(uint160 priceX96,uint160 maxPriceX96, uint160 minPriceX96, uint256 amountInBondToken, bool bondTokenIsCurrency0) public pure returns (uint256) {
-         uint160 liquidity;
+    function _calculateSwapAmountForLiquidityConversion(
+        uint160 priceX96,
+        uint160 maxPriceX96,
+        uint160 minPriceX96,
+        uint256 amountInBondToken,
+        bool underlyingIsCurrency0
+    ) public pure returns (uint256) {
+        uint160 liquidity;
 
-         if (bondTokenIsCurrency0) {
+        if (underlyingIsCurrency0) {
             liquidity = LiquidityAmounts.getLiquidityForAmount0(priceX96, maxPriceX96, amountInBondToken);
-         } else {
+        } else {
             liquidity = LiquidityAmounts.getLiquidityForAmount1(priceX96, minPriceX96, amountInBondToken);
-         }
-         
-         (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(priceX96, minPriceX96, maxPriceX96, uint128(liquidity/2));
+        }
 
-        if (bondTokenIsCurrency0) {
+        (uint256 amount0, uint256 amount1) =
+            LiquidityAmounts.getAmountsForLiquidity(priceX96, minPriceX96, maxPriceX96, uint128(liquidity / 2));
+
+        if (underlyingIsCurrency0) {
             return amount1;
         } else {
             return amount0;

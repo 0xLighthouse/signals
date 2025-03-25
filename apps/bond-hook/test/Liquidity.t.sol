@@ -60,7 +60,7 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
             10 ether,
             "Incorrect user liquidity deposited"
         );
-        assertEq(bondhook.totalShares(poolA.toId()), 10 ether / 1e6, "Incorrect total shares reported by hook");
+        assertEq(bondhook.getTotalShares(poolA.toId()), 10 ether / 1e6, "Incorrect total shares reported by hook");
 
         // Check that the user's balances were reduced
         assertEq(_dai.balanceOf(address(_liquidityProvider)), _initialDaiBalance - 10 ether, "Incorrect dai balance");
@@ -77,11 +77,13 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
 
         // Check that the balance of the user is 0 ether
         assertEq(
-            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)), 0 ether, "Incorrect user liquidity removed"
+            bondhook.liquidityBalanceOf(poolA.toId(), address(_liquidityProvider)),
+            0 ether,
+            "Incorrect user liquidity removed"
         );
 
         // Check that the total liquidity is 0 ether
-        assertEq(bondhook.totalShares(poolA.toId()), 0 ether, "Incorrect total liquidity reported by hook");
+        assertEq(bondhook.getTotalShares(poolA.toId()), 0 ether, "Incorrect total liquidity reported by hook");
 
         // Check that the user has their starting balances
         assertApproxEqAbs(_dai.balanceOf(address(_liquidityProvider)), _initialDaiBalance, 10, "Incorrect dai balance");
@@ -89,6 +91,4 @@ contract ModifyLiquidityTest is Test, Deployers, BondHookHarness {
             _token.balanceOf(address(_liquidityProvider)), _initialTokenBalance, 10, "Incorrect token balance"
         );
     }
-
-    
 }
