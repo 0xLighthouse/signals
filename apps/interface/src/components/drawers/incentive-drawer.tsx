@@ -2,7 +2,6 @@
 
 import { ArrowRight, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import { ethers } from 'ethers'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,32 +15,28 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
-import { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { TokenSelector } from '../token-selector'
-import { INCENTIVES, INCENTIVES_ABI, readClient, USDC_ADDRESS } from '@/config/web3'
+import { INCENTIVES, INCENTIVES_ABI, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { cn } from '@/lib/utils'
-import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
 interface Props {
-  initiative: NormalisedInitiative
+  initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
-  const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(0)
   const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,13 +44,13 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: INCENTIVES,
+    spender: INCENTIVES,
     tokenAddress: USDC_ADDRESS,
-    decimals: 6,
+    tokenDecimals: 6,
   })
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -87,7 +82,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -102,6 +97,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         abi: INCENTIVES_ABI,
         functionName: 'addIncentive',
         nonce,
+        // @ts-ignore
         args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
       })
 
@@ -202,7 +198,7 @@ export function IncentiveDrawer({ initiative }: Props) {
                 id="amount"
                 type="number"
                 value={amount ?? ''}
-                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                 min="0"
               />
               {!amount && (

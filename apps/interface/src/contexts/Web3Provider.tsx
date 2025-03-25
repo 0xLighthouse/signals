@@ -1,75 +1,86 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { PrivyProvider, usePrivy } from '@privy-io/react-auth'
+import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
-import { PrivyModalProvider } from './PrivyModalContext'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { createPublicClient, http, createWalletClient, custom, Address, PublicClient, WalletClient } from 'viem'
+import {
+  createPublicClient,
+  http,
+  Address,
+  PublicClient,
+  WalletClient,
+  createWalletClient,
+  custom,
+} from 'viem'
 
 const chain = process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia
 
-// Create a client context to provide viem clients throughout the app
-interface Web3ContextType {
-  publicClient: PublicClient
-  walletClient: WalletClient | null
-  address: Address | null
-  connect: () => Promise<void>
-}
-
-const Web3Context = createContext<Web3ContextType>({
+const Web3Context = createContext<IWeb3Context>({
   publicClient: createPublicClient({
     chain,
     transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
   }),
   walletClient: null,
   address: null,
-  connect: async () => { },
+  isInitialized: false,
 })
 
 export const useWeb3 = () => useContext(Web3Context)
 
-const queryClient = new QueryClient()
+interface IWeb3Context {
+  isInitialized: boolean
+  publicClient: PublicClient
+  walletClient: WalletClient | null
+  address: Address | null
+}
 
-export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+// Separate internal component that uses Privy hooks
+const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [address, setAddress] = useState<Address | null>(null)
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
-  const { authenticated, ready, user, getEthereumProvider } = usePrivy()
+  const { ready: privyReady, user } = usePrivy()
+  const { ready: walletReady, wallets } = useWallets()
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const publicClient = createPublicClient({
     chain,
     transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
   })
 
-  // Connect wallet using Privy's provider
-  const connect = async () => {
-    try {
-      const provider = await getEthereumProvider()
-      if (!provider) return
-
-      const client = createWalletClient({
-        chain,
-        transport: custom(provider),
-      })
-
-      const [walletAddress] = await client.requestAddresses()
-      setAddress(walletAddress)
-      setWalletClient(client)
-    } catch (error) {
-      console.error('Failed to connect wallet:', error)
-    }
-  }
-
-  // Update wallet client when Privy authentication changes
   useEffect(() => {
-    if (authenticated && ready && user?.wallet?.address) {
-      connect()
-    } else if (!authenticated) {
-      setAddress(null)
-      setWalletClient(null)
+    if (privyReady && walletReady) {
+      console.info(`Web3 Context initialized: ${privyReady}`)
+      setIsInitialized(true)
     }
-  }, [authenticated, ready, user?.wallet?.address])
+  }, [privyReady, walletReady])
 
+  // Make a viem signer available once the app has initialized
+  useEffect(() => {
+    const makeWalletClient = async () => {
+      const provider = await wallets[0].getEthereumProvider()
+      if (provider) {
+        const walletClient = createWalletClient({
+          chain,
+          transport: custom(provider),
+        })
+        setWalletClient(walletClient)
+      }
+    }
+
+    if (isInitialized) {
+      makeWalletClient()
+    }
+  }, [isInitialized, wallets])
+
+  return (
+    <Web3Context.Provider value={{ publicClient, walletClient, address, isInitialized }}>
+      {children}
+    </Web3Context.Provider>
+  )
+}
+
+// Main provider that sets up Privy
+export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}
@@ -82,13 +93,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         defaultChain: chain,
       }}
     >
-      <Web3Context.Provider value={{ publicClient, walletClient, address, connect }}>
-        <QueryClientProvider client={queryClient}>
-          <PrivyModalProvider>
-            {children}
-          </PrivyModalProvider>
-        </QueryClientProvider>
-      </Web3Context.Provider>
+      <Web3ContextProvider>{children}</Web3ContextProvider>
     </PrivyProvider>
   )
 }

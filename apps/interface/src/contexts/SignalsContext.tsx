@@ -6,26 +6,50 @@ import { getContract } from 'viem'
 import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
-// Types for contract metadata
-type ProtocolContextType = {
+interface IBoard {
+  // TODO: Move this out of IBoard as its metadata
   initiativesCount: number | null
   proposalThreshold: number | null
+  // TODO: Move this out of IBoard as its related to the users balance
   meetsThreshold: boolean
   acceptanceThreshold: number | null
   lockInterval: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
+}
+
+// TODO: Surface underlying token metadata
+interface IUnderlyingToken {
+  name: string | null
+  symbol: string | null
+  decimals: number | null
+  totalSupply: number | null
+}
+
+// TODO: Surface incentives metadata, related to the board
+interface IIncentives {
+  address: string
+  version: number | null
+  allocations: bigint[] | null
+  receivers: `0x${string}`[] | null
+}
+
+// Types for contract metadata
+type ISignalsContext = {
+  board: IBoard
+  underlyingToken?: IUnderlyingToken
+  incentives?: IIncentives
   formatter: (value?: number | null) => number
 }
 
 // Default values for the context
-export const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined)
+export const SignalsContext = createContext<ISignalsContext | undefined>(undefined)
 
 // Custom hook to use the contract context
 export const useSignals = () => {
-  const context = useContext(ProtocolContext)
+  const context = useContext(SignalsContext)
   if (!context) {
-    throw new Error('useSignals must be used within a ProtocolContext')
+    throw new Error('useSignals must be used within a SignalsContext')
   }
   return context
 }
@@ -34,7 +58,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const ProtocolProvider: React.FC<Props> = ({ children }) => {
+export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
   const { decimals, balance } = useUnderlying()
 
@@ -68,10 +92,10 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
         ] = await Promise.all([
           protocol.read.proposalThreshold(),
           protocol.read.acceptanceThreshold(),
-          protocol.read.count(),
+          protocol.read.initiativeCount(),
           protocol.read.lockInterval(),
           protocol.read.decayCurveType(),
-          protocol.read.decayCurveParameters([0]),
+          protocol.read.decayCurveParameters([0n]),
         ])
 
         console.log('----- SIGNALS CONTEXT -----')
@@ -101,6 +125,8 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [address])
 
+  // Underlying token
+
   const formatter = (value?: number | null) => {
     if (!decimals || !value) return value
     return Math.ceil(value / 1e18)
@@ -108,19 +134,21 @@ export const ProtocolProvider: React.FC<Props> = ({ children }) => {
 
   // Provide contract data to children
   return (
-    <ProtocolContext.Provider
+    <SignalsContext.Provider
       value={{
         formatter: formatter as (value?: number | null) => number,
-        initiativesCount,
-        proposalThreshold,
-        acceptanceThreshold,
-        meetsThreshold,
-        lockInterval,
-        decayCurveType,
-        decayCurveParameters,
+        board: {
+          initiativesCount,
+          proposalThreshold,
+          acceptanceThreshold,
+          meetsThreshold,
+          lockInterval,
+          decayCurveType,
+          decayCurveParameters,
+        },
       }}
     >
       {children}
-    </ProtocolContext.Provider>
+    </SignalsContext.Provider>
   )
 }

@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function timeAgoWords(timestamp: number) {
-  return DateTime.fromSeconds(timestamp).toRelative()
+export function timeAgoWords(timestamp: number | string) {
+  return DateTime.fromSeconds(Number(timestamp)).toRelative()
 }
 
 export function flatten<T>(arr: T[][]): T[] {
@@ -22,10 +22,6 @@ export const shortAddress = (address?: string): string => {
 export const resolveAvatar = (address?: string, size?: string | number) => {
   if (!address) return
   return `https://cdn.stamp.fyi/avatar/${address}${size ? `?s=${size}` : ''}`
-}
-
-export const range = (start: number, end: number) => {
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
 /**

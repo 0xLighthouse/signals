@@ -1,13 +1,13 @@
 'use client'
 
-import { ABI, ERC20_ADDRESS, readClient } from '@/config/web3'
+import { ERC20WithFaucetABI, ERC20_ADDRESS, readClient } from '@/config/web3'
 import { useAccount } from '@/hooks/useAccount'
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { getContract } from 'viem'
 
 const token = getContract({
   address: ERC20_ADDRESS,
-  abi: ABI,
+  abi: ERC20WithFaucetABI,
   client: readClient,
 })
 

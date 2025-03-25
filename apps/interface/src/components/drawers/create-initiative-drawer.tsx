@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
 
 import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
-import { readClient } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -30,27 +28,17 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
-import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
-  const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
-  const {
-    acceptanceThreshold,
-    proposalThreshold,
-    formatter,
-    meetsThreshold,
-    lockInterval,
-    decayCurveType,
-    decayCurveParameters,
-  } = useSignals()
+  const { formatter, board } = useSignals()
 
   const [duration, setDuration] = useState(1)
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(0)
   const [lockTokens, setLockTokens] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -60,14 +48,15 @@ export function CreateInitiativeDrawer() {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
+    spender: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
+    tokenDecimals: 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
     setLockTokens(false)
     setTitle('')
     setDescription('')
@@ -104,7 +93,7 @@ export function CreateInitiativeDrawer() {
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -117,6 +106,7 @@ export function CreateInitiativeDrawer() {
         abi: SIGNALS_ABI,
         functionName,
         nonce,
+        // @ts-ignore
         args,
       })
 
@@ -185,7 +175,7 @@ export function CreateInitiativeDrawer() {
                 <AlertTitle>
                   Heads up! This board requires your wallet to hold{' '}
                   <strong>
-                    {formatter(proposalThreshold)} {symbol}
+                    {formatter(board.proposalThreshold)} {symbol}
                   </strong>{' '}
                   tokens to propose an idea.
                 </AlertTitle>
@@ -195,7 +185,7 @@ export function CreateInitiativeDrawer() {
                     {formatter(balance)} {symbol}
                   </strong>{' '}
                   tokens.{' '}
-                  {meetsThreshold ? (
+                  {board.meetsThreshold ? (
                     <strong>You have enough tokens to propose an idea.</strong>
                   ) : (
                     <strong>You do not have enough tokens to propose an idea.</strong>
@@ -246,7 +236,7 @@ export function CreateInitiativeDrawer() {
                       id="amount"
                       type="number"
                       value={amount ?? ''}
-                      onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                      onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                       min="0"
                     />
                     {lockTokens && !amount && (
@@ -273,12 +263,12 @@ export function CreateInitiativeDrawer() {
                   <SubmissionLockDetails
                     amount={amount}
                     duration={duration}
-                    threshold={formatter(acceptanceThreshold)}
+                    threshold={formatter(board.acceptanceThreshold)}
                     initiative={{
                       createdAt: DateTime.now().toSeconds(),
-                      lockInterval,
-                      decayCurveType,
-                      decayCurveParameters,
+                      lockInterval: board.lockInterval,
+                      decayCurveType: board.decayCurveType,
+                      decayCurveParameters: board.decayCurveParameters,
                     }}
                     existingLocks={[]}
                     proposeNewInitiative={true}
@@ -294,12 +284,12 @@ export function CreateInitiativeDrawer() {
             <SubmissionLockDetails
               amount={amount}
               duration={duration}
-              threshold={formatter(acceptanceThreshold)}
+              threshold={formatter(board.acceptanceThreshold)}
               initiative={{
                 createdAt: DateTime.now().toSeconds(),
-                lockInterval,
-                decayCurveType,
-                decayCurveParameters,
+                lockInterval: board.lockInterval,
+                decayCurveType: board.decayCurveType,
+                decayCurveParameters: board.decayCurveParameters,
               }}
               existingLocks={[]}
               proposeNewInitiative={true}

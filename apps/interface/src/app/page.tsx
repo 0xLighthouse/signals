@@ -2,7 +2,7 @@ import { TopNav } from '@/components/containers/topnav'
 import { StatsBar } from '@/components/containers/stats-bar'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
-import { InitiativesList } from '@/components/containers/initiatives/list'
+import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
 import { FaucetActions } from '@/components/containers/faucet-actions'
 
 export default function Home() {

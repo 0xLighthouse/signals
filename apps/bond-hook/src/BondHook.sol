@@ -1,27 +1,25 @@
 
 pragma solidity ^0.8.24;
 
-import "forge-std/console.sol";
+import {IERC20Minimal as ERC20} from "v4-core//interfaces/external/IERC20Minimal.sol";
+import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
+import {IBondPricing} from "./interfaces/IBondPricing.sol";
 
-import { IERC20Minimal as ERC20 } from "v4-core//interfaces/external/IERC20Minimal.sol";
-import { IBondIssuer } from "./interfaces/IBondIssuer.sol";
-import { IBondPricing } from "./interfaces/IBondPricing.sol";
 
-import { CurrencyLibrary, Currency } from "v4-core/types/Currency.sol";
-import { PoolKey } from "v4-core/types/PoolKey.sol";
-import { PoolId } from "v4-core/types/PoolId.sol";
-import { Position } from "v4-core/libraries/Position.sol";
-import { BalanceDelta } from "v4-core/types/BalanceDelta.sol";
-import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
-import { Hooks } from "v4-core/libraries/Hooks.sol";
-import { TickMath } from "v4-core/libraries/TickMath.sol";
-import { StateLibrary } from "v4-core/libraries/StateLibrary.sol";
-import { SafeCallback } from "v4-periphery/base/SafeCallback.sol";
+import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
+import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {PoolId} from "v4-core/types/PoolId.sol";
+import {Position} from "v4-core/libraries/Position.sol";
+import {BalanceDelta} from "v4-core/types/BalanceDelta.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
+import {SafeCallback} from "v4-periphery/base/SafeCallback.sol";
 
-import { BaseHook } from "v4-periphery/utils/BaseHook.sol";
+import {BaseHook} from "v4-periphery/utils/BaseHook.sol";
 
 import { BondPoolState, BondPoolLibrary } from "./utils/BondPool.sol";
-
 import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
 
 struct CallbackData {
@@ -127,8 +125,9 @@ contract BondHook is BaseHook {
     error InvalidAction();
     error InsufficientLiquidity();
     error InvalidLiquidityDelta();
-    // Events
 
+    // Events
+    event PoolInitialized(PoolId indexed poolId);
     event BondSold(PoolId indexed poolId, uint256 indexed tokenId, address indexed buyer, uint256 amount);
     event BondPurchased(PoolId indexed poolId, uint256 indexed tokenId, address indexed seller, uint256 amount);
     event LiquidityAdded(PoolId indexed poolId, address indexed provider, uint256 amount);
@@ -159,7 +158,7 @@ contract BondHook is BaseHook {
 
         // This can be called directly by an EOA, so msg.sender is the owner of the tokens
         poolManager.unlock(
-            abi.encode(CallbackData({ action: Action.Liquidity, sender: msg.sender, data: abi.encode(data) }))
+            abi.encode(CallbackData({action: Action.Liquidity, sender: msg.sender, data: abi.encode(data)}))
         );
     }
 
@@ -168,9 +167,7 @@ contract BondHook is BaseHook {
             revert PoolNotInitialized();
         }
 
-        poolManager.unlock(
-            abi.encode(CallbackData({ action: Action.Swap, sender: msg.sender, data: abi.encode(data) }))
-        );
+        poolManager.unlock(abi.encode(CallbackData({action: Action.Swap, sender: msg.sender, data: abi.encode(data)})));
     }
 
     // poolManager.unlock will call back to here, so we need to figure out which action we are taking
@@ -433,7 +430,7 @@ contract BondHook is BaseHook {
         liquidityProviders[key.toId()][msg.sender].amount += uint256(liquidityOwed);
 
         emit RewardsClaimed(key.toId(), msg.sender, liquidityOwed);
-    } 
+    }
 
     /**
      * @notice Get the balance of the liquidity a user has provided to a pool
@@ -553,13 +550,16 @@ contract BondHook is BaseHook {
     }
 
     function _afterInitialize(address, PoolKey calldata key, uint160, int24) internal override returns (bytes4) {
+        emit PoolInitialized(key.toId());
         poolManager.updateDynamicLPFee(key, bondPools[key.toId()].normalSwapFee);
         return this.afterInitialize.selector;
     }
 
 
+
     function _beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
         internal
+        pure
         override
         returns (bytes4)
     {
@@ -568,6 +568,7 @@ contract BondHook is BaseHook {
 
     function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata hookData)
         internal
+        pure
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
@@ -580,6 +581,7 @@ contract BondHook is BaseHook {
 
     function _afterSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta delta, bytes calldata)
         internal
+        pure
         override
         returns (bytes4, int128)
     {

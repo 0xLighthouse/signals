@@ -83,7 +83,7 @@ contract BondHookHarness is Test, Deployers {
         address _hookAddress = address(uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
         ));
-
+        
         bytes memory args = abi.encode(BondHookOptions({
             poolManager: IPoolManager(manager),
             bondIssuer: address(bondIssuer),
@@ -113,13 +113,20 @@ contract BondHookHarness is Test, Deployers {
         currency0.approve(address(bondhook), type(uint256).max);
         currency1.approve(address(bondhook), type(uint256).max);
 
-        bondhook.modifyLiquidity(LiquidityData({
+       bondhook.modifyLiquidity(LiquidityData({
             poolKey: _key,
             liquidityDelta: _liquidityDelta,
             desiredCurrency: DesiredCurrency.Mixed,
             swapPriceLimit: 0
         }));
         vm.stopPrank();
+    }
+     
+    // FIXME
+    function createPool(MockERC20 currencyA, MockERC20 currencyB, IHooks hook) public returns (PoolKey memory _key) {
+        (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
+        (_key,) = initPool(_currency0, _currency1, hook, POOL_FEE, SQRT_PRICE_1_1);
+        return _key;
     }
 
     function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96) public returns (PoolKey memory _key) {
@@ -128,10 +135,7 @@ contract BondHookHarness is Test, Deployers {
         return _key;
     }
 
-    function createBond(address _user, uint256 _amount, uint256 _duration)
-        public
-        returns (uint256 tokenId)
-    {
+    function createBond(address _user, uint256 _amount, uint256 _duration) public returns (uint256 tokenId) {
         vm.startPrank(_user);
         _token.approve(address(bondIssuer), _amount);
         tokenId = bondIssuer.createBond(1, _amount, _duration);

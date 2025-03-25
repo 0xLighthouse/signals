@@ -3,12 +3,25 @@ import type { Abi } from 'viem'
 export const signalsFactoryAbi = [
   {
     type: 'function',
+    name: 'VERSION',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'string',
+        internalType: 'string',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'create',
     inputs: [
       {
         name: 'config',
         type: 'tuple',
-        internalType: 'struct ISignals.SignalsConfig',
+        internalType: 'struct ISignalsFactory.FactoryDeployment',
         components: [
           {
             name: 'owner',
@@ -68,11 +81,24 @@ export const signalsFactoryAbi = [
     stateMutability: 'payable',
   },
   {
+    type: 'function',
+    name: 'version',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'string',
+        internalType: 'string',
+      },
+    ],
+    stateMutability: 'pure',
+  },
+  {
     type: 'event',
-    name: 'SignalsCreated',
+    name: 'BoardCreated',
     inputs: [
       {
-        name: 'newSignals',
+        name: 'board',
         type: 'address',
         indexed: true,
         internalType: 'address',

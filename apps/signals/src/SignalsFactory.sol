@@ -23,7 +23,7 @@ contract SignalsFactory is ISignalsFactory {
     error InvalidOwnerAddress();
 
     /// @notice Event emitted when a new Signals contract is created
-    event SignalsCreated(address indexed newSignals, address indexed owner);
+    event BoardCreated(address indexed board, address indexed owner);
 
     function version() external pure returns (string memory) {
         return VERSION;
@@ -59,7 +59,7 @@ contract SignalsFactory is ISignalsFactory {
         instance.initialize(mergedConfig);
 
         // Emit an event for the creation of the new contract
-        emit SignalsCreated(address(instance), config.owner);
+        emit BoardCreated(address(instance), config.owner);
 
         return address(instance);
     }

@@ -3,7 +3,7 @@
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ERC20_ADDRESS, SIGNALS_ABI, readClient, SIGNALS_PROTOCOL } from '@/config/web3'
+import { ERC20_ADDRESS, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -21,26 +21,22 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useEffect, useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { InitiativeSupportedEvent } from '@/app/api/locks/route'
-import { usePrivyModal } from '@/contexts/PrivyModalContext'
 import { usePrivy } from '@privy-io/react-auth'
 
-export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
+export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
-  const { setOpen } = usePrivyModal()
   const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
-  const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
-    useSignals()
+  const { formatter, board } = useSignals()
 
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState(0)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,11 +44,19 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
     undefined,
   )
 
-  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
+  const {
+    isApproving,
+    hasAllowance,
+    handleApprove,
+    allowance,
+    formattedAllowance,
+    handleRevokeAllowance,
+  } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
+    spender: SIGNALS_PROTOCOL,
     tokenAddress: ERC20_ADDRESS,
+    tokenDecimals: 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -60,7 +64,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
   const weight = amount ? amount * duration : 0
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
     setDuration(1)
   }
 
@@ -97,7 +101,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         toast('Wallet not connected')
         return
       }
-      
+
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
@@ -107,9 +111,8 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
         abi: SIGNALS_ABI,
         functionName: 'supportInitiative',
         nonce,
-        args: [initiative.initiativeId, amount * 1e18, duration],
+        args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
       })
-
       const hash = await walletClient.writeContract(request)
 
       const receipt = await publicClient.waitForTransactionReceipt({
@@ -123,9 +126,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       toast('Upvote submitted!')
       fetchInitiatives()
       fetchContractMetadata()
-    } catch (error) {
-      console.error(error)
-      toast('Error submitting upvote :(')
+    } catch (err) {
+      console.error(err)
+      toast('Error adding support')
       setIsSubmitting(false)
     }
   }
@@ -245,11 +248,23 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                     type="number"
                     value={amount ?? undefined}
                     defaultValue={0}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                     min="0"
                   />
                   {!amount && (
                     <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
+                  )}
+                  {allowance && (
+                    <Label className="text-gray-500 mt-2">
+                      Current allowance is: {formattedAllowance}.{' '}
+                      <Button
+                        variant="link"
+                        className="text-gray-500 underline"
+                        onClick={handleRevokeAllowance}
+                      >
+                        Revoke?
+                      </Button>
+                    </Label>
                   )}
                 </div>
               </div>
@@ -273,14 +288,14 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 <SubmissionLockDetails
                   initiative={{
                     createdAt: initiative.createdAtTimestamp,
-                    lockInterval,
-                    decayCurveType,
-                    decayCurveParameters,
+                    lockInterval: board.lockInterval,
+                    decayCurveType: board.decayCurveType,
+                    decayCurveParameters: board.decayCurveParameters,
                   }}
                   supporters={initiative.supporters}
                   amount={amount}
                   duration={duration}
-                  threshold={formatter(acceptanceThreshold)}
+                  threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
                   existingLocks={existingLocks || []}
                 />
@@ -293,14 +308,14 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
             <SubmissionLockDetails
               initiative={{
                 createdAt: initiative.createdAtTimestamp,
-                lockInterval,
-                decayCurveType,
-                decayCurveParameters,
+                lockInterval: board.lockInterval,
+                decayCurveType: board.decayCurveType,
+                decayCurveParameters: board.decayCurveParameters,
               }}
               supporters={initiative.supporters}
               amount={amount}
               duration={duration}
-              threshold={formatter(acceptanceThreshold)}
+              threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
               existingLocks={existingLocks || []}
             />

@@ -1,33 +1,67 @@
-import { createConfig } from 'ponder'
-import { getAddress, hexToNumber, http } from 'viem'
+import { createConfig, factory } from 'ponder'
+import { http, parseAbiItem } from 'viem'
 
-import { signalsFactoryAbi } from '../sdk/src/abis/signals-factory'
+// Note: This should hot-reload when the file is changed
+// import signalsDeployment from '../signals/broadcast/Development.s.sol/31337/run-latest.json'
+import signals421614 from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
+import { resolveDeployment } from './src/utils/resolve-deployment'
+import { BondHookABI, PoolManagerABI, SignalsABI, SignalsFactoryABI } from '../../packages/abis'
 
-// Note: This will hot-reload when the file is changed
-import signalsDeployment from '../signals/broadcast/Development.s.sol/31337/run-latest.json'
+const latestFactory = resolveDeployment('SignalsFactory', signals421614)
 
-const resolveDeployment = (name: string) => {
-  const idx = signalsDeployment.transactions.findIndex((t) => t.contractName === name)
-  return {
-    address: getAddress(signalsDeployment.transactions[idx]!.contractAddress),
-    startBlock: hexToNumber(signalsDeployment.receipts[idx]!.blockNumber as `0x${string}`),
-  }
-}
+const factoryBoardCreatedEvent = parseAbiItem(
+  'event BoardCreated(address indexed board, address indexed owner)',
+)
+
+const poolManagerInitializeEvent = parseAbiItem(
+  'event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)',
+)
 
 // https://ponder.sh/docs/advanced/foundry
 export default createConfig({
   networks: {
-    anvil: {
-      chainId: 31337,
-      transport: http('http://127.0.0.1:8545'),
-      disableCache: true,
+    arbitrumSepolia: {
+      chainId: 421614,
+      transport: http(process.env.ARBITRUM_SEPOLIA_RPC_URL!),
     },
   },
   contracts: {
+    SignalsBoard: {
+      network: 'arbitrumSepolia',
+      abi: SignalsABI,
+      address: factory({
+        address: latestFactory.address,
+        event: factoryBoardCreatedEvent,
+        parameter: 'board',
+      }),
+      startBlock: latestFactory.startBlock,
+    },
     SignalsFactory: {
-      network: 'anvil',
-      abi: signalsFactoryAbi,
-      ...resolveDeployment('SignalsFactory'),
+      abi: SignalsFactoryABI,
+      network: {
+        arbitrumSepolia: {
+          ...resolveDeployment('SignalsFactory', signals421614),
+        },
+      },
+    },
+    PoolManager: {
+      abi: PoolManagerABI,
+      network: {
+        arbitrumSepolia: {
+          address: '0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317',
+          startBlock: 134471651,
+        },
+      },
+    },
+    BondMarket: {
+      network: 'arbitrumSepolia',
+      abi: BondHookABI,
+      address: factory({
+        address: '0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317',
+        event: poolManagerInitializeEvent,
+        parameter: 'hooks',
+      }),
+      startBlock: 134471651,
     },
   },
 })
