@@ -87,13 +87,6 @@ contract BondHookHarness is Test, Deployers {
         uint24 swapFeeDiscounted,
         uint160 startingPriceX96
     ) public {
-    function deployHookWithFeesAndPools(
-        uint256 ownerFeeAsPips,
-        uint256 feeCreditRatioAsPips,
-        uint24 swapFeeNormal,
-        uint24 swapFeeDiscounted,
-        uint160 startingPriceX96
-    ) public {
         // Deploy hook with correct flags
         address _hookAddress = address(BondHookLibrary.flags);
 
@@ -136,21 +129,8 @@ contract BondHookHarness is Test, Deployers {
                 swapPriceLimit: 0
             })
         );
-        bondhook.modifyLiquidity(
-            LiquidityData({
-                poolKey: _key,
-                liquidityDelta: _liquidityDelta,
-                desiredCurrency: DesiredCurrency.Mixed,
-                swapPriceLimit: 0
-            })
-        );
         vm.stopPrank();
     }
-
-    function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96)
-        public
-        returns (PoolKey memory _key)
-    {
 
     function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96)
         public
