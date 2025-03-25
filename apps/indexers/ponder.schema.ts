@@ -51,21 +51,6 @@ export const InitiativeWeight = onchainTable('initiative_weights', (t) => ({
   timestamp: t.bigint().notNull(),
 }))
 
-export const Weight = onchainTable('weights', (t) => ({
-  id: t.text().primaryKey(),
-  chainId: t.integer().notNull(),
-  blockTimestamp: t.bigint().notNull(),
-  transactionHash: t.text().notNull(),
-  contractAddress: t.hex().notNull(),
-  // --- attributes
-  initiativeId: t.integer().notNull(),
-  supporter: t.hex().notNull(),
-  amount: t.bigint().notNull(),
-  lockDuration: t.integer().notNull(),
-  // TODO: Deprecate this column
-  // timestamp: t.bigint().notNull(),
-}))
-
 // Pool Manager events
 export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_events', (t) => ({
   id: t.text().primaryKey(),
@@ -87,12 +72,16 @@ export const boardRelations = relations(Board, ({ many }) => ({
 
 export const initiativeRelations = relations(Initiative, ({ one, many }) => ({
   board: one(Board),
-  weights: many(Weight),
+  weights: many(InitiativeWeight),
 }))
 
-export const weightRelations = relations(Weight, ({ one }) => ({
+export const weightRelations = relations(InitiativeWeight, ({ one }) => ({
   initiative: one(Initiative, {
-    fields: [Weight.initiativeId],
-    references: [Initiative.initiativeId],
+    fields: [
+      InitiativeWeight.initiativeId,
+      InitiativeWeight.contractAddress,
+      InitiativeWeight.chainId,
+    ],
+    references: [Initiative.initiativeId, Initiative.contractAddress, Initiative.chainId],
   }),
 }))
