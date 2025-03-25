@@ -31,25 +31,14 @@ interface IIncentives {
     );
 
     event IncentivePaidOut(
-        uint256 indexed incentiveId,
-        uint256 protocolAmount,
-        uint256 voterAmount,
-        uint256 treasuryAmount
+        uint256 indexed incentiveId, uint256 protocolAmount, uint256 voterAmount, uint256 treasuryAmount
     );
 
     event IncentivesUpdated(uint256 version);
 
-    event RewardClaimed(
-        uint256 indexed initiativeId,
-        address indexed supporter,
-        uint256 amount
-    );
+    event RewardClaimed(uint256 indexed initiativeId, address indexed supporter, uint256 amount);
 
-    event IncentiveRefunded(
-        uint256 indexed initiativeId,
-        address indexed contributor,
-        uint256 amount
-    );
+    event IncentiveRefunded(uint256 indexed initiativeId, address indexed contributor, uint256 amount);
 
     function signalsContract() external view returns (ISignals);
     function balances(address account, address token) external view returns (uint256);
@@ -59,7 +48,9 @@ interface IIncentives {
     function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers) external;
     function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory);
     function getIncentives(uint256 _initiativeId) external view returns (address[] memory, uint256[] memory, uint256);
-    function addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms) external payable;
+    function addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
+        external
+        payable;
     function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256);
     function handleInitiativeAccepted(uint256 _initiativeId) external;
     function handleInitiativeExpired(uint256 _initiativeId) external;

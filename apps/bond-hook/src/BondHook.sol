@@ -1,10 +1,8 @@
-
 pragma solidity ^0.8.24;
 
 import {IERC20Minimal as ERC20} from "v4-core//interfaces/external/IERC20Minimal.sol";
 import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {IBondPricing} from "./interfaces/IBondPricing.sol";
-
 
 import {CurrencyLibrary, Currency} from "v4-core/types/Currency.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
@@ -19,8 +17,8 @@ import {SafeCallback} from "v4-periphery/base/SafeCallback.sol";
 
 import {BaseHook} from "v4-periphery/utils/BaseHook.sol";
 
-import { BondPoolState, BondPoolLibrary } from "./utils/BondPool.sol";
-import { toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary } from "v4-core/types/BeforeSwapDelta.sol";
+import {BondPoolState, BondPoolLibrary} from "./utils/BondPool.sol";
+import {toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
 struct CallbackData {
     Action action;
@@ -145,7 +143,10 @@ contract BondHook is BaseHook {
 
         require(options.swapFeeNormal <= ONE_HUNDRED_PERCENT, "BondHook: Swap fee must not exceed 100%");
         defaultSwapFeeNormal = options.swapFeeNormal;
-        require(options.swapFeeDiscounted <= options.swapFeeNormal, "BondHook: Discounted swap fee must be less than or equal to normal swap fee");
+        require(
+            options.swapFeeDiscounted <= options.swapFeeNormal,
+            "BondHook: Discounted swap fee must be less than or equal to normal swap fee"
+        );
         defaultSwapFeeDiscounted = options.swapFeeDiscounted;
         defaultFeeCreditRatio = options.feeCreditRatioAsPips;
     }
@@ -264,7 +265,8 @@ contract BondHook is BaseHook {
 
         uint160 sqrtPriceX96 = bondPools[data.poolKey.toId()].getPriceX96(poolManager);
 
-        uint256 priceAsLiquidity = uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
+        uint256 priceAsLiquidity =
+            uint256(bondPools[data.poolKey.toId()].getLiquidityForBondTokenAmount(int256(price), sqrtPriceX96));
 
         // Record how much liquidity was spent on it
         amountPaidOutFor[data.tokenId] = priceAsLiquidity;
@@ -305,7 +307,7 @@ contract BondHook is BaseHook {
         // Take the user's assets and deposit as liquidity
         _modifyLiquidity({
             key: data.poolKey,
-            sender: sender, 
+            sender: sender,
             liquidityDelta: int256(priceAsLiquidity),
             desiredCurrency: data.desiredCurrency,
             swapPriceLimit: data.swapPriceLimit
@@ -540,7 +542,6 @@ contract BondHook is BaseHook {
             normalSwapFee: defaultSwapFeeNormal,
             reducedSwapFee: defaultSwapFeeDiscounted,
             feeCreditPercentAsPips: defaultFeeCreditRatio,
-
             totalSharesAdded: 0,
             profitPerShare: 0,
             creditForSwapFeesInBondToken: 0
@@ -555,8 +556,6 @@ contract BondHook is BaseHook {
         return this.afterInitialize.selector;
     }
 
-
-
     function _beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
         internal
         pure
@@ -566,31 +565,32 @@ contract BondHook is BaseHook {
         return this.beforeAddLiquidity.selector;
     }
 
-    function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata hookData)
-        internal
-        pure
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
+    function _beforeSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) internal view override returns (bytes4, BeforeSwapDelta, uint24) {
         // If this is an internal swap, charge no fees
         if (sender == address(this)) {
             return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), DYNAMIC_FEE_FLAG);
         }
-            return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
+        return (this.beforeSwap.selector, toBeforeSwapDelta(0, 0), uint24(0));
     }
 
-    function _afterSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta delta, bytes calldata)
-        internal
-        pure
-        override
-        returns (bytes4, int128)
-    {
+    function _afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata,
+        BalanceDelta delta,
+        bytes calldata
+    ) internal override returns (bytes4, int128) {
         BondPoolState storage state = bondPools[key.toId()];
 
         if (sender == address(this) || state.creditForSwapFeesInBondToken <= 0) {
             return (this.afterSwap.selector, int128(0));
         }
-         
+
         int128 creditDelta = 0;
         if (state.bondTokenIsCurrency0) {
             if (delta.amount0() < 0) {
@@ -609,7 +609,7 @@ contract BondHook is BaseHook {
         if (int256(creditDelta) > state.creditForSwapFeesInBondToken) {
             // We will be running out of credit, so return fees to the normal rate
             poolManager.updateDynamicLPFee(key, state.normalSwapFee);
-        } 
+        }
         // Resuce the amount of credit available
         state.creditForSwapFeesInBondToken -= int256(creditDelta);
 

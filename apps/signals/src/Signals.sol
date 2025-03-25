@@ -208,8 +208,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             isSupporter[initiativeId][supporter] = true;
         }
 
-        // TODO: Deprecate, block.timestamp is not needed
-        emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, block.timestamp);
+        emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, tokenId);
 
         return tokenId;
     }

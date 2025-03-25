@@ -84,17 +84,17 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @notice Event emitted when a supporter supports an initiative
      *
      * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter
+     * @param supporter Address of the supporter // FIXME: Consider renameing to originalSupporter ??
      * @param tokenAmount Amount of tokens locked
      * @param lockDuration Duration for which tokens are locked (in intervals)
-     * @param timestamp Timestamp of when the support was made
+     * @param tokenId ID of the NFT issued
      */
     event InitiativeSupported(
         uint256 indexed initiativeId,
         address indexed supporter,
         uint256 tokenAmount,
         uint256 lockDuration,
-        uint256 timestamp
+        uint256 tokenId
     );
     event InitiativeProposed(uint256 indexed initiativeId, address indexed proposer, string title, string body);
     event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);

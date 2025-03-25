@@ -64,6 +64,19 @@ contract SignalsTest is Test, SignalsHarness {
         vm.stopPrank();
     }
 
+    function testEmitsTokenId() public {
+        vm.startPrank(_bob);
+        // Approve the total amount needed (proposal threshold + locked amount)
+        _token.approve(address(signals), defaultConfig.proposalThreshold * 2);
+
+        uint256 lockedAmount = 50_000 * 1e18;
+
+        // We should receive a tokenId of 1
+        vm.expectEmit();
+        emit ISignals.InitiativeSupported(1, _bob, lockedAmount, 6, 1);
+        signals.proposeInitiativeWithLock("Initiative 2", "Description 2", lockedAmount, 6);
+    }
+
     /**
      * @notice Test proposing an initiative with locked tokens
      */
