@@ -55,7 +55,7 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   return (
     <IncentivesContext.Provider
       value={{
-        address: INCENTIVES,
+        address: context.contracts.Incentives.address,
         version,
         allocations,
         receivers,

@@ -78,9 +78,6 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
 
 // Main provider that sets up Privy
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
-  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
-  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
-  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}

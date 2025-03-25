@@ -1,5 +1,6 @@
 import type { Initiative, InitiativeResponse } from '../../../indexers/src/api/types'
 import { client, schema } from '@/config/ponder'
+import { context } from '@/config/web3'
 import { create } from 'zustand'
 
 interface InitiativesState {
@@ -14,7 +15,7 @@ const API_ENDPOINT = 'http://localhost:42069'
 
 // TODO: These values can be dynamic now..
 const CHAIN_ID = 421614
-const ADDRESS = '0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc'
+const ADDRESS = context.contracts.SignalsProtocol.address
 
 export const useInitiativesStore = create<InitiativesState>((set) => ({
   initiatives: [],

@@ -1,6 +1,6 @@
 'use client'
 
-import { readClient, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { readClient, context } from '@/config/web3'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
 import { useUnderlying } from './ContractContext'
@@ -76,8 +76,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
 
       try {
         const protocol = getContract({
-          address: SIGNALS_PROTOCOL,
-          abi: SIGNALS_ABI,
+          address: context.contracts.SignalsProtocol.address,
+          abi: context.contracts.SignalsProtocol.abi,
           client: readClient,
         })
 

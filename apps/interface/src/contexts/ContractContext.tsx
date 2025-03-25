@@ -1,13 +1,13 @@
 'use client'
 
-import { ERC20WithFaucetABI, ERC20_ADDRESS, readClient } from '@/config/web3'
+import { context, readClient } from '@/config/web3'
 import { useAccount } from '@/hooks/useAccount'
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { getContract } from 'viem'
 
 const token = getContract({
-  address: ERC20_ADDRESS,
-  abi: ERC20WithFaucetABI,
+  address: context.contracts.BoardUnderlyingToken.address,
+  abi: context.contracts.BoardUnderlyingToken.abi,
   client: readClient,
 })
 
@@ -39,7 +39,6 @@ interface Props {
 
 export const TokenProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
-
   const [name, setContractName] = useState<string | null>(null)
   const [symbol, setSymbol] = useState<string | null>(null)
   const [decimals, setDecimals] = useState<number | null>(null)

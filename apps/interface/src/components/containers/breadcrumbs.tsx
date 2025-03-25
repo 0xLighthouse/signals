@@ -1,6 +1,6 @@
 'use client'
 
-import { SIGNALS_PROTOCOL } from '@/config/web3'
+import { context } from '@/config/web3'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { shortAddress } from '@/lib/utils'
 import React, { useState } from 'react'
@@ -42,7 +42,7 @@ export const Breadcrumbs: React.FC = () => {
               <Slash />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink>{`${name} ${symbol}`}</BreadcrumbLink>
+              <BreadcrumbLink>{`${name} (${symbol})`}</BreadcrumbLink>
             </BreadcrumbItem>
           </div>
         )}
@@ -52,7 +52,7 @@ export const Breadcrumbs: React.FC = () => {
         <BreadcrumbItem>
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1 text-neutral-800 dark:text-neutral-200 font-bold">
-              {shortAddress(SIGNALS_PROTOCOL)}
+              {shortAddress(context.contracts.SignalsProtocol.address)}
               <ChevronDownIcon size={16} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -63,8 +63,7 @@ export const Breadcrumbs: React.FC = () => {
           </DropdownMenu>
         </BreadcrumbItem>
       </BreadcrumbList>
-      <DeploySignalsDrawer isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} /> {' '}
-      {/* <ContactUsDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />{' '} */}
+      <DeploySignalsDrawer isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />{' '}
       {/* Pass state and handler */}
     </Breadcrumb>
   )
