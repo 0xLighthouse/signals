@@ -41,7 +41,7 @@ contract BondHookTest is Test, Deployers, BondHookHarness {
     // A non-hook swap should work fine
     function test_NormalSwap() public {
         dealMockTokens();
-        addLiquidity(poolA);
+        modifyLiquidityFromProvider(poolA, 1_000_000 ether);
 
         vm.startPrank(_alice);
         // _token.approve(address(swapRouter), 100_000 either);
@@ -51,18 +51,7 @@ contract BondHookTest is Test, Deployers, BondHookHarness {
         uint256 daiBalanceBefore = _dai.balanceOf(address(_alice));
 
         // Buy 1 gov token
-        vm.startPrank(_alice);
-        swapRouter.swap(
-            poolA,
-            IPoolManager.SwapParams({
-                zeroForOne: !poolAIsGovZero,
-                amountSpecified: 1 ether,
-                sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
-            }),
-            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
-            // hookData
-            ZERO_BYTES
-        );
+        aliceSwap(1 ether, false);
 
         assertEq(_token.balanceOf(address(_alice)), govBalanceBefore + 1 ether);
         assertLt(_dai.balanceOf(address(_alice)), daiBalanceBefore);

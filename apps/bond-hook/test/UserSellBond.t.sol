@@ -34,7 +34,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         deployFreshManagerAndRouters();
         deployHookAndPools();
         dealMockTokens();
-        addLiquidity(poolA);
+        modifyLiquidityFromProvider(poolA, 1_000_000 ether);
     }
 
     function test_UserSellsBond() public {
@@ -56,24 +56,18 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         uint256 _govBefore = _token.balanceOf(address(_alice));
         uint256 _daiBefore = _dai.balanceOf(address(_alice));
 
-        // approve and swap the bond into the pool
-        vm.startPrank(_alice);
-        bondIssuer.approve(address(bondhook), tokenId);
-        bondhook.swapBond(
-            SwapData({
-                poolKey: poolA,
-                tokenId: tokenId,
-                bondPriceLimit: bondPriceLimit,
-                swapPriceLimit: 0,
-                desiredCurrency: DesiredCurrency.Mixed
-            })
-        );
-        vm.stopPrank();
+        aliceSellBond(tokenId, bondPriceLimit);
 
         uint256 _govAfter = _token.balanceOf(address(_alice));
         uint256 _daiAfter = _dai.balanceOf(address(_alice));
         uint256 _bondAfter = bondIssuer.balanceOf(address(_alice));
         uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
+
+        console.log("bondPriceLimit", bondPriceLimit/ 1e18);
+        console.log("govBefore", _govBefore/ 1e18);
+        console.log("govAfter", _govAfter/ 1e18);
+        console.log("daiBefore", _daiBefore/ 1e18);
+        console.log("daiAfter", _daiAfter/ 1e18);
 
         // Alice should end up with 22.5k liquidity (11.25k gov, 11.25k dai)
         assertApproxEqAbs(_govAfter, _govBefore + (bondPriceLimit / 2), 1000, "Alice Gov balance incorrect");
@@ -122,7 +116,7 @@ contract UserSellBondTest is Test, Deployers, BondHookHarness {
         uint256 _poolBondAfter = bondIssuer.balanceOf(address(bondhook));
 
         //Alice should end up with around 22.5k in gov, minus the 3% trading fee
-        assertApproxEqAbs(_govAfter, _govBefore + bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");
+        assertApproxEqAbs(_govAfter - _govBefore, bondPriceLimit, _govAfter * 3 / 100, "Alice Gov balance incorrect");
         assertEq(_daiAfter, _daiBefore, "Alice DAI balance incorrect");
         // The bond should be transfered to the pool
         assertEq(_aliceBondAfter, 0, "Alice Bond balance incorrect");

@@ -5,16 +5,18 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
+
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockIssuer} from "./MockIssuer.m.sol";
 
 import {Currency} from "v4-core/types/Currency.sol";
 import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
-import {IHooks} from "v4-core/interfaces/IHooks.sol";
-
-import {BondHook, DesiredCurrency, LiquidityData} from "../../src/BondHook.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {BondHook, DesiredCurrency, LiquidityData, BondHookOptions, SwapData} from "../../src/BondHook.sol";
 import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
@@ -47,6 +49,9 @@ contract BondHookHarness is Test, Deployers {
     PoolKey poolB; // DAI/GOV
     bool poolBIsGovZero;
 
+    PoolKey poolC; // USDC/GOV at price ratio of 1:4
+    bool poolCIsGovZero;
+
     function dealMockTokens() public {
         _dealToken(_token);
         _dealToken(_usdc);
@@ -70,29 +75,37 @@ contract BondHookHarness is Test, Deployers {
     }
 
     function deployHookAndPools() public {
-        // Deploy hook with correct flags
-        address _hookAddress = address(
-            uint160(
-                Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                    | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                    | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG
-            )
-        );
+        deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_1);
+    }
 
-        bytes memory args = abi.encode(address(manager), address(bondIssuer), address(pricingContract));
+    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted, uint160 startingPriceX96) public {
+        // Deploy hook with correct flags
+        address _hookAddress = address(uint160(
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
+        ));
+        
+        bytes memory args = abi.encode(BondHookOptions({
+            poolManager: IPoolManager(manager),
+            bondIssuer: address(bondIssuer),
+            bondPricing: address(pricingContract),
+            ownerFeeAsPips: ownerFeeAsPips,
+            feeCreditRatioAsPips: feeCreditRatioAsPips,
+            swapFeeNormal: swapFeeNormal,
+            swapFeeDiscounted: swapFeeDiscounted
+        }));
 
         deployCodeTo("BondHook.sol", args, _hookAddress);
         bondhook = BondHook(_hookAddress);
 
         // Deploy the pools
-        poolA = _deployPool(_dai, _token); // DAI/GOV
+        poolA = _deployPool(_dai, _token, startingPriceX96); // DAI/GOV
         poolAIsGovZero = Currency.unwrap(poolA.currency0) == address(_token);
 
-        poolB = _deployPool(_usdc, _token); // USDC/GOV
+        poolB = _deployPool(_usdc, _token, startingPriceX96); // USDC/GOV
         poolBIsGovZero = Currency.unwrap(poolB.currency0) == address(_token);
     }
 
-    function addLiquidity(PoolKey memory _key) public {
+    function modifyLiquidityFromProvider(PoolKey memory _key, int128 _liquidityDelta) public {
         MockERC20 currency0 = MockERC20(Currency.unwrap(_key.currency0));
         MockERC20 currency1 = MockERC20(Currency.unwrap(_key.currency1));
 
@@ -100,26 +113,25 @@ contract BondHookHarness is Test, Deployers {
         currency0.approve(address(bondhook), type(uint256).max);
         currency1.approve(address(bondhook), type(uint256).max);
 
-        bondhook.modifyLiquidity(
-            LiquidityData({
-                poolKey: _key,
-                liquidityDelta: 1_000_000 ether,
-                desiredCurrency: DesiredCurrency.Mixed,
-                swapPriceLimit: 0
-            })
-        );
+       bondhook.modifyLiquidity(LiquidityData({
+            poolKey: _key,
+            liquidityDelta: _liquidityDelta,
+            desiredCurrency: DesiredCurrency.Mixed,
+            swapPriceLimit: 0
+        }));
         vm.stopPrank();
     }
-
+     
+    // FIXME
     function createPool(MockERC20 currencyA, MockERC20 currencyB, IHooks hook) public returns (PoolKey memory _key) {
         (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
         (_key,) = initPool(_currency0, _currency1, hook, POOL_FEE, SQRT_PRICE_1_1);
         return _key;
     }
 
-    function _deployPool(MockERC20 currencyA, MockERC20 currencyB) public returns (PoolKey memory _key) {
+    function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96) public returns (PoolKey memory _key) {
         (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
-        (_key,) = initPool(_currency0, _currency1, bondhook, POOL_FEE, SQRT_PRICE_1_1);
+        (_key,) = initPool(_currency0, _currency1, bondhook, 0x800000, priceX96);
         return _key;
     }
 
@@ -127,6 +139,72 @@ contract BondHookHarness is Test, Deployers {
         vm.startPrank(_user);
         _token.approve(address(bondIssuer), _amount);
         tokenId = bondIssuer.createBond(1, _amount, _duration);
+        vm.stopPrank();
+    }
+
+    // Create bond using the specified abmoutn of lockup. Wait time is a percent (e.g. 50 = 50% of duration)
+    function aliceCreateBondAndWaits(uint256 _amount, uint256 _waitTimeAsPercentOfDuration) public returns (uint256 _tokenId) {
+        vm.startPrank(_alice);
+        _tokenId = bondIssuer.createBond(1, _amount, 365 days);
+        vm.stopPrank();
+
+        // Jump ahead to when bond is worth 50%
+        vm.warp(block.timestamp + 365 days * _waitTimeAsPercentOfDuration / 100);
+    }
+
+    // Alice sells the bond for mixed currency
+    function aliceSellBond(uint256 tokenId, uint256 bondPriceLimit) public {
+        vm.startPrank(_alice);
+        bondIssuer.approve(address(bondhook), tokenId);
+        bondhook.swapBond(
+            SwapData({
+                poolKey: poolA,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
+                swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+                desiredCurrency: DesiredCurrency.Mixed
+            })
+        );
+        vm.stopPrank();
+    }
+
+    // Bob buys the bond for mixed currency
+    function bobBuyBond(uint256 tokenId, uint256 bondPriceLimit) public {
+        if (bondPriceLimit == 0) {
+            bondPriceLimit = type(uint256).max;
+        }
+
+        vm.startPrank(_bob);
+        _token.approve(address(bondhook), type(uint256).max);
+        _dai.approve(address(bondhook), type(uint256).max);
+
+        bondhook.swapBond(
+            SwapData({
+                poolKey: poolA,
+                tokenId: tokenId,
+                bondPriceLimit: bondPriceLimit,
+                swapPriceLimit: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1,
+                desiredCurrency: DesiredCurrency.Mixed
+            })
+        );
+        vm.stopPrank();
+    }
+
+    function aliceSwap(int256 amount, bool sellGovToken) public {
+        vm.startPrank(_alice);
+        _token.approve(address(swapRouter), type(uint256).max);
+        _dai.approve(address(swapRouter), type(uint256).max);
+        swapRouter.swap(
+            poolA,
+            IPoolManager.SwapParams({
+                zeroForOne: sellGovToken ? poolAIsGovZero : !poolAIsGovZero,
+                amountSpecified: amount,
+                sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
+            }),
+            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
+            // hookData
+            ZERO_BYTES
+        );
         vm.stopPrank();
     }
 
