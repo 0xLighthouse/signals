@@ -21,6 +21,8 @@ import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
 import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
 import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
 import {PipsLib} from "./PipsLib.sol";
+import {BondHookLibrary} from "../../src/interfaces/IBondHook.sol";
+import {IHooks} from "v4-core/interfaces/IHooks.sol";
 
 contract BondHookHarness is Test, Deployers {
     address _deployer = address(this);
@@ -78,21 +80,27 @@ contract BondHookHarness is Test, Deployers {
         deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_1);
     }
 
-    function deployHookWithFeesAndPools(uint256 ownerFeeAsPips, uint256 feeCreditRatioAsPips, uint24 swapFeeNormal, uint24 swapFeeDiscounted, uint160 startingPriceX96) public {
+    function deployHookWithFeesAndPools(
+        uint256 ownerFeeAsPips,
+        uint256 feeCreditRatioAsPips,
+        uint24 swapFeeNormal,
+        uint24 swapFeeDiscounted,
+        uint160 startingPriceX96
+    ) public {
         // Deploy hook with correct flags
-        address _hookAddress = address(uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
-        ));
-        
-        bytes memory args = abi.encode(BondHookOptions({
-            poolManager: IPoolManager(manager),
-            bondIssuer: address(bondIssuer),
-            bondPricing: address(pricingContract),
-            ownerFeeAsPips: ownerFeeAsPips,
-            feeCreditRatioAsPips: feeCreditRatioAsPips,
-            swapFeeNormal: swapFeeNormal,
-            swapFeeDiscounted: swapFeeDiscounted
-        }));
+        address _hookAddress = address(BondHookLibrary.flags);
+
+        bytes memory args = abi.encode(
+            BondHookOptions({
+                poolManager: IPoolManager(manager),
+                bondIssuer: address(bondIssuer),
+                bondPricing: address(pricingContract),
+                ownerFeeAsPips: ownerFeeAsPips,
+                feeCreditRatioAsPips: feeCreditRatioAsPips,
+                swapFeeNormal: swapFeeNormal,
+                swapFeeDiscounted: swapFeeDiscounted
+            })
+        );
 
         deployCodeTo("BondHook.sol", args, _hookAddress);
         bondhook = BondHook(_hookAddress);
@@ -113,23 +121,21 @@ contract BondHookHarness is Test, Deployers {
         currency0.approve(address(bondhook), type(uint256).max);
         currency1.approve(address(bondhook), type(uint256).max);
 
-       bondhook.modifyLiquidity(LiquidityData({
-            poolKey: _key,
-            liquidityDelta: _liquidityDelta,
-            desiredCurrency: DesiredCurrency.Mixed,
-            swapPriceLimit: 0
-        }));
+        bondhook.modifyLiquidity(
+            LiquidityData({
+                poolKey: _key,
+                liquidityDelta: _liquidityDelta,
+                desiredCurrency: DesiredCurrency.Mixed,
+                swapPriceLimit: 0
+            })
+        );
         vm.stopPrank();
     }
-     
-    // FIXME
-    function createPool(MockERC20 currencyA, MockERC20 currencyB, IHooks hook) public returns (PoolKey memory _key) {
-        (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
-        (_key,) = initPool(_currency0, _currency1, hook, POOL_FEE, SQRT_PRICE_1_1);
-        return _key;
-    }
 
-    function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96) public returns (PoolKey memory _key) {
+    function _deployPool(MockERC20 currencyA, MockERC20 currencyB, uint160 priceX96)
+        public
+        returns (PoolKey memory _key)
+    {
         (Currency _currency0, Currency _currency1) = SortTokens.sort(currencyA, currencyB);
         (_key,) = initPool(_currency0, _currency1, bondhook, 0x800000, priceX96);
         return _key;
@@ -143,7 +149,10 @@ contract BondHookHarness is Test, Deployers {
     }
 
     // Create bond using the specified abmoutn of lockup. Wait time is a percent (e.g. 50 = 50% of duration)
-    function aliceCreateBondAndWaits(uint256 _amount, uint256 _waitTimeAsPercentOfDuration) public returns (uint256 _tokenId) {
+    function aliceCreateBondAndWaits(uint256 _amount, uint256 _waitTimeAsPercentOfDuration)
+        public
+        returns (uint256 _tokenId)
+    {
         vm.startPrank(_alice);
         _tokenId = bondIssuer.createBond(1, _amount, 365 days);
         vm.stopPrank();
@@ -201,7 +210,7 @@ contract BondHookHarness is Test, Deployers {
                 amountSpecified: amount,
                 sqrtPriceLimitX96: poolAIsGovZero ? TickMath.MAX_SQRT_PRICE - 1 : TickMath.MIN_SQRT_PRICE + 1
             }),
-            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             // hookData
             ZERO_BYTES
         );

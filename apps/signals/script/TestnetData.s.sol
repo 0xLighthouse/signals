@@ -62,6 +62,7 @@ contract TestnetDataScript is Script {
     function run() external {
         // Load the private keys from the seed phrase
         string memory seedPhrase = vm.envString("TESTNET_SEED_PHRASE");
+        address bondIssuer = vm.envAddress("TESTNET_BOND_ISSUER");
 
         uint256 deployerKey = vm.deriveKey(seedPhrase, 0);
         uint256 aliceKey = vm.deriveKey(seedPhrase, 1);
@@ -81,7 +82,7 @@ contract TestnetDataScript is Script {
         _charlie = vm.addr(charlieKey);
 
         // Load the Signals contract instance
-        board = Signals(0x844C0DD2995cD430AaB7Ddd1DCa3FB15836674bc);
+        board = Signals(bondIssuer);
         token = MockERC20(board.token());
         string memory tokenSymbol = token.symbol();
 

@@ -19,7 +19,6 @@ import {HookMiner} from "v4-periphery/utils/HookMiner.sol";
  * Known deployments
  *  - Arbitrum One
  *    - V4 Pool Manager: 0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317
- *    - Bond Issuer: TODO
  */
 contract DeployManagerAndHook is Script {
     function run() external {
@@ -41,33 +40,29 @@ contract DeployManagerAndHook is Script {
 
         console.log("Pricing contract", address(pricing));
 
-        // 2. Compute the salt and hook address
+        // Create BondHookOptions struct first to ensure consistency
+        BondHookOptions memory options = BondHookOptions({
+            poolManager: IPoolManager(manager),
+            bondIssuer: address(bondIssuer),
+            bondPricing: address(pricing),
+            ownerFeeAsPips: 0,
+            feeCreditRatioAsPips: 0,
+            swapFeeNormal: 0,
+            swapFeeDiscounted: 0
+        });
+
+        // Use the same encoding for both find and deployment
+        bytes memory constructorArgs = abi.encode(options);
+
         address CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-        (address hookAddress, bytes32 salt) = HookMiner.find(
-            CREATE2_DEPLOYER,
-            BondHookLibrary.flags,
-            type(BondHook).creationCode,
-            abi.encode(IPoolManager(manager), address(bondIssuer), address(pricing))
-        );
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, BondHookLibrary.flags, type(BondHook).creationCode, constructorArgs);
 
-        console.log("Flags", address(BondHookLibrary.flags));
-        console.log("Hook address", hookAddress);
-        console.log("Salt", uint256(salt));
+        console.log("Expected address:", hookAddress);
 
-        // 3. Deploy the hook
         vm.startBroadcast(_deployer);
-        BondHook hook = new BondHook{salt: salt}(
-            BondHookOptions({
-                poolManager: IPoolManager(manager),
-                bondIssuer: address(bondIssuer),
-                bondPricing: address(pricing),
-                ownerFeeAsPips: 0,
-                feeCreditRatioAsPips: 0,
-                swapFeeNormal: 0,
-                swapFeeDiscounted: 0
-            })
-        );
-        console.log("BondHookContract", address(hook));
+        BondHook hook = new BondHook{salt: salt}(options);
+        console.log("Deployed to:", address(hook));
         vm.stopBroadcast();
     }
 }
