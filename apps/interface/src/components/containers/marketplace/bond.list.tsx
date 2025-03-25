@@ -19,12 +19,12 @@ export const BondsList = () => {
   const fetchLocks = useLocksStore((state) => state.fetchLocks)
   const isInitialized = useLocksStore((state) => state.isInitialized)
   const count = useLocksStore((state) => state.count)
+  
   useEffect(() => {
     if (!isInitialized && address) fetchLocks(address)
   }, [isInitialized, fetchLocks, address])
+  
   const { board } = useSignals()
-
-  console.log('locks', locks)
 
   if (isFetchingLocks) {
     return (
@@ -39,8 +39,8 @@ export const BondsList = () => {
   }
 
   return (
-    <div className="">
-      <h1 className="text-2xl font-bold mb-4">Open positions ({count})</h1>
+    <div>
+      <h1 className="text-2xl font-bold mb-4">My Bond Positions ({count})</h1>
       <ScrollArea className="w-full mb-24">
         <div>
           {locks.map((item, index) => (

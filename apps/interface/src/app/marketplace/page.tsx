@@ -2,7 +2,7 @@ import { TopNav } from '@/components/containers/topnav'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
 import { FaucetActions } from '@/components/containers/faucet-actions'
-import { BondsList } from '@/components/marketplace/bond.list'
+import { BondsList } from '@/components/containers/marketplace/bond.list'
 
 export default function Marketplace() {
   return (
