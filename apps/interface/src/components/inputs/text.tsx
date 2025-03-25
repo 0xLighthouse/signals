@@ -55,7 +55,7 @@ export function TextInput({
         defaultValue={defaultValue}
         onChange={(e) => onChange?.(e.target.value)}
         required={required}
-        className={`font-mono bg-zinc-900 border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-zinc-700 ${className}`}
+        className={`font-mono ${className}`}
       />
       {description && <p className="text-xs text-zinc-500">{description}</p>}
     </div>

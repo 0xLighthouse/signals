@@ -70,19 +70,14 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
       <DrawerTrigger asChild>
         <Button variant="outline" onClick={() => onOpenChange(true)}>Deploy Contract</Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[90vh]">
+      <DrawerContent className="h-[90vh] max-h-[90vh] overflow-hidden">
 
         <DrawerHeader>
           <DrawerTitle>Deploy Signals Contract</DrawerTitle>
         </DrawerHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 p-4">
-
-          <div className="flex flex-row justify-between">
-
-
-
-            <div className="flex-1 p-10">
-              {/* START */}
+        <form onSubmit={handleSubmit} className="p-4 md:p-8 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div>
               <TextInput
                 id="owner"
                 label="Owner Address"
@@ -102,8 +97,6 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 required
               />
 
-              <br />
-
               <TextInput
                 id="proposalThreshold"
                 label="Proposal Threshold"
@@ -113,7 +106,9 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 description="Minimum token balance required to submit an initiative (in wei)"
                 required
               />
-
+            </div>
+            
+            <div>
               <TextInput
                 id="acceptanceThreshold"
                 label="Acceptance Threshold"
@@ -123,11 +118,6 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 description="Support required before an initiative can be accepted (in wei)"
                 required
               />
-
-            </div>
-            <div className="flex-1 p-10">
-
-
 
               <TextInput
                 id="maxLockIntervals"
@@ -148,7 +138,9 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 description="Maximum number of proposals allowed"
                 required
               />
-
+            </div>
+            
+            <div className="md:col-span-2 lg:col-span-1">
               <TextInput
                 id="lockInterval"
                 label="Lock Interval (seconds)"
@@ -193,20 +185,19 @@ export function DeploySignalsDrawer({ isOpen, onOpenChange }: { isOpen: boolean,
                 }
                 required
               />
-
-              <div className="flex justify-end gap-2 pt-4">
-                <DrawerClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DrawerClose>
-                <Button
-                  type="submit"
-                  disabled={!isConnected || isLoading}
-                >
-                  {isLoading ? 'Deploying...' : 'Deploy Contract'}
-                </Button>
-              </div>
-
             </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-6 md:pt-8">
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+            <Button
+              type="submit"
+              disabled={!isConnected || isLoading}
+            >
+              {isLoading ? 'Deploying...' : 'Deploy Contract'}
+            </Button>
           </div>
         </form>
       </DrawerContent>
