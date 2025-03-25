@@ -21,7 +21,6 @@ const Web3Context = createContext<IWeb3Context>({
     transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
   }),
   walletClient: null,
-  address: null,
   isInitialized: false,
 })
 
@@ -31,14 +30,12 @@ interface IWeb3Context {
   isInitialized: boolean
   publicClient: PublicClient
   walletClient: WalletClient | null
-  address: Address | null
 }
 
 // Separate internal component that uses Privy hooks
 const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
-  const [address, setAddress] = useState<Address | null>(null)
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
-  const { ready: privyReady, user } = usePrivy()
+  const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
 
@@ -73,7 +70,7 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isInitialized, wallets])
 
   return (
-    <Web3Context.Provider value={{ publicClient, walletClient, address, isInitialized }}>
+    <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
       {children}
     </Web3Context.Provider>
   )
@@ -81,6 +78,9 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
 
 // Main provider that sets up Privy
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
+  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
+  console.log('NEXT_PUBLIC_PRIVY_APP_ID', process.env.NEXT_PUBLIC_PRIVY_APP_ID)
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}

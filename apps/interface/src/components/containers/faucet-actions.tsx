@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ERC20WithFaucetABI, context } from '@/config/web3'
+import { readClient, ERC20WithFaucetABI, context, USDC_ADDRESS } from '@/config/web3'
 import { WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
@@ -16,8 +16,8 @@ const handleFaucetClaim = async (
 ) => {
   if (!address) throw new Error('Address not available.')
   try {
-    // @ts-ignore
     const transactionHash = await signer.writeContract({
+      chain: signer.chain,
       account: address,
       address: token,
       abi: ERC20WithFaucetABI,
@@ -26,9 +26,6 @@ const handleFaucetClaim = async (
       gas: 100_000n,
     })
 
-    console.log('Transaction Hash:', transactionHash)
-    console.log('Waiting for txn to be mined...')
-
     const receipt = await readClient.waitForTransactionReceipt({
       hash: transactionHash,
       confirmations: 2,
@@ -36,15 +33,13 @@ const handleFaucetClaim = async (
     })
 
     toast(`Claimed ${symbol} tokens`)
-    console.log('Transaction Receipt:', receipt)
-  } catch (error) {
-    // @ts-ignore
-    if (error?.message?.includes('User rejected the request')) {
-      toast('User rejected the request')
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('User rejected the request')) {
+      toast('User cancelled the request')
     } else {
       toast('Error claiming tokens :(')
     }
-    console.error('Error claiming tokens:', error)
+    console.error('Error claiming tokens:', err)
   }
 }
 
@@ -54,35 +49,34 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const { walletClient } = useWeb3()
 
-  const handleClaimUSDC = async () => {
-    // setIsLoadingUSDC(true)
-    // try {
-    //   await claimTokens({ token: USDC_ADDRESS, address: address as `0x${string}`, symbol: 'mUSDC' })
-    // } finally {
-    //   setIsLoadingUSDC(false)
-    // }
-  }
-
-  const handleClaimTokens = async () => {
-    setIsLoadingTokens(true)
-
+  const handleClaim = async ({
+    token,
+    address,
+    symbol,
+    isLoadingHandler,
+  }: {
+    token: `0x${string}`
+    address: `0x${string}`
+    symbol: string
+    isLoadingHandler: (isLoading: boolean) => void
+  }) => {
+    isLoadingHandler(true)
     if (!walletClient) {
       toast('No wallet client found')
-      setIsLoadingTokens(false)
+      isLoadingHandler(false)
       return
     }
-
     try {
       await handleFaucetClaim(
         {
-          token: context.contracts.BoardUnderlyingToken.address,
-          address: address as `0x${string}`,
-          symbol: 'SGNL',
+          token,
+          address,
+          symbol,
         },
         walletClient,
       )
     } finally {
-      setIsLoadingTokens(false)
+      isLoadingHandler(false)
     }
   }
 
@@ -96,11 +90,33 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
       </div>
       <Separator className="my-4" />
       <div className={cn('flex gap-2', vertical && 'flex-col')}>
-        <Button variant="outline" onClick={handleClaimUSDC} isLoading={isLoadingUSDC}>
+        <Button
+          variant="outline"
+          onClick={() =>
+            handleClaim({
+              token: USDC_ADDRESS,
+              address: address as `0x${string}`,
+              symbol: 'mUSDC',
+              isLoadingHandler: setIsLoadingUSDC,
+            })
+          }
+          isLoading={isLoadingUSDC}
+        >
           Get USDC
         </Button>
         {/* <Separator orientation="vertical" /> */}
-        <Button variant="outline" onClick={handleClaimTokens} isLoading={isLoadingTokens}>
+        <Button
+          variant="outline"
+          onClick={() =>
+            handleClaim({
+              token: context.contracts.BoardUnderlyingToken.address,
+              address: address as `0x${string}`,
+              symbol: 'SGNL',
+              isLoadingHandler: setIsLoadingTokens,
+            })
+          }
+          isLoading={isLoadingTokens}
+        >
           Get SGNL
         </Button>
         <Button

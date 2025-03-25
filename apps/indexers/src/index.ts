@@ -22,6 +22,23 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
   })
 })
 
+ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
+  await context.db.insert(schema.InitiativeWeight).values({
+    id: event.id,
+    chainId: context.network.chainId,
+    contractAddress: event.log.address,
+    blockTimestamp: event.block.timestamp,
+    transactionHash: event.transaction.hash,
+    // --- event data
+    initiativeId: Number(event.args.initiativeId),
+    weight: event.args.tokenAmount,
+    supporter: event.args.supporter,
+    duration: event.args.lockDuration,
+    // TODO: Deprecate this attribute
+    timestamp: event.args.timestamp,
+  })
+})
+
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   /**
    * TODO: Patch additional board metadata
