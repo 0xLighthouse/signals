@@ -25,6 +25,11 @@ done
 
 # Create Signals test data
 #  - This script creates three initiatives, with minimum support amounts and a 12 month lock duration
-cd apps/signals
-forge script script/TestnetData.s.sol --fork-url $TESTNET_RPC --broadcast --private-key $TESTNET_DEPLOYER_PRIVATE_KEY
+# cd apps/signals
+# forge script script/TestnetData.s.sol --fork-url $TESTNET_RPC --broadcast --private-key $TESTNET_DEPLOYER_PRIVATE_KEY
+# cd ../..
+
+# Deploy testnet pools
+cd apps/bond-hook
+forge script script/TestnetPools.sol --fork-url $TESTNET_RPC --broadcast --private-key $TESTNET_DEPLOYER_PRIVATE_KEY
 cd ../..

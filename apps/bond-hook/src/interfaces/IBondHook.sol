@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {Currency} from "v4-core/types/Currency.sol";
 
 library BondHookLibrary {
     uint160 constant flags = Hooks.BEFORE_INITIALIZE_FLAG | Hooks.AFTER_INITIALIZE_FLAG
@@ -9,3 +10,7 @@ library BondHookLibrary {
 }
 
 interface IBondHook {}
+
+interface IBondHookLegacy {
+    function bondToken() external view returns (Currency);
+}

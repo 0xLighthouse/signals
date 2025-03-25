@@ -103,8 +103,20 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 // })
 
 // FIXME: wtf is up with the types?
+//  args: {
+//   id: '0xd747d5c96aa744c2284ef5763974ac7c63e84ca7e0b6ba1c21d1ea0cbcda869e',
+//   currency0: '0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635',
+//   currency1: '0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7',
+//   fee: 8388608,
+//   tickSpacing: 60,
+//   hooks: '0xd6F1Cd295Bf3cfeFA4c09B455A420edaEad478c0',
+//   sqrtPriceX96: 79228162514264337593543950336n,
+//   tick: 0
+// },
 // @ts-ignore
 ponder.on('PoolManager:Initialize', async ({ event, context }) => {
+  console.log('PoolManager:Initialize', event)
+
   await context.db.insert(schema.PoolManagerInitializeEvent).values({
     id: event.id,
     chainId: context.network.chainId,
@@ -114,6 +126,10 @@ ponder.on('PoolManager:Initialize', async ({ event, context }) => {
     // --- pool data
     // @ts-ignore
     hookAddress: event.args.hooks,
+    // @ts-ignore
+    currency0: event.args.currency0,
+    // @ts-ignore
+    currency1: event.args.currency1,
     // --- event data
     // @ts-ignore
     poolId: event.args.id,
@@ -121,18 +137,21 @@ ponder.on('PoolManager:Initialize', async ({ event, context }) => {
 })
 
 // FIXME: wtf is up with the types?
-ponder.on('BondMarket:PoolInitialized', async ({ event, context }) => {
-  await context.db.insert(schema.PoolManagerInitializeEvent).values({
-    id: event.id,
-    chainId: context.network.chainId,
-    contractAddress: event.log.address,
-    blockTimestamp: event.block.timestamp,
-    transactionHash: event.transaction.hash,
-    // --- pool data
-    // @ts-ignore
-    hookAddress: event.args.hooks,
-    // --- event data
-    // @ts-ignore
-    poolId: event.args.id,
-  })
-})
+// NO needed
+// ponder.on('BondMarket:PoolInitialized', async ({ event, context }) => {
+//   console.log('BondMarket:PoolInitialized', event)
+
+//   await context.db.insert(schema.PoolManagerInitializeEvent).values({
+//     id: event.id,
+//     chainId: context.network.chainId,
+//     contractAddress: event.log.address,
+//     blockTimestamp: event.block.timestamp,
+//     transactionHash: event.transaction.hash,
+//     // --- pool data
+//     // @ts-ignore
+//     hookAddress: event.args.hooks,
+//     // --- event data
+//     // @ts-ignore
+//     poolId: event.args.id,
+//   })
+// })

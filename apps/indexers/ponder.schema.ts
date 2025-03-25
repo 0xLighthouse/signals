@@ -59,6 +59,9 @@ export const PoolManagerInitializeEvent = onchainTable('pool_manager_initialize_
   contractAddress: t.hex().notNull(),
   // --- attributes
   poolId: t.hex().notNull(),
+  hookAddress: t.hex(),
+  currency0: t.hex().notNull(),
+  currency1: t.hex().notNull(),
 }))
 
 // ===========================================================================
