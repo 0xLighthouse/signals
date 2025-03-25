@@ -5,7 +5,7 @@ import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
 
@@ -30,6 +30,9 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   proposeNewInitiative = false,
   supportInitiative = false,
 }) => {
+  console.log('SubmissionLockDetails().render')
+  console.log('SubmissionLockDetails().render')
+
   const { symbol } = useUnderlying()
 
   const weight = amount ? amount * (duration || 1) : 0

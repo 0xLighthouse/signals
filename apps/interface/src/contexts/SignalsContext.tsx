@@ -6,7 +6,7 @@ import { getContract } from 'viem'
 import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
-interface IBoard {
+export interface IBoard {
   // TODO: Move this out of IBoard as its metadata
   initiativesCount: number | null
   proposalThreshold: number | null

@@ -3,32 +3,30 @@
 import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-import { useSignals } from '@/contexts/SignalsContext'
-import { useInitiativesStore } from '@/stores/useInitiativesStore'
+import { useLocksStore } from '@/stores/useLocksStore'
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
 import { BondCard } from './bond.card'
+import { useAccount } from '@/hooks/useAccount'
+import { useSignals } from '@/contexts/SignalsContext'
 
 export const BondsList = () => {
   const { theme } = useTheme()
-  const initiatives = useInitiativesStore((state) => state.initiatives)
-  const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
-  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
-  const isInitialized = useInitiativesStore((state) => state.isInitialized)
-
+  const { address } = useAccount()
+  const locks = useLocksStore((state) => state.locks)
+  const isFetchingLocks = useLocksStore((state) => state.isFetching)
+  const fetchLocks = useLocksStore((state) => state.fetchLocks)
+  const isInitialized = useLocksStore((state) => state.isInitialized)
+  const count = useLocksStore((state) => state.count)
   useEffect(() => {
-    if (!isInitialized) fetchInitiatives()
-  }, [isInitialized, fetchInitiatives])
+    if (!isInitialized && address) fetchLocks(address)
+  }, [isInitialized, fetchLocks, address])
+  const { board } = useSignals()
 
-  const [sortBy, setSortBy] = useState('support')
+  console.log('locks', locks)
 
-  // Ensure initiatives is always an array before filtering
-  const _initiativesSorted = initiatives.sort((a, b) =>
-    sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
-  )
-
-  if (isFetchingInitiatives) {
+  if (isFetchingLocks) {
     return (
       <div className="flex justify-center items-center">
         <PuffLoader
@@ -42,15 +40,17 @@ export const BondsList = () => {
 
   return (
     <div className="">
+      <h1 className="text-2xl font-bold mb-4">Open positions ({count})</h1>
       <ScrollArea className="w-full mb-24">
         <div>
-          {_initiativesSorted.map((item, index) => (
+          {locks.map((item, index) => (
             <BondCard
               key={item.initiativeId}
               bond={item}
+              board={board}
               index={index}
               isFirst={index === 0}
-              isLast={index === _initiativesSorted.length - 1}
+              isLast={index === locks.length - 1}
             />
           ))}
         </div>

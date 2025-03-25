@@ -1,6 +1,7 @@
 import schema from 'ponder:schema'
 
 type InitiativeEntity = typeof schema.Initiative.$inferSelect
+type InitiativeWeightEntity = typeof schema.InitiativeWeight.$inferSelect
 
 export type Initiative = {
   initiativeId: number
@@ -20,4 +21,13 @@ export type Initiative = {
 export type InitiativeResponse = {
   version: string
   initiatives: Initiative[]
+}
+
+export type Lock = {
+  initiativeId: number
+} & InitiativeWeightEntity
+
+export type LockResponse = {
+  version: string
+  data: Lock[]
 }

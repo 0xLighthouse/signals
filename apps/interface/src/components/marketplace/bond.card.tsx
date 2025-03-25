@@ -9,16 +9,21 @@ import { useAsyncProp } from '@/lib/useAsyncProp'
 import { AvatarGroup } from '@/components/ui/avatar-group'
 
 import type { Initiative } from 'indexers/src/api/types'
-
+import type { IBoard } from '@/contexts/SignalsContext'
 interface Props {
   bond: Bond
   index: number
   isFirst: boolean
   isLast: boolean
+  board: IBoard
 }
 
 export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
-  const proposerName = useAsyncProp(resolveName(bond.proposer), shortAddress(bond.proposer))
+  const initiative = bond.initiative
+  const proposerName = useAsyncProp(
+    resolveName(initiative.proposer),
+    shortAddress(initiative.proposer),
+  )
 
   return (
     <Card
@@ -35,33 +40,21 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
         <CardHeader className="md:w-3/5 p-6 pb-0">
           <CardTitle>{initiative.title}</CardTitle>
           <CardDescription className="flex items-center text-xs">
-            <span className="hidden sm:block">Proposed by</span>
-            <Avatar className="sm:ml-1 mr-1">
-              <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
-            </Avatar>
-            {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
+            {/* <span className="hidden sm:block">Locked support,</span> */}
+            Bond#{bond.tokenId}
+            Unlocks: XXXXX
           </CardDescription>
-          <div>
-            <p className="line-clamp-4 break-words">{initiative.description}</p>
-          </div>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-1 h-[80px]">
-            <IncentiveDrawer initiative={initiative} />
-            <AddSupportDrawer initiative={initiative} />
+            <div className="w-1/5 bg-red-500">SELL</div>
+            <div className="w-1/2 bg-blue-500">asd</div>
           </div>
         </div>
       </div>
       <div className="flex justify-between p-6">
-        <AvatarGroup
-          avatars={
-            initiative.supporters.length > 0
-              ? initiative.supporters.map((address) => resolveAvatar(address) as string)
-              : undefined
-          }
-        />
         <CardDescription className="text-xs">
-          Last activity,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
+          Supported,&nbsp;{timeAgoWords(bond.blockTimestamp)}
         </CardDescription>
       </div>
     </Card>

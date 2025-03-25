@@ -26,7 +26,7 @@ import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+
 import { usePrivy } from '@privy-io/react-auth'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {

@@ -13,7 +13,6 @@ import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
 
 export const description = 'A line chart with a custom label'
 

@@ -1,8 +1,8 @@
 import { TopNav } from '@/components/containers/topnav'
 import { Footer } from '@/components/footer'
 import { FAQs } from '@/components/faqs'
-import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
 import { FaucetActions } from '@/components/containers/faucet-actions'
+import { BondsList } from '@/components/marketplace/bond.list'
 
 export default function Marketplace() {
   return (
@@ -11,10 +11,7 @@ export default function Marketplace() {
       <div className="container mx-auto max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-[800px_1fr]">
           <div className="px-4 py-8 space-y-6">
-            <h1 className="text-2xl font-bold">Open positions</h1>
-
-            <p>List of open positions</p>
-            <InitiativesList />
+            <BondsList />
           </div>
           <div className="hidden lg:block px-4 py-8">
             <FAQs />
