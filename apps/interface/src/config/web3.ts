@@ -45,25 +45,25 @@ export const context = {
   contracts: {
     USDC: {
       abi: ERC20WithFaucetABI,
-      address: '0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635' as `0x${string}`,
+      address: '0x0eFf88D35f413cD1146269D916fb87A451B03d6D' as `0x${string}`,
       label: 'mUSDC',
     },
     BoardUnderlyingToken: {
       abi: ERC20WithFaucetABI,
-      address: '0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7' as `0x${string}`,
+      address: '0x4713635357F9d01cBAF4DAc7E93B66D69544DEa8' as `0x${string}`,
       label: 'SomeGovToken',
       decimals: 18, // TODO: Should be dynamic
     },
     SignalsProtocol: {
       abi: SIGNALS_ABI,
-      address: '0xa6c364E36bB6329EE55BDBfA62318108275662a7' as `0x${string}`,
+      address: '0x7E00a6dfF783649fB3017151652448647600D47E' as `0x${string}`,
     },
     TokenRegistry: {
-      address: '0x2817374F735fcA6C775B31e48bEc5e52d0b0D12B' as `0x${string}`,
+      address: '0xacCbbb8140Bd4494e11eEA8268d93F94895abC80' as `0x${string}`,
     },
     Incentives: {
       abi: IncentivesABI,
-      address: '0xdC81693e3601B4b9252ec3060204415408AA4350' as `0x${string}`,
+      address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a' as `0x${string}`,
     },
   },
 }
