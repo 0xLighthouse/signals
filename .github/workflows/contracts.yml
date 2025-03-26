@@ -3,10 +3,12 @@ name: Signals
 on:
   push:
     paths:
-      - 'apps/contracts/**'
+      - 'apps/bond-hook/**'
+      - 'apps/signals/**'
   pull_request:
     paths:
-      - 'apps/contracts/**'
+      - 'apps/bond-hook/**'
+      - 'apps/signals/**'
   workflow_dispatch:
 
 env:
@@ -33,12 +35,23 @@ jobs:
         run: |
           forge --version
 
-      - name: Run Forge build
-        working-directory: apps/contracts
+      - name: [bond-hook] Builds
+        working-directory: apps/bond-hook
         run: forge build --sizes
-        id: build
+        id: bond-hook-build
 
-      - name: Run Forge tests
-        working-directory: apps/contracts
+      - name: [bond-hook] Run Forge tests
+        working-directory: apps/bond-hook
         run: forge test -vvv
-        id: test
+        id: bond-hook-test
+
+      - name: [signals] Builds
+        working-directory: apps/signals
+        run: forge build --sizes
+        id: signals-build
+
+      - name: [signals] Run Forge tests
+        working-directory: apps/signals
+        run: forge test -vvv
+        id: signals-test
+
