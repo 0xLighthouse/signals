@@ -1,6 +1,13 @@
 name: Signals
 
 on:
+  push:
+    branches:
+      - 'release/capstone'
+      - 'feature/**'
+    paths:
+      - 'apps/bond-hook/**'
+      - 'apps/signals/**'
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
@@ -13,11 +20,8 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
-    strategy:
-      fail-fast: true
-
-    name: E2E Tests
+  bond-hook:
+    name: Bond Marketplace Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,23 +36,35 @@ jobs:
       - name: Show Forge version
         run: forge --version
 
-      - name: "[bond-hook] Builds"
+      - name: "Build"
         working-directory: apps/bond-hook
         run: forge build --sizes
-        id: bond-hook-build
 
-      - name: "[bond-hook] Run Forge tests"
+      - name: "Test"
         working-directory: apps/bond-hook
         run: forge test -vvv
-        id: bond-hook-test
 
-      - name: "[signals] Builds"
+  signals:
+    name: Protocol Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: rc
+
+      - name: Show Forge version
+        run: forge --version
+
+      - name: "Build"
         working-directory: apps/signals
         run: forge build --sizes
-        id: signals-build
 
-      - name: "[signals] Run Forge tests"
+      - name: "Test"
         working-directory: apps/signals
         run: forge test -vvv
-        id: signals-test
 
