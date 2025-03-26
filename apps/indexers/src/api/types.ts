@@ -6,17 +6,22 @@ type PoolEntity = typeof schema.Pool.$inferSelect
 
 export type Pool = {
   poolId: number
+  swapPrice: number
   currency0: {
     address: `0x${string}`
     symbol: string
     name: string
     decimals: number
+    totalTVL: number
+    bondHookTVL: number
   }
   currency1: {
     address: `0x${string}`
     symbol: string
     name: string
     decimals: number
+    totalTVL: number
+    bondHookTVL: number
   }
 } & PoolEntity
 

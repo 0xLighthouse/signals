@@ -2,9 +2,10 @@ import { db, publicClients } from 'ponder:api'
 import { and, eq, or } from 'drizzle-orm'
 import schema from 'ponder:schema'
 import { Context } from 'hono'
+// import { tickToPrice } from '@uniswap/v4-sdk'
 
 import { transform } from '../utils/transform'
-import { Erc20ABI } from '../../../../packages/abis'
+import { BondHookABI, Erc20ABI, StateViewABI } from '../../../../packages/abis'
 
 /**
  * @route GET /pools/:chainId/:currency
@@ -47,6 +48,68 @@ export const getPools = async (c: Context) => {
     }
   }
 
+  const getPoolInfo = async (poolId: `0x${string}`) => {
+    const stateViewContractArbSepolia = `0x9d467fa9062b6e9b1a46e26007ad82db116c67cb`
+    const bondHookContractArbSepolia = `0xd6F1Cd295Bf3cfeFA4c09B455A420edaEad478c0`
+
+    const [bondPoolState] = await Promise.all([
+      publicClients['421614'].readContract({
+        address: bondHookContractArbSepolia,
+        abi: BondHookABI,
+        functionName: 'bondPools',
+        args: [poolId],
+      })
+    ])
+
+    const [slot0, poolLiquidity, positionLiquidity] = await Promise.all([
+      publicClients['421614'].readContract({
+        address: stateViewContractArbSepolia,
+        abi: StateViewABI,
+        functionName: 'getSlot0',
+        args: [poolId],
+      }),
+      publicClients['421614'].readContract({
+        address: stateViewContractArbSepolia,
+        abi: StateViewABI,
+        functionName: 'getLiquidity',
+        args: [poolId],
+      }),
+      publicClients['421614'].readContract({
+        address: stateViewContractArbSepolia,
+        abi: StateViewABI,
+        functionName: 'getPositionLiquidity',
+        args: [poolId, bondPoolState[2]],
+      })
+    ])
+    // const [underlyingAmountForLiquidity] = await Promise.all([
+    //   publicClients['421614'].readContract({
+    //     address: bondHookContractArbSepolia,
+    //     abi: BondHookABI,
+    //     functionName: 'getUnderlyingAmountForLiquidity',
+    //     args: [poolId, poolLiquidity],
+    //   }),
+    //   publicClients['421614'].readContract({
+    //     address: bondHookContractArbSepolia,
+    //     abi: BondHookABI,
+    //     functionName: 'getUnderlyingAmountForLiquidity',
+    //     args: [poolId, positionLiquidity],
+    //   }),
+    // ])
+    
+    const price = Number(slot0[0]) ** 2 / 2 ** 192;
+    
+    const [totalTVL0, totalTVL1] = convertLiquidityToCurrencies(poolLiquidity, price)
+    const [positionTVL0, positionTVL1] = convertLiquidityToCurrencies(poolLiquidity - positionLiquidity, price)
+    
+    return {
+      price,
+      totalTVL0,
+      totalTVL1,
+      positionTVL0,
+      positionTVL1,
+    }
+  }
+
   // Hydrate the pools with currency info
   const poolsWithCurrencyInfo = await Promise.all(
     pools.map(async (pool) => {
@@ -55,13 +118,20 @@ export const getPools = async (c: Context) => {
         getCurrencyInfo(pool.currency1),
       ])
 
+      const { price, totalTVL0, totalTVL1, positionTVL0, positionTVL1 } = await getPoolInfo(pool.poolId)
+
       return {
         ...pool,
+        swapPrice: price,
         currency0: {
           ...currency0Info,
+          totalTVL: totalTVL0,
+          bondHookTVL: positionTVL0,
         },
         currency1: {
           ...currency1Info,
+          totalTVL: totalTVL1,
+          bondHookTVL: positionTVL1,
         },
       }
     }),
@@ -70,4 +140,8 @@ export const getPools = async (c: Context) => {
   return c.json({
     data: transform(poolsWithCurrencyInfo),
   })
+}
+
+function convertLiquidityToCurrencies(liquidity: bigint, price: number) {
+  return [Number(liquidity), Number(liquidity) * price]
 }

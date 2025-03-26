@@ -15,6 +15,15 @@ export default defineConfig([
     ],
   },
   {
+    out: 'packages/abis/uniswap.ts',
+    plugins: [
+      foundry({
+        project: 'apps/bond-hook',
+        include: ['StateView.sol/**'],
+      }),
+    ],
+  },
+  {
     out: 'packages/abis/signals.ts',
     plugins: [
       foundry({

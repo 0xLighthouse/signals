@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import "v4-periphery/lens/StateView.sol"; // import for abi generation
 
 import {BondHookHarness} from "./utils/BondHookHarness.sol";
 import {LiquidityData, DesiredCurrency} from "../src/BondHook.sol";
