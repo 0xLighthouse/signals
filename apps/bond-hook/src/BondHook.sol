@@ -475,11 +475,14 @@ contract BondHook is BaseHook {
         return (newUserShares * ONE_HUNDRED_PERCENT) / newTotalShares;
     }
 
-    function getPoolPrice(PoolId id) public view returns (uint256) {
+    /**
+     * @notice Get the price of the pool as a sqrt price (passthrough)
+     * @param id The ID of the pool
+     * @return sqrtPriceX96 The price of the pool as a sqrt price
+     */
+    function getPoolPriceX96(PoolId id) public view returns (uint256) {
         (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, id);
-        uint256 price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
-        price = price * 1e18 >> 192; // Multiply by 1e18 for 18 decimal places of precision
-        return price;
+        return sqrtPriceX96;
     }
 
     /**
@@ -493,6 +496,11 @@ contract BondHook is BaseHook {
         return uint256(bondPools[id].getUnderlyingAmountForLiquidity(int256(liquidity), state.getPriceX96(poolManager)));
     }
 
+    /**
+     * @notice Get the info of a bond from the bond issuer (passthrough)
+     * @param tokenId The ID of the bond token
+     * @return info The info of the bond
+     */
     function getBondInfo(uint256 tokenId) public view returns (IBondIssuer.BondInfo memory) {
         return bondIssuer.getBondInfo(tokenId);
     }

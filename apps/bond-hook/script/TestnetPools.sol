@@ -37,26 +37,56 @@ contract TestnetPools is Script {
         console.log("BondHook:", address(bondHook));
         console.log("Underlying token:", Currency.unwrap(bondHook.bondToken()));
 
-        //  TokenContract 0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7
-        // USDC contract 0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635
-        MockERC20 token = MockERC20(0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7);
-        MockERC20 usdc = MockERC20(0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635);
-
         // Log the deployer addresses
         console.log("----- Accounts -----");
         console.log("Deployer:", _deployer);
         console.log("Manager:", address(manager));
         console.log("Hooks:", address(hooks));
 
-        uint160 sqrtPriceX96 = Constants.SQRT_PRICE_1_1;
-        uint24 dynamicFeeFlag = 0x800000;
-
+        //  TokenContract 0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7
+        // USDC contract 0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635
+        MockERC20 token = MockERC20(0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7); // 1e18 of precision
+        MockERC20 usdc = MockERC20(0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635); // 1e6 of precision
         (Currency _currency0, Currency _currency1) = SortTokens.sort(token, usdc);
 
+        // Record units of precision for the two currencies
+        uint256 units0;
+        uint256 units1;
+        if (_currency0 == Currency.wrap(address(token))) {
+            units0 = 1e18;
+            units1 = 1e6;
+        } else {
+            units0 = 1e6;
+            units1 = 1e18;
+        }
+
+        // Find price for 1:1 ratio
+        uint160 sqrtPriceX96 = calculateSqrtPriceX96(units1, units0);
+
+        uint24 dynamicFeeFlag = 0x800000;
         PoolKey memory _key = PoolKey(_currency0, _currency1, dynamicFeeFlag, int24(60), hooks);
         // PoolId id = _key.toId();
         vm.startBroadcast(_deployer);
         manager.initialize(_key, sqrtPriceX96);
         console.log("Deployed pool...");
+    }
+
+    function calculateSqrtPriceX96(uint256 price1, uint256 price0) public pure returns (uint160) {
+        uint256 ratio = (price1 << 192) / price0;
+        uint256 sqrtRatio = babylonianSqrt(ratio);
+        return uint160(sqrtRatio);
+    }
+
+    function babylonianSqrt(uint256 y) public pure returns (uint256 z) {
+        if (y > 3) {
+            z = y;
+            uint256 x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
     }
 }

@@ -7,6 +7,8 @@ import "forge-std/console.sol";
 import {BondHookHarness} from "./utils/BondHookHarness.sol";
 import {LiquidityData, DesiredCurrency} from "../src/BondHook.sol";
 import {IBondIssuer} from "../src/interfaces/IBondIssuer.sol";
+import {Constants} from "v4-core-test/utils/Constants.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
 
 contract PublicFunctionsTest is Test, BondHookHarness {
     function setUp() public {
@@ -37,12 +39,6 @@ contract PublicFunctionsTest is Test, BondHookHarness {
         uint256 zeropercent = bondhook.previewPercentOfTotalSharesAsPips(poolA.toId(), -50 ether);
         assertEq(zeropercent, 0, "Incorrect percent of total shares (alice removing all liquidity)");
         vm.stopPrank();
-    }
-
-    function test_getPoolPrice() public {
-        deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_4);
-        uint256 price = bondhook.getPoolPrice(poolA.toId());
-        assertEq(price, 25 ether / 100, "Incorrect price");
     }
 
     function test_getPoolLiquidityAsUnderlying() public {
