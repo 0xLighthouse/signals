@@ -12,7 +12,7 @@ import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {BondHook} from "../src/BondHook.sol";
-import {IBondHookLegacy} from "../src/interfaces/IBondHook.sol";
+import {IBondHook} from "../src/interfaces/IBondHook.sol";
 
 /**
  * Initializes some testnet pools with our hook
@@ -32,10 +32,10 @@ contract TestnetPools is Script {
 
         IPoolManager manager = IPoolManager(vm.envAddress("TESTNET_POOL_MANAGER"));
         IHooks hooks = IHooks(vm.envAddress("TESTNET_HOOK"));
-        IBondHookLegacy bondHook = IBondHookLegacy(vm.envAddress("TESTNET_HOOK"));
+        IBondHook bondHook = IBondHook(vm.envAddress("TESTNET_HOOK"));
 
         console.log("BondHook:", address(bondHook));
-        console.log("Underlying token:", Currency.unwrap(bondHook.bondToken()));
+        console.log("Underlying token:", Currency.unwrap(bondHook.underlyingToken()));
 
         // Log the deployer addresses
         console.log("----- Accounts -----");
@@ -43,10 +43,10 @@ contract TestnetPools is Script {
         console.log("Manager:", address(manager));
         console.log("Hooks:", address(hooks));
 
-        //  TokenContract 0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7
-        // USDC contract 0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635
-        MockERC20 token = MockERC20(0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7); // 1e18 of precision
-        MockERC20 usdc = MockERC20(0x2ed7De542Ce7377Bca3f3500dA4e7aF830889635); // 1e6 of precision
+        // TokenContract 0x4713635357F9d01cBAF4DAc7E93B66D69544DEa8
+        // USDC contract 0x0eFf88D35f413cD1146269D916fb87A451B03d6D
+        MockERC20 token = MockERC20(0x4713635357F9d01cBAF4DAc7E93B66D69544DEa8); // 1e18 of precision
+        MockERC20 usdc = MockERC20(0x0eFf88D35f413cD1146269D916fb87A451B03d6D); // 1e6 of precision
         (Currency _currency0, Currency _currency1) = SortTokens.sort(token, usdc);
 
         // Record units of precision for the two currencies

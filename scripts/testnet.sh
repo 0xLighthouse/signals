@@ -12,7 +12,12 @@ done
 # Create a new Signals deployment to testnet (Arbitrum Sepolia)
 # cd apps/signals
 # forge clean && forge install
-# forge script script/Testnet.s.sol --fork-url $TESTNET_RPC --broadcast --private-key $TESTNET_DEPLOYER_PRIVATE_KEY --verify
+# forge script script/Testnet.s.sol \
+#   --fork-url $TESTNET_RPC \
+#   --broadcast \
+#   --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
+#   --verify \
+#   --etherscan-api-key $ARBISCAN_API_KEY
 # cd ../..
 # echo "Update the TESTNET_BOND_ISSUER environment variable with the address of the BondIssuer contract"
 # exit 0
@@ -20,7 +25,12 @@ done
 # Deploy a new version of the BondHook contract to testnet (Arbitrum Sepolia)
 # cd apps/bond-hook
 # forge clean && forge install
-# forge script script/Testnet.sol --fork-url $TESTNET_RPC --broadcast --private-key $TESTNET_DEPLOYER_PRIVATE_KEY --etherscan-api-key $TESTNET_ETHERSCAN_API_KEY
+# forge script script/Testnet.sol \
+#   --fork-url $TESTNET_RPC \
+#   --broadcast \
+#   --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
+#   --verify \
+#   --etherscan-api-key $ARBISCAN_API_KEY
 # cd ../..
 
 # Create Signals test data
