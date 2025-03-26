@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
+import { Typography } from '@/components/ui/typography'
 
 type PageSectionProps = {
   children: ReactNode
@@ -20,7 +21,11 @@ export const PageSection = ({
     <Card className={`p-6 mb-6 ${className}`}>
       {(title || action) && (
         <div className="flex justify-between items-center mb-4">
-          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          {title && (
+            <Typography variant="h4">
+              {title}
+            </Typography>
+          )}
           {action}
         </div>
       )}

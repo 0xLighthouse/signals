@@ -19,7 +19,7 @@ export const ListContainer = ({
   return (
     <div className={className}>
       {title && (
-        <h1 className="text-2xl font-bold mb-4">
+        <h1 className="text-h2 mb-4">
           {title} {count !== undefined && `(${count})`}
         </h1>
       )}
