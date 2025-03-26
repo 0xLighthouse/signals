@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { LoadingSpinner } from '@/components/loading-spinner'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from './initiative-card'
 

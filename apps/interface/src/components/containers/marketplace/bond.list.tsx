@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useLocksStore } from '@/stores/useLocksStore'
-import { LoadingSpinner } from '@/components/loading-spinner'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { BondCard } from './bond.card'
 import { useAccount } from '@/hooks/useAccount'

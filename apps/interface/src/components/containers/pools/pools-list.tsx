@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePoolsStore } from '@/stores/usePoolsStore'
-import { LoadingSpinner } from '@/components/loading-spinner'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { PageSection } from '@/components/page-section'
 import { useAccount } from '@/hooks/useAccount'
