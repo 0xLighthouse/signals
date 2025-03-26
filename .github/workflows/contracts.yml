@@ -2,14 +2,18 @@ name: Signals
 
 on:
   push:
+    branches:
+      - 'release/capstone'
     paths:
       - 'apps/bond-hook/**'
       - 'apps/signals/**'
   pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - 'release/capstone'
     paths:
       - 'apps/bond-hook/**'
       - 'apps/signals/**'
-  workflow_dispatch:
 
 env:
   FOUNDRY_PROFILE: ci
