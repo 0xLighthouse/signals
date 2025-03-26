@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'release/capstone'
+      - 'feature/**'
     paths:
       - 'apps/bond-hook/**'
       - 'apps/signals/**'
