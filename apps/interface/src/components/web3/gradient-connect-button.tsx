@@ -10,7 +10,7 @@ export const GradientConnectButton = () => {
   return (
     <Button
       onClick={authenticated ? logout : login}
-      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 !text-white font-bold py-2 px-4 rounded-md"
+      className="w-full bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white! font-bold py-2 px-4 rounded-md"
     >
       {authenticated ? (user?.wallet?.address || 'Connected') : 'Connect'}
     </Button>

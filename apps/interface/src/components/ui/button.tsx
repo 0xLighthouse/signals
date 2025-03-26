@@ -8,7 +8,7 @@ import { UITheme } from '@/config/theme'
 
 const buttonVariants = tv(
   {
-    base: 'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-400 dark:disabled:bg-neutral-500 dark:ring-offset-neutral-950 dark:focus-visible:ring-neutral-300',
+    base: 'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-400 dark:disabled:bg-neutral-500 dark:ring-offset-neutral-950 dark:focus-visible:ring-neutral-300',
     variants: {
       variant: {
         default:
