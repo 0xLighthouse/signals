@@ -50,13 +50,13 @@ export const getPools = async (c: Context) => {
 
   const getPoolInfo = async (poolId: `0x${string}`) => {
     const stateViewContractArbSepolia = `0x9d467fa9062b6e9b1a46e26007ad82db116c67cb`
-    const bondHookContractArbSepolia = `0xd6F1Cd295Bf3cfeFA4c09B455A420edaEad478c0`
+    const bondHookContractArbSepolia = `0xA429a75F874B899Ee6b0ea080d7281544506b8c0`
 
     const [bondPoolState] = await Promise.all([
       publicClients['421614'].readContract({
         address: bondHookContractArbSepolia,
         abi: BondHookABI,
-        functionName: 'bondPools',
+        functionName: 'getPoolState',
         args: [poolId],
       })
     ])
@@ -78,28 +78,43 @@ export const getPools = async (c: Context) => {
         address: stateViewContractArbSepolia,
         abi: StateViewABI,
         functionName: 'getPositionLiquidity',
-        args: [poolId, bondPoolState[2]],
+        args: [poolId, bondPoolState.positionId],
       })
     ])
-    // const [underlyingAmountForLiquidity] = await Promise.all([
-    //   publicClients['421614'].readContract({
-    //     address: bondHookContractArbSepolia,
-    //     abi: BondHookABI,
-    //     functionName: 'getUnderlyingAmountForLiquidity',
-    //     args: [poolId, poolLiquidity],
-    //   }),
-    //   publicClients['421614'].readContract({
-    //     address: bondHookContractArbSepolia,
-    //     abi: BondHookABI,
-    //     functionName: 'getUnderlyingAmountForLiquidity',
-    //     args: [poolId, positionLiquidity],
-    //   }),
-    // ])
-    
+
+    const [underlyingAmountForPoolLiquidity, underlyingAmountForPositionLiquidity] = await Promise.all([
+      publicClients['421614'].readContract({
+        address: bondHookContractArbSepolia,
+        abi: BondHookABI,
+        functionName: 'getUnderlyingAmountForLiquidity',
+        args: [poolId, poolLiquidity],
+      }),
+      publicClients['421614'].readContract({
+        address: bondHookContractArbSepolia,
+        abi: BondHookABI,
+        functionName: 'getUnderlyingAmountForLiquidity',
+        args: [poolId, positionLiquidity],
+      }),
+    ])
+
     const price = Number(slot0[0]) ** 2 / 2 ** 192;
     
-    const [totalTVL0, totalTVL1] = convertLiquidityToCurrencies(poolLiquidity, price)
-    const [positionTVL0, positionTVL1] = convertLiquidityToCurrencies(poolLiquidity - positionLiquidity, price)
+    var totalTVL0
+    var totalTVL1
+    var positionTVL0
+    var positionTVL1
+
+    if (bondPoolState.underlyingIsCurrency0) {
+      totalTVL0 = Number(underlyingAmountForPoolLiquidity)
+      totalTVL1 = totalTVL0 * price
+      positionTVL0 = Number(underlyingAmountForPositionLiquidity)
+      positionTVL1 = positionTVL0 * price
+    } else {
+      totalTVL1 = Number(underlyingAmountForPoolLiquidity)
+      totalTVL0 = totalTVL1 / price
+      positionTVL1 = Number(underlyingAmountForPositionLiquidity)
+      positionTVL0 = positionTVL1 / price
+    }
     
     return {
       price,
@@ -140,8 +155,4 @@ export const getPools = async (c: Context) => {
   return c.json({
     data: transform(poolsWithCurrencyInfo),
   })
-}
-
-function convertLiquidityToCurrencies(liquidity: bigint, price: number) {
-  return [Number(liquidity), Number(liquidity) * price]
 }
