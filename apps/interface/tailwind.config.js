@@ -1,10 +1,5 @@
-// tailwind.config.js
-const { withTV } = require('tailwind-variants/transformer')
-
 /** @type {import('tailwindcss').Config} */
-module.exports = withTV({
-  // ! NOTE: this needs to be ONLY 'selector' or the dark/light mode theming will break
-  darkMode: 'selector',
+module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx}', './src/**/*.css'],
   theme: {
     screens: {
@@ -74,4 +69,4 @@ module.exports = withTV({
     },
   },
   plugins: [require('tailwindcss-animate')],
-})
+}
