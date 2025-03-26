@@ -2,6 +2,23 @@ import schema from 'ponder:schema'
 
 type InitiativeEntity = typeof schema.Initiative.$inferSelect
 type InitiativeWeightEntity = typeof schema.InitiativeWeight.$inferSelect
+type PoolEntity = typeof schema.Pool.$inferSelect
+
+export type Pool = {
+  poolId: number
+  currency0: {
+    address: `0x${string}`
+    symbol: string
+    name: string
+    decimals: number
+  }
+  currency1: {
+    address: `0x${string}`
+    symbol: string
+    name: string
+    decimals: number
+  }
+} & PoolEntity
 
 export type Initiative = {
   initiativeId: number
@@ -30,4 +47,8 @@ export type Lock = {
 export type LockResponse = {
   version: string
   data: Lock[]
+}
+
+export type GetPoolsResponse = {
+  data: Pool[]
 }

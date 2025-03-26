@@ -1,17 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-
-import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { PuffLoader } from 'react-spinners'
-import { UITheme } from '@/config/theme'
-import { useTheme } from '@/contexts/ThemeContext'
+import { LoadingSpinner } from '@/components/loading-spinner'
+import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from './initiative-card'
 
 export const InitiativesList = () => {
-  const { theme } = useTheme()
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -29,32 +24,20 @@ export const InitiativesList = () => {
   )
 
   if (isFetchingInitiatives) {
-    return (
-      <div className="flex justify-center items-center">
-        <PuffLoader
-          color={theme === UITheme.DARK ? '#fff' : '#000'}
-          size={38}
-          speedMultiplier={2.6}
-        />
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (
-    <div className="">
-      <ScrollArea className="w-full mb-24">
-        <div>
-          {_initiativesSorted.map((item, index) => (
-            <InitiativeCard
-              key={item.initiativeId}
-              initiative={item}
-              index={index}
-              isFirst={index === 0}
-              isLast={index === _initiativesSorted.length - 1}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
+    <ListContainer title="Initiatives">
+      {_initiativesSorted.map((item, index) => (
+        <InitiativeCard
+          key={item.initiativeId}
+          initiative={item}
+          index={index}
+          isFirst={index === 0}
+          isLast={index === _initiativesSorted.length - 1}
+        />
+      ))}
+    </ListContainer>
   )
 }

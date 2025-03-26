@@ -10,12 +10,12 @@ import { useAsyncProp } from '@/lib/useAsyncProp'
 import { formatDistanceToNow } from 'date-fns'
 import { Ellipsis, Tag } from 'lucide-react'
 
-import type { Initiative } from 'indexers/src/api/types'
+import type { Lock } from 'indexers/src/api/types'
 import type { IBoard } from '@/contexts/SignalsContext'
 import { Button } from '@/components/ui/button'
 
 interface Props {
-  bond: Bond
+  bond: Lock
   index: number
   isFirst: boolean
   isLast: boolean

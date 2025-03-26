@@ -37,3 +37,39 @@ export const normaliseNumber = (value: number) => {
   if (!normalisedValue) return ''
   return `${normalisedValue}${suffix}`
 }
+
+type FormatNumberOptions = {
+  decimals?: number
+  currency?: boolean
+  abbreviate?: boolean
+  symbol?: string
+}
+
+export const formatNumber = (
+  value: number, 
+  options: FormatNumberOptions = {}
+): string => {
+  const { 
+    decimals = 2, 
+    currency = false, 
+    abbreviate = false,
+    symbol = 'USDC'
+  } = options
+
+  if (value === 0 || !value) {
+    return currency ? `0 ${symbol}` : '0'
+  }
+
+  if (abbreviate && value >= 1000) {
+    const formatted = normaliseNumber(value)
+    return currency ? `${formatted} ${symbol}` : formatted
+  }
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  })
+
+  const formatted = formatter.format(value)
+  return currency ? `${formatted} ${symbol}` : formatted
+}
