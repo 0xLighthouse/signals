@@ -1,13 +1,6 @@
 name: Signals
 
 on:
-  push:
-    branches:
-      - 'release/capstone'
-      - 'feature/**'
-    paths:
-      - 'apps/bond-hook/**'
-      - 'apps/signals/**'
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
