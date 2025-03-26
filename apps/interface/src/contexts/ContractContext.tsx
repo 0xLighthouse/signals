@@ -83,7 +83,15 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
   // Provide contract data to children
   return (
     <ContractContext.Provider
-      value={{ name, symbol, decimals, totalSupply, balance, formatter, fetchContractMetadata }}
+      value={{
+        name,
+        symbol,
+        decimals,
+        totalSupply,
+        balance,
+        formatter: (value) => formatter(value) ?? 0,
+        fetchContractMetadata,
+      }}
     >
       {children}
     </ContractContext.Provider>
