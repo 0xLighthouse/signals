@@ -101,8 +101,8 @@ export function CreateInitiativeDrawer() {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: SIGNALS_PROTOCOL,
-        abi: SIGNALS_ABI,
+        address: context.contracts.SignalsProtocol.address,
+        abi: context.contracts.SignalsProtocol.abi,
         functionName,
         nonce,
         // @ts-ignore

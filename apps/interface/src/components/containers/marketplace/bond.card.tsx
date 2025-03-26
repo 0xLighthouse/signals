@@ -30,7 +30,8 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
   )
 
   // Calculate remaining time to maturity
-  const maturityDate = new Date() * 1000 // Assuming unlockTime is in seconds
+  // FIXME: This is a tmp hack to get the maturity date
+  const maturityDate = new Date(Number(bond.initiative.createdAtTimestamp) * 1000) // Assuming unlockTime is in seconds
   const remainingTime = formatDistanceToNow(maturityDate, { addSuffix: true })
 
   // Mock yield and price for demonstration
@@ -59,7 +60,7 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-2 h-[80px] items-center">
-            <SellBondDrawer tokenId={bond.tokenId} />
+            <SellBondDrawer tokenId={Number(bond.tokenId)} />
           </div>
         </div>
       </div>
@@ -68,7 +69,7 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
           <div className="text-sm font-medium">Price: {bondPrice} USDC</div>
           <div className="text-sm font-medium">Yield: {bondYield}</div>
           <CardDescription className="text-xs mt-1">
-            Supported {timeAgoWords(bond.blockTimestamp)}
+            Supported {timeAgoWords(Number(bond.blockTimestamp))}
           </CardDescription>
         </div>
         <div className="flex gap-2 items-center">

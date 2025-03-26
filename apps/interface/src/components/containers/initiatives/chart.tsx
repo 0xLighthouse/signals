@@ -29,7 +29,8 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  existingLocks: InitiativeSupportedEvent[]
+  existingLocks: any[]
+  // existingLocks: InitiativeSupportedEvent[]
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number

@@ -28,6 +28,7 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
+import { InitiativeSupportedEvent } from '@/lib/curves'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()

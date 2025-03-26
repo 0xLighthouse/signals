@@ -33,6 +33,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
+    "date-fns": "^4.1.0",
     "ethers": "5",
     "lucide-react": "^0.453.0",
     "luxon": "^3.5.0",

@@ -41,9 +41,6 @@ const buttonVariants = tv(
       size: 'default',
     },
   },
-  {
-    responsiveVariants: ['sm', 'md', 'lg'],
-  },
 )
 
 export interface ButtonProps

@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Chart } from './initiatives/chart'
 import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
-import { InitiativeDetails } from '@/lib/curves'
+import { InitiativeDetails, InitiativeSupportedEvent } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
 
 import { AvatarGroup } from '../ui/avatar-group'

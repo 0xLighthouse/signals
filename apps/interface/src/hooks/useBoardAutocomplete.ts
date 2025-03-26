@@ -22,27 +22,27 @@ export function useBoardAutocomplete() {
     if (!isInitialized) {
       return
     }
-    
+
     // Get chain ID from the public client
     const chainId = publicClient.chain?.id || context.network.arbitrumSepolia.chainId
-    
+
     setIsLoading(true)
     setError(null)
 
     try {
-      const result = await client.select({
-        $q: (c) =>
-          c
-            .from('boards')
-            .where({ chainId })
-            .select({
-              id: true,
-              contractAddress: true,
-              chainId: true,
-            }),
-      })
-
-      setBoards(result || [])
+      // const result = await client.select({
+      //   $q: (c) =>
+      //     c
+      //       .from('boards')
+      //       .where({ chainId })
+      //       .select({
+      //         id: true,
+      //         contractAddress: true,
+      //         chainId: true,
+      //       }),
+      // })
+      // TODO: Remove this once the query is working
+      setBoards([])
     } catch (err) {
       console.error('Error fetching boards:', err)
       setError(err instanceof Error ? err : new Error('Failed to fetch boards'))

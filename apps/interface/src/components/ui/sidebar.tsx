@@ -512,8 +512,6 @@ const sidebarMenuButtonVariants = tv({
     variant: 'default',
     size: 'default',
   },
-}, {
-  responsiveVariants: ['sm', 'md', 'lg'],
 })
 
 const SidebarMenuButton = React.forwardRef<

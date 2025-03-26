@@ -91,24 +91,24 @@ export function ProvideLiquidityDrawer() {
       const nonce = await publicClient.getTransactionCount({ address })
 
       // Replace with the actual contract function for providing liquidity
-      const { request } = await publicClient.simulateContract({
-        account: address,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
-        functionName: 'provideLiquidity', // This should be the actual function name
-        nonce,
-        args: [BigInt(amount * 1e18)],
-      })
+      // const { request } = await publicClient.simulateContract({
+      //   account: address,
+      //   address: context.contracts.SignalsProtocol.address,
+      //   abi: context.contracts.SignalsProtocol.abi,
+      //   functionName: 'provideLiquidity', // This should be the actual function name
+      //   nonce,
+      //   args: [BigInt(amount * 1e18)],
+      // })
 
-      console.log('Request:', request)
-      const hash = await walletClient.writeContract(request)
+      // console.log('Request:', request)
+      // const hash = await walletClient.writeContract(request)
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
-        confirmations: 2,
-        pollingInterval: 2000,
-      })
-      console.log('Receipt:', receipt)
+      // const receipt = await publicClient.waitForTransactionReceipt({
+      //   hash,
+      //   confirmations: 2,
+      //   pollingInterval: 2000,
+      // })
+      // console.log('Receipt:', receipt)
       setIsDrawerOpen(false)
       resetFormState()
       toast('Liquidity provided successfully!')
@@ -199,7 +199,8 @@ export function ProvideLiquidityDrawer() {
                   <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
                     <div className="my-2">
                       <p className="line-clamp break-words">
-                        By providing liquidity, you'll receive LP tokens representing your share of the pool.
+                        By providing liquidity, you'll receive LP tokens representing your share of
+                        the pool.
                       </p>
                     </div>
                   </Card>

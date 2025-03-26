@@ -21,11 +21,6 @@ const iconButton = tv(
       color: 'primary',
     },
   },
-  {
-    // TODO: where is this configured? Why is 'xs' not available on the types like in the docs?
-    // TODO: can this just be setup by default
-    responsiveVariants: ['sm', 'md', 'lg'],
-  },
 )
 
 type IconButtonVariants = VariantProps<typeof iconButton>

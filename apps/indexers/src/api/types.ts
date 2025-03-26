@@ -42,6 +42,7 @@ export type InitiativeResponse = {
 
 export type Lock = {
   initiativeId: number
+  initiative: Initiative
 } & InitiativeWeightEntity
 
 export type LockResponse = {

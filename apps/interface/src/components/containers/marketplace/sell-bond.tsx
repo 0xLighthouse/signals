@@ -138,12 +138,12 @@ export function SellBond() {
       let args = [
         selectedBond.tokenId,
         selectedPool,
-        selectedOutputToken === "mixed" ? "mixed" : selectedOutputToken,
+        selectedOutputToken === 'mixed' ? 'mixed' : selectedOutputToken,
         String(minimumAmountOut * 1e6),
       ]
 
       // If mixed token is selected, use different function
-      if (selectedOutputToken === "mixed") {
+      if (selectedOutputToken === 'mixed') {
         functionName = 'sellBondInPoolMixed'
         args = [
           selectedBond.tokenId,
@@ -153,26 +153,26 @@ export function SellBond() {
         ]
       }
 
-      const { request } = await publicClient.simulateContract({
-        account: address,
-        address: context.contracts.SignalsMarketplace.address,
-        abi: context.contracts.SignalsMarketplace.abi,
-        functionName,
-        nonce,
-        // @ts-ignore
-        args,
-      })
+      // const { request } = await publicClient.simulateContract({
+      //   account: address,
+      //   address: context.contracts.SignalsMarketplace.address,
+      //   abi: context.contracts.SignalsMarketplace.abi,
+      //   functionName,
+      //   nonce,
+      //   // @ts-ignore
+      //   args,
+      // })
 
-      const hash = await walletClient.writeContract(request)
+      // const hash = await walletClient.writeContract(request)
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
-        confirmations: 2,
-        pollingInterval: 2000,
-      })
+      // const receipt = await publicClient.waitForTransactionReceipt({
+      //   hash,
+      //   confirmations: 2,
+      //   pollingInterval: 2000,
+      // })
 
-      console.log('Receipt:', receipt)
-      toast('Bond sold successfully!')
+      // console.log('Receipt:', receipt)
+      // toast('Bond sold successfully!')
 
       // Reset form
       setSelectedNFT('')
@@ -274,7 +274,7 @@ export function SellBond() {
                   {selectedPoolData.outputTokens.map((token) => (
                     <Button
                       key={token}
-                      variant={selectedOutputToken === token ? "default" : "outline"}
+                      variant={selectedOutputToken === token ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedOutputToken(token)}
                     >
@@ -282,17 +282,18 @@ export function SellBond() {
                     </Button>
                   ))}
                   <Button
-                    variant={selectedOutputToken === "mixed" ? "default" : "outline"}
+                    variant={selectedOutputToken === 'mixed' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedOutputToken("mixed")}
+                    onClick={() => setSelectedOutputToken('mixed')}
                   >
-                    Mixed (50% {selectedPoolData.outputTokens[0]}/{selectedPoolData.outputTokens[1]})
+                    Mixed (50% {selectedPoolData.outputTokens[0]}/{selectedPoolData.outputTokens[1]}
+                    )
                   </Button>
                 </div>
               </div>
             </div>
           )}
-          
+
           {/* Quote Details Section */}
           <div className="space-y-4">
             <h3 className="font-semibold">Quote Details</h3>
@@ -302,7 +303,7 @@ export function SellBond() {
                   <div>
                     <h3 className="font-semibold">Current Quote</h3>
                     <div className="text-2xl font-bold mt-2">
-                      {selectedOutputToken === "mixed" 
+                      {selectedOutputToken === 'mixed'
                         ? `${parseFloat(selectedPoolData.quote.amount) / 2} ${selectedPoolData.outputTokens[0]} + ${parseFloat(selectedPoolData.quote.amount) / 2} ${selectedPoolData.outputTokens[1]}`
                         : `${selectedPoolData.quote.amount} ${selectedOutputToken}`}
                     </div>
@@ -310,18 +311,22 @@ export function SellBond() {
                       For your {selectedBond.name}
                     </div>
                   </div>
-                  
+
                   <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">Face Value</span>
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                        Face Value
+                      </span>
                       <span className="font-medium">{selectedBond.faceValue} USDC</span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">Discount</span>
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                        Discount
+                      </span>
                       <span className="font-medium">{selectedBond.yield}</span>
                     </div>
                   </div>
-                  
+
                   {/* Advanced Settings */}
                   <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-4">
                     <Collapsible
@@ -345,8 +350,8 @@ export function SellBond() {
                                   <Info className="h-4 w-4" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Your transaction will revert if the price changes unfavorably by more
-                                  than this percentage.
+                                  Your transaction will revert if the price changes unfavorably by
+                                  more than this percentage.
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
