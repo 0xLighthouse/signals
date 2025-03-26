@@ -7,6 +7,8 @@ import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
 
 export interface IBoard {
+  name: string | null
+  symbol: string | null
   // TODO: Move this out of IBoard as its metadata
   initiativesCount: number | null
   proposalThreshold: number | null
@@ -62,6 +64,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
   const { decimals, balance } = useUnderlying()
 
+  const [name, setName] = useState<string | null>(null)
+  const [symbol, setSymbol] = useState<string | null>(null)
   const [initiativesCount, setInitiativesCount] = useState<number | null>(null)
   const [proposalThreshold, setProposalThreshold] = useState<number | null>(null)
   const [acceptanceThreshold, setAcceptanceThreshold] = useState<number | null>(null)
@@ -89,6 +93,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
           lockInterval,
           decayCurveType,
           decayCurveParameters,
+          name,
+          symbol,
         ] = await Promise.all([
           protocol.read.proposalThreshold(),
           protocol.read.acceptanceThreshold(),
@@ -96,6 +102,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
           protocol.read.lockInterval(),
           protocol.read.decayCurveType(),
           protocol.read.decayCurveParameters([0n]),
+          protocol.read.name(),
+          protocol.read.symbol(),
         ])
 
         console.log('----- SIGNALS CONTEXT -----')
@@ -105,6 +113,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
         console.log('lockInterval', lockInterval)
         console.log('decayCurveType', decayCurveType)
         console.log('decayCurveParameters', [decayCurveParameters])
+        console.log('name', name)
+        console.log('symbol', symbol)
 
         // Update state with fetched metadata
         setInitiativesCount(Number(count))
@@ -112,6 +122,9 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
         setAcceptanceThreshold(Number(acceptanceThreshold))
         setLockInterval(Number(lockInterval))
         setDecayCurveType(Number(decayCurveType))
+        setName(name)
+        setSymbol(symbol)
+
         // TODO: Fix this
         // TODO: Fix this
         // TODO: Fix this
@@ -125,11 +138,10 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [address])
 
-  // Underlying token
-
+  // Underlying token formatter
   const formatter = (value?: number | null) => {
     if (!decimals || !value) return value
-    return Math.ceil(value / 1e18)
+    return Math.ceil(value / decimals)
   }
 
   // Provide contract data to children
@@ -138,6 +150,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
       value={{
         formatter: formatter as (value?: number | null) => number,
         board: {
+          name,
+          symbol,
           initiativesCount,
           proposalThreshold,
           acceptanceThreshold,

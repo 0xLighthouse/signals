@@ -19,6 +19,7 @@ interface ContractContextType {
   totalSupply: number | null
   balance: number | null
   fetchContractMetadata: () => Promise<void>
+  formatter: (value?: number | null | undefined) => number
 }
 
 // Default values for the context
@@ -72,10 +73,17 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [fetchContractMetadata])
 
+  // Expose a formatter for the underlying token
+  const formatter = (value?: number | null | undefined) => {
+    if (!decimals || !value) return value
+    const exp = 10 ** decimals
+    return Math.ceil(value / exp)
+  }
+
   // Provide contract data to children
   return (
     <ContractContext.Provider
-      value={{ name, symbol, decimals, totalSupply, balance, fetchContractMetadata }}
+      value={{ name, symbol, decimals, totalSupply, balance, formatter, fetchContractMetadata }}
     >
       {children}
     </ContractContext.Provider>

@@ -5,17 +5,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 type ListContainerProps = {
   children: ReactNode
-  title?: string
+  title?: string | null
   count?: number
   className?: string
 }
 
-export const ListContainer = ({ 
-  children, 
-  title, 
-  count, 
-  className = ''
-}: ListContainerProps) => {
+export const ListContainer = ({ children, title, count, className = '' }: ListContainerProps) => {
   return (
     <div className={className}>
       {title && (

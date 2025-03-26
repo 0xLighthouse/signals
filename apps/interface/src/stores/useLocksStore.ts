@@ -1,5 +1,5 @@
 import type { Lock, LockResponse } from '../../../indexers/src/api/types'
-import { context } from '@/config/web3'
+import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
 
 interface LocksState {
@@ -9,8 +9,6 @@ interface LocksState {
   isInitialized: boolean
   fetchLocks: (signerAddress: string) => Promise<void>
 }
-
-const API_ENDPOINT = 'http://localhost:42069'
 
 // TODO: These values can be dynamic now..
 const CHAIN_ID = 421614
@@ -25,9 +23,8 @@ export const useLocksStore = create<LocksState>((set) => ({
     try {
       set({ isFetching: true })
 
-      const resp = await fetch(`${API_ENDPOINT}/locks/${CHAIN_ID}/${ADDRESS}/${signerAddress}`)
+      const resp = await fetch(`${INDEXER_ENDPOINT}/locks/${CHAIN_ID}/${ADDRESS}/${signerAddress}`)
 
-      console.log('endpoint', `${API_ENDPOINT}/locks/${CHAIN_ID}/${ADDRESS}/${signerAddress}`)
       const { data }: LockResponse = await resp.json()
       if (Array.isArray(data)) {
         set({ locks: data, count: data.length })

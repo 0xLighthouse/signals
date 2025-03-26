@@ -4,6 +4,7 @@ import schema from 'ponder:schema'
 import { Context } from 'hono'
 
 import { transform } from '../utils/transform'
+import { SignalsABI } from '../../../../packages/abis'
 
 /**
  * @route GET /locks/:chainId/:address/:supporter
@@ -24,7 +25,26 @@ export const getLocks = async (c: Context) => {
     },
   })
 
+  // Hydrate the pools with currency info
+  const locksWithMetadata = await Promise.all(
+    locks.map(async (lock) => {
+      const metadata = await publicClients['421614'].readContract({
+        address,
+        abi: SignalsABI,
+        functionName: 'getBondInfo',
+        args: [lock.tokenId],
+      })
+
+      return {
+        ...lock,
+        metadata: {
+          ...metadata,
+        },
+      }
+    }),
+  )
+
   return c.json({
-    data: transform(locks),
+    data: transform(locksWithMetadata),
   })
 }

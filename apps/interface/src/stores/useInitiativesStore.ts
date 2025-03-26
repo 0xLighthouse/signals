@@ -1,6 +1,6 @@
 import type { Initiative, InitiativeResponse } from '../../../indexers/src/api/types'
 import { client, schema } from '@/config/ponder'
-import { context } from '@/config/web3'
+import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
 
 interface InitiativesState {
@@ -9,9 +9,6 @@ interface InitiativesState {
   isInitialized: boolean
   fetchInitiatives: () => Promise<void>
 }
-
-// const API_ENDPOINT = 'https://signals-production-6591.up.railway.app'
-const API_ENDPOINT = 'http://localhost:42069'
 
 // TODO: These values can be dynamic now..
 const CHAIN_ID = 421614
@@ -25,7 +22,7 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
     try {
       set({ isFetching: true })
 
-      const resp = await fetch(`${API_ENDPOINT}/initiatives/${CHAIN_ID}/${ADDRESS}`)
+      const resp = await fetch(`${INDEXER_ENDPOINT}/initiatives/${CHAIN_ID}/${ADDRESS}`)
       const { initiatives }: InitiativeResponse = await resp.json()
       if (Array.isArray(initiatives)) {
         set({ initiatives })

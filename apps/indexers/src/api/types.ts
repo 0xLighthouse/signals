@@ -43,6 +43,13 @@ export type InitiativeResponse = {
 export type Lock = {
   initiativeId: number
   initiative: Initiative
+  metadata: {
+    referenceId: string
+    nominalValue: string
+    expires: string
+    created: string
+    claimed: boolean
+  }
 } & InitiativeWeightEntity
 
 export type LockResponse = {

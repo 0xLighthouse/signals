@@ -27,7 +27,7 @@ export const BondsList = () => {
   }
 
   return (
-    <ListContainer title="My Bond Positions" count={count}>
+    <ListContainer title={board.name} count={count}>
       {locks.map((item, index) => (
         <BondCard
           key={item.initiativeId}
