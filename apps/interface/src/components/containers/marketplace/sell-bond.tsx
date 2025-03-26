@@ -216,19 +216,6 @@ export function SellBond() {
               </div>
             </Card>
           ))}
-
-          {selectedBond && (
-            <Card className="p-4 mt-4">
-              <div className="mb-2 flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <h3 className="font-semibold">Time to Maturity</h3>
-              </div>
-              <MaturityTimeline
-                issueDate={DateTime.fromSeconds(Number(selectedBond.issueDate))}
-                maturityDate={DateTime.fromSeconds(Number(selectedBond.maturityDate))}
-              />
-            </Card>
-          )}
         </div>
 
         {/* Column 2: Available Pools */}

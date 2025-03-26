@@ -7,6 +7,7 @@ import { ListContainer } from '@/components/list-container'
 import { BondCard } from './bond.card'
 import { useAccount } from '@/hooks/useAccount'
 import { useSignals } from '@/contexts/SignalsContext'
+import { PageSection } from '@/components/page-section'
 
 export const BondsList = () => {
   const { address } = useAccount()
@@ -26,6 +27,23 @@ export const BondsList = () => {
     return <LoadingSpinner />
   }
 
+  // If we have no bonds, show empty state
+  if (locks.length === 0) {
+    return (
+      <ListContainer title={board.name} count={count}>
+        <PageSection>
+          <div className="text-center py-8">
+            <h3 className="text-lg font-medium mb-2">No bonds found</h3>
+            <p className="text-neutral-500 dark:text-neutral-400">
+              There are currently no bonds available in the marketplace.
+            </p>
+          </div>
+        </PageSection>
+        <InformationSection />
+      </ListContainer>
+    )
+  }
+
   return (
     <ListContainer title={board.name} count={count}>
       {locks.map((item, index) => (
@@ -41,3 +59,16 @@ export const BondsList = () => {
     </ListContainer>
   )
 }
+
+// Extract the information section into its own component for reuse
+const InformationSection = () => (
+  <PageSection className="bg-neutral-50 dark:bg-neutral-900">
+    <h3 className="text-lg font-medium mb-4">About Bonds</h3>
+    <ul className="list-disc pl-5 space-y-2">
+      <li>Bonds represent financial claims on initiative outcomes</li>
+      <li>Buy bonds to support initiatives and potentially earn returns</li>
+      <li>Sell bonds back to the market if you change your position</li>
+      <li>Bond prices reflect community support for initiatives</li>
+    </ul>
+  </PageSection>
+)

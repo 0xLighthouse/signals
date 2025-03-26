@@ -36,15 +36,11 @@ export const StatsBar = () => {
 
   if (!address) return null
 
-  const boardOwner = '0x0000000000000000000000000000000000000000'
-  const txHash = '0x0000000000000000000000000000000000000000000000000000000000000000'
   return (
     <div className="flex items-center justify-between p-4 bg-white dark:border-neutral-700 dark:bg-neutral-900 rounded-lg border">
       <div className="flex flex-1 justify-evenly text-center">
         <div>
-          <span className="text-xl font-bold">
-            {normaliseNumber(formatter(underlyingBalance)) || '-'}
-          </span>
+          <span className="text-xl font-bold">{normaliseNumber(formatter(underlyingBalance))}</span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Balance {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>

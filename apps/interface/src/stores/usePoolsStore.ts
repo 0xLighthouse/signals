@@ -1,4 +1,4 @@
-import type { Pool, GetPoolsResponse } from '../../../indexers/src/api/types'
+import type { Pool, GetPoolsResponse } from '@/indexers/api/types'
 import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
 
