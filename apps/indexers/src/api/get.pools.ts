@@ -49,8 +49,8 @@ export const getPools = async (c: Context) => {
   }
 
   const getPoolInfo = async (poolId: `0x${string}`) => {
-    const stateViewContractArbSepolia = `0x9d467fa9062b6e9b1a46e26007ad82db116c67cb`
-    const bondHookContractArbSepolia = `0xA429a75F874B899Ee6b0ea080d7281544506b8c0`
+    const stateViewContractArbSepolia = '0x9d467fa9062b6e9b1a46e26007ad82db116c67cb'
+    const bondHookContractArbSepolia = '0xA429a75F874B899Ee6b0ea080d7281544506b8c0'
 
     const [bondPoolState] = await Promise.all([
       publicClients['421614'].readContract({
@@ -58,8 +58,10 @@ export const getPools = async (c: Context) => {
         abi: BondHookABI,
         functionName: 'getPoolState',
         args: [poolId],
-      })
+      }),
     ])
+
+    bondPoolState.normalSwapFee
 
     const [slot0, poolLiquidity, positionLiquidity] = await Promise.all([
       publicClients['421614'].readContract({
@@ -79,30 +81,31 @@ export const getPools = async (c: Context) => {
         abi: StateViewABI,
         functionName: 'getPositionLiquidity',
         args: [poolId, bondPoolState.positionId],
-      })
-    ])
-
-    const [underlyingAmountForPoolLiquidity, underlyingAmountForPositionLiquidity] = await Promise.all([
-      publicClients['421614'].readContract({
-        address: bondHookContractArbSepolia,
-        abi: BondHookABI,
-        functionName: 'getUnderlyingAmountForLiquidity',
-        args: [poolId, poolLiquidity],
-      }),
-      publicClients['421614'].readContract({
-        address: bondHookContractArbSepolia,
-        abi: BondHookABI,
-        functionName: 'getUnderlyingAmountForLiquidity',
-        args: [poolId, positionLiquidity],
       }),
     ])
 
-    const price = Number(slot0[0]) ** 2 / 2 ** 192;
-    
-    var totalTVL0
-    var totalTVL1
-    var positionTVL0
-    var positionTVL1
+    const [underlyingAmountForPoolLiquidity, underlyingAmountForPositionLiquidity] =
+      await Promise.all([
+        publicClients['421614'].readContract({
+          address: bondHookContractArbSepolia,
+          abi: BondHookABI,
+          functionName: 'getUnderlyingAmountForLiquidity',
+          args: [poolId, poolLiquidity],
+        }),
+        publicClients['421614'].readContract({
+          address: bondHookContractArbSepolia,
+          abi: BondHookABI,
+          functionName: 'getUnderlyingAmountForLiquidity',
+          args: [poolId, positionLiquidity],
+        }),
+      ])
+
+    const price = Number(slot0[0]) ** 2 / 2 ** 192
+
+    let totalTVL0: number
+    let totalTVL1: number
+    let positionTVL0: number
+    let positionTVL1: number
 
     if (bondPoolState.underlyingIsCurrency0) {
       totalTVL0 = Number(underlyingAmountForPoolLiquidity)
@@ -115,13 +118,15 @@ export const getPools = async (c: Context) => {
       positionTVL1 = Number(underlyingAmountForPositionLiquidity)
       positionTVL0 = positionTVL1 / price
     }
-    
+
     return {
       price,
       totalTVL0,
       totalTVL1,
       positionTVL0,
       positionTVL1,
+      swapFee: bondPoolState.normalSwapFee, // TODO: We should use the swap fee from the pool
+      formattedSwapFee: bondPoolState.normalSwapFee / 100_0000,
     }
   }
 
@@ -133,11 +138,16 @@ export const getPools = async (c: Context) => {
         getCurrencyInfo(pool.currency1),
       ])
 
-      const { price, totalTVL0, totalTVL1, positionTVL0, positionTVL1 } = await getPoolInfo(pool.poolId)
+      const { price, totalTVL0, totalTVL1, positionTVL0, positionTVL1, swapFee, formattedSwapFee } =
+        await getPoolInfo(pool.poolId)
 
       return {
         ...pool,
+        poolId: pool.poolId.toString(),
+        version: 'v4',
         swapPrice: price,
+        swapFee,
+        formattedSwapFee,
         currency0: {
           ...currency0Info,
           totalTVL: totalTVL0,

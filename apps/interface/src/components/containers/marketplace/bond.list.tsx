@@ -33,9 +33,9 @@ export const BondsList = () => {
       <ListContainer title={board.name} count={count}>
         <PageSection>
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">No bonds found</h3>
+            <h3 className="text-lg font-medium mb-2">No locked tokens found</h3>
             <p className="text-neutral-500 dark:text-neutral-400">
-              There are currently no bonds available in the marketplace.
+              When you lock tokens against an initiative, they will appear here.
             </p>
           </div>
         </PageSection>

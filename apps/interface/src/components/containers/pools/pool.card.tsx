@@ -2,13 +2,14 @@
 
 import React from 'react'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { cn, formatNumber } from '@/lib/utils'
+import { cn, formatNumber, shortAddress } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Droplets, Info, Tag, TrendingUp } from 'lucide-react'
+import { Droplets, Info, Tag, TrendingUp, Webhook } from 'lucide-react'
 import { ProvideLiquidityDrawer } from '@/components/drawers/provide-liquidity-drawer'
+import { Pool } from '@/indexers/api/types'
 
 interface Props {
-  pool: any
+  pool: Pool
   index: number
   isFirst: boolean
   isLast: boolean
@@ -17,12 +18,13 @@ interface Props {
 
 export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity = 0 }) => {
   // Mock data for APR and total value locked
-  const apr = pool.apr || 5.2
-  const totalValueLocked = pool.totalValueLocked || 100000
+  const apr = 42069 // pool.apr || 5.2
+  const poolTVL = pool.currency0.totalTVL + pool.currency1.totalTVL
+  const managedTVL = pool.currency0.bondHookTVL + pool.currency1.bondHookTVL
+  const percentManaged = (managedTVL / poolTVL) * 100
 
   // Calculate user's share of the pool
-  const userShare = userLiquidity > 0 ? (userLiquidity / totalValueLocked) * 100 : 0
-  const hasAddress = true // Simplified for now
+  const userShare = userLiquidity > 0 ? (userLiquidity / poolTVL) * 100 : 0
 
   return (
     <Card
@@ -44,9 +46,9 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
             {pool.currency0?.symbol}/{pool.currency1?.symbol} Pool
           </CardTitle>
           <CardDescription className="flex items-center text-xs gap-2">
-            <span>Pool #{pool.poolId}</span>
+            <span>{pool.version}</span>
             <span>•</span>
-            <span>Fee tier: 0.3%</span>
+            <span>Fee tier: {pool.formattedSwapFee}%</span>
           </CardDescription>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
@@ -61,13 +63,19 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium">
-              TVL: {formatNumber(totalValueLocked, { currency: true, abbreviate: true })}
+              TVL: {formatNumber(poolTVL, { currency: true, abbreviate: true })}
+            </span>
+            <span className="text-sm font-medium">
+              Managed: {formatNumber(managedTVL, { currency: true, abbreviate: true })}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-medium">APR: {apr}%</span>
+            <Webhook className="h-4 w-4 text-pink-600" />
+            <span className="text-sm font-medium">
+              Managed: {formatNumber(managedTVL, { currency: true, abbreviate: true })}
+            </span>
+            <span className="text-sm font-medium">Managed by Hook: {percentManaged}%</span>
           </div>
 
           <CardDescription className="text-xs mt-1 flex items-center gap-1">

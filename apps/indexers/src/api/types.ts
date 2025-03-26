@@ -5,8 +5,11 @@ type InitiativeWeightEntity = typeof schema.InitiativeWeight.$inferSelect
 type PoolEntity = typeof schema.Pool.$inferSelect
 
 export type Pool = {
-  poolId: number
+  poolId: string
+  version: string
   swapPrice: number
+  swapFee: number
+  formattedSwapFee: number
   currency0: {
     address: `0x${string}`
     symbol: string

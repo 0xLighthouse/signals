@@ -6,7 +6,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { PageSection } from '@/components/page-section'
 import { useAccount } from '@/hooks/useAccount'
-import { PoolCard } from './pool-card'
+import { PoolCard } from './pool.card'
 
 export const PoolsList = () => {
   const { address } = useAccount()
@@ -15,12 +15,15 @@ export const PoolsList = () => {
   const fetchPools = usePoolsStore((state) => state.fetchPools)
   const isInitialized = usePoolsStore((state) => state.isInitialized)
 
+  console.log(pools)
+
   useEffect(() => {
     if (!isInitialized) fetchPools()
   }, [isInitialized, fetchPools])
 
   // Mock user liquidity data
   const getUserLiquidity = (poolId: number) => {
+    console.log('TODO: Fetch users liquidity for pool', poolId)
     // This would normally come from a real data source
     const mockUserLiquidity: Record<number, number> = {
       1: 500,
@@ -51,43 +54,15 @@ export const PoolsList = () => {
     )
   }
 
-  // Create some sample pool data if we don't have real pools
-  const displayPools =
-    pools.length > 0
-      ? pools
-      : [
-          {
-            poolId: 1,
-            currency0: { symbol: 'USDC' },
-            currency1: { symbol: 'WETH' },
-            totalValueLocked: 250000,
-            apr: 4.8,
-          },
-          {
-            poolId: 2,
-            currency0: { symbol: 'USDC' },
-            currency1: { symbol: 'WBTC' },
-            totalValueLocked: 450000,
-            apr: 3.2,
-          },
-          {
-            poolId: 3,
-            currency0: { symbol: 'DAI' },
-            currency1: { symbol: 'USDC' },
-            totalValueLocked: 180000,
-            apr: 2.5,
-          },
-        ]
-
   return (
     <ListContainer title="Liquidity Pools">
-      {displayPools.map((pool, index) => (
+      {pools.map((pool, index) => (
         <PoolCard
           key={pool.poolId}
           pool={pool}
           index={index}
           isFirst={index === 0}
-          isLast={index === displayPools.length - 1}
+          isLast={index === pools.length - 1}
           userLiquidity={getUserLiquidity(pool.poolId)}
         />
       ))}
