@@ -476,6 +476,15 @@ contract BondHook is BaseHook {
     }
 
     /**
+     * @notice Get the state of a pool
+     * @param id The ID of the pool
+     * @return state The state of the pool
+     */
+    function getPoolState(PoolId id) public view returns (BondPoolState memory) {
+        return bondPools[id];
+    }
+
+    /**
      * @notice Get the amount of underlying token equal to the specified amount of liquidity
      * @param id The ID of the pool
      * @param liquidity The liquidity to calculate the amount of underlying token for

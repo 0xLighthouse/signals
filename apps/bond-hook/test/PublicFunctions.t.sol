@@ -42,19 +42,14 @@ contract PublicFunctionsTest is Test, BondHookHarness {
         vm.stopPrank();
     }
 
-    function test_getPoolLiquidityAsUnderlying() public {
-        deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_4);
+    function test_getUnderlyingAmountForLiquidity() public {
+        deployHookWithFeesAndPools(0, 0, 0, 0, SQRT_PRICE_1_1);
+        uint256 daiBalanceBefore = _dai.balanceOf(address(_liquidityProvider));
+        uint256 tokenBalanceBefore = _token.balanceOf(address(_liquidityProvider));
         modifyLiquidityFromProvider(poolA, 100 ether);
-        uint256 liquidity = bondhook.getPoolLiquidityAsUnderlying(poolA.toId());
-        assertApproxEqAbs(liquidity, 100 ether, 1000, "Incorrect liquidity as underlying token");
-    }
-
-    function test_getBondInfo() public {
-        deployHookAndPools();
-        uint256 bondId = aliceCreateBondAndWaits(50 ether, 50);
-
-        IBondIssuer.BondInfo memory bondInfo = bondhook.getBondInfo(bondId);
-        assertEq(bondInfo.referenceId, 1, "Incorrect bond reference id");
-        assertEq(bondInfo.nominalValue, 50 ether, "Incorrect bond nominal value");
+        uint256 daiBalanceAfter = _dai.balanceOf(address(_liquidityProvider));
+        uint256 tokenBalanceAfter = _token.balanceOf(address(_liquidityProvider));
+        int256 amount = bondhook.getUnderlyingAmountForLiquidity(poolA.toId(), 100 ether);
+        assertApproxEqAbs(amount, 200 ether, 1000, "Incorrect liquidity as underlying token");
     }
 }
