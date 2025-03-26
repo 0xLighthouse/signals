@@ -1,88 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --background: #fffefc; 
-  --foreground: #171717;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-html.dark {
-  --background: #202020;
-  --foreground: #ededed;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* Typography utility classes */
-@layer components {
-  .text-display {
-    @apply text-5xl md:text-6xl font-bold leading-tight tracking-tight;
-  }
-  
-  .text-h1 {
-    @apply text-3xl md:text-4xl font-bold leading-tight tracking-tight;
-  }
-  
-  .text-h2 {
-    @apply text-2xl md:text-3xl font-semibold leading-tight tracking-tight;
-  }
-  
-  .text-h3 {
-    @apply text-xl md:text-2xl font-semibold leading-snug;
-  }
-  
-  .text-h4 {
-    @apply text-lg md:text-xl font-semibold leading-snug;
-  }
-  
-  .text-body-lg {
-    @apply text-lg font-normal leading-normal;
-  }
-  
-  .text-body {
-    @apply text-base font-normal leading-normal;
-  }
-  
-  .text-body-sm {
-    @apply text-sm font-normal leading-normal;
-  }
-  
-  .text-caption {
-    @apply text-xs font-normal leading-tight;
-  }
-  
-  .text-mono {
-    @apply text-sm font-normal leading-normal font-mono;
-  }
-}
+@import 'tailwindcss';
 
 @layer base {
   :root {
+    --background: #fffefc;
+    --foreground: #171717;
+
     --radius: 0.5rem;
+
+    /* Sidebar Theme */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -92,7 +17,11 @@ a {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
+    --background: #202020;
+    --foreground: #ededed;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -102,19 +31,76 @@ a {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    @apply font-sans antialiased;
+  }
+
+  * {
+    @apply box-border p-0 m-0;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
 }
 
-/* apps/interface/src/app/globals.css */
+@layer components {
+  .text-display {
+    @apply text-5xl md:text-6xl font-bold leading-tight tracking-tight;
+  }
 
-/* Weird thing in the DOM from the vaul library (drawer) that adds a bunch of white space when making the content scrollable */
-/* [data-vaul-drawer]::after {
-  content: none;
-  position: static;
-  background: none;
-  height: 0 !important;
+  .text-h1 {
+    @apply text-3xl md:text-4xl font-bold leading-tight tracking-tight;
+  }
+
+  .text-h2 {
+    @apply text-2xl md:text-3xl font-semibold leading-tight tracking-tight;
+  }
+
+  .text-h3 {
+    @apply text-xl md:text-2xl font-semibold leading-snug;
+  }
+
+  .text-h4 {
+    @apply text-lg md:text-xl font-semibold leading-snug;
+  }
+
+  .text-body-lg {
+    @apply text-lg font-normal leading-normal;
+  }
+
+  .text-body {
+    @apply text-base font-normal leading-normal;
+  }
+
+  .text-body-sm {
+    @apply text-sm font-normal leading-normal;
+  }
+
+  .text-caption {
+    @apply text-xs font-normal leading-tight;
+  }
+
+  .text-mono {
+    @apply text-sm font-normal leading-normal font-mono;
+  }
 }
 
-.handle-class {
-  position: relative;
-  z-index: 60;
-} */
+@layer utilities {
+  html,
+  body {
+    @apply max-w-[100vw] overflow-x-hidden;
+  }
+
+  /* Vaul drawer fix */
+  [data-vaul-drawer]::after {
+    @apply content-none static bg-none h-0;
+  }
+
+  .handle-class {
+    @apply relative z-60;
+  }
+}

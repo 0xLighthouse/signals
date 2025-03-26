@@ -4,9 +4,16 @@ const { withTV } = require('tailwind-variants/transformer')
 /** @type {import('tailwindcss').Config} */
 module.exports = withTV({
   // ! NOTE: this needs to be ONLY 'selector' or the dark/light mode theming will break
-  darkMode: ['selector'],
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'selector',
+  content: ['./src/**/*.{js,ts,jsx,tsx}', './src/**/*.css'],
   theme: {
+    screens: {
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       borderRadius: {
         lg: 'var(--radius)',
