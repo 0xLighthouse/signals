@@ -20,6 +20,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { context } from '@/config/web3'
+import { DateTime } from 'luxon'
 
 interface Pool {
   id: string
@@ -223,8 +224,8 @@ export function SellBond() {
                 <h3 className="font-semibold">Time to Maturity</h3>
               </div>
               <MaturityTimeline
-                issueDate={selectedBond.issueDate}
-                maturityDate={selectedBond.maturityDate}
+                issueDate={DateTime.fromSeconds(Number(selectedBond.issueDate))}
+                maturityDate={DateTime.fromSeconds(Number(selectedBond.maturityDate))}
               />
             </Card>
           )}

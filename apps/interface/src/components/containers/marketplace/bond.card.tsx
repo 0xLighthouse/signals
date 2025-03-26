@@ -11,8 +11,12 @@ import { formatDistanceToNow } from 'date-fns'
 import { Ellipsis, Tag } from 'lucide-react'
 
 import type { Lock } from 'indexers/src/api/types'
-import type { IBoard } from '@/contexts/SignalsContext'
+import { useSignals, type IBoard } from '@/contexts/SignalsContext'
 import { Button } from '@/components/ui/button'
+import { DateTime } from 'luxon'
+import { useUnderlying } from '@/contexts/ContractContext'
+import { context } from '@/config/web3'
+import { MaturityTimeline } from './maturity-timeline'
 
 interface Props {
   bond: Lock
@@ -22,17 +26,16 @@ interface Props {
   board: IBoard
 }
 
-export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
+export const BondCard: React.FC<Props> = ({ bond, board, isFirst, isLast }) => {
   const initiative = bond.initiative
-  const proposerName = useAsyncProp(
-    resolveName(initiative.proposer),
-    shortAddress(initiative.proposer),
-  )
+  const { symbol: underlyingTokenSymbol, formatter: underlyingTokenFormatter } = useUnderlying()
 
   // Calculate remaining time to maturity
-  // FIXME: This is a tmp hack to get the maturity date
-  const maturityDate = new Date(Number(bond.initiative.createdAtTimestamp) * 1000) // Assuming unlockTime is in seconds
+  const maturityDate = DateTime.fromSeconds(Number(bond.metadata.expires)).toJSDate()
   const remainingTime = formatDistanceToNow(maturityDate, { addSuffix: true })
+  const maturity = DateTime.fromSeconds(Number(bond.metadata.expires)).toLocaleString(
+    DateTime.DATETIME_MED,
+  )
 
   // Mock yield and price for demonstration
   const bondYield = '5.2%'
@@ -52,10 +55,20 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
       <div className="flex flex-col md:flex-row w-full">
         <CardHeader className="md:w-3/5 p-6 pb-0">
           <CardTitle>{initiative.title}</CardTitle>
-          <CardDescription className="flex items-center text-xs gap-2">
-            <span>Bond #{bond.tokenId}</span>
+          <CardDescription className="flex items-center text-xs gap-1">
+            <span>
+              {board.symbol}#{bond.tokenId}
+            </span>
             <span>•</span>
-            <span>Maturity: {remainingTime}</span>
+            <span className="underline">
+              <a
+                href={`${context.network.explorerUri}/tx/${bond.transactionHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Supported {timeAgoWords(Number(bond.blockTimestamp))}
+              </a>
+            </span>
           </CardDescription>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
@@ -64,19 +77,16 @@ export const BondCard: React.FC<Props> = ({ bond, isFirst, isLast }) => {
           </div>
         </div>
       </div>
-      <div className="flex justify-between p-6 pt-2">
-        <div className="flex flex-col">
-          <div className="text-sm font-medium">Price: {bondPrice} USDC</div>
-          <div className="text-sm font-medium">Yield: {bondYield}</div>
-          <CardDescription className="text-xs mt-1">
-            Supported {timeAgoWords(Number(bond.blockTimestamp))}
-          </CardDescription>
+      <div className="flex justify-between p-6 pt-0">
+        <div className="text-2xl">
+          {underlyingTokenFormatter(Number(bond.metadata.nominalValue))} {underlyingTokenSymbol}
         </div>
-        <div className="flex gap-2 items-center">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Ellipsis className="h-4 w-4" />
-          </Button>
-        </div>
+      </div>
+      <div className="p-6 pt-0">
+        <MaturityTimeline
+          issueDate={DateTime.fromSeconds(Number(bond.metadata.created))}
+          maturityDate={DateTime.fromSeconds(Number(bond.metadata.expires))}
+        />
       </div>
     </Card>
   )

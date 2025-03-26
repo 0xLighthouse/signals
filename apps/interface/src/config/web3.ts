@@ -2,7 +2,6 @@ import { createPublicClient, http, erc20Abi, Abi } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
 import { SignalsABI, IncentivesABI } from '../../../../packages/abis'
-import { Board } from 'indexers/ponder.schema'
 
 // Default public client for server components or initial loading
 // Components should prefer using the context via useWeb3() whenever possible
@@ -30,12 +29,14 @@ export const ERC20WithFaucetABI = [
 
 export const SIGNALS_ABI = SignalsABI
 
+export const INDEXER_ENDPOINT = process.env.NEXT_PUBLIC_INDEXER_ENDPOINT!
+
 /**
  * Critical addresses
  */
-
 export const context = {
   network: {
+    explorerUri: 'https://sepolia.arbiscan.io',
     arbitrumSepolia: {
       chainId: 421614,
       transport: http(process.env.ARBITRUM_SEPOLIA_RPC_URL!),

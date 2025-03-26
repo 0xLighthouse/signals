@@ -1,35 +1,42 @@
 'use client'
 
+import { formatDistanceToNow } from 'date-fns'
+import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 
 interface MaturityTimelineProps {
-  issueDate: string
-  maturityDate: string
+  issueDate: DateTime
+  maturityDate: DateTime
 }
 
 export function MaturityTimeline({ issueDate, maturityDate }: MaturityTimelineProps) {
   const [progressPercent, setProgressPercent] = useState(0)
   const [daysLeft, setDaysLeft] = useState(0)
+  const [remainingTime, setRemainingTime] = useState('')
 
   useEffect(() => {
-    const issue = new Date(issueDate).getTime()
-    const maturity = new Date(maturityDate).getTime()
-    const now = new Date().getTime()
-    
+    const issue = issueDate.toMillis()
+    const maturity = maturityDate.toMillis()
+    const now = DateTime.now().toMillis()
+
+    const _maturityDate = maturityDate.toJSDate()
+    const remainingTime = formatDistanceToNow(_maturityDate, { addSuffix: true })
+
     // Calculate total duration in days
     const totalDuration = (maturity - issue) / (1000 * 60 * 60 * 24)
-    
+
     // Calculate days elapsed
     const elapsed = (now - issue) / (1000 * 60 * 60 * 24)
-    
+
     // Calculate percentage of time elapsed
     const percent = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100)
-    
+
     // Calculate days left until maturity
     const remaining = Math.max(Math.ceil((maturity - now) / (1000 * 60 * 60 * 24)), 0)
-    
+
     setProgressPercent(percent)
     setDaysLeft(remaining)
+    setRemainingTime(remainingTime)
   }, [issueDate, maturityDate])
 
   return (
@@ -41,9 +48,9 @@ export function MaturityTimeline({ issueDate, maturityDate }: MaturityTimelinePr
         />
       </div>
       <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-        <div>Issue Date: {new Date(issueDate).toLocaleDateString()}</div>
-        <div>{daysLeft} days left</div>
-        <div>Maturity: {new Date(maturityDate).toLocaleDateString()}</div>
+        <div>{issueDate.toLocaleString()}</div>
+        <div>Redeem {remainingTime}</div>
+        <div>Locked until: {maturityDate.toLocaleString()}</div>
       </div>
     </div>
   )
