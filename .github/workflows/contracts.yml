@@ -37,8 +37,7 @@ jobs:
           version: rc
 
       - name: Show Forge version
-        run: |
-          forge --version
+        run: forge --version
 
       - name: [bond-hook] Builds
         working-directory: apps/bond-hook
