@@ -16,30 +16,6 @@ import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool, Lock } from '@/indexers/api/types'
 import { PoolsAvailable } from '../pools/pools-available'
 
-// interface Pool {
-//   id: string
-//   name: string
-//   inputToken: string
-//   outputTokens: string[]
-//   quote: {
-//     amount: string
-//     token: string
-//   }
-//   apr: string
-//   tvl: string
-// }
-
-// interface IBond {
-//   id: string
-//   name: string
-//   maturityDate: string
-//   issueDate: string
-//   faceValue: string
-//   tokenId: number
-//   price: string
-//   yield: string
-// }
-
 const resolveOutputTokens = (pool: Pool) => {
   const outputTokens: OutputToken[] = []
   outputTokens.push({

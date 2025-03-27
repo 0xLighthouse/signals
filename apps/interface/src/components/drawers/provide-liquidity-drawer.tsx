@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, DollarSign, ArrowDownUp, AlertCircle, Info, RefreshCw } from 'lucide-react'
+import { CircleAlert, ArrowDownUp, AlertCircle, Info, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { context } from '@/config/web3'
@@ -13,7 +13,6 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
@@ -26,19 +25,20 @@ import { normaliseNumber } from '@/lib/utils'
 import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool } from '@/indexers/api/types'
 import { PoolsAvailable } from '../containers/pools/pools-available'
-
-type CurrencyType = 'Currency0' | 'Currency1'
+import { calculateLiquidity, CurrencyType, toUniswapPool } from '@/lib/uniswap'
 
 export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const { balance, symbol, fetchContractMetadata, formatter } = useUnderlying()
+  const { balance, symbol, formatter } = useUnderlying()
 
   const pools = usePoolsStore((state) => state.pools)
 
-  const [amountA, setAmountA] = useState(0)
-  const [amountB, setAmountB] = useState(0)
+  const [amountA, setAmountA] = useState<number>(0)
+  const [amountB, setAmountB] = useState<number>(0)
+  const [liquidityDelta, setLiquidityDelta] = useState<number>(0)
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedPoolId, setSelectedPoolId] = useState<string>('')
@@ -203,57 +203,32 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
     }
   }
 
-  // Calculate the ratio between tokens for locked ratio mode
-  const calculateRatio = () => {
-    if (amountA > 0 && amountB > 0) {
-      return amountB / amountA
-    }
-    // Default ratio - in a real app, this would be derived from the pool's reserve ratio
-    return 1
-  }
-
-  const handleAmountChange = (value: number, input: CurrencyType) => {
-    console.log('handleAmountChange', value, input)
-
+  const handleAmountChange = async (value: number, input: CurrencyType) => {
     if (!selectedPoolData) {
       console.error('No pool selected')
       return
     }
+    const { pool } = await toUniswapPool(selectedPoolData)
 
-    // Get the current ratio if we're maintaining ratio and if both values are set
-    const ratio = calculateRatio()
-
-    const currency0Decimals = selectedPoolData.currency0.decimals
-    const currency1Decimals = selectedPoolData.currency1.decimals
-    const price = selectedPoolData.swapPrice
+    const { amountA, amountB, liquidityDelta } = calculateLiquidity({
+      pool,
+      amount: value,
+      sourceCurrency: input,
+      range: {
+        tickLower: -887220, // Min usable tick for spacing of 60
+        tickUpper: 887220, // Max usable tick for spacing of 60
+      },
+    })
 
     if (input === 'Currency0') {
       setAmountA(value)
-
-      const valueExpanded = value * 10 ** currency0Decimals
-      const amountBExpanded = valueExpanded * price
-      const amountB = amountBExpanded / 10 ** currency1Decimals
-
       setAmountB(amountB)
-
-      console.log('amountA', value)
-      console.log('amountB', amountB)
-      // validateInput(amountB, 'Currency1')
-      // validateInput(value, 'Currency0')
     } else {
-      setAmountB(value)
-
-      const valueExpanded = value * 10 ** currency1Decimals
-      const amountAExpanded = valueExpanded / price
-      const amountA = amountAExpanded / 10 ** currency0Decimals
-
       setAmountA(amountA)
-
-      console.log('amountA', amountA)
-      console.log('amountB', value)
-      // validateInput(amountA, 'Currency0')
-      // validateInput(value, 'Currency1')
+      setAmountB(value)
     }
+
+    setLiquidityDelta(liquidityDelta)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -289,13 +264,6 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
       return
     }
 
-    // Validate input amounts before submitting
-    // const isValidA = validateInput(amountA, 'Currency0')
-    // const isValidB = validateInput(amountB, 'Currency1')
-
-    // if (!isValidA || !isValidB) {
-    //   return // Don't proceed if input validation fails
-    // }
     if (!walletClient) {
       toast('Wallet not connected')
       return
@@ -314,7 +282,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
           tickSpacing: 60,
           hooks: context.contracts.BondHook.address,
         },
-        liquidityDelta: 1000_00000_00000n,
+        liquidityDelta: BigInt(liquidityDelta),
         swapPriceLimit: 0n, // or your desired price limit
         desiredCurrency: 2, // enum value, 0 or 1 depending on desired currency
       }
@@ -478,9 +446,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                               id="amountA"
                               type="number"
                               value={amountA ?? undefined}
-                              placeholder="0.0"
                               onChange={(e) => {
-                                console.log('e', e)
                                 handleAmountChange(
                                   e.target.value ? Number(e.target.value) : 0,
                                   'Currency0',
@@ -496,7 +462,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                         </div>
 
                         {/* Swap button - centered horizontally */}
-                        <div className="flex justify-center">
+                        {/* <div className="flex justify-center">
                           <Button
                             type="button"
                             size="icon"
@@ -508,7 +474,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                             <ArrowDownUp className="h-4 w-4" />
                             <span className="sr-only">Swap tokens</span>
                           </Button>
-                        </div>
+                        </div> */}
 
                         {/* Input B */}
                         <div className="rounded-lg border border-input p-3">
@@ -537,7 +503,6 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                               id="amountB"
                               type="number"
                               value={amountB ?? undefined}
-                              placeholder="0.0"
                               onChange={(e) =>
                                 handleAmountChange(
                                   e.target.value ? Number(e.target.value) : 0,
@@ -547,7 +512,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                               onFocus={() => setInputFocused('Currency1')}
                               onBlur={() => setInputFocused(null)}
                               min="0"
-                              step="0.01"
+                              step="0.0001"
                               className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-10 text-lg"
                             />
                           </div>

@@ -5,6 +5,7 @@ import { client, graphql } from 'ponder'
 import { getLocks } from './get.locks'
 import { getInitiatives } from './get.initiatives'
 import { getPools } from './get.pools'
+import { getPoolState } from './get.pool-state'
 
 const app = new Hono()
 
@@ -30,5 +31,10 @@ app.get('/locks/:chainId/:address/:supporter', getLocks)
  * @example http://localhost:42069/pools/421614/0x75e8927FFabD709D7e55Ed44C7a19166A0B215A7
  */
 app.get('/pools/:chainId/:currency', getPools)
+
+/**
+ * @returns Pool state for a given poolId
+ */
+app.get('/pool-state/:chainId/:poolId', getPoolState)
 
 export default app
