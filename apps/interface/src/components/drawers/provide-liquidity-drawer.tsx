@@ -332,7 +332,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
           tickSpacing: 60,
           hooks: context.contracts.BondHook.address,
         },
-        liquidityDelta: 1_00000_00000n,
+        liquidityDelta: 1000_00000_00000n,
         swapPriceLimit: 0n, // or your desired price limit
         desiredCurrency: 2, // enum value, 0 or 1 depending on desired currency
       }
