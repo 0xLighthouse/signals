@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Info, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -15,6 +15,12 @@ import { useLocksStore } from '@/stores/useLocksStore'
 import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool, Lock } from '@/indexers/api/types'
 import { PoolsAvailable } from '../pools/pools-available'
+import { context, INDEXER_ENDPOINT } from '@/config/web3'
+import { arbitrumSepolia } from 'viem/chains'
+import { useUnderlying } from '@/contexts/ContractContext'
+import { useApproveNFT } from '@/hooks/useApproveNFT'
+import { hexToBigInt, hexToNumber } from 'viem'
+import { BondHookABI } from '../../../../../../packages/abis'
 
 const resolveOutputTokens = (pool: Pool) => {
   const outputTokens: OutputToken[] = []
@@ -42,11 +48,13 @@ interface OutputToken {
 
 export function SellBond() {
   const { address } = useAccount()
-  const { walletClient } = useWeb3()
+  const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
   const [selectedPool, setSelectedPool] = useState<Pool | undefined>(undefined)
   const [selectedOutputToken, setSelectedOutputToken] = useState<OutputToken | undefined>(undefined)
   const [outputTokens, setOutputTokens] = useState<OutputToken[]>([])
+  const [quote, setQuote] = useState<number | undefined>(undefined)
+  const { formatter: formatterUnderlying, symbol: symbolUnderlying } = useUnderlying()
 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [slippage, setSlippage] = useState('0.5')
@@ -69,12 +77,46 @@ export function SellBond() {
     }
   }, [selectedPool])
 
+  const fetchQuote = async () => {
+    const quote = await fetch(
+      `${INDEXER_ENDPOINT}/quote/${arbitrumSepolia.id}/${context.contracts.BondHook.address}/${selectedBond?.tokenId}?type=user-sell`,
+    )
+    const resp = await quote.json()
+    return resp.data.quoteInUnderlying
+  }
+
   // Build quote when output token is selected
   useEffect(() => {
     if (selectedOutputToken) {
       console.log('----- TODO: BUILD QUOTE -----')
+      fetchQuote().then((quote) => {
+        setQuote(quote)
+      })
     }
   }, [selectedOutputToken])
+
+  // Handle the approval of the underlying token
+  /**
+   * Approve
+   */
+  const approveNFTConfig = useMemo(() => {
+    return {
+      actor: address,
+      tokenId: selectedBond?.tokenId,
+      spender: context.contracts.BondHook.address,
+      tokenAddress: context.contracts.SignalsProtocol.address,
+    }
+  }, [selectedBond?.tokenId, address])
+
+  const {
+    isApproving: isApprovingNFT,
+    isApproved: isApprovedNFT,
+    handleApprove: handleApproveNFT,
+    handleRevokeAllowance: handleRevokeNFT,
+  } = useApproveNFT(approveNFTConfig)
+
+  console.log('isApprovingNFT', isApprovingNFT)
+  console.log('isApprovedNFT', isApprovedNFT)
 
   // Reset form
   const handleReset = () => {
@@ -84,8 +126,17 @@ export function SellBond() {
   }
 
   const handleSellBond = async () => {
+    console.log('handleSellBond')
     if (!address) {
       toast('Please connect a wallet')
+      return
+    }
+    if (!isApprovedNFT) {
+      toast('NFT not approved')
+      return
+    }
+    if (!quote) {
+      toast('No quote found')
       return
     }
 
@@ -101,55 +152,85 @@ export function SellBond() {
       }
 
       setIsSubmitting(true)
-      // const nonce = await publicClient.getTransactionCount({ address })
 
-      // const slippageAmount = parseFloat(slippage) / 100
-      // const minimumAmountOut = selectedPoolData
-      //   ? parseFloat(selectedPoolData.quote.amount) * (1 - slippageAmount)
-      //   : 0
+      // Appove the SignalsBoard to spend the underlying token
 
-      // let functionName = 'sellBondInPool'
-      // let args = [
-      //   selectedBond.tokenId,
-      //   selectedPool,
-      //   selectedOutputToken === 'mixed' ? 'mixed' : selectedOutputToken,
-      //   String(minimumAmountOut * 1e6),
-      // ]
+      const nonce = await publicClient.getTransactionCount({ address })
+      const fee = hexToNumber('0x800000') // Dynamic fee flag
+      const tickSpacing = 60
 
-      // // If mixed token is selected, use different function
-      // if (selectedOutputToken === 'mixed') {
-      //   functionName = 'sellBondInPoolMixed'
-      //   args = [
-      //     selectedBond.tokenId,
-      //     selectedPool,
-      //     String((minimumAmountOut / 2) * 1e6), // Half for each token
-      //     String((minimumAmountOut / 2) * 1e6),
-      //   ]
-      // }
+      // TODO: This will be updated with poolId
+      const poolKey = {
+        currency0: selectedPool.currency0.address,
+        currency1: selectedPool.currency1.address,
+        fee, // TODO: Fetch fee from pool
+        tickSpacing,
+        hooks: context.contracts.BondHook.address,
+      }
 
-      // const { request } = await publicClient.simulateContract({
-      //   account: address,
-      //   address: context.contracts.SignalsMarketplace.address,
-      //   abi: context.contracts.SignalsMarketplace.abi,
-      //   functionName,
-      //   nonce,
-      //   // @ts-ignore
-      //   args,
-      // })
+      const swapData = {
+        poolKey,
+        tokenId: selectedBond.tokenId,
+        bondPriceLimit: BigInt(quote),
+        swapPriceLimit: BigInt(0), // No swaps
+        desiredCurrency: 2, // we receive mixed currencies
+      }
 
-      // const hash = await walletClient.writeContract(request)
+      // inputs: [
+      //   {
+      //     name: 'data',
+      //     internalType: 'struct SwapData',
+      //     type: 'tuple',
+      //     components: [
+      //       {
+      //         name: 'poolKey',
+      //         internalType: 'struct PoolKey',
+      //         type: 'tuple',
+      //         components: [
+      //           { name: 'currency0', internalType: 'Currency', type: 'address' },
+      //           { name: 'currency1', internalType: 'Currency', type: 'address' },
+      //           { name: 'fee', internalType: 'uint24', type: 'uint24' },
+      //           { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
+      //           {
+      //             name: 'hooks',
+      //             internalType: 'contract IHooks',
+      //             type: 'address',
+      //           },
+      //         ],
+      //       },
+      //       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      //       { name: 'bondPriceLimit', internalType: 'uint256', type: 'uint256' },
+      //       { name: 'swapPriceLimit', internalType: 'uint160', type: 'uint160' },
+      //       {
+      //         name: 'desiredCurrency',
+      //         internalType: 'enum DesiredCurrency',
+      //         type: 'uint8',
+      //       },
+      //     ],
+      //   },
+      // ],
+      const { request } = await publicClient.simulateContract({
+        account: address,
+        address: context.contracts.BondHook.address,
+        abi: BondHookABI,
+        functionName: 'swapBond',
+        nonce,
+        args: [swapData],
+      })
 
-      // const receipt = await publicClient.waitForTransactionReceipt({
-      //   hash,
-      //   confirmations: 2,
-      //   pollingInterval: 2000,
-      // })
+      const hash = await walletClient.writeContract(request)
 
-      // console.log('Receipt:', receipt)
-      // toast('Bond sold successfully!')
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+        pollingInterval: 2000,
+      })
+
+      console.log('Receipt:', receipt)
+      toast('Bond sold successfully!')
 
       // Reset form
-      handleReset()
+      // handleReset()
     } catch (error) {
       console.error(error)
       // @ts-ignore
@@ -161,6 +242,36 @@ export function SellBond() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const selectAction = (tokenId: bigint) => {
+    console.log('tokenId', tokenId)
+    console.log('isApprovedNFT', isApprovedNFT)
+    if (!isApprovedNFT) {
+      return (
+        <Button
+          className="w-full"
+          onClick={() => {
+            handleApproveNFT(tokenId)
+          }}
+          disabled={isApprovingNFT}
+          isLoading={isSubmitting}
+        >
+          {isSubmitting ? 'Processing...' : 'Approve NFT'}
+        </Button>
+      )
+    }
+
+    return (
+      <Button
+        className="w-full"
+        onClick={handleSellBond}
+        disabled={isSubmitting}
+        isLoading={isSubmitting}
+      >
+        {isSubmitting ? 'Processing...' : 'Sell Bond'}
+      </Button>
+    )
   }
 
   return (
@@ -243,6 +354,7 @@ export function SellBond() {
                   <div>
                     <h3 className="font-semibold">Current Quote</h3>
                     <div className="text-2xl font-bold mt-2">TODO: BUILD QUOTE</div>
+                    <div className="text-2xl font-bold mt-2">{formatterUnderlying(quote)}</div>
                     <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                       For your NFT#{selectedBond.tokenId}
                     </div>
@@ -253,7 +365,10 @@ export function SellBond() {
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
                         Face Value
                       </span>
-                      <span className="font-medium">{selectedBond.metadata.nominalValue} USDC</span>
+                      <span className="font-medium">
+                        {formatterUnderlying(Number(selectedBond.metadata.nominalValue))}{' '}
+                        {symbolUnderlying}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -314,17 +429,8 @@ export function SellBond() {
       </div>
 
       {/* Action Button */}
-      {selectedBond && selectedPool && selectedOutputToken && (
-        <div className="mt-8">
-          <Button
-            className="w-full"
-            onClick={handleSellBond}
-            disabled={isSubmitting}
-            isLoading={isSubmitting}
-          >
-            {isSubmitting ? 'Processing...' : 'Sell Bond'}
-          </Button>
-        </div>
+      {selectedBond && selectedPool && selectedOutputToken && quote && (
+        <div className="mt-8">{selectAction(selectedBond.tokenId)}</div>
       )}
     </div>
   )

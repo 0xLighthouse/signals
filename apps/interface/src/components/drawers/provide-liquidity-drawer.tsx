@@ -574,24 +574,29 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
                   </div>
                 )}
 
-                {selectedPoolData && hasCurrency0Allowance ? (
+                {selectedPoolData && (hasCurrency0Allowance || hasCurrency1Allowance) && (
                   <Card className="p-4 mt-4">
                     <h3 className="font-semibold mb-2">Current Allowance</h3>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                        {symbol}
-                      </span>
-                      <span className="font-medium">{formattedCurrency0Allowance}</span>
-                    </div>
-                    <Button
-                      variant="link"
-                      className="text-red-500 mt-2 p-0 h-auto"
-                      onClick={handleRevokeCurrency0Allowance}
-                    >
-                      Revoke Allowance
-                    </Button>
+
+                    {hasCurrency0Allowance && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                            {symbol}
+                          </span>
+                          <span className="font-medium">{formattedCurrency0Allowance}</span>
+                        </div>
+                        <Button
+                          variant="link"
+                          className="text-red-500 mt-2 p-0 h-auto"
+                          onClick={handleRevokeCurrency0Allowance}
+                        >
+                          Revoke Allowance
+                        </Button>
+                      </>
+                    )}
                   </Card>
-                ) : null}
+                )}
               </div>
 
               {/* Column 3: Pool Stats and Submit Action */}
