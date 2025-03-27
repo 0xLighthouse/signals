@@ -25,15 +25,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { normaliseNumber } from '@/lib/utils'
 import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool } from '@/indexers/api/types'
-
-interface IPoolLiquidity {
-  poolId: string
-  name: string
-  currencyA: string
-  currencyB: string
-  apr: number
-  tvl: number
-}
+import { PoolsAvailable } from '../containers/pools/pools-available'
 
 type CurrencyType = 'Currency0' | 'Currency1'
 
@@ -42,6 +34,7 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata, formatter } = useUnderlying()
+
   const pools = usePoolsStore((state) => state.pools)
 
   const [amountA, setAmountA] = useState(0)
@@ -53,17 +46,6 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
   const [inputFocused, setInputFocused] = useState<CurrencyType | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
   const [lockRatio, setLockRatio] = useState(true)
-
-  const allPools: IPoolLiquidity[] = pools.map((pool) => {
-    return {
-      poolId: pool.poolId.toString(),
-      name: `${pool.currency0.symbol}/${pool.currency1.symbol} Pool`,
-      currencyA: pool.currency0.symbol,
-      currencyB: pool.currency1.symbol,
-      apr: 42069,
-      tvl: 42069,
-    }
-  })
 
   useEffect(() => {
     if (selectedPoolId) {
@@ -433,29 +415,13 @@ export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
               {/* Column 1: Available Pools and User Balances */}
               <div className="space-y-4">
                 <h3 className="font-semibold">Available Pools</h3>
-                {allPools.map((pool) => (
-                  <Card
-                    key={pool.poolId}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      selectedPoolId === pool.poolId
-                        ? 'border-blue-500'
-                        : 'hover:border-blue-500/50'
-                    }`}
-                    onClick={() => {
-                      console.log('selectedPoolId', pool.poolId)
-                      setSelectedPoolId(pool.poolId)
-                    }}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <h3 className="font-bold">{pool.name}</h3>
-                      <div className="text-sm text-muted-foreground">
-                        <div>
-                          {pool.currencyA}/{pool.currencyB}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                <PoolsAvailable
+                  pools={pools}
+                  selectedPoolId={selectedPoolId}
+                  handleOnClick={(poolId: string) => {
+                    setSelectedPoolId(poolId)
+                  }}
+                />
 
                 {/* User Balances */}
                 <Card className="p-4 mt-4">

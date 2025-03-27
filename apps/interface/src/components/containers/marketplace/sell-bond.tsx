@@ -223,25 +223,13 @@ export function SellBond() {
           <div className="space-y-4">
             <h3 className="font-semibold">Available Pools</h3>
             {selectedBond ? (
-              <>
-                {availablePools.map((pool) => (
-                  <Card
-                    key={pool.id}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      selectedPool === pool.id ? 'border-blue-500' : 'hover:border-blue-500/50'
-                    }`}
-                    onClick={() => setSelectedPool(pool.id)}
-                  >
-                    <div>
-                      <h3 className="font-semibold">{pool.name}</h3>
-                      <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                        <div>APR: {pool.apr}</div>
-                        <div>TVL: {pool.tvl}</div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </>
+              <PoolsAvailable
+                pools={allPools}
+                selectedPoolId={selectedPool?.poolId}
+                handleOnClick={(poolId: string) => {
+                  setSelectedPool(allPools.find((pool) => pool.poolId === poolId))
+                }}
+              />
             ) : (
               <div className="text-sm text-neutral-500 dark:text-neutral-400 p-4">
                 Select a bond to view available pools
