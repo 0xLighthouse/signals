@@ -6,7 +6,9 @@ import { Button } from '../ui/button'
 
 // Uses Privy's login/logout functionality
 export const ConnectButton: React.FC = () => {
-  const { login, logout, authenticated } = usePrivy()
+  const { login, logout, authenticated, ready } = usePrivy()
+
+  if (!ready) return null
 
   return (
     <div>
