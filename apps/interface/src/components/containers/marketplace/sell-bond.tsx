@@ -1,114 +1,111 @@
 'use client'
 
-import { useState } from 'react'
-import { Clock, Info, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Info, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
-import { MaturityTimeline } from './maturity-timeline'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
-import { context } from '@/config/web3'
-import { DateTime } from 'luxon'
+import { useLocksStore } from '@/stores/useLocksStore'
+import { usePoolsStore } from '@/stores/usePoolsStore'
+import { Pool, Lock } from '@/indexers/api/types'
+import { PoolsAvailable } from '../pools/pools-available'
 
-interface Pool {
-  id: string
-  name: string
-  inputToken: string
-  outputTokens: string[]
-  quote: {
-    amount: string
-    token: string
-  }
-  apr: string
-  tvl: string
+// interface Pool {
+//   id: string
+//   name: string
+//   inputToken: string
+//   outputTokens: string[]
+//   quote: {
+//     amount: string
+//     token: string
+//   }
+//   apr: string
+//   tvl: string
+// }
+
+// interface IBond {
+//   id: string
+//   name: string
+//   maturityDate: string
+//   issueDate: string
+//   faceValue: string
+//   tokenId: number
+//   price: string
+//   yield: string
+// }
+
+const resolveOutputTokens = (pool: Pool) => {
+  const outputTokens: OutputToken[] = []
+  outputTokens.push({
+    key: 'currency0',
+    label: `${pool.currency0.symbol}`,
+  })
+  outputTokens.push({
+    key: 'currency1',
+    label: `${pool.currency1.symbol}`,
+  })
+  outputTokens.push({
+    key: 'mixed',
+    label: `Mixed (50% ${pool.currency0.symbol}/${pool.currency1.symbol})`,
+  })
+  return outputTokens
 }
 
-interface Bond {
-  id: string
-  name: string
-  maturityDate: string
-  issueDate: string
-  faceValue: string
-  tokenId: number
-  price: string
-  yield: string
+type OutputTokenKey = 'mixed' | 'currency0' | 'currency1'
+
+interface OutputToken {
+  key: OutputTokenKey
+  label: string
 }
 
 export function SellBond() {
   const { address } = useAccount()
-  const { walletClient, publicClient } = useWeb3()
-  const [selectedNFT, setSelectedNFT] = useState<string>('')
-  const [selectedPool, setSelectedPool] = useState<string>('')
-  const [selectedOutputToken, setSelectedOutputToken] = useState<string>('')
+  const { walletClient } = useWeb3()
+  const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
+  const [selectedPool, setSelectedPool] = useState<Pool | undefined>(undefined)
+  const [selectedOutputToken, setSelectedOutputToken] = useState<OutputToken | undefined>(undefined)
+  const [outputTokens, setOutputTokens] = useState<OutputToken[]>([])
+
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [slippage, setSlippage] = useState('0.5')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mock data - replace with actual data fetching
-  const availableBonds: Bond[] = [
-    {
-      id: '1',
-      name: 'ETH-USDC Bond #1',
-      maturityDate: '2024-12-31',
-      issueDate: '2024-01-01',
-      faceValue: '1000',
-      tokenId: 123,
-      price: '980.50',
-      yield: '5.2%',
-    },
-    {
-      id: '2',
-      name: 'ETH-USDC Bond #2',
-      maturityDate: '2025-06-30',
-      issueDate: '2024-02-15',
-      faceValue: '2000',
-      tokenId: 124,
-      price: '1940.20',
-      yield: '4.8%',
-    },
-  ]
+  const allBonds = useLocksStore((state) => state.locks)
+  const allPools = usePoolsStore((state) => state.pools)
 
-  const availablePools: Pool[] = [
-    {
-      id: '1',
-      name: 'USDC/GOV Pool',
-      inputToken: 'GOV',
-      outputTokens: ['USDC', 'GOV'],
-      quote: {
-        amount: '980.50',
-        token: 'USDC',
-      },
-      apr: '5.2%',
-      tvl: '$1.2M',
-    },
-    {
-      id: '2',
-      name: 'USDT/GOV Pool',
-      inputToken: 'GOV',
-      outputTokens: ['USDT', 'GOV'],
-      quote: {
-        amount: '981.20',
-        token: 'USDT',
-      },
-      apr: '5.4%',
-      tvl: '$800K',
-    },
-  ]
+  // Fetch pools if they are not initialized
+  useEffect(() => {
+    if (allPools.length === 0 && !usePoolsStore.getState().isInitialized) {
+      usePoolsStore.getState().fetchPools()
+    }
+  }, [allPools])
 
-  const selectedBond = availableBonds.find((bond) => bond.id === selectedNFT)
-  const selectedPoolData = availablePools.find((pool) => pool.id === selectedPool)
+  // Compute output tokens based on selected pool
+  useEffect(() => {
+    if (selectedPool) {
+      setOutputTokens(resolveOutputTokens(selectedPool))
+    }
+  }, [selectedPool])
+
+  // Build quote when output token is selected
+  useEffect(() => {
+    if (selectedOutputToken) {
+      console.log('----- TODO: BUILD QUOTE -----')
+    }
+  }, [selectedOutputToken])
+
+  // Reset form
+  const handleReset = () => {
+    setSelectedBond(undefined)
+    setSelectedPool(undefined)
+    setSelectedOutputToken(undefined)
+  }
 
   const handleSellBond = async () => {
     if (!address) {
@@ -128,31 +125,31 @@ export function SellBond() {
       }
 
       setIsSubmitting(true)
-      const nonce = await publicClient.getTransactionCount({ address })
+      // const nonce = await publicClient.getTransactionCount({ address })
 
-      const slippageAmount = parseFloat(slippage) / 100
-      const minimumAmountOut = selectedPoolData
-        ? parseFloat(selectedPoolData.quote.amount) * (1 - slippageAmount)
-        : 0
+      // const slippageAmount = parseFloat(slippage) / 100
+      // const minimumAmountOut = selectedPoolData
+      //   ? parseFloat(selectedPoolData.quote.amount) * (1 - slippageAmount)
+      //   : 0
 
-      let functionName = 'sellBondInPool'
-      let args = [
-        selectedBond.tokenId,
-        selectedPool,
-        selectedOutputToken === 'mixed' ? 'mixed' : selectedOutputToken,
-        String(minimumAmountOut * 1e6),
-      ]
+      // let functionName = 'sellBondInPool'
+      // let args = [
+      //   selectedBond.tokenId,
+      //   selectedPool,
+      //   selectedOutputToken === 'mixed' ? 'mixed' : selectedOutputToken,
+      //   String(minimumAmountOut * 1e6),
+      // ]
 
-      // If mixed token is selected, use different function
-      if (selectedOutputToken === 'mixed') {
-        functionName = 'sellBondInPoolMixed'
-        args = [
-          selectedBond.tokenId,
-          selectedPool,
-          String((minimumAmountOut / 2) * 1e6), // Half for each token
-          String((minimumAmountOut / 2) * 1e6),
-        ]
-      }
+      // // If mixed token is selected, use different function
+      // if (selectedOutputToken === 'mixed') {
+      //   functionName = 'sellBondInPoolMixed'
+      //   args = [
+      //     selectedBond.tokenId,
+      //     selectedPool,
+      //     String((minimumAmountOut / 2) * 1e6), // Half for each token
+      //     String((minimumAmountOut / 2) * 1e6),
+      //   ]
+      // }
 
       // const { request } = await publicClient.simulateContract({
       //   account: address,
@@ -176,9 +173,7 @@ export function SellBond() {
       // toast('Bond sold successfully!')
 
       // Reset form
-      setSelectedNFT('')
-      setSelectedPool('')
-      setSelectedOutputToken('')
+      handleReset()
     } catch (error) {
       console.error(error)
       // @ts-ignore
@@ -198,20 +193,21 @@ export function SellBond() {
         {/* Column 1: Currently Selected Bond */}
         <div className="space-y-4">
           <h3 className="font-semibold">Your Bond</h3>
-          {availableBonds.map((bond) => (
+          {allBonds.map((bond) => (
             <Card
-              key={bond.id}
+              key={bond.tokenId}
               className={`p-4 cursor-pointer transition-colors ${
-                selectedNFT === bond.id ? 'border-blue-500' : 'hover:border-blue-500/50'
+                selectedBond?.tokenId === bond.tokenId
+                  ? 'border-blue-500'
+                  : 'hover:border-blue-500/50'
               }`}
-              onClick={() => setSelectedNFT(bond.id)}
+              onClick={() => setSelectedBond(bond)}
             >
               <div className="flex flex-col gap-2">
-                <h3 className="font-bold">{bond.name}</h3>
+                <h3 className="font-bold">{bond.initiative.title}</h3>
                 <div className="text-sm text-muted-foreground">
-                  <div>Price: {bond.price} USDC</div>
-                  <div>Maturity: {bond.maturityDate}</div>
-                  <div>Yield: {bond.yield}</div>
+                  <div>Tokens: {bond.metadata.nominalValue} USDC</div>
+                  <div>Maturity: {bond.metadata.expires}</div>
                 </div>
               </div>
             </Card>
@@ -241,30 +237,22 @@ export function SellBond() {
         {/* Column 3: Output Currency and Quote Information */}
         <div className="space-y-6">
           {/* Output Currency Section */}
-          {selectedBond && selectedPoolData && (
+          {selectedBond && selectedPool && outputTokens.length > 0 && (
             <div className="space-y-4">
               <h3 className="font-semibold">Output Currency</h3>
               <div className="space-y-2">
                 <Label>Receive Token</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {selectedPoolData.outputTokens.map((token) => (
+                  {outputTokens.map((token) => (
                     <Button
-                      key={token}
-                      variant={selectedOutputToken === token ? 'default' : 'outline'}
+                      key={token.key}
+                      variant={selectedOutputToken?.key === token.key ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedOutputToken(token)}
                     >
-                      {token}
+                      {token.label}
                     </Button>
                   ))}
-                  <Button
-                    variant={selectedOutputToken === 'mixed' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedOutputToken('mixed')}
-                  >
-                    Mixed (50% {selectedPoolData.outputTokens[0]}/{selectedPoolData.outputTokens[1]}
-                    )
-                  </Button>
                 </div>
               </div>
             </div>
@@ -273,18 +261,14 @@ export function SellBond() {
           {/* Quote Details Section */}
           <div className="space-y-4">
             <h3 className="font-semibold">Quote Details</h3>
-            {selectedBond && selectedPoolData && selectedOutputToken ? (
+            {selectedBond && selectedPool && selectedOutputToken ? (
               <Card className="p-4">
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold">Current Quote</h3>
-                    <div className="text-2xl font-bold mt-2">
-                      {selectedOutputToken === 'mixed'
-                        ? `${parseFloat(selectedPoolData.quote.amount) / 2} ${selectedPoolData.outputTokens[0]} + ${parseFloat(selectedPoolData.quote.amount) / 2} ${selectedPoolData.outputTokens[1]}`
-                        : `${selectedPoolData.quote.amount} ${selectedOutputToken}`}
-                    </div>
+                    <div className="text-2xl font-bold mt-2">TODO: BUILD QUOTE</div>
                     <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                      For your {selectedBond.name}
+                      For your NFT#{selectedBond.tokenId}
                     </div>
                   </div>
 
@@ -293,13 +277,13 @@ export function SellBond() {
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
                         Face Value
                       </span>
-                      <span className="font-medium">{selectedBond.faceValue} USDC</span>
+                      <span className="font-medium">{selectedBond.metadata.nominalValue} USDC</span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
                         Discount
                       </span>
-                      <span className="font-medium">{selectedBond.yield}</span>
+                      <span className="font-medium">YEILD 69</span>
                     </div>
                   </div>
 
@@ -354,7 +338,7 @@ export function SellBond() {
       </div>
 
       {/* Action Button */}
-      {selectedBond && selectedPoolData && selectedOutputToken && (
+      {selectedBond && selectedPool && selectedOutputToken && (
         <div className="mt-8">
           <Button
             className="w-full"
