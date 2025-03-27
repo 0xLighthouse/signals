@@ -22,10 +22,9 @@ app.use('/graphql', graphql({ db, schema }))
 app.get('/initiatives/:chainId/:address', getInitiatives)
 
 /**
- * @returns List locks for a given chainId and address
- * @example http://localhost:42069/locks/421614/0x844c0dd2995cd430aab7ddd1dca3fb15836674bc/0x0000000000000000000000000000000000000000
+ * @returns List bonds for a given chainId and address
  */
-app.get('/locks/:chainId/:address/:supporter', getLocks)
+app.get('/bonds/:chainId/:address/:supporter', getLocks)
 
 /**
  * @returns List pools for a given chainId and currency

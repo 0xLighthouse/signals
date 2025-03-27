@@ -12,7 +12,7 @@ interface LocksState {
 
 // TODO: These values can be dynamic now..
 const CHAIN_ID = 421614
-const ADDRESS = context.contracts.SignalsProtocol.address
+const BOARD = context.contracts.SignalsProtocol.address
 
 export const useLocksStore = create<LocksState>((set) => ({
   count: 0,
@@ -23,7 +23,7 @@ export const useLocksStore = create<LocksState>((set) => ({
     try {
       set({ isFetching: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/locks/${CHAIN_ID}/${ADDRESS}/${signerAddress}`)
+      const resp = await fetch(`${INDEXER_ENDPOINT}/bonds/${CHAIN_ID}/${BOARD}/${signerAddress}`)
 
       const { data }: LockResponse = await resp.json()
       if (Array.isArray(data)) {

@@ -18,7 +18,10 @@ export const BondsList = () => {
   const count = useLocksStore((state) => state.count)
 
   useEffect(() => {
-    if (!isInitialized && address) fetchLocks(address)
+    if (!isInitialized && address) {
+      console.log('fetching locks')
+      fetchLocks(address)
+    }
   }, [isInitialized, fetchLocks, address])
 
   const { board } = useSignals()

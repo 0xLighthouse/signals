@@ -7,18 +7,18 @@ import { transform } from '../utils/transform'
 import { SignalsABI } from '../../../../packages/abis'
 
 /**
- * @route GET /locks/:chainId/:address/:supporter
+ * @route GET /bonds/:chainId/:address/:supporter
  */
 export const getLocks = async (c: Context) => {
   const chainId = c.req.param('chainId')
   const address = c.req.param('address').toLowerCase() as `0x${string}`
   const supporter = c.req.param('supporter').toLowerCase() as `0x${string}`
 
-  const locks = await db.query.InitiativeWeight.findMany({
+  const locks = await db.query.Bond.findMany({
     where: and(
-      eq(schema.InitiativeWeight.chainId, Number(chainId)),
-      eq(schema.InitiativeWeight.contractAddress, address),
-      eq(schema.InitiativeWeight.supporter, supporter),
+      eq(schema.Bond.chainId, Number(chainId)),
+      eq(schema.Bond.contractAddress, address),
+      eq(schema.Bond.owner, supporter),
     ),
     with: {
       initiative: true,

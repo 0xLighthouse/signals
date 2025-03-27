@@ -19,7 +19,7 @@ import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { arbitrumSepolia } from 'viem/chains'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useApproveNFT } from '@/hooks/useApproveNFT'
-import { hexToBigInt, hexToNumber } from 'viem'
+import { hexToNumber } from 'viem'
 import { BondHookABI } from '../../../../../../packages/abis'
 
 const resolveOutputTokens = (pool: Pool) => {
@@ -95,10 +95,7 @@ export function SellBond() {
     }
   }, [selectedOutputToken])
 
-  // Handle the approval of the underlying token
-  /**
-   * Approve
-   */
+  // Approve to spend the bond
   const approveNFTConfig = useMemo(() => {
     return {
       actor: address,
@@ -114,9 +111,6 @@ export function SellBond() {
     handleApprove: handleApproveNFT,
     handleRevokeAllowance: handleRevokeNFT,
   } = useApproveNFT(approveNFTConfig)
-
-  console.log('isApprovingNFT', isApprovingNFT)
-  console.log('isApprovedNFT', isApprovedNFT)
 
   // Reset form
   const handleReset = () => {
@@ -154,7 +148,6 @@ export function SellBond() {
       setIsSubmitting(true)
 
       // Appove the SignalsBoard to spend the underlying token
-
       const nonce = await publicClient.getTransactionCount({ address })
       const fee = hexToNumber('0x800000') // Dynamic fee flag
       const tickSpacing = 60
@@ -176,39 +169,6 @@ export function SellBond() {
         desiredCurrency: 2, // we receive mixed currencies
       }
 
-      // inputs: [
-      //   {
-      //     name: 'data',
-      //     internalType: 'struct SwapData',
-      //     type: 'tuple',
-      //     components: [
-      //       {
-      //         name: 'poolKey',
-      //         internalType: 'struct PoolKey',
-      //         type: 'tuple',
-      //         components: [
-      //           { name: 'currency0', internalType: 'Currency', type: 'address' },
-      //           { name: 'currency1', internalType: 'Currency', type: 'address' },
-      //           { name: 'fee', internalType: 'uint24', type: 'uint24' },
-      //           { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-      //           {
-      //             name: 'hooks',
-      //             internalType: 'contract IHooks',
-      //             type: 'address',
-      //           },
-      //         ],
-      //       },
-      //       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      //       { name: 'bondPriceLimit', internalType: 'uint256', type: 'uint256' },
-      //       { name: 'swapPriceLimit', internalType: 'uint160', type: 'uint160' },
-      //       {
-      //         name: 'desiredCurrency',
-      //         internalType: 'enum DesiredCurrency',
-      //         type: 'uint8',
-      //       },
-      //     ],
-      //   },
-      // ],
       const { request } = await publicClient.simulateContract({
         account: address,
         address: context.contracts.BondHook.address,

@@ -23,6 +23,31 @@ export const Board = onchainTable('boards', (t) => ({
   underlyingToken: t.hex().notNull(),
 }))
 
+export const Transfer = onchainTable('transfers', (t) => ({
+  id: t.text().primaryKey(),
+  chainId: t.integer().notNull(),
+  blockTimestamp: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
+  contractAddress: t.hex().notNull(),
+  // --- attributes
+  from: t.hex().notNull(),
+  to: t.hex().notNull(),
+  tokenId: t.bigint().notNull(),
+}))
+
+export const Bond = onchainTable('bonds', (t) => ({
+  id: t.text().primaryKey(),
+  chainId: t.integer().notNull(),
+  contractAddress: t.hex().notNull(),
+  tokenId: t.bigint().notNull(),
+  blockTimestamp: t.bigint().notNull(),
+  // --- attributes
+  initiativeId: t.integer(),
+  owner: t.hex().notNull(),
+  burnedAt: t.bigint(),
+  isActive: t.boolean().notNull(),
+}))
+
 export const Initiative = onchainTable('initiatives', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
@@ -73,7 +98,15 @@ export const boardRelations = relations(Board, ({ many }) => ({
 
 export const initiativeRelations = relations(Initiative, ({ one, many }) => ({
   board: one(Board),
+  bonds: many(Bond),
   weights: many(InitiativeWeight),
+}))
+
+export const bondRelations = relations(Bond, ({ one }) => ({
+  initiative: one(Initiative, {
+    fields: [Bond.initiativeId, Bond.contractAddress, Bond.chainId],
+    references: [Initiative.initiativeId, Initiative.contractAddress, Initiative.chainId],
+  }),
 }))
 
 export const weightRelations = relations(InitiativeWeight, ({ one }) => ({

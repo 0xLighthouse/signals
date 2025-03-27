@@ -3,12 +3,6 @@ import schema from 'ponder:schema'
 import { SignalsABI } from '../../../packages/abis'
 
 ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
-  console.log('SignalsBoard:InitiativeProposed', event.args)
-  // const hooks = await context.client.readContract({
-  //   address: event.log.address,
-  //   abi: SignalsABI,
-  //   functionName: ,
-  // })
   await context.db.insert(schema.Initiative).values({
     id: event.id,
     chainId: context.network.chainId,
@@ -22,7 +16,48 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
   })
 })
 
+ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
+  console.log('SignalsBoard:Transfer', event)
+
+  const { from, to, tokenId } = event.args
+
+  // Create transfer record
+  await context.db.insert(schema.Transfer).values({
+    id: event.id,
+    chainId: context.network.chainId,
+    blockTimestamp: event.block.timestamp,
+    transactionHash: event.transaction.hash,
+    contractAddress: event.log.address,
+    // --- attributes
+    from: from as `0x${string}`,
+    to: to as `0x${string}`,
+    tokenId: tokenId,
+  })
+
+  const key = `${context.network.chainId}:${event.log.address}:${tokenId}`
+
+  // Handle mint (from zero address)
+  if (from === '0x0000000000000000000000000000000000000000') {
+    // No-op, we'll handle this in the initiative supported event
+  }
+  // Handle burn (to zero address)
+  else if (to === '0x0000000000000000000000000000000000000000') {
+    await context.db.update(schema.Bond, { id: key }).set({
+      burnedAt: event.block.timestamp,
+      isActive: false,
+    })
+  }
+  // Handle regular transfer
+  else {
+    // Update NFT owner
+    await context.db.update(schema.Bond, { id: key }).set({
+      owner: to as `0x${string}`,
+    })
+  }
+})
+
 ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
+  console.log('SignalsBoard:InitiativeSupported', event)
   await context.db.insert(schema.InitiativeWeight).values({
     id: event.id,
     chainId: context.network.chainId,
@@ -35,6 +70,20 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
     supporter: event.args.supporter,
     duration: event.args.lockDuration,
     tokenId: event.args.tokenId,
+  })
+
+  const key = `${context.network.chainId}:${event.log.address}:${event.args.tokenId}`
+
+  // Register the bond NFT separately, so we can track ownership
+  await context.db.insert(schema.Bond).values({
+    id: key,
+    chainId: context.network.chainId,
+    blockTimestamp: event.block.timestamp,
+    contractAddress: event.log.address,
+    // --- attributes
+    owner: event.args.supporter as `0x${string}`,
+    tokenId: event.args.tokenId,
+    isActive: true,
   })
 })
 
@@ -73,35 +122,6 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   })
 })
 
-// ponder.on('Signals:InitiativeProposed', async ({ event, context }) => {
-//   await context.db.insert(schema.InitiativeProposedEvent).values({
-//     id: event.id,
-//     chainId: context.network.chainId,
-//     contractAddress: event.log.address,
-//     blockTimestamp: event.block.timestamp,
-//     transactionHash: event.transaction.hash,
-//     initiativeId: Number(event.args.initiativeId),
-//     proposer: event.args.proposer,
-//     title: event.args.title,
-//     body: event.args.body,
-//   })
-// })
-
-// ponder.on('Signals:InitiativeSupported', async ({ event, context }) => {
-//   await context.db.insert(schema.InitiativeSupportedEvent).values({
-//     id: event.id,
-//     chainId: context.network.chainId,
-//     contractAddress: event.log.address,
-//     blockTimestamp: event.block.timestamp,
-//     transactionHash: event.transaction.hash,
-//     initiativeId: Number(event.args.initiativeId),
-//     supporter: event.args.supporter,
-//     amount: event.args.tokenAmount,
-//     lockDuration: Number(event.args.lockDuration),
-//     // timestamp: event.block.timestamp,
-//   })
-// })
-
 // FIXME: wtf is up with the types?
 //  args: {
 //   id: '0xd747d5c96aa744c2284ef5763974ac7c63e84ca7e0b6ba1c21d1ea0cbcda869e',
@@ -115,7 +135,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 // },
 // @ts-ignore
 ponder.on('PoolManager:Initialize', async ({ event, context }) => {
-  console.log('PoolManager:Initialize', event)
+  // console.log('PoolManager:Initialize', event)
 
   await context.db.insert(schema.Pool).values({
     id: event.id,
