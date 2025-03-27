@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
-import { useLocksStore } from '@/stores/useLocksStore'
+import { useLocksStore } from '@/stores/useBondsStore'
 import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool, Lock } from '@/indexers/api/types'
 import { PoolsAvailable } from '../pools/pools-available'
@@ -21,32 +21,9 @@ import { useUnderlying } from '@/contexts/ContractContext'
 import { useApproveNFT } from '@/hooks/useApproveNFT'
 import { hexToNumber } from 'viem'
 import { BondHookABI } from '../../../../../../packages/abis'
+import { OutputToken, resolveOutputTokens } from './utils'
 
-const resolveOutputTokens = (pool: Pool) => {
-  const outputTokens: OutputToken[] = []
-  outputTokens.push({
-    key: 'currency0',
-    label: `${pool.currency0.symbol}`,
-  })
-  outputTokens.push({
-    key: 'currency1',
-    label: `${pool.currency1.symbol}`,
-  })
-  outputTokens.push({
-    key: 'mixed',
-    label: `Mixed (50% ${pool.currency0.symbol}/${pool.currency1.symbol})`,
-  })
-  return outputTokens
-}
-
-type OutputTokenKey = 'mixed' | 'currency0' | 'currency1'
-
-interface OutputToken {
-  key: OutputTokenKey
-  label: string
-}
-
-export function SellBond() {
+export function BondBuy() {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
@@ -79,7 +56,7 @@ export function SellBond() {
 
   const fetchQuote = async () => {
     const quote = await fetch(
-      `${INDEXER_ENDPOINT}/quote/${arbitrumSepolia.id}/${context.contracts.BondHook.address}/${selectedBond?.tokenId}?type=user-sell`,
+      `${INDEXER_ENDPOINT}/quote/${arbitrumSepolia.id}/${context.contracts.BondHook.address}/${selectedBond?.tokenId}?type=user-buy`,
     )
     const resp = await quote.json()
     return resp.data.quoteInUnderlying
@@ -88,7 +65,6 @@ export function SellBond() {
   // Build quote when output token is selected
   useEffect(() => {
     if (selectedOutputToken) {
-      console.log('----- TODO: BUILD QUOTE -----')
       fetchQuote().then((quote) => {
         setQuote(quote)
       })
@@ -119,8 +95,8 @@ export function SellBond() {
     setSelectedOutputToken(undefined)
   }
 
-  const handleSellBond = async () => {
-    console.log('handleSellBond')
+  const handlePurchaseBond = async () => {
+    console.log('handlePurchaseBond')
     if (!address) {
       toast('Please connect a wallet')
       return
@@ -187,7 +163,7 @@ export function SellBond() {
       })
 
       console.log('Receipt:', receipt)
-      toast('Bond sold successfully!')
+      toast('Bond purchased successfully!')
 
       // Reset form
       // handleReset()
@@ -197,7 +173,7 @@ export function SellBond() {
       if (error?.message?.includes('User rejected the request')) {
         toast('User rejected the request')
       } else {
-        toast('Error selling bond :(')
+        toast('Error purchasing bond :(')
       }
     } finally {
       setIsSubmitting(false)
@@ -225,11 +201,11 @@ export function SellBond() {
     return (
       <Button
         className="w-full"
-        onClick={handleSellBond}
+        onClick={handlePurchaseBond}
         disabled={isSubmitting}
         isLoading={isSubmitting}
       >
-        {isSubmitting ? 'Processing...' : 'Sell Bond'}
+        {isSubmitting ? 'Processing...' : 'Purchase Bond'}
       </Button>
     )
   }

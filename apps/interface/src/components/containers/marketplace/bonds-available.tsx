@@ -1,44 +1,46 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useLocksStore } from '@/stores/useLocksStore'
+import { useBondsStore } from '@/stores/useBondsStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { BondCard } from './bond.card'
-import { useAccount } from '@/hooks/useAccount'
 import { useSignals } from '@/contexts/SignalsContext'
 import { PageSection } from '@/components/page-section'
+import { context } from '@/config/web3'
 
-export const BondsList = () => {
-  const { address } = useAccount()
-  const locks = useLocksStore((state) => state.locks)
-  const isFetchingLocks = useLocksStore((state) => state.isFetching)
-  const fetchLocks = useLocksStore((state) => state.fetchLocks)
-  const isInitialized = useLocksStore((state) => state.isInitialized)
-  const count = useLocksStore((state) => state.count)
+export const BondsAvailable = () => {
+  const address = context.contracts.BondHook.address
+  const bonds = useBondsStore((s) => s.bondsAvailable)
+  const isFetching = useBondsStore((s) => s.isBondsAvailableFetching)
+  const isInitialized = useBondsStore((s) => s.isBondsAvailableInitalized)
+  const fetchBondsAvailable = useBondsStore((s) => s.fetchBondsAvailable)
 
   useEffect(() => {
-    if (!isInitialized && address) {
-      console.log('fetching locks')
-      fetchLocks(address)
+    if (!isInitialized && !isFetching) {
+      console.log('Fetching bonds owned by the BondHook contract:', address)
+      // Prevent immediate re-render that can cause infinite loop
+      setTimeout(() => {
+        fetchBondsAvailable(address)
+      }, 0)
     }
-  }, [isInitialized, fetchLocks, address])
+  }, [isInitialized, isFetching, fetchBondsAvailable, address])
 
   const { board } = useSignals()
 
-  if (isFetchingLocks) {
+  if (isFetching) {
     return <LoadingSpinner />
   }
 
   // If we have no bonds, show empty state
-  if (locks.length === 0) {
+  if (bonds.length === 0) {
     return (
-      <ListContainer title={board.name} count={count}>
+      <ListContainer title={board.name} count={bonds.length}>
         <PageSection>
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">No locked tokens found</h3>
+            <h3 className="text-lg font-medium mb-2">No bonds available</h3>
             <p className="text-neutral-500 dark:text-neutral-400">
-              When you lock tokens against an initiative, they will appear here.
+              Bonds held by the Hook contract will appear here.
             </p>
           </div>
         </PageSection>
@@ -48,15 +50,15 @@ export const BondsList = () => {
   }
 
   return (
-    <ListContainer title={board.name} count={count}>
-      {locks.map((item, index) => (
+    <ListContainer title={board.name} count={bonds.length}>
+      {bonds.map((item, index) => (
         <BondCard
           key={item.initiativeId}
           bond={item}
           board={board}
           index={index}
           isFirst={index === 0}
-          isLast={index === locks.length - 1}
+          isLast={index === bonds.length - 1}
         />
       ))}
     </ListContainer>

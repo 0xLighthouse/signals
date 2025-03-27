@@ -22,6 +22,7 @@ ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
   const { from, to, tokenId } = event.args
 
   // Create transfer record
+  // FIXME: Not really needed, but we can use it to track the history of the bond
   await context.db.insert(schema.Transfer).values({
     id: event.id,
     chainId: context.network.chainId,
@@ -78,10 +79,11 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
   await context.db.insert(schema.Bond).values({
     id: key,
     chainId: context.network.chainId,
-    blockTimestamp: event.block.timestamp,
     contractAddress: event.log.address,
+    blockTimestamp: event.block.timestamp,
     // --- attributes
     owner: event.args.supporter as `0x${string}`,
+    initiativeId: Number(event.args.initiativeId),
     tokenId: event.args.tokenId,
     isActive: true,
   })
