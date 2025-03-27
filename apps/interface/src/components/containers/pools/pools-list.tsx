@@ -22,10 +22,10 @@ export const PoolsList = () => {
   }, [isInitialized, fetchPools])
 
   // Mock user liquidity data
-  const getUserLiquidity = (poolId: number) => {
+  const getUserLiquidity = (poolId: string) => {
     console.log('TODO: Fetch users liquidity for pool', poolId)
     // This would normally come from a real data source
-    const mockUserLiquidity: Record<number, number> = {
+    const mockUserLiquidity: Record<string, number> = {
       1: 500,
       2: 0,
       3: 2500,

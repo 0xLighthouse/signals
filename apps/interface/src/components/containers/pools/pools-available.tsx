@@ -20,7 +20,10 @@ export const PoolsAvailable = ({
     >
       <div className="flex flex-col gap-2">
         <h3 className="font-bold">
-          {pool.currency0.symbol}/{pool.currency1.symbol} Pool {pool.version}
+          {pool.currency0.symbol}/{pool.currency1.symbol} Pool{' '}
+          <span className="text-xs bg-blue-500/10 px-1.5 py-0.5 rounded-md text-blue-500">
+            {pool.version}
+          </span>
         </h3>
         <div className="text-sm text-muted-foreground">
           <div>

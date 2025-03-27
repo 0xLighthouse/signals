@@ -65,7 +65,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
   const resetFormState = () => {
-    setAmount(0)
+    setAmount('0')
     setDuration(1)
   }
 
