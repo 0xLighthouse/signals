@@ -67,6 +67,8 @@ export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenA
       console.log('Transaction Receipt:', receipt)
       toast('Tokens approved!')
       setHasAllowance(true)
+      // Refetch allowance
+      memoizedFetchAllowance()
     } catch (error) {
       console.error('Error during approval process:', error)
       // @ts-ignore
