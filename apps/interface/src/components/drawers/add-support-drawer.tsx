@@ -17,7 +17,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
@@ -40,7 +40,16 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const existingLocks = useBondsStore((s) => s.bondsOwned)
+  const initiativeLocks = useBondsStore((s) => s.initiativeLocks)
+  const fetchInitiativeLocks = useBondsStore((s) => s.fetchInitiativeLocks)
+  const isInitiativeLocksInitialized = useBondsStore((s) => s.isInitiativeLocksInitialized)
+
+  useEffect(() => {
+    if (!isInitiativeLocksInitialized) {
+      console.log(`Fetching locks for [initiativeId:${initiative.initiativeId}]`)
+      fetchInitiativeLocks(initiative.initiativeId.toString())
+    }
+  }, [initiative.initiativeId, isInitiativeLocksInitialized, fetchInitiativeLocks])
 
   const amount = amountValue ? Number(amountValue) : 0
 
@@ -274,7 +283,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                   duration={duration}
                   threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
-                  existingLocks={existingLocks}
+                  existingLocks={initiativeLocks}
                 />
               </div>
             </div>
@@ -294,7 +303,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
               duration={duration}
               threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
-              existingLocks={existingLocks}
+              existingLocks={initiativeLocks}
             />
           </div>
         </div>

@@ -8,7 +8,7 @@ import { useUnderlying } from '@/contexts/ContractContext'
 
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
-import { Lock } from '@/indexers/api/types'
+import { InitiativeLock } from '@/indexers/api/types'
 
 interface Props {
   initiative: InitiativeDetails | undefined
@@ -16,7 +16,7 @@ interface Props {
   amount?: number | null
   duration?: number
   threshold?: number | null
-  existingLocks: Lock[]
+  existingLocks: InitiativeLock[]
   proposeNewInitiative?: boolean
   supportInitiative?: boolean
 }

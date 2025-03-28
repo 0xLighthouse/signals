@@ -1,4 +1,5 @@
-import { Lock, InitiativeDetails, Weight, getDefaultEnd, calculateWeight } from './curves'
+import { InitiativeLock } from '@/indexers/api/types'
+import { InitiativeDetails, Weight, getDefaultEnd, calculateWeight } from './curves'
 import { DateTime } from 'luxon'
 
 export interface ChartTick {
@@ -26,15 +27,9 @@ const normaliseWeights = (weights: Weight) => {
 }
 
 export function generateTicks(
-  existingData: Lock[],
-  {
-    initiative,
-    acceptanceThreshold,
-    chartInterval,
-    maxTimeWindow,
-    minTimeWindow,
-  }: ChartOptions,
-  newLock: Lock[] = [],
+  existingData: InitiativeLock[],
+  { initiative, acceptanceThreshold, chartInterval, maxTimeWindow, minTimeWindow }: ChartOptions,
+  newLock: InitiativeLock[] = [],
 ): ChartTick[] {
   if (!initiative.lockInterval || initiative.lockInterval === 0) {
     throw new Error('Lock interval is not set')
@@ -48,7 +43,10 @@ export function generateTicks(
     getDefaultEnd(newLock, initiative.lockInterval),
   )
 
-  const endTime: number = Math.max(Math.min(latestEndTime, startTime + maxTimeWindow), startTime + minTimeWindow)
+  const endTime: number = Math.max(
+    Math.min(latestEndTime, startTime + maxTimeWindow),
+    startTime + minTimeWindow,
+  )
 
   const normalisedExistingData = normaliseWeights(
     calculateWeight(initiative, existingData, chartInterval, startTime, endTime),

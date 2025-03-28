@@ -1,10 +1,4 @@
-export interface Lock {
-  tokenAmount: number // amount of toekens, as a decimal
-  lockDuration: number // duration of the lock in intervals
-  createdAt: number // unix timestamp of when the lock was created
-  isWithdrawn: boolean // if the lock has been withdrawn
-}
-
+// FIXME: This type needs to be merged into our indexer types
 export interface InitiativeDetails {
   createdAt: number // unix timestamp of when the initative was created
   lockInterval: number | null // lock interval in seconds

@@ -13,7 +13,7 @@ import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
-import { Lock } from '@/indexers/api/types'
+import { InitiativeLock } from '@/indexers/api/types'
 
 export const description = 'A line chart with a custom label'
 
@@ -30,7 +30,7 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  existingLocks: Lock[]
+  existingLocks: InitiativeLock[]
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number
@@ -58,10 +58,10 @@ export const Chart: React.FC<Props> = ({
     }
 
     const _locks = existingLocks.map((lock) => ({
-      tokenAmount: Number(lock.metadata.nominalValue),
-      lockDuration: Number(lock.duration),
-      createdAt: lock.blockTimestamp,
-      isWithdrawn: false,
+      tokenAmount: Number(lock.nominalValue),
+      lockDuration: Number(lock.durationAsIntervals),
+      createdAt: Number(lock.createdAt),
+      isWithdrawn: lock.isRedeemed,
     }))
 
     // console.log('options', options)
