@@ -44,7 +44,6 @@ export const Chart: React.FC<Props> = ({
   durationInput,
 }) => {
   const [data, setData] = useState<ChartTick[]>([])
-  const [chartZoom, setChartZoom] = useState<[number, number]>([0, 1])
 
   useEffect(() => {
     if (!initiative || !acceptanceThreshold) return
@@ -57,32 +56,18 @@ export const Chart: React.FC<Props> = ({
       minTimeWindow: 60 * 60 * 24 * 7,
     }
 
-    const _locks = existingLocks.map((lock) => ({
-      tokenAmount: Number(lock.nominalValue),
-      lockDuration: Number(lock.durationAsIntervals),
-      createdAt: Number(lock.createdAt),
-      isWithdrawn: lock.isRedeemed,
-    }))
-
-    // console.log('options', options)
-    // console.log('locks', _locks)
-    // console.log('newLock', {
-    //   amountInput,
-    //   durationInput,
-    // })
-
     // Update chart if input data is provided
     const chartData =
       amountInput && durationInput
-        ? generateTicks(_locks, options, [
+        ? generateTicks(existingLocks, options, [
             {
-              tokenAmount: amountInput,
-              lockDuration: durationInput,
-              createdAt: DateTime.now().toUnixInteger(),
-              isWithdrawn: false,
+              nominalValue: BigInt(amountInput),
+              durationAsIntervals: BigInt(durationInput),
+              createdAt: BigInt(DateTime.now().toUnixInteger()),
+              isRedeemed: false,
             },
           ])
-        : generateTicks(_locks, options)
+        : generateTicks(existingLocks, options)
     setData(chartData)
   }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold])
 

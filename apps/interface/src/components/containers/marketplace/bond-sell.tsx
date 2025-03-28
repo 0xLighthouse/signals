@@ -24,7 +24,7 @@ import { BondHookABI } from '../../../../../../packages/abis'
 import { OutputToken, resolveOutputTokens } from './utils'
 
 interface BondSellProps {
-  initialTokenId?: number
+  initialTokenId?: bigint
 }
 
 export function BondSell({ initialTokenId }: BondSellProps) {
@@ -54,7 +54,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   // Initialize selected bond if initialTokenId is provided
   useEffect(() => {
     if (initialTokenId && address && allBonds.length > 0) {
-      const bond = allBonds.find((bond) => Number(bond.tokenId) === initialTokenId)
+      const bond = allBonds.find((bond) => bond.tokenId === initialTokenId)
       if (bond) {
         setSelectedBond(bond)
       }
