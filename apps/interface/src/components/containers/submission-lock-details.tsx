@@ -32,7 +32,6 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   supportInitiative = false,
 }) => {
   console.log('SubmissionLockDetails().render')
-  console.log('SubmissionLockDetails().render')
 
   const { symbol, decimals } = useUnderlying()
 

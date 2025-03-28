@@ -19,10 +19,7 @@ export const BondsOwned = () => {
   useEffect(() => {
     if (address && !isInitialized && !isFetching) {
       console.log('Fetching bonds owned by user:', address)
-      // Prevent immediate re-render that can cause infinite loop
-      setTimeout(() => {
-        fetchBondsOwned(address)
-      }, 0)
+      fetchBondsOwned(address)
     }
   }, [address, isInitialized, isFetching, fetchBondsOwned])
 

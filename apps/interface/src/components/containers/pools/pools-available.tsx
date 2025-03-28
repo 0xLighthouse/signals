@@ -14,7 +14,7 @@ export const PoolsAvailable = ({
     <Card
       key={pool.poolId}
       className={`p-4 cursor-pointer transition-colors ${
-        selectedPoolId === pool.poolId ? 'border-blue-500' : 'hover:border-blue-500/50'
+        selectedPoolId === pool.poolId ? 'border-neutral-500' : 'hover:border-neutral-500/50'
       }`}
       onClick={() => handleOnClick(pool.poolId)}
     >

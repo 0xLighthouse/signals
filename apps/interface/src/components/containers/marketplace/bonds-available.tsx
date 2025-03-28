@@ -28,7 +28,7 @@ export const BondsAvailable = () => {
 
   const { board } = useSignals()
 
-  if (isFetching) {
+  if (isFetching || !isInitialized) {
     return <LoadingSpinner />
   }
 
@@ -50,7 +50,7 @@ export const BondsAvailable = () => {
   }
 
   return (
-    <ListContainer title={board.name} count={bonds.length}>
+    <ListContainer title={'Available for purchase'} count={bonds.length}>
       {bonds.map((item, index) => (
         <BondCard
           action="purchase"

@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { InitiativeDetails } from '@/lib/curves'
-import { ChartTick, generateTicks, ChartOptions, ChartLock, InitiativeLocksToChartLocks } from '@/lib/chart'
+import { ChartTick, generateTicks, ChartOptions, InitiativeLocksToChartLocks } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
@@ -65,7 +65,7 @@ export const Chart: React.FC<Props> = ({
       amountInput && durationInput
         ? generateTicks(existingChartLocks, options, [
             {
-              nominalValue: BigInt(amountInput * 10 ** (decimals)),
+              nominalValue: BigInt(amountInput * 10 ** decimals),
               nominalValueAsWAD: amountInput,
               durationAsIntervals: BigInt(durationInput),
               createdAt: BigInt(DateTime.now().toUnixInteger()),

@@ -26,9 +26,6 @@ export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorPro
   const [open, setOpen] = useState(false)
   const [selectedBoard, setSelectedBoard] = useState('')
 
-  console.log('boards', boards)
-  console.log('isLoading', isLoading)
-
   // Initially set the current board address as selected
   useEffect(() => {
     if (context.contracts.SignalsProtocol.address) {

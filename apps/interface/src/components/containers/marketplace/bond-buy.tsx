@@ -43,11 +43,11 @@ export function BondBuy() {
   const allPools = usePoolsStore((state) => state.pools)
 
   // // Fetch bonds if they are not initialized
-  // useEffect(() => {
-  //   if (allBonds.length === 0) {
-  //     useBondsStore.getState().fetchBonds()
-  //   }
-  // }, [allBonds])
+  useEffect(() => {
+    if (allBonds.length === 0) {
+      useBondsStore.getState().fetchBondsAvailable(context.contracts.BondHook.address)
+    }
+  }, [allBonds])
 
   /**
    * Approve Currency0

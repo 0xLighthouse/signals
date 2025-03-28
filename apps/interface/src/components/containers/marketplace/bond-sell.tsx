@@ -32,7 +32,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
   const [selectedPool, setSelectedPool] = useState<Pool | undefined>(undefined)
-  const [selectedOutputToken, setSelectedOutputToken] = useState<OutputToken | undefined>(undefined)
+  const [outputToken, setOutputToken] = useState<OutputToken | undefined>(undefined)
   const [outputTokens, setOutputTokens] = useState<OutputToken[]>([])
   const [quote, setQuote] = useState<number | undefined>(undefined)
   const { formatter: formatterUnderlying, symbol: symbolUnderlying } = useUnderlying()
@@ -41,7 +41,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   const [slippage, setSlippage] = useState('0.5')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const allBonds = useBondsStore((state) => state.bondsAvailable)
+  const allBonds = useBondsStore((state) => state.bondsOwned)
   const allPools = usePoolsStore((state) => state.pools)
 
   // Fetch pools if they are not initialized
@@ -51,15 +51,15 @@ export function BondSell({ initialTokenId }: BondSellProps) {
     }
   }, [allPools])
 
-  // Initialize selected bond if initialTokenId is provided
-  useEffect(() => {
-    if (initialTokenId && address && allBonds.length > 0) {
-      const bond = allBonds.find((bond) => bond.tokenId === initialTokenId)
-      if (bond) {
-        setSelectedBond(bond)
-      }
-    }
-  }, [initialTokenId, address, allBonds])
+  // Initialize selected bond if an initialTokenId was provided
+  // useEffect(() => {
+  //   if (initialTokenId && address && allBonds.length > 0) {
+  //     const bond = allBonds.find((bond) => bond.tokenId === initialTokenId)
+  //     if (bond) {
+  //       setSelectedBond(bond)
+  //     }
+  //   }
+  // }, [initialTokenId, address, allBonds])
 
   // Compute output tokens based on selected pool
   useEffect(() => {
@@ -78,13 +78,13 @@ export function BondSell({ initialTokenId }: BondSellProps) {
 
   // Build quote when output token is selected
   useEffect(() => {
-    if (selectedOutputToken) {
+    if (outputToken) {
       console.log('----- TODO: BUILD QUOTE -----')
       fetchQuote().then((quote) => {
         setQuote(quote)
       })
     }
-  }, [selectedOutputToken])
+  }, [outputToken])
 
   // Approve to spend the bond
   const approveNFTConfig = useMemo(() => {
@@ -107,11 +107,10 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   const handleReset = () => {
     setSelectedBond(undefined)
     setSelectedPool(undefined)
-    setSelectedOutputToken(undefined)
+    setOutputToken(undefined)
   }
 
   const handleSellBond = async () => {
-    console.log('handleSellBond')
     if (!address) {
       toast('Please connect a wallet')
       return
@@ -125,7 +124,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
       return
     }
 
-    if (!selectedBond || !selectedPool || !selectedOutputToken) {
+    if (!selectedBond || !selectedPool || !outputToken) {
       toast('Please select all required options')
       return
     }
@@ -196,8 +195,6 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   }
 
   const selectAction = (tokenId: bigint) => {
-    console.log('tokenId', tokenId)
-    console.log('isApprovedNFT', isApprovedNFT)
     if (!isApprovedNFT) {
       return (
         <Button
@@ -208,7 +205,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
           disabled={isApprovingNFT}
           isLoading={isSubmitting}
         >
-          {isSubmitting ? 'Processing...' : 'Approve NFT'}
+          {isSubmitting ? 'Processing...' : `Approve NFT#${tokenId}`}
         </Button>
       )
     }
@@ -220,7 +217,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
         disabled={isSubmitting}
         isLoading={isSubmitting}
       >
-        {isSubmitting ? 'Processing...' : 'Sell Bond'}
+        {isSubmitting ? 'Processing...' : `Sell Bond#${tokenId}`}
       </Button>
     )
   }
@@ -236,8 +233,8 @@ export function BondSell({ initialTokenId }: BondSellProps) {
               key={bond.tokenId}
               className={`p-4 cursor-pointer transition-colors ${
                 selectedBond?.tokenId === bond.tokenId
-                  ? 'border-blue-500'
-                  : 'hover:border-blue-500/50'
+                  ? 'border-neutral-500'
+                  : 'hover:border-neutral-500/50'
               }`}
               onClick={() => setSelectedBond(bond)}
             >
@@ -279,14 +276,13 @@ export function BondSell({ initialTokenId }: BondSellProps) {
             <div className="space-y-4">
               <h3 className="font-semibold">Output Currency</h3>
               <div className="space-y-2">
-                <Label>Receive Token</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {outputTokens.map((token) => (
                     <Button
                       key={token.key}
-                      variant={selectedOutputToken?.key === token.key ? 'default' : 'outline'}
+                      variant={outputToken?.key === token.key ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setSelectedOutputToken(token)}
+                      onClick={() => setOutputToken(token)}
                     >
                       {token.label}
                     </Button>
@@ -298,14 +294,14 @@ export function BondSell({ initialTokenId }: BondSellProps) {
 
           {/* Quote Details Section */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Quote Details</h3>
-            {selectedBond && selectedPool && selectedOutputToken ? (
+            {selectedBond && selectedPool && outputToken ? (
               <Card className="p-4">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold">Current Quote</h3>
-                    <div className="text-2xl font-bold mt-2">TODO: BUILD QUOTE</div>
-                    <div className="text-2xl font-bold mt-2">{formatterUnderlying(quote)}</div>
+                    <h3 className="font-semibold">Offer</h3>
+                    <div className="text-2xl font-bold mt-2">
+                      {formatterUnderlying(quote)} {outputToken.label}
+                    </div>
                     <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                       For your NFT#{selectedBond.tokenId}
                     </div>
@@ -322,15 +318,13 @@ export function BondSell({ initialTokenId }: BondSellProps) {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                        Discount
-                      </span>
-                      <span className="font-medium">YEILD 69</span>
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400">Yield</span>
+                      <span className="font-medium">69%</span>
                     </div>
                   </div>
 
                   {/* Advanced Settings */}
-                  <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-4">
+                  {/* <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 mt-4">
                     <Collapsible
                       open={showAdvanced}
                       onOpenChange={setShowAdvanced}
@@ -367,7 +361,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
-                  </div>
+                  </div> */}
                 </div>
               </Card>
             ) : (
@@ -380,7 +374,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
       </div>
 
       {/* Action Button */}
-      {selectedBond && selectedPool && selectedOutputToken && quote && (
+      {selectedBond && selectedPool && outputToken && quote && (
         <div className="mt-8">{selectAction(selectedBond.tokenId)}</div>
       )}
     </div>
