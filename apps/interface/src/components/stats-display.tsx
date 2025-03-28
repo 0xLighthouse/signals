@@ -23,7 +23,7 @@ export const StatsDisplay = ({ stats, className = '' }: StatsDisplayProps) => {
   return (
     <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${className}`}>
       {stats.map((stat, index) => (
-        <StatItem key={index} label={stat.label} value={stat.value} />
+        <StatItem key={`stat-${index}`} label={stat.label} value={stat.value} />
       ))}
     </div>
   )

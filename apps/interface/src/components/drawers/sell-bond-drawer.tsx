@@ -1,5 +1,3 @@
-'use client'
-
 import { CircleAlert, Tag } from 'lucide-react'
 import { toast } from 'sonner'
 

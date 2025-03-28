@@ -1,5 +1,3 @@
-'use client'
-
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -28,7 +26,6 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
-import { InitiativeSupportedEvent } from '@/lib/curves'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
@@ -150,29 +147,6 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       </Button>
     )
   }
-
-  useEffect(() => {
-    if (existingLocks === undefined) {
-      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`, {
-        next: {
-          revalidate: 60, // 1 min
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setExistingLocks(data)
-        })
-        .catch((error) => console.error('Error fetching locks:', error)) // Handle errors
-    }
-  }, [initiative.initiativeId, existingLocks])
-
-  useEffect(() => {
-    if (existingLocks && existingLocks.length > 0) {
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-    }
-  }, [existingLocks])
 
   return (
     <Drawer

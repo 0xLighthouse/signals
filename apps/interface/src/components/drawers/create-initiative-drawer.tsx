@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import { CircleAlert, PlusIcon } from 'lucide-react'
 import { useWeb3 } from '@/contexts/Web3Provider'

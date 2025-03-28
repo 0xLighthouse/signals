@@ -1,5 +1,3 @@
-'use client'
-
 import { CircleAlert, CircleFadingPlus, Download } from 'lucide-react'
 import { toast } from 'sonner'
 
