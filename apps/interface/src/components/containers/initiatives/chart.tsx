@@ -8,11 +8,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { InitiativeDetails, Lock } from '@/lib/curves'
+import { InitiativeDetails } from '@/lib/curves'
 import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
+import { Lock } from '@/indexers/api/types'
 
 export const description = 'A line chart with a custom label'
 
@@ -29,8 +30,7 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  existingLocks: any[]
-  // existingLocks: InitiativeSupportedEvent[]
+  existingLocks: Lock[]
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number
@@ -58,9 +58,9 @@ export const Chart: React.FC<Props> = ({
     }
 
     const _locks = existingLocks.map((lock) => ({
-      tokenAmount: lock.tokenAmount,
-      lockDuration: lock.lockDuration,
-      createdAt: lock.timestamp,
+      tokenAmount: Number(lock.metadata.nominalValue),
+      lockDuration: Number(lock.duration),
+      createdAt: lock.blockTimestamp,
       isWithdrawn: false,
     }))
 

@@ -3,11 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Chart } from './initiatives/chart'
 import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
-import { InitiativeDetails, InitiativeSupportedEvent } from '@/lib/curves'
+import { InitiativeDetails } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
 
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
+import { Lock } from '@/indexers/api/types'
 
 interface Props {
   initiative: InitiativeDetails | undefined
@@ -15,7 +16,7 @@ interface Props {
   amount?: number | null
   duration?: number
   threshold?: number | null
-  existingLocks: InitiativeSupportedEvent[]
+  existingLocks: Lock[]
   proposeNewInitiative?: boolean
   supportInitiative?: boolean
 }

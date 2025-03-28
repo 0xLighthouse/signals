@@ -17,7 +17,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
@@ -26,6 +26,7 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
+import { useBondsStore } from '@/stores/useBondsStore'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
@@ -38,9 +39,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [existingLocks, setExistingLocks] = useState<InitiativeSupportedEvent[] | undefined>(
-    undefined,
-  )
+
+  const existingLocks = useBondsStore((s) => s.bondsOwned)
 
   const amount = amountValue ? Number(amountValue) : 0
 
@@ -274,7 +274,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                   duration={duration}
                   threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
-                  existingLocks={existingLocks || []}
+                  existingLocks={existingLocks}
                 />
               </div>
             </div>
@@ -294,7 +294,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
               duration={duration}
               threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
-              existingLocks={existingLocks || []}
+              existingLocks={existingLocks}
             />
           </div>
         </div>
