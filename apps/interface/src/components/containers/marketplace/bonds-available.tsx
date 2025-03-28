@@ -40,7 +40,7 @@ export const BondsAvailable = () => {
           <div className="text-center py-8">
             <h3 className="text-lg font-medium mb-2">No bonds available</h3>
             <p className="text-neutral-500 dark:text-neutral-400">
-              Bonds held by the Hook contract will appear here.
+              Bonds held by the Hook contract that are available for purchase will appear here.
             </p>
           </div>
         </PageSection>
@@ -53,6 +53,7 @@ export const BondsAvailable = () => {
     <ListContainer title={board.name} count={bonds.length}>
       {bonds.map((item, index) => (
         <BondCard
+          action="purchase"
           key={item.initiativeId}
           bond={item}
           board={board}

@@ -1,5 +1,3 @@
-'use client'
-
 import { PageLayout } from '@/components/containers/page-layout'
 import { BondsOwned } from '@/components/containers/marketplace/bonds-owned'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

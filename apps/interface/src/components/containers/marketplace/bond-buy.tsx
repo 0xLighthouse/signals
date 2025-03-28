@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
-import { useLocksStore } from '@/stores/useBondsStore'
+import { useBondsStore } from '@/stores/useBondsStore'
 import { usePoolsStore } from '@/stores/usePoolsStore'
 import { Pool, Lock } from '@/indexers/api/types'
 import { PoolsAvailable } from '../pools/pools-available'
@@ -20,15 +20,16 @@ import { arbitrumSepolia } from 'viem/chains'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useApproveNFT } from '@/hooks/useApproveNFT'
 import { hexToNumber } from 'viem'
-import { BondHookABI } from '../../../../../../packages/abis'
 import { OutputToken, resolveOutputTokens } from './utils'
+
+import { BondHookABI } from '../../../../../../packages/abis'
 
 export function BondBuy() {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
   const [selectedPool, setSelectedPool] = useState<Pool | undefined>(undefined)
-  const [selectedOutputToken, setSelectedOutputToken] = useState<OutputToken | undefined>(undefined)
+  const [paymentToken, setPaymentToken] = useState<OutputToken | undefined>(undefined)
   const [outputTokens, setOutputTokens] = useState<OutputToken[]>([])
   const [quote, setQuote] = useState<number | undefined>(undefined)
   const { formatter: formatterUnderlying, symbol: symbolUnderlying } = useUnderlying()
@@ -37,7 +38,7 @@ export function BondBuy() {
   const [slippage, setSlippage] = useState('0.5')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const allBonds = useLocksStore((state) => state.locks)
+  const allBonds = useBondsStore((state) => state.bondsAvailable)
   const allPools = usePoolsStore((state) => state.pools)
 
   // Fetch pools if they are not initialized
@@ -64,12 +65,12 @@ export function BondBuy() {
 
   // Build quote when output token is selected
   useEffect(() => {
-    if (selectedOutputToken) {
+    if (paymentToken) {
       fetchQuote().then((quote) => {
         setQuote(quote)
       })
     }
-  }, [selectedOutputToken])
+  }, [paymentToken])
 
   // Approve to spend the bond
   const approveNFTConfig = useMemo(() => {
@@ -92,7 +93,7 @@ export function BondBuy() {
   const handleReset = () => {
     setSelectedBond(undefined)
     setSelectedPool(undefined)
-    setSelectedOutputToken(undefined)
+    setPaymentToken(undefined)
   }
 
   const handlePurchaseBond = async () => {
@@ -110,7 +111,7 @@ export function BondBuy() {
       return
     }
 
-    if (!selectedBond || !selectedPool || !selectedOutputToken) {
+    if (!selectedBond || !selectedPool || !paymentToken) {
       toast('Please select all required options')
       return
     }
@@ -259,38 +260,16 @@ export function BondBuy() {
 
         {/* Column 3: Output Currency and Quote Information */}
         <div className="space-y-6">
-          {/* Output Currency Section */}
-          {selectedBond && selectedPool && outputTokens.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="font-semibold">Output Currency</h3>
-              <div className="space-y-2">
-                <Label>Receive Token</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {outputTokens.map((token) => (
-                    <Button
-                      key={token.key}
-                      variant={selectedOutputToken?.key === token.key ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedOutputToken(token)}
-                    >
-                      {token.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Quote Details Section */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Quote Details</h3>
-            {selectedBond && selectedPool && selectedOutputToken ? (
+            <h3 className="font-semibold">Asking Price</h3>
+            {selectedBond && selectedPool && paymentToken && quote ? (
               <Card className="p-4">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold">Current Quote</h3>
-                    <div className="text-2xl font-bold mt-2">TODO: BUILD QUOTE</div>
-                    <div className="text-2xl font-bold mt-2">{formatterUnderlying(quote)}</div>
+                    <div className="text-2xl font-bold mt-2">
+                      {formatterUnderlying(quote)} {symbolUnderlying}
+                    </div>
                     <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                       For your NFT#{selectedBond.tokenId}
                     </div>
@@ -310,7 +289,7 @@ export function BondBuy() {
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
                         Discount
                       </span>
-                      <span className="font-medium">YEILD 69</span>
+                      <span className="font-medium">420%</span>
                     </div>
                   </div>
 
@@ -361,11 +340,32 @@ export function BondBuy() {
               </div>
             )}
           </div>
+
+          {/* Output Currency Section */}
+          {selectedBond && selectedPool && outputTokens.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-semibold">Pay with:</h3>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {outputTokens.map((token) => (
+                    <Button
+                      key={token.key}
+                      variant={paymentToken?.key === token.key ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPaymentToken(token)}
+                    >
+                      {token.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Action Button */}
-      {selectedBond && selectedPool && selectedOutputToken && quote && (
+      {selectedBond && selectedPool && paymentToken && quote && (
         <div className="mt-8">{selectAction(selectedBond.tokenId)}</div>
       )}
     </div>

@@ -1,12 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import {
-  selectBonds,
-  selectIsFetching,
-  selectIsInitialized,
-  useBondsStore,
-} from '@/stores/useBondsStore'
+import { useBondsStore } from '@/stores/useBondsStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { BondCard } from './bond.card'
@@ -59,6 +54,7 @@ export const BondsOwned = () => {
       {bonds.map((item, index) => (
         <BondCard
           key={item.initiativeId}
+          action="sell"
           bond={item}
           board={board}
           index={index}

@@ -50,11 +50,11 @@ export function BondSell({ initialTokenId }: BondSellProps) {
       usePoolsStore.getState().fetchPools()
     }
   }, [allPools])
-  
+
   // Initialize selected bond if initialTokenId is provided
   useEffect(() => {
     if (initialTokenId && address && allBonds.length > 0) {
-      const bond = allBonds.find(bond => Number(bond.tokenId) === initialTokenId)
+      const bond = allBonds.find((bond) => Number(bond.tokenId) === initialTokenId)
       if (bond) {
         setSelectedBond(bond)
       }

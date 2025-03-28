@@ -12,19 +12,6 @@ export interface InitiativeDetails {
   decayCurveParameters: number[] | null // decay curve parameters
 }
 
-export interface InitiativeSupportedEvent {
-  id: string
-  chainId: number
-  blockTimestamp: number
-  transactionHash: string
-  contractAddress: string
-  initiativeId: number
-  supporter: string
-  tokenAmount: number
-  lockDuration: number
-  tokenId: number
-}
-
 // Weight is a list of chart points, in which key is the X-axis (unix timestamp) and value is the Y-axis (weight)
 export type Weight = Array<{ x: number; y: number }>
 
