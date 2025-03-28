@@ -37,7 +37,7 @@ export const StatsBar = () => {
   if (!address) return null
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white dark:border-neutral-700 dark:bg-neutral-900 rounded-lg border">
+    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900">
       <div className="flex flex-1 justify-evenly text-center">
         <div>
           <span className="text-xl font-bold">

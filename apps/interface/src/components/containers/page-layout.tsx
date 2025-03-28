@@ -28,7 +28,7 @@ export function PageLayout({
       <TopNav />
       <div className="container mx-auto max-w-7xl">
         <div className={`grid grid-cols-1 ${!fullWidth ? 'lg:grid-cols-[800px_1fr]' : ''}`}>
-          <div className="px-4 py-8 space-y-6">
+          <div className="px-4 py-8 space-y-6 sm:pt-8 pt-[calc(60px+2rem)]">
             {children}
           </div>
           {!fullWidth && (

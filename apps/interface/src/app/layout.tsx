@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import './globals.css'
+
 import localFont from 'next/font/local'
 
 import { Toaster } from '@/components/ui/sonner'
@@ -7,7 +9,6 @@ import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
 
-import './globals.css'
 import { TokenProvider } from '@/contexts/ContractContext'
 import { SignalsProvider } from '@/contexts/SignalsContext'
 import { IncentivesProvider } from '@/contexts/IncentivesContext'

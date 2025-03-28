@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Custom variant for dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -8,6 +9,9 @@
     --foreground: #171717;
 
     --radius: 0.5rem;
+
+    /* Navigation */
+    --mobile-nav-offset: 60px;
 
     /* Sidebar Theme */
     --sidebar-background: 0 0% 98%;
@@ -24,13 +28,14 @@
     --background: #202020;
     --foreground: #ededed;
 
-    --sidebar-background: 240 5.9% 10%;
+    /* Sidebar Theme */
+    --sidebar-background: 240 5.9% 15%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 240 3.7% 20%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-border: 240 3.7% 25%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -104,5 +109,12 @@
 
   .handle-class {
     @apply relative z-60;
+  }
+
+  /* Mobile navigation offset adjustment */
+  @media (max-width: 640px) {
+    .mobile-nav-offset {
+      @apply pt-[var(--mobile-nav-offset)];
+    }
   }
 }

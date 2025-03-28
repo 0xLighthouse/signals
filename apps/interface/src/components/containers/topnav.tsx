@@ -10,12 +10,12 @@ import { NavList } from './nav'
 
 export const TopNav = () => {
   return (
-    <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-500 border-b">
-      <div className="container mx-auto max-w-7xl flex justify-between">
+    <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-700 border-b">
+      <div className="container mx-auto max-w-7xl flex justify-between relative">
         <div className="flex items-center">
           <Breadcrumbs />
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center absolute left-1/2 transform -translate-x-1/2 sm:top-0 top-[60px]">
           <NavList
             items={[
               { href: '/', label: 'Initiatives', icon: Lightbulb },
