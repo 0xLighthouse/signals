@@ -2,6 +2,7 @@
   "name": "sdk",
   "module": "src/index.ts",
   "type": "module",
+  "version": "0.1.0",
   "scripts": {
     "types": "graphql-codegen --config codegen.yml"
   },
