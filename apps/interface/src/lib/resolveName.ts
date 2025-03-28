@@ -64,7 +64,7 @@ export const resolveName = async (address: string) => {
   const ens =
     Domains.Domain && Domains.Domain.length > 1
       ? Domains.Domain?.find((domain) => domain.isPrimary)
-      : Domains.Domain?.[0]
+      : Domains?.Domain?.[0]
 
   return ens ? ens.name : shortAddress(address)
 }

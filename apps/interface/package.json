@@ -70,8 +70,5 @@
     "shadcn": "^2.1.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5"
-  },
-  "resolutions": {
-    "viem": "2.21.19"
   }
 }

@@ -4,6 +4,7 @@ import { cn, formatNumber, shortAddress } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Droplets, Info, Tag, TrendingUp, Webhook } from 'lucide-react'
 import { ProvideLiquidityDrawer } from '@/components/drawers/provide-liquidity-drawer'
+import { useUnderlying } from '@/contexts/ContractContext'
 import { Pool } from '@/indexers/api/types'
 
 interface Props {
@@ -18,12 +19,16 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
   // Mock data for APR and total value locked
   const apr = 42069 // pool.apr || 5.2
   const poolTVL = pool.currency0.totalTVL + pool.currency1.totalTVL
-  const managedTVL = pool.currency0.bondHookTVL + pool.currency1.bondHookTVL
-  const percentManaged = (managedTVL / poolTVL) * 100
-
+  const { address: underlyingAddress, symbol: underlyingSymbol } = useUnderlying()
+  
   // Calculate user's share of the pool
   const userShare = userLiquidity > 0 ? (userLiquidity / poolTVL) * 100 : 0
-
+  
+  const pairTitle = pool.currency0.address === underlyingAddress ? `${pool.currency0.symbol}/${pool.currency1.symbol}` : `${pool.currency1.symbol}/${pool.currency0.symbol}`
+  
+  const nonUnderlying = pool.currency0.address === underlyingAddress ? pool.currency1 : pool.currency0
+  const percentManaged = (nonUnderlying.bondHookTVL / nonUnderlying.totalTVL) * 100
+  
   return (
     <Card
       className={cn(
@@ -41,12 +46,12 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
             <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
               <Droplets className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            {pool.currency0?.symbol}/{pool.currency1?.symbol} Pool
+            {pairTitle} Pool
           </CardTitle>
           <CardDescription className="flex items-center text-xs gap-2">
             <span>{pool.version}</span>
             <span>•</span>
-            <span>Fee tier: {pool.formattedSwapFee}%</span>
+            <span>Fee rate: {pool.formattedSwapFee}%</span>
           </CardDescription>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
@@ -61,19 +66,20 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium">
-              TVL: {formatNumber(poolTVL, { currency: true, abbreviate: true })}
+              TVL: {formatNumber(nonUnderlying.totalTVL, { currency: true, abbreviate: true, decimals: 2, symbol: nonUnderlying.symbol, wad: nonUnderlying.decimals })}
             </span>
             <span className="text-sm font-medium">
-              Managed: {formatNumber(managedTVL, { currency: true, abbreviate: true })}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Webhook className="h-4 w-4 text-pink-600" />
             <span className="text-sm font-medium">
-              Managed: {formatNumber(managedTVL, { currency: true, abbreviate: true })}
+              Managed: {formatNumber(nonUnderlying.bondHookTVL, { currency: true, abbreviate: true, decimals: 2, symbol: nonUnderlying.symbol, wad: nonUnderlying.decimals })}
             </span>
-            <span className="text-sm font-medium">Managed by Hook: {percentManaged}%</span>
+            { percentManaged < 100 && (
+              <span className="text-sm font-medium">({percentManaged}%)</span>
+            )}
           </div>
 
           <CardDescription className="text-xs mt-1 flex items-center gap-1">
