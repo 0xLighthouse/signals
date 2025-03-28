@@ -26,16 +26,27 @@ const normaliseWeights = (weights: Weight) => {
   }))
 }
 
-export type NewLock = Omit<InitiativeLock, 'initiativeId' | 'tokenId'>
+export type ChartLock = Omit<InitiativeLock, 'initiativeId' | 'tokenId'> & {
+  nominalValueAsWAD: number
+}
+
+export function InitiativeLocksToChartLocks(locks: InitiativeLock[], decimals: number): ChartLock[] {
+  return locks.map((lock) => ({
+    ...lock,
+    nominalValueAsWAD: Number(lock.nominalValue) / 10 ** decimals,
+  }))
+}
 
 export function generateTicks(
-  existingData: InitiativeLock[],
+  existingData: ChartLock[],
   { initiative, chartInterval, maxTimeWindow, minTimeWindow }: ChartOptions,
-  newLock: NewLock[] = [],
+  newLock: ChartLock[] = [],
 ): ChartTick[] {
   if (!initiative.lockInterval || initiative.lockInterval === 0) {
     throw new Error('Lock interval is not set')
   }
+
+  console.log('generateTicks()', existingData)
 
   const startTime: number = DateTime.now().toUnixInteger()
   const latestEndTime: number = Math.max(

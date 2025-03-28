@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { InitiativeDetails } from '@/lib/curves'
-import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
+import { ChartTick, generateTicks, ChartOptions, ChartLock, InitiativeLocksToChartLocks } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
@@ -31,6 +31,7 @@ const chartConfig = {
 interface Props {
   initiative?: InitiativeDetails
   existingLocks: InitiativeLock[]
+  decimals: number
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number
@@ -39,6 +40,7 @@ interface Props {
 export const Chart: React.FC<Props> = ({
   initiative,
   existingLocks,
+  decimals,
   acceptanceThreshold,
   amountInput,
   durationInput,
@@ -56,18 +58,21 @@ export const Chart: React.FC<Props> = ({
       minTimeWindow: 60 * 60 * 24 * 7,
     }
 
+    const existingChartLocks = InitiativeLocksToChartLocks(existingLocks, decimals)
+
     // Update chart if input data is provided
     const chartData =
       amountInput && durationInput
-        ? generateTicks(existingLocks, options, [
+        ? generateTicks(existingChartLocks, options, [
             {
-              nominalValue: BigInt(amountInput),
+              nominalValue: BigInt(amountInput * 10 ** (decimals)),
+              nominalValueAsWAD: amountInput,
               durationAsIntervals: BigInt(durationInput),
               createdAt: BigInt(DateTime.now().toUnixInteger()),
               isRedeemed: false,
             },
           ])
-        : generateTicks(existingLocks, options)
+        : generateTicks(existingChartLocks, options)
     setData(chartData)
   }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold])
 

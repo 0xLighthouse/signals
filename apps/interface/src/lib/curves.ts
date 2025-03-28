@@ -1,5 +1,5 @@
 import { InitiativeLock } from '@/indexers/api/types'
-import { NewLock } from './chart'
+import { ChartLock } from './chart'
 
 // FIXME: This type needs to be merged into our indexer types
 export interface InitiativeDetails {
@@ -16,7 +16,7 @@ export type Weight = Array<{ x: number; y: number }>
 // From and until are unix timestamps to show the range of the data requested (optional). ChartInterval is the difference in seconds between each point on the x-axis.
 export function calculateWeight(
   initiative: InitiativeDetails,
-  locks: NewLock[],
+  locks: ChartLock[],
   chartInterval: number,
   startsAt?: number,
   endsAt?: number,
@@ -52,7 +52,7 @@ export function calculateWeight(
         case 0:
           weightAtInterval = _linear(
             initiative.decayCurveParameters,
-            Number(lock.nominalValue),
+            Number(lock.nominalValueAsWAD),
             Number(lock.durationAsIntervals),
             interval,
             lock.isRedeemed,
@@ -61,7 +61,7 @@ export function calculateWeight(
         case 1:
           weightAtInterval = _exponential(
             initiative.decayCurveParameters,
-            Number(lock.nominalValue),
+            Number(lock.nominalValueAsWAD),
             Number(lock.durationAsIntervals),
             interval,
             lock.isRedeemed,
@@ -78,7 +78,7 @@ export function calculateWeight(
 }
 
 // FIXME: We should use BigInt here
-export function getDefaultEnd(locks: InitiativeLock[] | NewLock[], lockInterval: number): number {
+export function getDefaultEnd(locks: InitiativeLock[] | ChartLock[], lockInterval: number): number {
   return locks.reduce(
     (max, lock) =>
       Math.max(max, Number(lock.createdAt) + Number(lock.durationAsIntervals) * lockInterval),

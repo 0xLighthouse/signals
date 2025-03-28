@@ -34,7 +34,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   console.log('SubmissionLockDetails().render')
   console.log('SubmissionLockDetails().render')
 
-  const { symbol } = useUnderlying()
+  const { symbol, decimals } = useUnderlying()
 
   const weight = amount ? amount * (duration || 1) : 0
 
@@ -91,6 +91,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
             existingLocks={existingLocks}
             amountInput={amount}
             durationInput={duration}
+            decimals={decimals || 1}
           />
         </CardContent>
       )}
