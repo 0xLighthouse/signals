@@ -7,6 +7,7 @@ import { getInitiatives } from './get.initiatives'
 import { getPools } from './get.pools'
 import { getPoolState } from './get.pool-state'
 import { getQuote } from './get.quote'
+import { getInitiativeLocks } from './get.initiative-locks'
 
 const app = new Hono()
 
@@ -20,6 +21,7 @@ app.use('/graphql', graphql({ db, schema }))
  * @example http://localhost:42069/initiatives/421614/0x7E00a6dfF783649fB3017151652448647600D47E
  */
 app.get('/initiatives/:chainId/:address', getInitiatives)
+app.get('/locks/:chainId/:address/:initiativeId', getInitiativeLocks)
 
 /**
  * @returns List bonds for a given chainId and address

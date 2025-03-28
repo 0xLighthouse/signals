@@ -4,6 +4,15 @@ type InitiativeEntity = typeof schema.Initiative.$inferSelect
 type InitiativeWeightEntity = typeof schema.InitiativeWeight.$inferSelect
 type PoolEntity = typeof schema.Pool.$inferSelect
 
+export type InitiativeLock = {
+  initiativeId: bigint
+  tokenId: bigint
+  nominalValue: bigint
+  durationAsIntervals: bigint
+  createdAt: bigint
+  isRedeemed: boolean
+}
+
 export type Pool = {
   poolId: string
   version: string

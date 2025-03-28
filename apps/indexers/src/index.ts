@@ -83,8 +83,10 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
     blockTimestamp: event.block.timestamp,
     // --- attributes
     owner: event.args.supporter as `0x${string}`,
-    initiativeId: Number(event.args.initiativeId),
+    initiativeId: event.args.initiativeId,
     tokenId: event.args.tokenId,
+    nominalValue: event.args.tokenAmount,
+    durationAsIntervals: event.args.lockDuration,
     isActive: true,
   })
 })

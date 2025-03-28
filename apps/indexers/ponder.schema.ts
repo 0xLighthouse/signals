@@ -42,9 +42,11 @@ export const Bond = onchainTable('bonds', (t) => ({
   tokenId: t.bigint().notNull(),
   blockTimestamp: t.bigint().notNull(),
   // --- attributes
-  initiativeId: t.integer(),
+  initiativeId: t.bigint().notNull(),
   owner: t.hex().notNull(),
   burnedAt: t.bigint(),
+  nominalValue: t.bigint().notNull(),
+  durationAsIntervals: t.bigint().notNull(),
   isActive: t.boolean().notNull(),
 }))
 
