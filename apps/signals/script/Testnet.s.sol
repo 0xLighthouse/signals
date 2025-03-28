@@ -54,7 +54,7 @@ contract TestnetScript is Script {
         // Deploy MockERC20 token and mint 1 million tokens
         console.log("----- Contracts -----");
         vm.broadcast(_deployer);
-        _token = new MockERC20("Hookathon", "HOOK");
+        _token = new MockERC20("UniswapHookathon", "UHI");
         console.log("TokenContract", address(_token));
 
         uint256 initialSupply = 1_000_000 * 1e18;

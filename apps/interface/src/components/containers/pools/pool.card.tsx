@@ -1,34 +1,53 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { cn, formatNumber, shortAddress } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Droplets, Info, Tag, TrendingUp, Webhook } from 'lucide-react'
+import { Droplets, Info, Tag, Webhook } from 'lucide-react'
 import { ProvideLiquidityDrawer } from '@/components/drawers/provide-liquidity-drawer'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { Pool } from '@/indexers/api/types'
+import { useWeb3 } from '@/contexts/Web3Provider'
+import { context } from '@/config/web3'
+import { useAccount } from '@/hooks/useAccount'
 
 interface Props {
   pool: Pool
   index: number
   isFirst: boolean
   isLast: boolean
-  userLiquidity?: number
 }
 
-export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity = 0 }) => {
-  // Mock data for APR and total value locked
-  const apr = 42069 // pool.apr || 5.2
-  const poolTVL = pool.currency0.totalTVL + pool.currency1.totalTVL
-  const { address: underlyingAddress, symbol: underlyingSymbol } = useUnderlying()
-  
-  // Calculate user's share of the pool
-  const userShare = userLiquidity > 0 ? (userLiquidity / poolTVL) * 100 : 0
-  
-  const pairTitle = pool.currency0.address === underlyingAddress ? `${pool.currency0.symbol}/${pool.currency1.symbol}` : `${pool.currency1.symbol}/${pool.currency0.symbol}`
-  
-  const nonUnderlying = pool.currency0.address === underlyingAddress ? pool.currency1 : pool.currency0
+export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast }) => {
+  const { address } = useAccount()
+  const { address: underlyingAddress } = useUnderlying()
+  const [userLiquidity, setUserLiquidity] = useState<bigint | undefined>(undefined)
+  const { publicClient } = useWeb3()
+  const pairTitle =
+    pool.currency0.address === underlyingAddress
+      ? `${pool.currency0.symbol}/${pool.currency1.symbol}`
+      : `${pool.currency1.symbol}/${pool.currency0.symbol}`
+
+  const nonUnderlying =
+    pool.currency0.address === underlyingAddress ? pool.currency1 : pool.currency0
   const percentManaged = (nonUnderlying.bondHookTVL / nonUnderlying.totalTVL) * 100
-  
+
+  const fetchUserLiquidity = async (poolId: `0x${string}`, address: `0x${string}`) => {
+    const liquidity = await publicClient.readContract({
+      account: address,
+      address: context.contracts.BondHook.address,
+      abi: context.contracts.BondHook.abi,
+      functionName: 'liquidityBalanceOf',
+      args: [poolId, address],
+    })
+    setUserLiquidity(liquidity)
+  }
+
+  useEffect(() => {
+    if (userLiquidity === undefined && address && pool.poolId) {
+      fetchUserLiquidity(pool.poolId, address as `0x${string}`)
+    }
+  }, [pool.poolId, userLiquidity, address])
+
   return (
     <Card
       className={cn(
@@ -66,28 +85,40 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium">
-              TVL: {formatNumber(nonUnderlying.totalTVL, { currency: true, abbreviate: true, decimals: 2, symbol: nonUnderlying.symbol, wad: nonUnderlying.decimals })}
-            </span>
-            <span className="text-sm font-medium">
+              TVL:{' '}
+              {formatNumber(nonUnderlying.totalTVL, {
+                currency: true,
+                abbreviate: true,
+                decimals: 2,
+                symbol: nonUnderlying.symbol,
+                wad: nonUnderlying.decimals,
+              })}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Webhook className="h-4 w-4 text-pink-600" />
             <span className="text-sm font-medium">
-              Managed: {formatNumber(nonUnderlying.bondHookTVL, { currency: true, abbreviate: true, decimals: 2, symbol: nonUnderlying.symbol, wad: nonUnderlying.decimals })}
+              Managed:{' '}
+              {formatNumber(nonUnderlying.bondHookTVL, {
+                currency: true,
+                abbreviate: true,
+                decimals: 2,
+                symbol: nonUnderlying.symbol,
+                wad: nonUnderlying.decimals,
+              })}
             </span>
-            { percentManaged < 100 && (
+            {percentManaged < 100 && (
               <span className="text-sm font-medium">({percentManaged}%)</span>
             )}
           </div>
 
           <CardDescription className="text-xs mt-1 flex items-center gap-1">
             <Info className="h-3 w-3" />
-            {userLiquidity > 0 ? (
+            {userLiquidity && userLiquidity > 0 ? (
               <>
-                Your share: {userShare.toFixed(2)}% (
-                {formatNumber(userLiquidity, { currency: true })})
+                Your share: {userLiquidity}% (
+                {formatNumber(Number(userLiquidity), { currency: true })})
               </>
             ) : (
               <>You have no liquidity in this pool</>
@@ -95,13 +126,13 @@ export const PoolCard: React.FC<Props> = ({ pool, isFirst, isLast, userLiquidity
           </CardDescription>
         </div>
 
-        {userLiquidity > 0 && (
+        {/* {userLiquidity > 0 && (
           <div className="flex gap-2 items-center">
             <Button variant="outline" size="sm">
               Withdraw
             </Button>
           </div>
-        )}
+        )} */}
       </div>
     </Card>
   )

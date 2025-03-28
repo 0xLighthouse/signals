@@ -5,11 +5,9 @@ import { usePoolsStore } from '@/stores/usePoolsStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { PageSection } from '@/components/page-section'
-import { useAccount } from '@/hooks/useAccount'
 import { PoolCard } from './pool.card'
 
 export const PoolsList = () => {
-  const { address } = useAccount()
   const pools = usePoolsStore((state) => state.pools)
   const isFetchingPools = usePoolsStore((state) => state.isFetching)
   const fetchPools = usePoolsStore((state) => state.fetchPools)
@@ -20,18 +18,6 @@ export const PoolsList = () => {
   useEffect(() => {
     if (!isInitialized) fetchPools()
   }, [isInitialized, fetchPools])
-
-  // Mock user liquidity data
-  const getUserLiquidity = (poolId: string) => {
-    console.log('TODO: Fetch users liquidity for pool', poolId)
-    // This would normally come from a real data source
-    const mockUserLiquidity: Record<string, number> = {
-      1: 500,
-      2: 0,
-      3: 2500,
-    }
-    return mockUserLiquidity[poolId] || 0
-  }
 
   if (isFetchingPools) {
     return <LoadingSpinner />
@@ -63,7 +49,6 @@ export const PoolsList = () => {
           index={index}
           isFirst={index === 0}
           isLast={index === pools.length - 1}
-          userLiquidity={getUserLiquidity(pool.poolId)}
         />
       ))}
 

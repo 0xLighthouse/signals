@@ -51,7 +51,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const { walletClient } = useWeb3()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const { fetchContractMetadata } = useUnderlying()
+  const { fetchContractMetadata, symbol: underlyingSymbol } = useUnderlying()
 
   const handleClaim = async ({
     token,
@@ -123,7 +123,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
           }}
           isLoading={isLoadingTokens}
         >
-          Get SGNL
+          Get {underlyingSymbol}
         </Button>
         <Button
           variant="outline"
