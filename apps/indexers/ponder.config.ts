@@ -26,7 +26,7 @@ export default createConfig({
 
       // 1. Increase polling interval (default is 1000ms)
       // This reduces how often Ponder checks for new blocks
-      pollingInterval: 10_000, // Check every 10 seconds instead of every 1 second
+      pollingInterval: 30_000, // Check every 10 seconds instead of every 1 second
     },
   },
   contracts: {
