@@ -1,28 +1,12 @@
-export interface Lock {
-  tokenAmount: number // amount of toekens, as a decimal
-  lockDuration: number // duration of the lock in intervals
-  createdAt: number // unix timestamp of when the lock was created
-  isWithdrawn: boolean // if the lock has been withdrawn
-}
+import { InitiativeLock } from '@/indexers/api/types'
+import { NewLock } from './chart'
 
+// FIXME: This type needs to be merged into our indexer types
 export interface InitiativeDetails {
   createdAt: number // unix timestamp of when the initative was created
   lockInterval: number | null // lock interval in seconds
   decayCurveType: number | null // decay curve type
   decayCurveParameters: number[] | null // decay curve parameters
-}
-
-export interface InitiativeSupportedEvent {
-  id: string
-  chainId: number
-  blockTimestamp: number
-  transactionHash: string
-  contractAddress: string
-  initiativeId: number
-  supporter: string
-  tokenAmount: number
-  lockDuration: number
-  tokenId: number
 }
 
 // Weight is a list of chart points, in which key is the X-axis (unix timestamp) and value is the Y-axis (weight)
@@ -32,7 +16,7 @@ export type Weight = Array<{ x: number; y: number }>
 // From and until are unix timestamps to show the range of the data requested (optional). ChartInterval is the difference in seconds between each point on the x-axis.
 export function calculateWeight(
   initiative: InitiativeDetails,
-  locks: Lock[],
+  locks: NewLock[],
   chartInterval: number,
   startsAt?: number,
   endsAt?: number,
@@ -62,25 +46,25 @@ export function calculateWeight(
     for (let i = 0; i < xvals.length; i++) {
       if (lock.createdAt > xvals[i]) continue
 
-      const interval = Math.floor((xvals[i] - lock.createdAt) / initiative.lockInterval)
+      const interval = Math.floor((xvals[i] - Number(lock.createdAt)) / initiative.lockInterval)
       let weightAtInterval = 0
       switch (initiative.decayCurveType) {
         case 0:
           weightAtInterval = _linear(
             initiative.decayCurveParameters,
-            lock.tokenAmount,
-            lock.lockDuration,
+            Number(lock.nominalValue),
+            Number(lock.durationAsIntervals),
             interval,
-            lock.isWithdrawn,
+            lock.isRedeemed,
           )
           break
         case 1:
           weightAtInterval = _exponential(
             initiative.decayCurveParameters,
-            lock.tokenAmount,
-            lock.lockDuration,
+            Number(lock.nominalValue),
+            Number(lock.durationAsIntervals),
             interval,
-            lock.isWithdrawn,
+            lock.isRedeemed,
           )
           break
         default:
@@ -93,9 +77,11 @@ export function calculateWeight(
   return xvals.map((key, i) => ({ x: key, y: yvals[i] }))
 }
 
-export function getDefaultEnd(locks: Lock[], lockInterval: number): number {
+// FIXME: We should use BigInt here
+export function getDefaultEnd(locks: InitiativeLock[] | NewLock[], lockInterval: number): number {
   return locks.reduce(
-    (max, lock) => Math.max(max, lock.createdAt + lock.lockDuration * lockInterval),
+    (max, lock) =>
+      Math.max(max, Number(lock.createdAt) + Number(lock.durationAsIntervals) * lockInterval),
     0,
   )
 }

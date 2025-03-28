@@ -1,6 +1,4 @@
-'use client'
-
-import { CircleAlert, DollarSign, Tag } from 'lucide-react'
+import { CircleAlert, Tag } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -14,15 +12,14 @@ import {
 import { useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { useAccount } from '@/hooks/useAccount'
-import { useWeb3 } from '@/contexts/Web3Provider'
 import { usePrivy } from '@privy-io/react-auth'
-import { SellBond } from '@/components/containers/marketplace/sell-bond'
+import { BondSell } from '@/components/containers/marketplace/bond-sell'
 
-interface Props {
-  tokenId: number
+interface SellBondDrawerProps {
+  tokenId: bigint
 }
 
-export function SellBondDrawer({ tokenId }: Props) {
+export function SellBondDrawer({ tokenId }: SellBondDrawerProps) {
   const { address } = useAccount()
   const { authenticated, login } = usePrivy()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -70,7 +67,7 @@ export function SellBondDrawer({ tokenId }: Props) {
             </Alert>
           </DrawerHeader>
           <div className="p-8 pt-2">
-            <SellBond />
+            <BondSell initialTokenId={tokenId} />
           </div>
         </div>
       </DrawerContent>

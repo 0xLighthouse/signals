@@ -97,8 +97,13 @@ export function IncentiveDrawer({ initiative }: Props) {
         abi: context.contracts.Incentives.abi,
         functionName: 'addIncentive',
         nonce,
-        // @ts-ignore
-        args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
+        args: [
+          BigInt(initiative.initiativeId),
+          tokenAddress,
+          BigInt(amount * 1e6),
+          BigInt(expiresAt),
+          terms,
+        ],
       })
 
       const hash = await walletClient.writeContract(request)
@@ -113,13 +118,15 @@ export function IncentiveDrawer({ initiative }: Props) {
       resetFormState()
       toast('Incentive added successfully!')
       fetchUSDC(address)
-    } catch (error) {
-      console.error(error)
-      // @ts-ignore
-      if (error?.message?.includes('User rejected the request')) {
-        toast('User rejected the request')
-      } else {
-        toast('Error submitting incentive :(')
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes('User rejected the request')) {
+          toast('User rejected the request')
+        } else if (err.message.includes('Insufficient balance')) {
+          toast('Insufficient balance')
+        } else {
+          toast('Error submitting incentive :(')
+        }
       }
       setIsSubmitting(false)
     }

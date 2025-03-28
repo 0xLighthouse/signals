@@ -62,7 +62,7 @@ interface Props {
 
 export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
-  const { decimals, balance } = useUnderlying()
+  const { balance, formatter: underlyingFormatter } = useUnderlying()
 
   const [name, setName] = useState<string | null>(null)
   const [symbol, setSymbol] = useState<string | null>(null)
@@ -138,17 +138,11 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [address])
 
-  // Underlying token formatter
-  const formatter = (value?: number | null) => {
-    if (!decimals || !value) return value
-    return Math.ceil(value / decimals)
-  }
-
   // Provide contract data to children
   return (
     <SignalsContext.Provider
       value={{
-        formatter: formatter as (value?: number | null) => number,
+        formatter: underlyingFormatter,
         board: {
           name,
           symbol,

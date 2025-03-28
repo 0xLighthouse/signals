@@ -98,7 +98,7 @@ contract BondHook is BaseHook {
     uint24 defaultSwapFeeDiscounted;
 
     // Record state of each pool
-    mapping(PoolId => BondPoolState) public bondPools; //TODO: return to internal after tests
+    mapping(PoolId => BondPoolState) internal bondPools; //TODO: return to internal after tests
 
     // Record all LPs
     mapping(PoolId => mapping(address => LiquidityPosition)) internal liquidityProviders;
@@ -476,33 +476,24 @@ contract BondHook is BaseHook {
     }
 
     /**
-     * @notice Get the price of the pool as a sqrt price (passthrough)
+     * @notice Get the state of a pool
      * @param id The ID of the pool
-     * @return sqrtPriceX96 The price of the pool as a sqrt price
+     * @return state The state of the pool
      */
-    function getPoolPriceX96(PoolId id) public view returns (uint256) {
-        (uint160 sqrtPriceX96,,,) = StateLibrary.getSlot0(poolManager, id);
-        return sqrtPriceX96;
+    function getPoolState(PoolId id) public view returns (BondPoolState memory) {
+        return bondPools[id];
     }
 
     /**
-     * @notice Get the liquidity of the pool as underlying token
+     * @notice Get the amount of underlying token equal to the specified amount of liquidity
      * @param id The ID of the pool
-     * @return liquidity The liquidity of the pool as underlying token
+     * @param liquidity The liquidity to calculate the amount of underlying token for
+     * @return amount The amount of underlying token that would be spent or received
      */
-    function getPoolLiquidityAsUnderlying(PoolId id) public view returns (uint256) {
+    function getUnderlyingAmountForLiquidity(PoolId id, int256 liquidity) public view returns (int256) {
         BondPoolState memory state = bondPools[id];
-        uint256 liquidity = _getLiquidityFromShares(state.totalSharesAdded);
-        return uint256(bondPools[id].getUnderlyingAmountForLiquidity(int256(liquidity), state.getPriceX96(poolManager)));
-    }
-
-    /**
-     * @notice Get the info of a bond from the bond issuer (passthrough)
-     * @param tokenId The ID of the bond token
-     * @return info The info of the bond
-     */
-    function getBondInfo(uint256 tokenId) public view returns (IBondIssuer.BondInfo memory) {
-        return bondIssuer.getBondInfo(tokenId);
+        uint160 sqrtPriceX96 = state.getPriceX96(poolManager);
+        return state.getUnderlyingAmountForLiquidity(liquidity, sqrtPriceX96);
     }
 
     /**
@@ -666,9 +657,5 @@ contract BondHook is BaseHook {
 
     function _getLiquidityFromShares(uint256 shares) internal pure returns (uint256) {
         return shares * 1e6;
-    }
-
-    function _getPoolState(PoolId id) public view returns (BondPoolState memory) {
-        return bondPools[id];
     }
 }

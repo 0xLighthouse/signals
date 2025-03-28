@@ -1,5 +1,3 @@
-'use client'
-
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -19,7 +17,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
@@ -28,7 +26,7 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
-import { InitiativeSupportedEvent } from '@/lib/curves'
+import { useBondsStore } from '@/stores/useBondsStore'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
@@ -37,13 +35,23 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { formatter, board } = useSignals()
 
-  const [amount, setAmount] = useState(0)
+  const [amountValue, setAmount] = useState('0')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [existingLocks, setExistingLocks] = useState<InitiativeSupportedEvent[] | undefined>(
-    undefined,
-  )
+
+  const initiativeLocks = useBondsStore((s) => s.initiativeLocks)
+  const fetchInitiativeLocks = useBondsStore((s) => s.fetchInitiativeLocks)
+  const isInitiativeLocksInitialized = useBondsStore((s) => s.isInitiativeLocksInitialized)
+
+  useEffect(() => {
+    if (!isInitiativeLocksInitialized) {
+      console.log(`Fetching locks for [initiativeId:${initiative.initiativeId}]`)
+      fetchInitiativeLocks(initiative.initiativeId.toString())
+    }
+  }, [initiative.initiativeId, isInitiativeLocksInitialized, fetchInitiativeLocks])
+
+  const amount = amountValue ? Number(amountValue) : 0
 
   const {
     isApproving,
@@ -62,10 +70,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
-  const weight = amount ? amount * duration : 0
-
   const resetFormState = () => {
-    setAmount(0)
+    setAmount('0')
     setDuration(1)
   }
 
@@ -151,29 +157,6 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     )
   }
 
-  useEffect(() => {
-    if (existingLocks === undefined) {
-      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`, {
-        next: {
-          revalidate: 60, // 1 min
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setExistingLocks(data)
-        })
-        .catch((error) => console.error('Error fetching locks:', error)) // Handle errors
-    }
-  }, [initiative.initiativeId, existingLocks])
-
-  useEffect(() => {
-    if (existingLocks && existingLocks.length > 0) {
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-    }
-  }, [existingLocks])
-
   return (
     <Drawer
       dismissible={!isSubmitting && !isApproving}
@@ -196,7 +179,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       </DrawerTrigger>
       <DrawerContent>
         <div className="overflow-y-auto flex p-8 space-x-8">
-          <div className="flex flex-col mx-auto lg:w-3/5">
+          <div className="flex flex-col mx-auto lg:w-3/5 lg:pr-8">
             <DrawerHeader>
               <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
@@ -230,7 +213,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                   Description
                 </Label>
                 <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-800 dark:bg-neutral-900 border-none shadow-none">
+                  <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
                     <div className="my-2">
                       <p className="line-clamp break-words">
                         {initiative.description || 'No description provided.'}
@@ -248,11 +231,11 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                 <div className="w-4/5 flex flex-col">
                   <Input
                     id="amount"
-                    type="number"
-                    value={amount ?? undefined}
-                    defaultValue={0}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
-                    min="0"
+                    type="text"
+                    value={amountValue ?? undefined}
+                    onFocus={() => !Number(amountValue) && setAmount('')}
+                    onBlur={() => !Number(amountValue) && setAmount('0')}
+                    onChange={(e) => setAmount(e.target.value)}
                   />
                   {!amount && (
                     <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
@@ -300,7 +283,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
                   duration={duration}
                   threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
-                  existingLocks={existingLocks || []}
+                  existingLocks={initiativeLocks}
                 />
               </div>
             </div>
@@ -320,7 +303,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
               duration={duration}
               threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
-              existingLocks={existingLocks || []}
+              existingLocks={initiativeLocks}
             />
           </div>
         </div>

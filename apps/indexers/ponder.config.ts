@@ -22,6 +22,11 @@ export default createConfig({
     arbitrumSepolia: {
       chainId: 421614,
       transport: http(process.env.ARBITRUM_SEPOLIA_RPC_URL!),
+      // === RPS OPTIMIZATION SETTINGS ===
+
+      // 1. Increase polling interval (default is 1000ms)
+      // This reduces how often Ponder checks for new blocks
+      pollingInterval: 30_000, // Check every 10 seconds instead of every 1 second
     },
   },
   contracts: {

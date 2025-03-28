@@ -13,6 +13,7 @@ const token = getContract({
 
 // Types for contract metadata
 interface ContractContextType {
+  address: `0x${string}`
   name: string | null
   symbol: string | null
   decimals: number | null
@@ -84,6 +85,7 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
   return (
     <ContractContext.Provider
       value={{
+        address: context.contracts.BoardUnderlyingToken.address.toLowerCase() as `0x${string}`,
         name,
         symbol,
         decimals,

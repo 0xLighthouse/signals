@@ -54,7 +54,7 @@ contract TestnetScript is Script {
         // Deploy MockERC20 token and mint 1 million tokens
         console.log("----- Contracts -----");
         vm.broadcast(_deployer);
-        _token = new MockERC20("Hookathon", "HOOK");
+        _token = new MockERC20("UniswapHookathon", "UHI");
         console.log("TokenContract", address(_token));
 
         uint256 initialSupply = 1_000_000 * 1e18;
@@ -88,8 +88,8 @@ contract TestnetScript is Script {
                 underlyingToken: address(_token),
                 proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold
                 acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
-                maxLockIntervals: 14, // Lock for a maximum of 14 days
-                proposalCap: 5, // map active initiatives
+                maxLockIntervals: 365, // Lock for a maximum of 365 days
+                proposalCap: 10, // Maximum number of proposals per user
                 lockInterval: 1 days, // 1 day
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params // decayCurveParameters

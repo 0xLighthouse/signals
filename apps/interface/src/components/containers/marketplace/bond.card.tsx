@@ -2,23 +2,19 @@
 
 import React from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
+import { cn, timeAgoWords } from '@/lib/utils'
 import { SellBondDrawer } from '@/components/drawers/sell-bond-drawer'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
-import { resolveName } from '@/lib/resolveName'
-import { useAsyncProp } from '@/lib/useAsyncProp'
-import { formatDistanceToNow } from 'date-fns'
-import { Ellipsis, Tag } from 'lucide-react'
 
 import type { Lock } from 'indexers/src/api/types'
-import { useSignals, type IBoard } from '@/contexts/SignalsContext'
-import { Button } from '@/components/ui/button'
+import { type IBoard } from '@/contexts/SignalsContext'
 import { DateTime } from 'luxon'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { context } from '@/config/web3'
 import { MaturityTimeline } from './maturity-timeline'
+import { BuyBondDrawer } from '@/components/drawers/buy-bond-drawer'
 
 interface Props {
+  action: 'sell' | 'purchase'
   bond: Lock
   index: number
   isFirst: boolean
@@ -26,20 +22,9 @@ interface Props {
   board: IBoard
 }
 
-export const BondCard: React.FC<Props> = ({ bond, board, isFirst, isLast }) => {
+export const BondCard: React.FC<Props> = ({ action, bond, board, isFirst, isLast }) => {
   const initiative = bond.initiative
   const { symbol: underlyingTokenSymbol, formatter: underlyingTokenFormatter } = useUnderlying()
-
-  // Calculate remaining time to maturity
-  const maturityDate = DateTime.fromSeconds(Number(bond.metadata.expires)).toJSDate()
-  const remainingTime = formatDistanceToNow(maturityDate, { addSuffix: true })
-  const maturity = DateTime.fromSeconds(Number(bond.metadata.expires)).toLocaleString(
-    DateTime.DATETIME_MED,
-  )
-
-  // Mock yield and price for demonstration
-  const bondYield = '5.2%'
-  const bondPrice = '980.50'
 
   return (
     <Card
@@ -73,7 +58,8 @@ export const BondCard: React.FC<Props> = ({ bond, board, isFirst, isLast }) => {
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-2 h-[80px] items-center">
-            <SellBondDrawer tokenId={Number(bond.tokenId)} />
+            {action === 'sell' && <SellBondDrawer tokenId={bond.tokenId} />}
+            {action === 'purchase' && <BuyBondDrawer tokenId={bond.tokenId} />}
           </div>
         </div>
       </div>

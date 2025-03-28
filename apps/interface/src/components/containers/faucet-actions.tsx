@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
 import { useWeb3 } from '@/contexts/Web3Provider'
+import { useRewardsStore } from '@/stores/useRewardsStore'
+import { useUnderlying } from '@/contexts/ContractContext'
 
 const handleFaucetClaim = async (
   { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
@@ -48,6 +50,8 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const { walletClient } = useWeb3()
+  const { fetch: fetchUSDC } = useRewardsStore()
+  const { fetchContractMetadata, symbol: underlyingSymbol } = useUnderlying()
 
   const handleClaim = async ({
     token,
@@ -92,14 +96,15 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
       <div className={cn('flex gap-2', vertical && 'flex-col')}>
         <Button
           variant="outline"
-          onClick={() =>
-            handleClaim({
+          onClick={async () => {
+            await handleClaim({
               token: context.contracts.USDC.address,
               address: address as `0x${string}`,
               symbol: context.contracts.USDC.label,
               isLoadingHandler: setIsLoadingUSDC,
             })
-          }
+            await fetchUSDC(address)
+          }}
           isLoading={isLoadingUSDC}
         >
           Get USDC
@@ -107,17 +112,18 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
         {/* <Separator orientation="vertical" /> */}
         <Button
           variant="outline"
-          onClick={() =>
-            handleClaim({
+          onClick={async () => {
+            await handleClaim({
               token: context.contracts.BoardUnderlyingToken.address,
               address: address as `0x${string}`,
               symbol: context.contracts.BoardUnderlyingToken.label,
               isLoadingHandler: setIsLoadingTokens,
             })
-          }
+            await fetchContractMetadata()
+          }}
           isLoading={isLoadingTokens}
         >
-          Get SGNL
+          Get {underlyingSymbol}
         </Button>
         <Button
           variant="outline"

@@ -9,8 +9,6 @@ library BondHookLibrary {
         | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG;
 }
 
-interface IBondHook {}
-
-interface IBondHookLegacy {
-    function bondToken() external view returns (Currency);
+interface IBondHook {
+    function underlyingToken() external view returns (Currency);
 }

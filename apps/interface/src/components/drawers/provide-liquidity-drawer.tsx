@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, DollarSign, ArrowDownUp, AlertCircle, Info, RefreshCw } from 'lucide-react'
+import { CircleAlert, ArrowDownUp, AlertCircle, Info, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { context } from '@/config/web3'
@@ -13,137 +13,150 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { usePrivy } from '@privy-io/react-auth'
 import { normaliseNumber } from '@/lib/utils'
+import { usePoolsStore } from '@/stores/usePoolsStore'
+import { Pool } from '@/indexers/api/types'
+import { PoolsAvailable } from '../containers/pools/pools-available'
+import { calculateLiquidity, CurrencyType, toUniswapPool } from '@/lib/uniswap'
 
-interface Pool {
-  id: string
-  name: string
-  currencyA: string
-  currencyB: string
-  apr: string
-  tvl: string
-}
-
-export function ProvideLiquidityDrawer() {
+export function ProvideLiquidityDrawer({ poolId }: { poolId?: string }) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const { balance, symbol, fetchContractMetadata, formatter } = useUnderlying()
+  const { balance, symbol, formatter } = useUnderlying()
 
-  const [amountA, setAmountA] = useState(0)
-  const [amountB, setAmountB] = useState(0)
+  const pools = usePoolsStore((state) => state.pools)
+
+  const [amountA, setAmountA] = useState<number>(0)
+  const [amountB, setAmountB] = useState<number>(0)
+  const [liquidityDelta, setLiquidityDelta] = useState<number>(0)
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedPool, setSelectedPool] = useState<string>('')
-  const [inputFocused, setInputFocused] = useState<'A' | 'B' | null>(null)
+  const [selectedPoolId, setSelectedPoolId] = useState<string>('')
+  const [selectedPoolData, setSelectedPoolData] = useState<Pool | undefined>(undefined)
+  const [inputFocused, setInputFocused] = useState<CurrencyType | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
   const [lockRatio, setLockRatio] = useState(true)
 
-  // Mock data - replace with actual data fetching
-  const availablePools: Pool[] = [
-    {
-      id: '1',
-      name: 'USDC/GOV Pool',
-      currencyA: 'USDC',
-      currencyB: 'GOV',
-      apr: '5.2%',
-      tvl: '$1.2M',
-    },
-    {
-      id: '2',
-      name: 'USDT/GOV Pool',
-      currencyA: 'USDT',
-      currencyB: 'GOV',
-      apr: '5.4%',
-      tvl: '$800K',
-    },
-  ]
+  useEffect(() => {
+    if (selectedPoolId) {
+      setSelectedPoolData(pools.find((pool) => pool.poolId.toString() === selectedPoolId))
+    }
+  }, [selectedPoolId])
 
-  const selectedPoolData = availablePools.find((pool) => pool.id === selectedPool)
-  
   // Track if inputs are swapped to show correct token and balance information
   const [isInputsSwapped, setIsInputsSwapped] = useState(false)
-  
+
   // Get the correct token details based on the current swap state
-  const getTokenA = () => isInputsSwapped ? selectedPoolData?.currencyB : selectedPoolData?.currencyA
-  const getTokenB = () => isInputsSwapped ? selectedPoolData?.currencyA : selectedPoolData?.currencyB
-  
+  const getCurrency0 = () =>
+    isInputsSwapped ? selectedPoolData?.currency1.symbol : selectedPoolData?.currency0.symbol
+  const getCurrency1 = () =>
+    isInputsSwapped ? selectedPoolData?.currency0.symbol : selectedPoolData?.currency1.symbol
+
   // Get the correct balance for each input field
-  const getBalanceA = () => {
+  const getCurrency0Balance = () => {
     if (!selectedPoolData) return '0'
     return isInputsSwapped ? '0.00' : normaliseNumber(formatter(balance)) || '0'
   }
-  
-  const getBalanceB = () => {
+
+  const getCurrency1Balance = () => {
     if (!selectedPoolData) return '0'
     return isInputsSwapped ? normaliseNumber(formatter(balance)) || '0' : '0.00'
   }
 
+  /**
+   * Currency 0 Approval
+   */
+  const approveTokenConfig = useMemo(
+    () => ({
+      amount: amountA,
+      actor: address,
+      spender: context.contracts.BondHook.address,
+      tokenAddress: selectedPoolData?.currency0.address,
+      tokenDecimals: selectedPoolData?.currency0.decimals ?? 18,
+    }),
+    [amountA, address, selectedPoolData],
+  )
   const {
-    isApproving,
-    hasAllowance,
-    handleApprove,
-    allowance,
-    formattedAllowance,
-    handleRevokeAllowance,
-  } = useApproveTokens({
-    amount: amountA,
-    actor: address,
-    spender: context.contracts.SignalsProtocol.address,
-    tokenAddress: context.contracts.BoardUnderlyingToken.address,
-    tokenDecimals: 18,
-  })
+    isApproving: isApprovingCurrency0,
+    hasAllowance: hasCurrency0Allowance,
+    handleApprove: handleApproveCurrency0,
+    allowance: currency0Allowance,
+    formattedAllowance: formattedCurrency0Allowance,
+    handleRevokeAllowance: handleRevokeCurrency0Allowance,
+  } = useApproveTokens(approveTokenConfig)
+
+  /**
+   * Currency 1 Approval
+   */
+  const approveTokenConfig1 = useMemo(
+    () => ({
+      amount: amountB,
+      actor: address,
+      spender: context.contracts.BondHook.address,
+      tokenAddress: selectedPoolData?.currency1.address,
+      tokenDecimals: selectedPoolData?.currency1.decimals ?? 18,
+    }),
+    [amountB, address, selectedPoolData],
+  )
+  const {
+    isApproving: isApprovingCurrency1,
+    hasAllowance: hasCurrency1Allowance,
+    handleApprove: handleApproveCurrency1,
+    allowance: currency1Allowance,
+    formattedAllowance: formattedCurrency1Allowance,
+    handleRevokeAllowance: handleRevokeCurrency1Allowance,
+  } = useApproveTokens(approveTokenConfig1)
 
   const resetFormState = () => {
     setAmountA(0)
     setAmountB(0)
-    setSelectedPool('')
+    setSelectedPoolId('')
     setInputError(null)
     setIsInputsSwapped(false) // Reset to original order
     setLockRatio(true) // Reset to locked ratio by default
   }
-  
-  const handleMaxAmount = (input: 'A' | 'B') => {
-    const maxAmount = parseFloat(normaliseNumber(formatter(balance)))
-    
-    if (input === 'A') {
+
+  const handleMaxAmount = (input: CurrencyType) => {
+    const maxAmount = Number.parseFloat(normaliseNumber(formatter(balance)))
+    if (input === 'Currency0') {
       if (isInputsSwapped) {
         // In swapped mode, token B is in position A
         // Mock for now, would use actual B balance
         setAmountA(0)
-        validateInput(0, 'A')
+        validateInput(0, 'Currency0')
       } else {
         // Normal mode, token A is in position A
         setAmountA(maxAmount)
-        validateInput(maxAmount, 'A')
+        validateInput(maxAmount, 'Currency0')
       }
     } else {
       if (isInputsSwapped) {
         // In swapped mode, token A is in position B
         setAmountB(maxAmount)
-        validateInput(maxAmount, 'B')
+        validateInput(maxAmount, 'Currency1')
       } else {
         // Normal mode, token B is in position B
         // Mock for now, would use actual B balance
         setAmountB(0)
-        validateInput(0, 'B')
+        validateInput(0, 'Currency1')
       }
     }
   }
-  
-  const validateInput = (value: number, input: 'A' | 'B') => {
-    const userBalance = parseFloat(normaliseNumber(formatter(balance)))
-    
-    if (input === 'A') {
+
+  const validateInput = (value: number, input: CurrencyType) => {
+    const userBalance = Number.parseFloat(normaliseNumber(formatter(balance)))
+
+    if (input === 'Currency0') {
       if (!isInputsSwapped) {
         // Token A is in position A
         if (value > userBalance) {
@@ -171,61 +184,51 @@ export function ProvideLiquidityDrawer() {
     setInputError(null)
     return true
   }
-  
+
   const swapInputs = () => {
     // Swap the input values
     const tempA = amountA
     setAmountA(amountB)
     setAmountB(tempA)
-    
+
     // Toggle the swapped state to update token info display
     setIsInputsSwapped(!isInputsSwapped)
-    
+
     // If there was an error on one of the inputs, re-validate after swapping
     if (inputError) {
       setTimeout(() => {
-        validateInput(amountB, 'A')
-        validateInput(tempA, 'B')
+        validateInput(amountB, 'Currency0')
+        validateInput(tempA, 'Currency1')
       }, 0)
     }
   }
-  
-  // Calculate the ratio between tokens for locked ratio mode
-  const calculateRatio = () => {
-    if (amountA > 0 && amountB > 0) {
-      return amountB / amountA
+
+  const handleAmountChange = async (value: number, input: CurrencyType) => {
+    if (!selectedPoolData) {
+      console.error('No pool selected')
+      return
     }
-    // Default ratio - in a real app, this would be derived from the pool's reserve ratio
-    return 1; 
-  }
-  
-  const handleAmountChange = (value: number, input: 'A' | 'B') => {
-    // Get the current ratio if we're maintaining ratio and if both values are set
-    const ratio = calculateRatio();
-    
-    if (input === 'A') {
+    const { pool } = await toUniswapPool(selectedPoolData)
+
+    const { amountA, amountB, liquidityDelta } = calculateLiquidity({
+      pool,
+      amount: value,
+      sourceCurrency: input,
+      range: {
+        tickLower: -887220, // Min usable tick for spacing of 60
+        tickUpper: 887220, // Max usable tick for spacing of 60
+      },
+    })
+
+    if (input === 'Currency0') {
       setAmountA(value)
-      
-      // If ratio is locked and we have a valid ratio, update B proportionally
-      if (lockRatio && amountA > 0 && amountB > 0) {
-        const newBValue = value * ratio;
-        setAmountB(Math.max(0, parseFloat(newBValue.toFixed(6))));
-        validateInput(newBValue, 'B');
-      }
-      
-      validateInput(value, 'A')
+      setAmountB(amountB)
     } else {
+      setAmountA(amountA)
       setAmountB(value)
-      
-      // If ratio is locked and we have a valid ratio, update A proportionally
-      if (lockRatio && amountA > 0 && amountB > 0) {
-        const newAValue = value / ratio;
-        setAmountA(Math.max(0, parseFloat(newAValue.toFixed(6))));
-        validateInput(newAValue, 'A');
-      }
-      
-      validateInput(value, 'B')
     }
+
+    setLiquidityDelta(liquidityDelta)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -250,72 +253,102 @@ export function ProvideLiquidityDrawer() {
     setIsDrawerOpen(open)
   }
 
-  const handleSubmit = async () => {
+  const handleAddLiquidity = async () => {
     if (!address) throw new Error('Address not available.')
-    if (!amountA || !amountB || !selectedPool) {
+    if (!amountA || !amountB || !selectedPoolId) {
       return toast('Please enter amounts and select a pool')
     }
-    
-    // Validate input amounts before submitting
-    const isValidA = validateInput(amountA, 'A')
-    const isValidB = validateInput(amountB, 'B')
-    
-    if (!isValidA || !isValidB) {
-      return // Don't proceed if input validation fails
+
+    if (!selectedPoolData) {
+      console.error('No pool selected')
+      return
+    }
+
+    if (!walletClient) {
+      toast('Wallet not connected')
+      return
     }
 
     try {
-      if (!walletClient) {
-        toast('Wallet not connected')
-        return
+      // setIsSubmitting(true)
+
+      console.log('----- ADDING LIQUIDITY -----')
+      const nonce = await publicClient.getTransactionCount({ address })
+      const liquidityData = {
+        poolKey: {
+          currency0: selectedPoolData.currency0.address,
+          currency1: selectedPoolData.currency1.address,
+          fee: 8388608,
+          tickSpacing: 60,
+          hooks: context.contracts.BondHook.address,
+        },
+        liquidityDelta: BigInt(liquidityDelta),
+        swapPriceLimit: 0n, // or your desired price limit
+        desiredCurrency: 2, // enum value, 0 or 1 depending on desired currency
       }
 
-      setIsSubmitting(true)
-      const nonce = await publicClient.getTransactionCount({ address })
+      console.log('nonce', nonce)
 
       // Replace with the actual contract function for providing liquidity
-      // const { request } = await publicClient.simulateContract({
-      //   account: address,
-      //   address: context.contracts.SignalsProtocol.address,
-      //   abi: context.contracts.SignalsProtocol.abi,
-      //   functionName: 'provideLiquidity', // This should be the actual function name
-      //   nonce,
-      //   args: [BigInt(amountA * 1e18), BigInt(amountB * 1e18), selectedPool],
-      // })
+      const { request } = await publicClient.simulateContract({
+        account: address,
+        address: context.contracts.BondHook.address,
+        abi: context.contracts.BondHook.abi,
+        functionName: 'modifyLiquidity',
+        nonce,
+        args: [liquidityData],
+      })
 
-      // console.log('Request:', request)
-      // const hash = await walletClient.writeContract(request)
+      console.log('Request:', request)
+      const hash = await walletClient.writeContract(request)
 
-      // const receipt = await publicClient.waitForTransactionReceipt({
-      //   hash,
-      //   confirmations: 2,
-      //   pollingInterval: 2000,
-      // })
-      // console.log('Receipt:', receipt)
-      
-      setIsDrawerOpen(false)
-      resetFormState()
-      toast('Liquidity provided successfully!')
-      fetchContractMetadata()
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+        pollingInterval: 2000,
+      })
+      console.log('Receipt:', receipt)
+
+      // setIsDrawerOpen(false)
+      // resetFormState()
+      // toast('Liquidity provided successfully!')
+      // fetchContractMetadata()
     } catch (err) {
-      console.error(err)
+      console.trace(err)
       toast('Error providing liquidity')
       setIsSubmitting(false)
     }
   }
 
   const resolveAction = () => {
-    if (!hasAllowance && amountA) {
+    if (!hasCurrency0Allowance && amountA) {
       return (
-        <Button onClick={() => handleApprove(amountA)} isLoading={isApproving} className="w-full">
-          {isApproving ? 'Confirming approval...' : 'Approve'}
+        <Button
+          onClick={() => handleApproveCurrency0(amountA)}
+          isLoading={isApprovingCurrency0}
+          className="w-full"
+        >
+          {isApprovingCurrency0 ? 'Confirming approval...' : `Approve ${getCurrency0()}`}
         </Button>
       )
     }
+
+    if (!hasCurrency1Allowance && amountB) {
+      return (
+        <Button
+          onClick={() => handleApproveCurrency1(amountB)}
+          isLoading={isApprovingCurrency1}
+          className="w-full"
+        >
+          {isApprovingCurrency1 ? 'Confirming approval...' : `Approve ${getCurrency1()}`}
+        </Button>
+      )
+    }
+
     return (
-      <Button 
-        disabled={!amountA || !amountB || !selectedPool || !!inputError} 
-        onClick={handleSubmit} 
+      <Button
+        disabled={!amountA || !amountB || !selectedPoolId || !!inputError}
+        onClick={handleAddLiquidity}
         isLoading={isSubmitting}
         className="w-full"
       >
@@ -326,7 +359,7 @@ export function ProvideLiquidityDrawer() {
 
   return (
     <Drawer
-      dismissible={!isSubmitting && !isApproving}
+      dismissible={!isSubmitting && !isApprovingCurrency0 && !isApprovingCurrency1}
       open={isDrawerOpen}
       onOpenChange={handleOnOpenChange}
     >
@@ -350,24 +383,13 @@ export function ProvideLiquidityDrawer() {
               {/* Column 1: Available Pools and User Balances */}
               <div className="space-y-4">
                 <h3 className="font-semibold">Available Pools</h3>
-                {availablePools.map((pool) => (
-                  <Card
-                    key={pool.id}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      selectedPool === pool.id ? 'border-blue-500' : 'hover:border-blue-500/50'
-                    }`}
-                    onClick={() => setSelectedPool(pool.id)}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <h3 className="font-bold">{pool.name}</h3>
-                      <div className="text-sm text-muted-foreground">
-                        <div>
-                          {pool.currencyA}/{pool.currencyB}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                <PoolsAvailable
+                  pools={pools}
+                  selectedPoolId={selectedPoolId}
+                  handleOnClick={(poolId: string) => {
+                    setSelectedPoolId(poolId)
+                  }}
+                />
 
                 {/* User Balances */}
                 <Card className="p-4 mt-4">
@@ -377,12 +399,12 @@ export function ProvideLiquidityDrawer() {
                       <span className="text-sm text-neutral-500 dark:text-neutral-400">
                         {symbol}
                       </span>
-                      <span className="font-medium">{normaliseNumber(formatter(balance)) || '-'}</span>
+                      <span className="font-medium">
+                        {normaliseNumber(formatter(balance)) || '-'}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                        USDC
-                      </span>
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400">USDC</span>
                       <span className="font-medium">0.00</span>
                     </div>
                   </div>
@@ -402,16 +424,18 @@ export function ProvideLiquidityDrawer() {
                           <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                               <div className="bg-primary/10 rounded-full p-1">
-                                <div className="bg-primary h-4 w-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold">A</div>
+                                <div className="bg-primary h-4 w-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                  {getCurrency0()}
+                                </div>
                               </div>
-                              <span className="font-medium">{getTokenA()}</span>
+                              <span className="font-medium">{getCurrency0()}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Balance: {getBalanceA()}
-                              <Button 
-                                variant="link" 
-                                className="text-xs h-auto p-0 ml-1 text-blue-500" 
-                                onClick={() => handleMaxAmount('A')}
+                              Balance: {getCurrency0Balance()}
+                              <Button
+                                variant="link"
+                                className="text-xs h-auto p-0 ml-1 text-blue-500"
+                                onClick={() => handleMaxAmount('Currency0')}
                               >
                                 MAX
                               </Button>
@@ -422,9 +446,13 @@ export function ProvideLiquidityDrawer() {
                               id="amountA"
                               type="number"
                               value={amountA ?? undefined}
-                              placeholder="0.0"
-                              onChange={(e) => handleAmountChange(e.target.value ? Number(e.target.value) : 0, 'A')}
-                              onFocus={() => setInputFocused('A')}
+                              onChange={(e) => {
+                                handleAmountChange(
+                                  e.target.value ? Number(e.target.value) : 0,
+                                  'Currency0',
+                                )
+                              }}
+                              onFocus={() => setInputFocused('Currency0')}
                               onBlur={() => setInputFocused(null)}
                               min="0"
                               step="0.01"
@@ -432,9 +460,9 @@ export function ProvideLiquidityDrawer() {
                             />
                           </div>
                         </div>
-                        
+
                         {/* Swap button - centered horizontally */}
-                        <div className="flex justify-center">
+                        {/* <div className="flex justify-center">
                           <Button
                             type="button"
                             size="icon"
@@ -446,23 +474,25 @@ export function ProvideLiquidityDrawer() {
                             <ArrowDownUp className="h-4 w-4" />
                             <span className="sr-only">Swap tokens</span>
                           </Button>
-                        </div>
-                        
+                        </div> */}
+
                         {/* Input B */}
                         <div className="rounded-lg border border-input p-3">
                           <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                               <div className="bg-primary/10 rounded-full p-1">
-                                <div className="bg-primary h-4 w-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold">B</div>
+                                <div className="bg-primary h-4 w-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                  B
+                                </div>
                               </div>
-                              <span className="font-medium">{getTokenB()}</span>
+                              <span className="font-medium">{getCurrency1()}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Balance: {getBalanceB()}
-                              <Button 
-                                variant="link" 
-                                className="text-xs h-auto p-0 ml-1 text-blue-500" 
-                                onClick={() => handleMaxAmount('B')}
+                              Balance: {getCurrency1Balance()}
+                              <Button
+                                variant="link"
+                                className="text-xs h-auto p-0 ml-1 text-blue-500"
+                                onClick={() => handleMaxAmount('Currency1')}
                               >
                                 MAX
                               </Button>
@@ -473,18 +503,22 @@ export function ProvideLiquidityDrawer() {
                               id="amountB"
                               type="number"
                               value={amountB ?? undefined}
-                              placeholder="0.0"
-                              onChange={(e) => handleAmountChange(e.target.value ? Number(e.target.value) : 0, 'B')}
-                              onFocus={() => setInputFocused('B')}
+                              onChange={(e) =>
+                                handleAmountChange(
+                                  e.target.value ? Number(e.target.value) : 0,
+                                  'Currency1',
+                                )
+                              }
+                              onFocus={() => setInputFocused('Currency1')}
                               onBlur={() => setInputFocused(null)}
                               min="0"
-                              step="0.01"
+                              step="0.0001"
                               className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-10 text-lg"
                             />
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Ratio control section */}
                       <div className="flex flex-col space-y-2 mt-2">
                         {/* Ratio lock toggle button */}
@@ -495,29 +529,36 @@ export function ProvideLiquidityDrawer() {
                           </div>
                           <Button
                             type="button"
-                            variant={lockRatio ? "secondary" : "outline"}
+                            variant={lockRatio ? 'secondary' : 'outline'}
                             size="sm"
                             className="h-8 px-2 text-xs flex items-center gap-1"
                             onClick={() => setLockRatio(!lockRatio)}
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 ${lockRatio ? "text-primary" : "text-muted-foreground"}`} />
-                            <span>{lockRatio ? "Locked" : "Unlocked"}</span>
+                            <RefreshCw
+                              className={`h-3.5 w-3.5 ${lockRatio ? 'text-primary' : 'text-muted-foreground'}`}
+                            />
+                            <span>{lockRatio ? 'Locked' : 'Unlocked'}</span>
                           </Button>
                         </div>
-                        
+
                         {/* Ratio display */}
                         <div className="flex flex-col gap-1 p-3 bg-secondary/30 rounded-md">
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Current Ratio</span>
                             {amountA > 0 && amountB > 0 ? (
-                              <span className="font-medium">1 {getTokenA()} = {(amountB / amountA).toFixed(4)} {getTokenB()}</span>
+                              <span className="font-medium">
+                                1 {getCurrency0()} = {(amountB / amountA).toFixed(4)}{' '}
+                                {getCurrency1()}
+                              </span>
                             ) : (
-                              <span className="text-muted-foreground">Enter amounts to see ratio</span>
+                              <span className="text-muted-foreground">
+                                Enter amounts to see ratio
+                              </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Error message */}
                       {inputError && (
                         <div className="flex items-center text-red-500 text-sm mt-2">
@@ -533,24 +574,29 @@ export function ProvideLiquidityDrawer() {
                   </div>
                 )}
 
-                {selectedPoolData && allowance ? (
+                {selectedPoolData && (hasCurrency0Allowance || hasCurrency1Allowance) && (
                   <Card className="p-4 mt-4">
                     <h3 className="font-semibold mb-2">Current Allowance</h3>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                        {symbol}
-                      </span>
-                      <span className="font-medium">{formattedAllowance}</span>
-                    </div>
-                    <Button
-                      variant="link"
-                      className="text-red-500 mt-2 p-0 h-auto"
-                      onClick={handleRevokeAllowance}
-                    >
-                      Revoke Allowance
-                    </Button>
+
+                    {hasCurrency0Allowance && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                            {symbol}
+                          </span>
+                          <span className="font-medium">{formattedCurrency0Allowance}</span>
+                        </div>
+                        <Button
+                          variant="link"
+                          className="text-red-500 mt-2 p-0 h-auto"
+                          onClick={handleRevokeCurrency0Allowance}
+                        >
+                          Revoke Allowance
+                        </Button>
+                      </>
+                    )}
                   </Card>
-                ) : null}
+                )}
               </div>
 
               {/* Column 3: Pool Stats and Submit Action */}
@@ -560,16 +606,12 @@ export function ProvideLiquidityDrawer() {
                   <Card className="p-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                          APR
-                        </span>
-                        <span className="font-medium">{selectedPoolData.apr}</span>
+                        <span className="text-sm text-neutral-500 dark:text-neutral-400">APR</span>
+                        <span className="font-medium">42069</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                          TVL
-                        </span>
-                        <span className="font-medium">{selectedPoolData.tvl}</span>
+                        <span className="text-sm text-neutral-500 dark:text-neutral-400">TVL</span>
+                        <span className="font-medium">42069</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -578,14 +620,14 @@ export function ProvideLiquidityDrawer() {
                         <span className="font-medium">0%</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-neutral-500 dark:text-neutral-400">Share of Pool</span>
+                        <span className="text-neutral-500 dark:text-neutral-400">
+                          Share of Pool
+                        </span>
                         <span className="font-medium">0.01%</span> {/* Mock value */}
                       </div>
                     </div>
-                    
-                    <div className="pt-4 mt-4 border-t border-border">
-                      {resolveAction()}
-                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-border">{resolveAction()}</div>
                   </Card>
                 ) : (
                   <div className="text-sm text-neutral-500 dark:text-neutral-400 p-4">

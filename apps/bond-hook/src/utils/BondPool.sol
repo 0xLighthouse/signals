@@ -133,21 +133,17 @@ library BondPoolLibrary {
         int24 maxTick = TickMath.maxUsableTick(state.key.tickSpacing);
         int24 minTick = TickMath.minUsableTick(state.key.tickSpacing);
 
-        uint256 amount;
-        if (state.underlyingIsCurrency0) {
-            amount = LiquidityAmounts.getAmount0ForLiquidity(
-                sqrtPriceX96, TickMath.getSqrtPriceAtTick(maxTick), uint128(_liquidity)
-            );
-        } else {
-            amount = LiquidityAmounts.getAmount1ForLiquidity(
-                sqrtPriceX96, TickMath.getSqrtPriceAtTick(minTick), uint128(_liquidity)
-            );
-        }
+        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(minTick),
+            TickMath.getSqrtPriceAtTick(maxTick),
+            uint128(_liquidity)
+        );
 
-        if (liquidity < 0) {
-            return -int256(amount * 2);
+        if (state.underlyingIsCurrency0) {
+            return liquidity < 0 ? int256(amount0 * 2) : -int256(amount0 * 2);
         } else {
-            return int256(amount * 2);
+            return liquidity < 0 ? -int256(amount1 * 2) : int256(amount1 * 2);
         }
     }
 

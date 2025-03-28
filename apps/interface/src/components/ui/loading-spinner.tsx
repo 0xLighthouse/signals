@@ -1,5 +1,3 @@
-'use client'
-
 import { PuffLoader } from 'react-spinners'
 import { UITheme } from '@/config/theme'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -9,12 +7,9 @@ type LoadingSpinnerProps = {
   speedMultiplier?: number
 }
 
-export const LoadingSpinner = ({ 
-  size = 38, 
-  speedMultiplier = 2.6 
-}: LoadingSpinnerProps) => {
+export const LoadingSpinner = ({ size = 38, speedMultiplier = 2.6 }: LoadingSpinnerProps) => {
   const { theme } = useTheme()
-  
+
   return (
     <div className="flex justify-center items-center">
       <PuffLoader

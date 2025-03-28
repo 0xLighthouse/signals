@@ -50,7 +50,7 @@ contract FeesTest is Test, Deployers, BondHookHarness {
         uint256 profitMinusFees = 2_500 ether - bondhook.ownerFees();
         uint256 feeForReductionAsLiquidity = profitMinusFees * feeCreditRatio / ONE_HUNDRED_PERCENT;
         int256 feeForReductionAsBondToken = BondPoolLibrary.getUnderlyingAmountForLiquidity(
-            bondhook._getPoolState(poolA.toId()), int256(feeForReductionAsLiquidity), SQRT_PRICE_1_1
+            bondhook.getPoolState(poolA.toId()), int256(feeForReductionAsLiquidity), SQRT_PRICE_1_1
         );
 
         assertApproxEqAbs(
