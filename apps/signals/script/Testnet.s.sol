@@ -88,8 +88,8 @@ contract TestnetScript is Script {
                 underlyingToken: address(_token),
                 proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold
                 acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
-                maxLockIntervals: 14, // Lock for a maximum of 14 days
-                proposalCap: 5, // map active initiatives
+                maxLockIntervals: 365, // Lock for a maximum of 365 days
+                proposalCap: 10, // Maximum number of proposals per user
                 lockInterval: 1 days, // 1 day
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params // decayCurveParameters
