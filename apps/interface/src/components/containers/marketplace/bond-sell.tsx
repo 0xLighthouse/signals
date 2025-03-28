@@ -41,7 +41,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
   const [slippage, setSlippage] = useState('0.5')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const allBonds = useBondsStore((state) => (address ? state.bondsByAddress[address] || [] : []))
+  const allBonds = useBondsStore((state) => state.bondsAvailable)
   const allPools = usePoolsStore((state) => state.pools)
 
   // Fetch pools if they are not initialized

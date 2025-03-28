@@ -23,6 +23,7 @@ import { hexToNumber } from 'viem'
 import { OutputToken, resolveOutputTokens } from './utils'
 
 import { BondHookABI } from '../../../../../../packages/abis'
+import { useApproveTokens } from '@/hooks/useApproveTokens'
 
 export function BondBuy() {
   const { address } = useAccount()
@@ -40,6 +41,57 @@ export function BondBuy() {
 
   const allBonds = useBondsStore((state) => state.bondsAvailable)
   const allPools = usePoolsStore((state) => state.pools)
+
+  // // Fetch bonds if they are not initialized
+  // useEffect(() => {
+  //   if (allBonds.length === 0) {
+  //     useBondsStore.getState().fetchBonds()
+  //   }
+  // }, [allBonds])
+
+  /**
+   * Approve Currency0
+   */
+  const currency0Approval = useMemo(
+    () => ({
+      amount: quote,
+      actor: address,
+      spender: context.contracts.BondHook.address,
+      tokenAddress: selectedPool?.currency0.address,
+      tokenDecimals: selectedPool?.currency0.decimals ?? 18,
+    }),
+    [quote, address, selectedPool],
+  )
+  const {
+    isApproving: isApprovingCurrency0,
+    hasAllowance: hasCurrency0Allowance,
+    handleApprove: handleApproveCurrency0,
+    allowance: currency0Allowance,
+    formattedAllowance: formattedCurrency0Allowance,
+    handleRevokeAllowance: handleRevokeCurrency0Allowance,
+  } = useApproveTokens(currency0Approval)
+
+  /**
+   * Approve Currency1
+   */
+  const currency1Approval = useMemo(
+    () => ({
+      amount: quote,
+      actor: address,
+      spender: context.contracts.BondHook.address,
+      tokenAddress: selectedPool?.currency1.address,
+      tokenDecimals: selectedPool?.currency1.decimals ?? 18,
+    }),
+    [quote, address, selectedPool],
+  )
+  const {
+    isApproving: isApprovingCurrency1,
+    hasAllowance: hasCurrency1Allowance,
+    handleApprove: handleApproveCurrency1,
+    allowance: currency1Allowance,
+    formattedAllowance: formattedCurrency1Allowance,
+    handleRevokeAllowance: handleRevokeCurrency1Allowance,
+  } = useApproveTokens(currency1Approval)
 
   // Fetch pools if they are not initialized
   useEffect(() => {
@@ -72,23 +124,6 @@ export function BondBuy() {
     }
   }, [paymentToken])
 
-  // Approve to spend the bond
-  const approveNFTConfig = useMemo(() => {
-    return {
-      actor: address,
-      tokenId: selectedBond?.tokenId,
-      spender: context.contracts.BondHook.address,
-      tokenAddress: context.contracts.SignalsProtocol.address,
-    }
-  }, [selectedBond?.tokenId, address])
-
-  const {
-    isApproving: isApprovingNFT,
-    isApproved: isApprovedNFT,
-    handleApprove: handleApproveNFT,
-    handleRevokeAllowance: handleRevokeNFT,
-  } = useApproveNFT(approveNFTConfig)
-
   // Reset form
   const handleReset = () => {
     setSelectedBond(undefined)
@@ -96,32 +131,22 @@ export function BondBuy() {
     setPaymentToken(undefined)
   }
 
-  const handlePurchaseBond = async () => {
-    console.log('handlePurchaseBond')
-    if (!address) {
-      toast('Please connect a wallet')
-      return
-    }
-    if (!isApprovedNFT) {
-      toast('NFT not approved')
-      return
-    }
-    if (!quote) {
-      toast('No quote found')
-      return
-    }
+  const _handleSinglePayment = async () => {
+    // TODO: Implement single payment
 
-    if (!selectedBond || !selectedPool || !paymentToken) {
+    console.log('handleSinglePayment()')
+    console.log('handleSinglePayment()')
+    console.log('handleSinglePayment()')
+  }
+
+  // Same as SELL BOND
+  const _handleMixedPayment = async () => {
+    if (!walletClient || !selectedPool || !selectedBond || !quote || !address) {
       toast('Please select all required options')
       return
     }
 
     try {
-      if (!walletClient) {
-        toast('Wallet not connected')
-        return
-      }
-
       setIsSubmitting(true)
 
       // Appove the SignalsBoard to spend the underlying token
@@ -156,7 +181,6 @@ export function BondBuy() {
       })
 
       const hash = await walletClient.writeContract(request)
-
       const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
@@ -181,20 +205,61 @@ export function BondBuy() {
     }
   }
 
-  const selectAction = (tokenId: bigint) => {
-    console.log('tokenId', tokenId)
-    console.log('isApprovedNFT', isApprovedNFT)
-    if (!isApprovedNFT) {
+  const handlePurchaseBond = async () => {
+    console.log('handlePurchaseBond')
+    if (!address) {
+      toast('Please connect a wallet')
+      return
+    }
+    if (!quote) {
+      toast('No quote found')
+      return
+    }
+    if (!walletClient) {
+      toast('Wallet not connected')
+      return
+    }
+
+    if (!selectedBond || !selectedPool || !paymentToken) {
+      toast('Please select all required options')
+      return
+    }
+
+    if (['currency0', 'currency1'].includes(paymentToken.key)) {
+      await _handleSinglePayment()
+    }
+    if (paymentToken.key === 'mixed') {
+      await _handleMixedPayment()
+    }
+  }
+
+  const selectAction = (tokenId: bigint, quote: number) => {
+    if (paymentToken?.key === 'currency0' && !hasCurrency0Allowance) {
       return (
         <Button
           className="w-full"
           onClick={() => {
-            handleApproveNFT(tokenId)
+            handleApproveCurrency0(quote)
           }}
-          disabled={isApprovingNFT}
+          disabled={isApprovingCurrency0}
           isLoading={isSubmitting}
         >
-          {isSubmitting ? 'Processing...' : 'Approve NFT'}
+          {isSubmitting ? 'Processing...' : `Approve ${paymentToken.label}`}
+        </Button>
+      )
+    }
+
+    if (paymentToken?.key === 'currency1' && !hasCurrency1Allowance) {
+      return (
+        <Button
+          className="w-full"
+          onClick={() => {
+            handleApproveCurrency1(quote)
+          }}
+          disabled={isApprovingCurrency1}
+          isLoading={isSubmitting}
+        >
+          {isSubmitting ? 'Processing...' : `Approve ${paymentToken.label}`}
         </Button>
       )
     }
@@ -206,9 +271,16 @@ export function BondBuy() {
         disabled={isSubmitting}
         isLoading={isSubmitting}
       >
-        {isSubmitting ? 'Processing...' : 'Purchase Bond'}
+        {isSubmitting ? 'Processing...' : `Purchase Bond #${selectedBond?.tokenId}`}
       </Button>
     )
+  }
+
+  const displayQuote = (paymentToken: OutputToken, quote: number) => {
+    if (paymentToken.key === 'mixed') {
+      return `${formatterUnderlying(quote)} ${paymentToken.label}`
+    }
+    return `${formatterUnderlying(quote)} ${paymentToken.label}`
   }
 
   return (
@@ -268,7 +340,7 @@ export function BondBuy() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-2xl font-bold mt-2">
-                      {formatterUnderlying(quote)} {symbolUnderlying}
+                      {displayQuote(paymentToken, quote)}
                     </div>
                     <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                       For your NFT#{selectedBond.tokenId}
@@ -366,7 +438,7 @@ export function BondBuy() {
 
       {/* Action Button */}
       {selectedBond && selectedPool && paymentToken && quote && (
-        <div className="mt-8">{selectAction(selectedBond.tokenId)}</div>
+        <div className="mt-8">{selectAction(selectedBond.tokenId, quote)}</div>
       )}
     </div>
   )
