@@ -1,5 +1,16 @@
 # Bond Pricing with Stylus
 
+## Getting started
+
+```sh
+# run tests
+cargo test
+
+# generate ABI
+mkdir interfaces
+cargo stylus export-abi
+```
+
 ## Overview
 
 This repository implements an advanced bond pricing engine using Arbitrum Stylus. By leveraging Stylus's enhanced computational capabilities, we've created complex bond pricing mechanisms that would be prohibitively expensive or impossible to implement in standard Solidity.

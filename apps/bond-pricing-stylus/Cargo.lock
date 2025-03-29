@@ -815,6 +815,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bond-pricing-stylus"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+ "dotenv",
+ "ethers",
+ "eyre",
+ "hex",
+ "mini-alloc",
+ "stylus-sdk",
+ "tokio",
+]
+
+[[package]]
 name = "branches"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4188,21 +4203,6 @@ dependencies = [
  "alloy-sol-types",
  "cfg-if",
  "dyn-clone",
-]
-
-[[package]]
-name = "stylus-hello-world"
-version = "0.1.11"
-dependencies = [
- "alloy-primitives",
- "alloy-sol-types",
- "dotenv",
- "ethers",
- "eyre",
- "hex",
- "mini-alloc",
- "stylus-sdk",
- "tokio",
 ]
 
 [[package]]

@@ -1,106 +1,116 @@
 //!
-//! Stylus Hello World
+//! Stylus Bond Pricing
 //!
-//! The following contract implements the Counter example from Foundry.
+//! Linear Bond Pricing model implemented in Stylus (Rust)
 //!
-//! ```solidity
-//! contract Counter {
-//!     uint256 public number;
-//!     function setNumber(uint256 newNumber) public {
-//!         number = newNumber;
-//!     }
-//!     function increment() public {
-//!         number++;
-//!     }
-//! }
-//! ```
-//!
-//! The program is ABI-equivalent with Solidity, which means you can call it from both Solidity and Rust.
-//! To do this, run `cargo stylus export-abi`.
-//!
-//! Note: this code is a template-only and has not been audited.
-//!
+
 // Allow `cargo stylus export-abi` to generate a main function.
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
 extern crate alloc;
 
-/// Import items from the SDK. The prelude contains common traits and macros.
-use stylus_sdk::{alloy_primitives::U256, prelude::*};
+/// Import items from the SDK
+use stylus_sdk::{
+    alloy_primitives::U256,
+    prelude::*,
+};
 
-// Define some persistent storage using the Solidity ABI.
-// `Counter` will be the entrypoint.
+// Import utility functions
+pub mod utils;
+use utils::{mul_div_down, mul_div_up};
+
+// Define storage layout for LinearBondPricing contract
 sol_storage! {
     #[entrypoint]
-    pub struct Counter {
-        uint256 number;
+    pub struct LinearBondPricing {
+        uint256 bid_discount;
+        uint256 ask_premium;
     }
 }
 
-/// Declare that `Counter` is a contract with the following external methods.
+// Constants - matches PipsLib.OneHundred from the test
+pub const ONE_HUNDRED: U256 = U256::from_limbs([100_0000, 0, 0, 0]);
+
+/// Implementation of the IBondPricing interface
 #[public]
-impl Counter {
-    /// Gets the number from storage.
-    pub fn number(&self) -> U256 {
-        self.number.get()
+impl LinearBondPricing {
+    /// Constructor to set the bid discount and ask premium
+    pub fn constructor(&mut self, bid_discount: U256, ask_premium: U256) {
+        self.bid_discount.set(bid_discount);
+        self.ask_premium.set(ask_premium);
     }
 
-    /// Sets a number in storage to a user-specified value.
-    pub fn set_number(&mut self, new_number: U256) {
-        self.number.set(new_number);
+    /// Get the current bid discount
+    pub fn bid_discount(&self) -> U256 {
+        self.bid_discount.get()
     }
 
-    /// Sets a number in storage to a user-specified value.
-    pub fn mul_number(&mut self, new_number: U256) {
-        self.number.set(new_number * self.number.get());
+    /// Get the current ask premium
+    pub fn ask_premium(&self) -> U256 {
+        self.ask_premium.get()
     }
 
-    /// Sets a number in storage to a user-specified value.
-    pub fn add_number(&mut self, new_number: U256) {
-        self.number.set(new_number + self.number.get());
+    /// Returns the price at which the pool would buy a bond
+    pub fn get_buy_price(
+        &self,
+        principal: U256,
+        start_time: U256,
+        duration: U256,
+        current_time: U256,
+        _reference_id: Vec<u8>,
+    ) -> U256 {
+        let current_value = self.calculate_current_bond_value(principal, start_time, duration, current_time);
+        let discount = mul_div_down(current_value, self.bid_discount.get(), ONE_HUNDRED);
+
+        if current_value > discount {
+            current_value - discount
+        } else {
+            U256::ZERO
+        }
     }
 
-    /// Increments `number` and updates its value in storage.
-    pub fn increment(&mut self) {
-        let number = self.number.get();
-        self.set_number(number + U256::from(1));
+    /// Returns the price at which the pool would sell a bond
+    pub fn get_sell_price(
+        &self,
+        principal: U256,
+        start_time: U256,
+        duration: U256,
+        current_time: U256,
+        _reference_id: Vec<u8>,
+    ) -> U256 {
+        let current_value = self.calculate_current_bond_value(principal, start_time, duration, current_time);
+        let premium = mul_div_up(current_value, self.ask_premium.get(), ONE_HUNDRED);
+
+        current_value + premium
     }
 
-    /// Adds the wei value from msg_value to the number in storage.
-    #[payable]
-    pub fn add_from_msg_value(&mut self) {
-        let number = self.number.get();
-        self.set_number(number + self.vm().msg_value());
-    }
-}
+    /// Calculates the current value of a bond based on time
+    /// Matches the _calculateCurrentBondValue in the Solidity contract
+    fn calculate_current_bond_value(
+        &self,
+        principal: U256,
+        start_time: U256,
+        duration: U256,
+        current_time: U256,
+    ) -> U256 {
+        let end_time = start_time + duration;
 
-#[cfg(test)]
-mod test {
-    use super::*;
+        // If the bond is already matured, return the full principal
+        if current_time >= end_time {
+            return principal;
+        }
 
-    #[test]
-    fn test_counter() {
-        use stylus_sdk::testing::*;
-        let vm = TestVM::default();
-        let mut contract = Counter::from(&vm);
+        // Calculate remaining duration
+        let remaining_duration = end_time - current_time;
 
-        assert_eq!(U256::ZERO, contract.number());
+        // Calculate value based on linear model
+        // This is equivalent to:
+        // principal - principal.mulDivDown(remainingDuration, duration)
+        let discount = mul_div_down(principal, remaining_duration, duration);
 
-        contract.increment();
-        assert_eq!(U256::from(1), contract.number());
-
-        contract.add_number(U256::from(3));
-        assert_eq!(U256::from(4), contract.number());
-
-        contract.mul_number(U256::from(2));
-        assert_eq!(U256::from(8), contract.number());
-
-        contract.set_number(U256::from(100));
-        assert_eq!(U256::from(100), contract.number());
-
-        // Override the msg value for future contract method invocations.
-        vm.set_value(U256::from(2));
-
-        contract.add_from_msg_value();
-        assert_eq!(U256::from(102), contract.number());
+        if principal > discount {
+            principal - discount
+        } else {
+            U256::ZERO
+        }
     }
 }
