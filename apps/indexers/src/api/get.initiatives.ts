@@ -59,13 +59,14 @@ export const getInitiatives = async (c: Context) => {
         args: [BigInt(initiative.initiativeId)],
       })
 
-      // const _incentives = await publicClients['421614'].readContract({
-      //   address: initiative.contractAddress,
-      //   abi: IncentivesABI,
-      //   functionName: 'getIncentives',
-      //   args: [BigInt(initiative.initiativeId)],
-      // })
-      // const rewards = _incentives[1].reduce((acc: bigint, amount: bigint) => acc + amount, 0n)
+      const _incentives = await db.query.Incentive.findMany({
+        where: eq(schema.Incentive.initiativeId, BigInt(initiative.initiativeId)),
+      })
+
+      let rewards = 0n
+      for (const incentive of _incentives) {
+        rewards += incentive.amount
+      }
 
       return {
         initiativeId: initiative.initiativeId,
@@ -74,8 +75,7 @@ export const getInitiatives = async (c: Context) => {
         weight: Number(weight) / 1e18,
         support: Number(weight) / Number(board.acceptanceThreshold),
         proposer: initiative.proposer,
-        rewards: 0,
-        // rewards: Number(rewards) / 1e6,
+        rewards: Number(rewards) / 1e6,
         supporters,
         createdAtTimestamp: Number(initiative.blockTimestamp),
         updatedAtTimestamp: Number(initiative.blockTimestamp),

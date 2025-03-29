@@ -51,7 +51,7 @@ export const context = {
     BoardUnderlyingToken: {
       abi: ERC20WithFaucetABI,
       address: '0x4713635357F9d01cBAF4DAc7E93B66D69544DEa8' as `0x${string}`,
-      label: 'SomeGovToken',
+      label: 'Hook',
       decimals: 18, // TODO: Should be dynamic
     },
     BondHook: {

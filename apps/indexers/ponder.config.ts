@@ -4,7 +4,13 @@ import { http, parseAbiItem } from 'viem'
 // Note: This should hot-reload when the file is changed
 import signalsTestnet from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
 import { resolveDeployment } from './src/utils/resolve-deployment'
-import { BondHookABI, PoolManagerABI, SignalsABI, SignalsFactoryABI } from '../../packages/abis'
+import {
+  BondHookABI,
+  IncentivesABI,
+  PoolManagerABI,
+  SignalsABI,
+  SignalsFactoryABI,
+} from '../../packages/abis'
 
 const latestFactory = resolveDeployment('SignalsFactory', signalsTestnet)
 
@@ -39,6 +45,13 @@ export default createConfig({
         parameter: 'board',
       }),
       // Start indexing from the last factory deployment
+      startBlock: latestFactory.startBlock,
+    },
+    // TODO: Move this to the Factory deployment
+    Incentives: {
+      network: 'arbitrumSepolia',
+      abi: IncentivesABI,
+      address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a',
       startBlock: latestFactory.startBlock,
     },
     SignalsFactory: {

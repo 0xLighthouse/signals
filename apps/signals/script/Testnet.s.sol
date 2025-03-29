@@ -126,6 +126,7 @@ contract TestnetScript is Script {
         uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
         address[3] memory _receivers = [address(_alice), address(_bob), address(_charlie)];
 
+        // TODO: Move this to the Factory deployment
         vm.broadcast(_deployer);
         _incentives = new Incentives(address(protocolAddress), address(registry), _allocations, _receivers);
 

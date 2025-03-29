@@ -16,6 +16,22 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
   })
 })
 
+ponder.on('Incentives:IncentiveAdded', async ({ event, context }) => {
+  await context.db.insert(schema.Incentive).values({
+    id: event.id,
+    chainId: context.network.chainId,
+    contractAddress: event.log.address,
+    blockTimestamp: event.block.timestamp,
+    transactionHash: event.transaction.hash,
+    initiativeId: event.args.initiativeId,
+    incentiveId: event.args.incentiveId,
+    token: event.args.token,
+    amount: event.args.amount,
+    expiresAt: event.args.expiresAt,
+    terms: event.args.terms,
+  })
+})
+
 ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
   console.log('SignalsBoard:Transfer', event)
 

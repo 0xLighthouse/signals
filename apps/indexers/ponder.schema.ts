@@ -50,6 +50,21 @@ export const Bond = onchainTable('bonds', (t) => ({
   isActive: t.boolean().notNull(),
 }))
 
+export const Incentive = onchainTable('incentives', (t) => ({
+  id: t.text().primaryKey(),
+  chainId: t.integer().notNull(),
+  blockTimestamp: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
+  contractAddress: t.hex().notNull(),
+  // --- attributes
+  initiativeId: t.bigint().notNull(),
+  incentiveId: t.bigint().notNull(),
+  token: t.hex().notNull(),
+  amount: t.bigint().notNull(),
+  expiresAt: t.bigint().notNull(),
+  terms: t.integer().notNull(),
+}))
+
 export const Initiative = onchainTable('initiatives', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),

@@ -31,8 +31,6 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   proposeNewInitiative = false,
   supportInitiative = false,
 }) => {
-  console.log('SubmissionLockDetails().render')
-
   const { symbol, decimals } = useUnderlying()
 
   const weight = amount ? amount * (duration || 1) : 0
