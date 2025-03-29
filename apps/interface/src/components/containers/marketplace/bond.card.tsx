@@ -30,11 +30,13 @@ export const BondCard: React.FC<Props> = ({ action, bond, board, isFirst, isLast
     <Card
       className={cn(
         'flex flex-col',
-        isFirst
-          ? 'rounded-t-lg rounded-b-none border-b-0 '
-          : isLast
-            ? 'rounded-b-lg rounded-t-none'
-            : 'rounded-none border-b-0',
+        isFirst && isLast
+          ? 'rounded-lg'
+          : isFirst
+            ? 'rounded-t-lg rounded-b-none'
+            : isLast
+              ? 'rounded-b-lg rounded-t-none'
+              : 'rounded-none border-b-0',
       )}
     >
       <div className="flex flex-col md:flex-row w-full">
