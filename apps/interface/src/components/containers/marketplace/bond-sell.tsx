@@ -25,9 +25,10 @@ import { OutputToken, resolveOutputTokens } from './utils'
 
 interface BondSellProps {
   initialTokenId?: bigint
+  onSell?: () => void
 }
 
-export function BondSell({ initialTokenId }: BondSellProps) {
+export function BondSell({ initialTokenId, onSell }: BondSellProps) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
@@ -178,6 +179,7 @@ export function BondSell({ initialTokenId }: BondSellProps) {
 
       console.log('Receipt:', receipt)
       toast('Bond sold successfully!')
+      onSell?.()
 
       // Reset form
       // handleReset()

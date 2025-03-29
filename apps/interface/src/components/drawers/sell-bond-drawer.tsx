@@ -67,7 +67,7 @@ export function SellBondDrawer({ tokenId }: SellBondDrawerProps) {
             </Alert>
           </DrawerHeader>
           <div className="p-8 pt-2">
-            <BondSell initialTokenId={tokenId} />
+            <BondSell initialTokenId={tokenId} onSell={() => setIsDrawerOpen(false)} />
           </div>
         </div>
       </DrawerContent>

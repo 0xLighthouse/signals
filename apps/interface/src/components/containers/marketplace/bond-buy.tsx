@@ -25,7 +25,11 @@ import { OutputToken, resolveOutputTokens } from './utils'
 import { BondHookABI } from '../../../../../../packages/abis'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 
-export function BondBuy() {
+interface Props {
+  onBuy?: () => void
+}
+
+export function BondBuy({ onBuy }: Props) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const [selectedBond, setSelectedBond] = useState<Lock | undefined>(undefined)
@@ -231,6 +235,7 @@ export function BondBuy() {
     if (paymentToken.key === 'mixed') {
       await _handleMixedPayment()
     }
+    onBuy?.()
   }
 
   const selectAction = (tokenId: bigint, quote: number) => {

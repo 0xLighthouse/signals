@@ -65,7 +65,7 @@ export function BuyBondDrawer({ tokenId }: Props) {
             </Alert>
           </DrawerHeader>
           <div className="p-8 pt-2">
-            <BondBuy />
+            <BondBuy onBuy={() => setIsDrawerOpen(false)} />
           </div>
         </div>
       </DrawerContent>
