@@ -36,10 +36,11 @@ export const useBondsStore = create<BondsState>((set, get) => ({
 
   fetchInitiativeLocks: async (initiativeId: string) => {
     // Prevent duplicate fetches
-    if (get().isFetchingInitiativeLocks || get().isInitiativeLocksInitialized) return
+    const state = get()
+    if (state.isFetchingInitiativeLocks || state.isInitiativeLocksInitialized || state.isFetchingInitiativeLocks) return
 
     try {
-      set({ isFetchingBondsOwned: true })
+      set({ isFetchingInitiativeLocks: true })
 
       const resp = await fetch(`${INDEXER_ENDPOINT}/locks/${CHAIN_ID}/${BOARD}/${initiativeId}`)
       const { data } = await resp.json()
