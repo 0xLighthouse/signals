@@ -9,6 +9,11 @@ cargo test
 # generate ABI
 mkdir interfaces
 cargo stylus export-abi
+
+# deploy
+cargo stylus deploy \
+  --endpoint=$ARBITRUM_SEPOLIA_RPC_URL \
+  --private-key=$TESTNET_DEPLOYER_PRIVATE_KEY
 ```
 
 ## Overview
