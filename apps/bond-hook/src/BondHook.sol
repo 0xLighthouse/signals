@@ -291,9 +291,11 @@ contract BondHook is BaseHook {
 
         // We must get at least as much as we paid
         uint256 originalPriceAsLiquidity = amountPaidOutFor[data.tokenId];
-        if (priceAsLiquidity < originalPriceAsLiquidity) {
-            priceAsLiquidity = originalPriceAsLiquidity;
-        }
+
+        // FIXME: Not sure we should enforce that a bond is sold at its purchase price
+        // if (priceAsLiquidity < originalPriceAsLiquidity) {
+        //     priceAsLiquidity = originalPriceAsLiquidity;
+        // }
 
         require(priceAsLiquidity < data.bondPriceLimit, "BondHook: Bond price exceeds desired purchase price");
 

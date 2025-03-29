@@ -45,10 +45,10 @@ contract DeployManagerAndHook is Script {
             poolManager: IPoolManager(manager),
             bondIssuer: address(bondIssuer),
             bondPricing: address(pricing),
-            ownerFeeAsPips: 0,
-            feeCreditRatioAsPips: 0,
-            swapFeeNormal: 0,
-            swapFeeDiscounted: 0
+            ownerFeeAsPips: 10000, // Protocol fee for sell/buying bonds, 1%
+            feeCreditRatioAsPips: 500000, // 50%
+            swapFeeNormal: 5000, // Pool fee, 0.5%
+            swapFeeDiscounted: 0 // 0%
         });
 
         // Use the same encoding for both find and deployment
