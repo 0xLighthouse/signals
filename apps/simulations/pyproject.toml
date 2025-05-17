@@ -1,8 +1,7 @@
 [tool.poetry]
-name = "simulations"
+name = "signals-simulations"
 version = "0.1.0"
-description = ""
-package-mode = false
+description = "SIGNALS Protocol Simulation using cadCAD"
 authors = ["1a35e1 <1a35e1@protonmail.com>"]
 readme = "README.md"
 
@@ -10,11 +9,16 @@ readme = "README.md"
 python = "^3.12"
 pandas = "^2.2.3"
 matplotlib = "^3.9.2"
-cadcad = "^0.5.3"
 seaborn = "^0.13.2"
-requests = "^2.32.3"
-
+numpy = "^1.26.4"
+fastparquet = "^2024.11.0"
+tabulate = "^0.9.0"
+ruff = "^0.8.4"
+cadcad = "^0.5.3"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
