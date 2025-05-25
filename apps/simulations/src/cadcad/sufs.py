@@ -18,7 +18,9 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
     for init_id, init_data in previous_state_dict.get("initiatives", {}).items():
         if isinstance(init_data, dict):  # If it's a dict, convert to Initiative object
             initiatives_dict_of_obj[init_id] = Initiative(**init_data)
-        elif isinstance(init_data, Initiative):  # If already an object (e.g. from previous SUF in same timestep)
+        elif isinstance(
+            init_data, Initiative
+        ):  # If already an object (e.g. from previous SUF in same timestep)
             initiatives_dict_of_obj[init_id] = init_data
         else:
             raise TypeError(f"Unexpected type for initiative data: {type(init_data)}")
@@ -44,7 +46,9 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
 
     # Ensure datetime is parsed correctly if it's a string
     if isinstance(current_state_params.get("current_time"), str):
-        current_state_params["current_time"] = datetime.fromisoformat(current_state_params["current_time"])
+        current_state_params["current_time"] = datetime.fromisoformat(
+            current_state_params["current_time"]
+        )
 
     return State(**current_state_params)
 
@@ -55,7 +59,7 @@ def s_update_current_epoch(
     state_history: List[Dict[str, Any]],
     previous_state: Dict[str, Any],
     policy_input: Dict[str, Any],
-) -> Tuple[str, Any]:
+) -> List[Tuple[str, Any]]:
     """Update the current epoch and time."""
     new_epoch = previous_state["current_epoch"] + 1
     # previous_state['current_time'] might be string if from initial state via __dict__
@@ -64,7 +68,10 @@ def s_update_current_epoch(
         current_time_dt = datetime.fromisoformat(current_time_dt)
     new_time = current_time_dt + timedelta(days=1)  # Assuming 1 epoch = 1 day
 
-    return ("current_epoch", new_epoch), ("current_time", new_time.isoformat())  # Store time as ISO string
+    return [
+        ("current_epoch", new_epoch),
+        ("current_time", new_time.isoformat()),
+    ]  # Store time as ISO string
 
 
 def s_apply_user_actions(
@@ -121,7 +128,9 @@ def s_apply_user_actions(
 
                 # Update initiative's last support epoch
                 if initiative_id in state.initiatives:
-                    state.initiatives[initiative_id].last_support_time = state.current_time  # Update datetime too
+                    state.initiatives[
+                        initiative_id
+                    ].last_support_time = state.current_time  # Update datetime too
                     state.initiatives[initiative_id].last_support_epoch = state.current_epoch
 
     # Return the updated parts of the state as a list of tuples
@@ -175,18 +184,23 @@ def s_process_initiative_and_support_lifecycles(
     """Handle initiative acceptance, support expiration, and initiative inactivity."""
     state = get_state_obj(previous_state)
     acceptance_threshold = params["acceptance_threshold"]
+    inactivity_period = params["inactivity_period"]
 
     newly_accepted_initiatives_this_step: Set[str] = set()
     supports_to_remove: List[Tuple[str, str]] = []
 
     # 1. Check for Initiative Acceptance
-    for init_id, initiative in list(state.initiatives.items()):  # Use list for safe iteration if modifying
+    for init_id, initiative in list(
+        state.initiatives.items()
+    ):  # Use list for safe iteration if modifying
         if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
             if initiative.weight >= acceptance_threshold:
                 state.accepted_initiatives.add(init_id)
                 newly_accepted_initiatives_this_step.add(init_id)
                 # Unlock all tokens for this accepted initiative
-                for sup_key, support_obj in list(state.supporters.items()):  # Use list for safe iteration
+                for sup_key, support_obj in list(
+                    state.supporters.items()
+                ):  # Use list for safe iteration
                     if support_obj.initiative_id == init_id:
                         state.balances[support_obj.user_id] = (
                             state.balances.get(support_obj.user_id, 0) + support_obj.amount
@@ -202,9 +216,13 @@ def s_process_initiative_and_support_lifecycles(
 
     # 2. Check for Support Expiration (for non-accepted initiatives)
     for sup_key, support_obj in list(state.supporters.items()):  # Use list for safe iteration
-        if support_obj.initiative_id not in state.accepted_initiatives:  # Only if initiative not already handled
+        if (
+            support_obj.initiative_id not in state.accepted_initiatives
+        ):  # Only if initiative not already handled
             if state.current_epoch >= support_obj.expiry_epoch:
-                state.balances[support_obj.user_id] = state.balances.get(support_obj.user_id, 0) + support_obj.amount
+                state.balances[support_obj.user_id] = (
+                    state.balances.get(support_obj.user_id, 0) + support_obj.amount
+                )
                 state.circulating_supply += support_obj.amount
                 supports_to_remove.append(sup_key)
 
@@ -219,7 +237,9 @@ def s_process_initiative_and_support_lifecycles(
             # Check if initiative still has any active support after previous removals
             has_active_support = any(s.initiative_id == init_id for s in state.supporters.values())
 
-            if not has_active_support and (state.current_epoch - initiative.last_support_epoch >= inactivity_period):
+            if not has_active_support and (
+                state.current_epoch - initiative.last_support_epoch >= inactivity_period
+            ):
                 state.expired_initiatives.add(init_id)
             # Alternative: an initiative might expire if its weight is 0 for too long, even if last_support_epoch is recent
             # This would require tracking how long weight has been 0.

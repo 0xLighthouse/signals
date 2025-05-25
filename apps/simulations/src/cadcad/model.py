@@ -9,11 +9,15 @@ from cadCAD.configuration.utils import config_sim
 from .state import State
 from .policies import (
     advance_block,
-    submit_initiative,
-    support_initiative,
-    decay_weights,
-    check_acceptance,
-    check_expiration,
+    p_user_actions,
+    p_advance_time,
+)
+from .sufs import (
+    s_update_current_epoch,
+    s_apply_user_actions,
+    s_apply_support_decay,
+    s_update_initiative_aggregate_weights,
+    s_process_initiative_and_support_lifecycles,
 )
 
 
@@ -22,17 +26,15 @@ simulation_parameters = {
     "T": range(100),  # Number of timesteps
     "N": 1,  # Number of monte carlo runs
     "M": {  # Model parameters
-        "decay_type": "exponential",  # Can be 'linear' or 'exponential'
         "acceptance_threshold": 1000.0,
-        "inactivity_period": 10,
         "decay_multiplier": 0.95,
-        # Add initiative parameters
-        "title": "Test Initiative",
-        "description": "A test initiative for simulation",
-        "user_id": "test_user",
-        "initiative_id": None,  # Will be generated in the policy
-        "amount": 100.0,
-        "duration": 30,
+        "initiative_creation_stake": 10.0,
+        "prob_create_initiative": 0.08,
+        "prob_support_initiative": 0.2,
+        "max_support_tokens_fraction": 0.5,
+        "min_lock_duration_epochs": 5,
+        "max_lock_duration_epochs": 20,
+        "inactivity_period": 10,
     },
 }
 
@@ -61,78 +63,24 @@ def standard_state_update(key):
 
 # Define the partial state update blocks with our explicit update functions
 psubs = [
-    # {
-    #     "policies": {
-    #         "submit_initiative": submit_initiative,
-    #     },
-    #     "variables": {
-    #         "current_epoch": update_current_epoch,
-    #         "current_time": update_current_time,
-    #         "initiatives": update_initiatives,
-    #         "accepted_initiatives": update_accepted_initiatives,
-    #         "expired_initiatives": update_expired_initiatives,
-    #         "supporters": update_supporters,
-    #         "acceptance_threshold": update_acceptance_threshold,
-    #         "inactivity_period": update_inactivity_period,
-    #         "decay_multiplier": update_decay_multiplier,
-    #     },
-    # },
-    # {
-    #     "policies": {
-    #         "support_initiative": support_initiative,
-    #     },
-    #     "variables": {
-    #         "current_epoch": update_current_epoch,
-    #         "current_time": update_current_time,
-    #         "initiatives": update_initiatives,
-    #         "accepted_initiatives": update_accepted_initiatives,
-    #         "expired_initiatives": update_expired_initiatives,
-    #         "supporters": update_supporters,
-    #         "acceptance_threshold": update_acceptance_threshold,
-    #         "inactivity_period": update_inactivity_period,
-    #         "decay_multiplier": update_decay_multiplier,
-    #     },
-    # },
-    # {
-    #     "policies": {
-    #         "decay_weights": decay_weights,
-    #     },
-    #     "variables": {
-    #         "current_epoch": update_current_epoch,
-    #         "current_time": update_current_time,
-    #         "initiatives": update_initiatives,
-    #         "accepted_initiatives": update_accepted_initiatives,
-    #         "expired_initiatives": update_expired_initiatives,
-    #         "supporters": update_supporters,
-    #         "acceptance_threshold": update_acceptance_threshold,
-    #         "inactivity_period": update_inactivity_period,
-    #         "decay_multiplier": update_decay_multiplier,
-    #     },
-    # },
-    # {
-    #     "policies": {
-    #         "check_acceptance": check_acceptance,
-    #         "check_expiration": check_expiration,
-    #     },
-    #     "variables": {
-    #         "current_epoch": update_current_epoch,
-    #         "current_time": update_current_time,
-    #         "initiatives": update_initiatives,
-    #         "accepted_initiatives": update_accepted_initiatives,
-    #         "expired_initiatives": update_expired_initiatives,
-    #         "supporters": update_supporters,
-    #         "acceptance_threshold": update_acceptance_threshold,
-    #         "inactivity_period": update_inactivity_period,
-    #         "decay_multiplier": update_decay_multiplier,
-    #     },
-    # },
     {
         "policies": {
-            "advance_block": advance_block,
+            # Policy to advance time (signals intent, SUF does the work)
+            "time_advancement_policy": p_advance_time,
+            # Policy for user behaviors (creating/supporting initiatives)
+            "user_behavior_policy": p_user_actions,
         },
         "variables": {
-            "current_epoch": standard_state_update("current_epoch"),
-            "current_time": standard_state_update("current_time"),
+            # SUF to update current_epoch and current_time (should be early)
+            "current_epoch": s_update_current_epoch,
+            # SUF to apply user actions (create/support initiatives)
+            "initiatives": s_apply_user_actions,
+            # SUF to apply decay to support weights
+            "supporters": s_apply_support_decay,
+            # SUF to update aggregate initiative weights after decay/new support
+            "initiatives_after_weight_update": s_update_initiative_aggregate_weights,
+            # SUF to process initiative/support lifecycles (acceptance, expiration)
+            "accepted_initiatives": s_process_initiative_and_support_lifecycles,
         },
     },
 ]
