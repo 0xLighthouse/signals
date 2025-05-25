@@ -26,7 +26,7 @@ from .sufs import (
 
 # Define the simulation parameters
 simulation_parameters = {
-    "T": range(100),  # Number of timesteps
+    "T": range(10),  # Number of timesteps
     "N": 1,  # Number of monte carlo runs
     "M": {  # Model parameters
         "acceptance_threshold": 1000.0,
@@ -111,7 +111,7 @@ def run_simulation(initial_state: Dict) -> List[Dict]:
         executor = Executor(exec_context, [live_config])  # Use live_config
 
         print("Executing simulation...")
-        raw_result = executor.execute()
+        raw_result, tensor_field, sessions = executor.execute()
 
         print(f"Simulation completed with {len(raw_result)} timesteps")
         return raw_result

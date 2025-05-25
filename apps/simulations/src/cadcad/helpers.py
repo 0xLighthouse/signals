@@ -10,7 +10,9 @@ def results_to_dataframe(results: List[Dict]) -> pd.DataFrame:
     try:
         # Extract just the fields we need to avoid serialization issues
         processed_results = []
-        for row in results:
+        for i, row in enumerate(results):
+            if not isinstance(row, dict):
+                continue
             processed_row = {
                 "current_epoch": row.get("current_epoch", 0),
                 "current_time": row.get("current_time", datetime.now()),
@@ -20,28 +22,35 @@ def results_to_dataframe(results: List[Dict]) -> pd.DataFrame:
                 "supporters_count": len(row.get("supporters", {})),
                 "acceptance_threshold": row.get("acceptance_threshold", 0),
                 "initiatives": row.get("initiatives", {}),  # Keep full object for metrics
-                "accepted_initiatives": row.get("accepted_initiatives", set()),  # Keep full object for metrics
-                "expired_initiatives": row.get("expired_initiatives", set()),  # Keep full object for metrics
+                "accepted_initiatives": row.get(
+                    "accepted_initiatives", set()
+                ),  # Keep full object for metrics
+                "expired_initiatives": row.get(
+                    "expired_initiatives", set()
+                ),  # Keep full object for metrics
                 "supporters": row.get("supporters", {}),  # Keep full object for metrics
             }
             processed_results.append(processed_row)
-            
+
         df = pd.DataFrame(processed_results)
         df["timestamp"] = pd.to_datetime(df["current_time"])
         return df
     except Exception as e:
         print(f"Error converting results to DataFrame: {e}")
         import traceback
+
         traceback.print_exc()
         # Return minimal DataFrame to avoid breaking downstream code
-        return pd.DataFrame({
-            "current_epoch": [0],
-            "timestamp": [datetime.now()],
-            "initiatives": [{}],
-            "accepted_initiatives": [set()],
-            "expired_initiatives": [set()],
-            "supporters": [{}],
-        })
+        return pd.DataFrame(
+            {
+                "current_epoch": [0],
+                "timestamp": [datetime.now()],
+                "initiatives": [{}],
+                "accepted_initiatives": [set()],
+                "expired_initiatives": [set()],
+                "supporters": [{}],
+            }
+        )
 
 
 def plot_initiative_weights(df: pd.DataFrame, initiative_ids: List[str] = None) -> None:
@@ -99,7 +108,7 @@ def analyze_acceptance_rate(df: pd.DataFrame) -> Dict:
                 "active": 0,
                 "acceptance_rate": 0,
             }
-            
+
         total_initiatives = len(df["initiatives"].iloc[0])
         accepted = len(df["accepted_initiatives"].iloc[-1])
         expired = len(df["expired_initiatives"].iloc[-1])
@@ -115,6 +124,7 @@ def analyze_acceptance_rate(df: pd.DataFrame) -> Dict:
     except Exception as e:
         print(f"Error analyzing acceptance rate: {e}")
         import traceback
+
         traceback.print_exc()
         # Return default metrics on error
         return {
