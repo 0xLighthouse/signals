@@ -13,7 +13,11 @@ from .policies import (
 )
 from .sufs import (
     s_update_current_epoch,
-    s_apply_user_actions,
+    s_update_current_time,
+    s_apply_user_actions_initiatives,
+    s_apply_user_actions_supporters,
+    s_apply_user_actions_balances,
+    s_apply_user_actions_circulating_supply,
     s_apply_support_decay,
     s_update_initiative_aggregate_weights,
     s_process_initiative_and_support_lifecycles,
@@ -61,6 +65,7 @@ def standard_state_update(key):
 
 
 # Define the partial state update blocks with our explicit update functions
+# Debugging - adding SUFs one by one
 psubs = [
     {
         "policies": {
@@ -72,14 +77,12 @@ psubs = [
         "variables": {
             # SUF to update current_epoch and current_time (should be early)
             "current_epoch": s_update_current_epoch,
-            # SUF to apply user actions (create/support initiatives)
-            "initiatives": s_apply_user_actions,
-            # SUF to apply decay to support weights
-            "supporters": s_apply_support_decay,
-            # SUF to update aggregate initiative weights after decay/new support
-            "initiatives_after_weight_update": s_update_initiative_aggregate_weights,
-            # SUF to process initiative/support lifecycles (acceptance, expiration)
-            "accepted_initiatives": s_process_initiative_and_support_lifecycles,
+            "current_time": s_update_current_time,
+            # SUFs to apply user actions (split into separate functions)
+            "initiatives": s_apply_user_actions_initiatives,
+            "supporters": s_apply_user_actions_supporters,
+            "balances": s_apply_user_actions_balances,
+            "circulating_supply": s_apply_user_actions_circulating_supply,
         },
     },
 ]

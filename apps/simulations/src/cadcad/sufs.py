@@ -31,7 +31,13 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
         # Ensure sup_key_tuple is a tuple if it comes from JSON-like state in some cadCAD versions
         key = tuple(sup_key_tuple) if isinstance(sup_key_tuple, list) else sup_key_tuple
         if isinstance(sup_data, dict):
-            supporters_dict_of_obj[key] = Support(**sup_data)
+            # Filter out fields that have init=False to avoid passing them to __init__
+            init_fields = {
+                k: v
+                for k, v in sup_data.items()
+                if k not in ["initial_weight", "current_weight", "expiry_epoch"]
+            }
+            supporters_dict_of_obj[key] = Support(**init_fields)
         elif isinstance(sup_data, Support):
             supporters_dict_of_obj[key] = sup_data
         else:
@@ -59,22 +65,159 @@ def s_update_current_epoch(
     state_history: List[Dict[str, Any]],
     previous_state: Dict[str, Any],
     policy_input: Dict[str, Any],
-) -> List[Tuple[str, Any]]:
-    """Update the current epoch and time."""
+) -> Tuple[str, Any]:
+    """Update the current epoch."""
     new_epoch = previous_state["current_epoch"] + 1
+    return ("current_epoch", new_epoch)
+
+
+def s_update_current_time(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Update the current time."""
     # previous_state['current_time'] might be string if from initial state via __dict__
     current_time_dt = previous_state["current_time"]
     if isinstance(current_time_dt, str):
         current_time_dt = datetime.fromisoformat(current_time_dt)
     new_time = current_time_dt + timedelta(days=1)  # Assuming 1 epoch = 1 day
-
-    return [
-        ("current_epoch", new_epoch),
-        ("current_time", new_time.isoformat()),
-    ]  # Store time as ISO string
+    return ("current_time", new_time.isoformat())
 
 
-def s_apply_user_actions(
+def s_apply_user_actions_initiatives(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Apply user actions that affect initiatives."""
+    state = get_state_obj(previous_state)
+    actions = policy_input.get("user_actions", [])
+
+    for action in actions:
+        action_type = action.get("type")
+        user_id = action.get("user_id")
+
+        if action_type == "create_initiative":
+            creation_stake = params["initiative_creation_stake"]
+            if state.balances.get(user_id, 0) >= creation_stake:
+                new_initiative_id = str(uuid.uuid4())
+                initiative = Initiative(
+                    id=new_initiative_id,
+                    title=action.get("title", "Untitled Initiative"),
+                    description=action.get("description", ""),
+                    created_at=state.current_time,
+                    last_support_epoch=state.current_epoch,
+                )
+                state.initiatives[new_initiative_id] = initiative
+
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    initiatives_dict = {k: v.__dict__ for k, v in state.initiatives.items()}
+    return ("initiatives", initiatives_dict)
+
+
+def s_apply_user_actions_supporters(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Apply user actions that affect supporters."""
+    state = get_state_obj(previous_state)
+    actions = policy_input.get("user_actions", [])
+
+    for action in actions:
+        action_type = action.get("type")
+        user_id = action.get("user_id")
+
+        if action_type == "support_initiative":
+            initiative_id = action.get("initiative_id")
+            amount = action.get("amount")
+            lock_duration_epochs = action.get("lock_duration_epochs")
+
+            if initiative_id in state.initiatives and state.balances.get(user_id, 0) >= amount:
+                support_key = (user_id, initiative_id)
+                support = Support(
+                    user_id=user_id,
+                    initiative_id=initiative_id,
+                    amount=amount,
+                    lock_duration_epochs=lock_duration_epochs,
+                    start_epoch=state.current_epoch,
+                )
+                state.supporters[support_key] = support
+
+                # Update initiative's last support epoch
+                if initiative_id in state.initiatives:
+                    state.initiatives[initiative_id].last_support_time = state.current_time
+                    state.initiatives[initiative_id].last_support_epoch = state.current_epoch
+
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+    return ("supporters", supporters_dict)
+
+
+def s_apply_user_actions_balances(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Apply user actions that affect balances."""
+    state = get_state_obj(previous_state)
+    actions = policy_input.get("user_actions", [])
+
+    for action in actions:
+        action_type = action.get("type")
+        user_id = action.get("user_id")
+
+        if action_type == "create_initiative":
+            creation_stake = params["initiative_creation_stake"]
+            if state.balances.get(user_id, 0) >= creation_stake:
+                state.balances[user_id] -= creation_stake
+
+        elif action_type == "support_initiative":
+            initiative_id = action.get("initiative_id")
+            amount = action.get("amount")
+
+            if initiative_id in state.initiatives and state.balances.get(user_id, 0) >= amount:
+                state.balances[user_id] -= amount
+
+    return ("balances", state.balances)
+
+
+def s_apply_user_actions_circulating_supply(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Apply user actions that affect circulating supply."""
+    state = get_state_obj(previous_state)
+    actions = policy_input.get("user_actions", [])
+
+    for action in actions:
+        action_type = action.get("type")
+        user_id = action.get("user_id")
+
+        if action_type == "support_initiative":
+            initiative_id = action.get("initiative_id")
+            amount = action.get("amount")
+
+            if initiative_id in state.initiatives and state.balances.get(user_id, 0) >= amount:
+                state.circulating_supply -= amount  # Tokens are locked
+
+    return ("circulating_supply", state.circulating_supply)
+
+
+# Keep the original function for reference but rename it
+def s_apply_user_actions_original(
     params: Dict[str, Any],
     substep: int,
     state_history: List[Dict[str, Any]],
@@ -135,9 +278,13 @@ def s_apply_user_actions(
 
     # Return the updated parts of the state as a list of tuples
     # cadCAD expects ('variable_name', new_value)
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    initiatives_dict = {k: v.__dict__ for k, v in state.initiatives.items()}
+    supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+
     return [
-        ("initiatives", state.initiatives),
-        ("supporters", state.supporters),
+        ("initiatives", initiatives_dict),
+        ("supporters", supporters_dict),
         ("balances", state.balances),
         ("circulating_supply", state.circulating_supply),
     ]
@@ -158,7 +305,9 @@ def s_apply_support_decay(
         if state.current_epoch < support.expiry_epoch:  # Only decay active, non-expired supports
             support.decay(decay_multiplier, state.current_epoch)
 
-    return ("supporters", state.supporters)
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+    return ("supporters", supporters_dict)
 
 
 def s_update_initiative_aggregate_weights(
@@ -171,7 +320,9 @@ def s_update_initiative_aggregate_weights(
     """Recalculate the total weight for each initiative based on its current supports."""
     state = get_state_obj(previous_state)
     state.update_initiative_weights()  # This method is in the State class
-    return ("initiatives", state.initiatives)
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    initiatives_dict = {k: v.__dict__ for k, v in state.initiatives.items()}
+    return ("initiatives", initiatives_dict)
 
 
 def s_process_initiative_and_support_lifecycles(
@@ -245,10 +396,13 @@ def s_process_initiative_and_support_lifecycles(
             # This would require tracking how long weight has been 0.
             # For now, using last_support_epoch and no active support is simpler.
 
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+
     return [
         ("accepted_initiatives", state.accepted_initiatives),
         ("expired_initiatives", state.expired_initiatives),
-        ("supporters", state.supporters),
+        ("supporters", supporters_dict),
         ("balances", state.balances),
         ("circulating_supply", state.circulating_supply),
     ]
