@@ -73,6 +73,7 @@ poetry run python src/visualize.py
 - `timeline_TIMESTAMP.png` - Initiative creation and acceptance over time
 - `governance_metrics_TIMESTAMP.png` - Acceptance rates and participation
 - `user_behavior_TIMESTAMP.png` - Balance distribution and activity patterns
+- `token_flux_TIMESTAMP.png` - Violin plot showing token flux between circulating and locked
 - `analysis_report_TIMESTAMP.txt` - Comprehensive text analysis
 
 **Features:**
@@ -158,6 +159,7 @@ results/                   # Generated simulation outputs
     ├── timeline_*.png
     ├── governance_metrics_*.png
     ├── user_behavior_*.png
+    ├── token_flux_*.png
     └── analysis_report_*.txt
 ```
 
