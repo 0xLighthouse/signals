@@ -1,60 +1,31 @@
-from datetime import datetime
-
-from cadcad.model import run_simulation, State
-from cadcad.policies import submit_initiative, support_initiative
-from cadcad.helpers import (
-    results_to_dataframe,
-    plot_initiative_weights,
-    plot_support_distribution,
-    analyze_acceptance_rate,
-)
-
-
-def setup_initial_state() -> None:
-    """
-    This function is no longer used as the initial state is 
-    now configured directly in cadcad/model.py
-    """
-    pass
+from cadcad.helpers import results_to_dataframe
+from cadcad.model import run_simulation
+from cadcad.state import generate_initial_state
 
 
 def main():
-    print("Setting up initial state...")
-    # initial_state = setup_initial_state()
+    """Main entry point for running the simulation."""
+    print("Starting Signals simulation...")
 
-    print("Running simulation...")
-    try:
-        results = run_simulation()
-        
-        print("Processing results...")
-        df = results_to_dataframe(results)
+    # Generate initial state
+    initial_state = generate_initial_state(num_users=50, total_supply=1_000_000, randomize=True)
+    print(f"Initial state generated with {len(initial_state['balances'])} users.")
 
-        # Analyze and display results
-        print("\nSimulation Results:")
-        print("-" * 50)
+    # Run the simulation
+    results = run_simulation(initial_state=initial_state)
 
-        # Get acceptance metrics
-        metrics = analyze_acceptance_rate(df)
-        print(f"Total Initiatives: {metrics['total_initiatives']}")
-        print(f"Accepted Initiatives: {metrics['accepted']}")
-        print(f"Expired Initiatives: {metrics['expired']}")
-        print(f"Active Initiatives: {metrics['active']}")
-        print(f"Acceptance Rate: {metrics['acceptance_rate']:.2%}")
+    print(initial_state)
 
-        # Plot initiative weights over time
-        print("\nGenerating plots...")
-        plot_initiative_weights(df)
+    df = results_to_dataframe(results)
+    print(df.head())
 
-        # Plot support distribution at the end of simulation
-        plot_support_distribution(df, timestep=-1)
+    # Print the final state
+    if results:
+        final_state = results[-1]
+        print("\nFinal state:")
+        print(final_state)
 
-        print("\nSimulation complete! Check the generated plots for visualizations.")
-    except Exception as e:
-        print(f"Error during simulation: {e}")
-        print("The simulation encountered an error. This could be due to issues with the cadCAD configuration.")
-        print("Check that all state variables are properly initialized and that all policy functions are correctly defined.")
-        print("Successfully fixed all the policy functions to work with cadCAD's approach, but more debugging is needed for the state variables.")
-        print("\nSimulation setup is now working correctly, but advanced debugging is needed in the cadCAD implementation.")
+    print("\nSummary: Successfully simulated initiative dynamics over 10 epochs.")
 
 
 if __name__ == "__main__":

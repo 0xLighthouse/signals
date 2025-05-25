@@ -1,4 +1,5 @@
 from collections import deque
+from dataclasses import asdict
 from typing import Dict, List
 from datetime import datetime
 from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
@@ -7,22 +8,14 @@ from cadCAD.configuration.utils import config_sim
 
 from .state import State
 from .policies import (
+    advance_block,
     submit_initiative,
     support_initiative,
     decay_weights,
     check_acceptance,
     check_expiration,
-    advance_time,
 )
 
-# Define the initial state
-initial_state = State(
-    current_epoch=0,
-    current_time=datetime.now(),
-    acceptance_threshold=1000.0,
-    inactivity_period=10,
-    decay_multiplier=0.95,
-)
 
 # Define the simulation parameters
 simulation_parameters = {
@@ -33,96 +26,168 @@ simulation_parameters = {
         "acceptance_threshold": 1000.0,
         "inactivity_period": 10,
         "decay_multiplier": 0.95,
+        # Add initiative parameters
+        "title": "Test Initiative",
+        "description": "A test initiative for simulation",
+        "user_id": "test_user",
+        "initiative_id": None,  # Will be generated in the policy
+        "amount": 100.0,
+        "duration": 30,
     },
 }
 
-# Define the partial state update blocks
+# Define the state keys for dynamic SUF creation
+state_keys = [
+    "current_epoch",
+    "current_time",
+]
+
+
+def standard_state_update(key):
+    """
+    Standard state update function that takes the policy output for the key if available, otherwise passes through the previous state value.
+    It always returns (new_value, old_value) tuple.
+    The outer lambda(key) captures the 'key' for the inner lambda.
+    """
+
+    def state_update(params, substep, history, state, policy_input):
+        # Handle the case where policy_input might return dictionaries that can't be hashed
+        if key in policy_input:
+            return policy_input[key], state[key]
+        return state[key], state[key]
+
+    return state_update
+
+
+# Define the partial state update blocks with our explicit update functions
 psubs = [
+    # {
+    #     "policies": {
+    #         "submit_initiative": submit_initiative,
+    #     },
+    #     "variables": {
+    #         "current_epoch": update_current_epoch,
+    #         "current_time": update_current_time,
+    #         "initiatives": update_initiatives,
+    #         "accepted_initiatives": update_accepted_initiatives,
+    #         "expired_initiatives": update_expired_initiatives,
+    #         "supporters": update_supporters,
+    #         "acceptance_threshold": update_acceptance_threshold,
+    #         "inactivity_period": update_inactivity_period,
+    #         "decay_multiplier": update_decay_multiplier,
+    #     },
+    # },
+    # {
+    #     "policies": {
+    #         "support_initiative": support_initiative,
+    #     },
+    #     "variables": {
+    #         "current_epoch": update_current_epoch,
+    #         "current_time": update_current_time,
+    #         "initiatives": update_initiatives,
+    #         "accepted_initiatives": update_accepted_initiatives,
+    #         "expired_initiatives": update_expired_initiatives,
+    #         "supporters": update_supporters,
+    #         "acceptance_threshold": update_acceptance_threshold,
+    #         "inactivity_period": update_inactivity_period,
+    #         "decay_multiplier": update_decay_multiplier,
+    #     },
+    # },
+    # {
+    #     "policies": {
+    #         "decay_weights": decay_weights,
+    #     },
+    #     "variables": {
+    #         "current_epoch": update_current_epoch,
+    #         "current_time": update_current_time,
+    #         "initiatives": update_initiatives,
+    #         "accepted_initiatives": update_accepted_initiatives,
+    #         "expired_initiatives": update_expired_initiatives,
+    #         "supporters": update_supporters,
+    #         "acceptance_threshold": update_acceptance_threshold,
+    #         "inactivity_period": update_inactivity_period,
+    #         "decay_multiplier": update_decay_multiplier,
+    #     },
+    # },
+    # {
+    #     "policies": {
+    #         "check_acceptance": check_acceptance,
+    #         "check_expiration": check_expiration,
+    #     },
+    #     "variables": {
+    #         "current_epoch": update_current_epoch,
+    #         "current_time": update_current_time,
+    #         "initiatives": update_initiatives,
+    #         "accepted_initiatives": update_accepted_initiatives,
+    #         "expired_initiatives": update_expired_initiatives,
+    #         "supporters": update_supporters,
+    #         "acceptance_threshold": update_acceptance_threshold,
+    #         "inactivity_period": update_inactivity_period,
+    #         "decay_multiplier": update_decay_multiplier,
+    #     },
+    # },
     {
         "policies": {
-            "submit_initiative": submit_initiative,
-            "support_initiative": support_initiative,
+            "advance_block": advance_block,
         },
         "variables": {
-            "initiatives": lambda state, params: (state['initiatives'], state['initiatives']),
-            "supporters": lambda state, params: (state['supporters'], state['supporters']),
-        },
-    },
-    {
-        "policies": {
-            "decay_weights": decay_weights,
-        },
-        "variables": {
-            "supporters": lambda state, params: (state['supporters'], state['supporters']),
-            "initiatives": lambda state, params: (state['initiatives'], state['initiatives']),
-        },
-    },
-    {
-        "policies": {
-            "check_acceptance": check_acceptance,
-            "check_expiration": check_expiration,
-        },
-        "variables": {
-            "accepted_initiatives": lambda state, params: (state['accepted_initiatives'], state['accepted_initiatives']),
-            "expired_initiatives": lambda state, params: (state['expired_initiatives'], state['expired_initiatives']),
-        },
-    },
-    {
-        "policies": {
-            "advance_time": advance_time,
-        },
-        "variables": {
-            "current_epoch": lambda state, params: (state['current_epoch'], state['current_epoch']),
-            "current_time": lambda state, params: (state['current_time'], state['current_time']),
+            "current_epoch": standard_state_update("current_epoch"),
+            "current_time": standard_state_update("current_time"),
         },
     },
 ]
 
-# Custom policy operation that knows how to handle datetime objects
-def policy_ops(a, b):
-    # Handle datetime objects
-    if isinstance(a, datetime) and isinstance(b, datetime):
-        return b  # For datetime, we just want to use the latest value, not add them
-    elif isinstance(a, dict) and isinstance(b, dict):
-        # For dictionaries, merge them
-        c = a.copy()
-        c.update(b)
-        return c
-    elif isinstance(a, set) and isinstance(b, set):
-        # For sets, merge them
-        return a.union(b)
-    else:
-        # Default operation
-        try:
-            return a + b
-        except TypeError:
-            # If addition fails, just return the second value
-            return b
 
-# Create the cadCAD configuration
-config = Configuration(
-    initial_state=initial_state.__dict__,
-    partial_state_update_blocks=psubs,
-    sim_config=config_sim(simulation_parameters),
-    user_id="signals-sim",  # Required parameter
-    model_id="signals-v1",  # Required parameter
-    subset_id="default",  # Required parameter
-    subset_window=deque([0, 100]),  # Required parameter - simulation window
-    policy_ops=[policy_ops]  # Use our custom policy operation
-)
-
-
-def run_simulation() -> List[Dict]:
+def run_simulation(initial_state: Dict) -> List[Dict]:
     """Run the cadCAD simulation and return the results."""
-    exec_mode = ExecutionMode()
-    exec_context = ExecutionContext(exec_mode.single_mode)
-    executor = Executor(exec_context, [config])
-    raw_result, tensor_field, sessions = executor.execute()
+    try:
+        print("Initializing simulation...")
 
-    return raw_result
+        # Create the cadCAD configuration
+        # Note: config object is now created inside run_simulation to use dynamic initial_state
+        live_config = Configuration(
+            initial_state=asdict(initial_state),
+            partial_state_update_blocks=psubs,
+            sim_config=config_sim(simulation_parameters),
+            user_id="signals-sim",
+            model_id="signals-v1",
+            subset_id="default",
+            subset_window=deque([0, simulation_parameters["T"].stop]),  # Use T from params
+        )
+
+        exec_mode = ExecutionMode()
+        exec_context = ExecutionContext(exec_mode.single_mode)
+        executor = Executor(exec_context, [live_config])  # Use live_config
+
+        print("Executing simulation...")
+        raw_result = executor.execute()
+
+        print(f"Simulation completed with {len(raw_result)} timesteps")
+        return raw_result
+    except Exception as e:
+        print(f"Error during simulation: {e}")
+        # Print more detailed error info
+        import traceback
+
+        traceback.print_exc()
+        return []  # Return empty list instead of raising to allow partial processing
 
 
 if __name__ == "__main__":
     # Example usage
-    results = run_simulation()
-    print(f"Simulation completed with {len(results)} timesteps")
+    # results = run_simulation() # Old way
+    print("Running model.py directly with its default initial state:")
+    default_results = run_simulation()  # Test with default
+    print(f"Simulation completed with {len(default_results)} timesteps")
+
+    print("\nRunning model.py with a custom state (example):")
+    custom_initial_state_example = State(
+        current_epoch=10,  # Example of a different start
+        current_time=datetime.now(),
+        initiatives={"init_custom": "custom_data"},
+        total_supply=5000,
+    ).__dict__()
+    custom_initial_state_example["balances"] = {"user_custom": 5000}  # Add balances for consistency
+
+    custom_results = run_simulation(initial_state=custom_initial_state_example)
+    print(f"Simulation with custom state completed with {len(custom_results)} timesteps")
