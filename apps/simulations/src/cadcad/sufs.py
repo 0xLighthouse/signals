@@ -68,6 +68,16 @@ def s_update_current_epoch(
 ) -> Tuple[str, Any]:
     """Update the current epoch."""
     new_epoch = previous_state["current_epoch"] + 1
+
+    # Debug: Show epoch transition and current state summary
+    print(f"\n🕐 === EPOCH {new_epoch} STARTING ===")
+    print(f"📈 Current state summary:")
+    print(f"   - Initiatives: {len(previous_state.get('initiatives', {}))}")
+    print(f"   - Supporters: {len(previous_state.get('supporters', {}))}")
+    print(f"   - Accepted: {len(previous_state.get('accepted_initiatives', set()))}")
+    print(f"   - Expired: {len(previous_state.get('expired_initiatives', set()))}")
+    print(f"   - Circulating supply: {previous_state.get('circulating_supply', 0)}")
+
     return ("current_epoch", new_epoch)
 
 
@@ -114,9 +124,15 @@ def s_apply_user_actions_initiatives(
                     last_support_epoch=state.current_epoch,
                 )
                 state.initiatives[new_initiative_id] = initiative
+                print(
+                    f"🆕 EPOCH {state.current_epoch}: User {user_id} created initiative '{initiative.title}' (ID: {new_initiative_id[:8]}...)"
+                )
 
     # Convert dataclass objects to dictionaries for cadCAD compatibility
     initiatives_dict = {k: v.__dict__ for k, v in state.initiatives.items()}
+    print(
+        f"📊 EPOCH {state.current_epoch}: Total initiatives after creation: {len(initiatives_dict)}"
+    )
     return ("initiatives", initiatives_dict)
 
 
@@ -150,6 +166,9 @@ def s_apply_user_actions_supporters(
                     start_epoch=state.current_epoch,
                 )
                 state.supporters[support_key] = support
+                print(
+                    f"💰 EPOCH {state.current_epoch}: User {user_id} supported initiative {initiative_id[:8]}... with {amount:.1f} tokens for {lock_duration_epochs} epochs"
+                )
 
                 # Update initiative's last support epoch
                 if initiative_id in state.initiatives:
@@ -158,6 +177,7 @@ def s_apply_user_actions_supporters(
 
     # Convert dataclass objects to dictionaries for cadCAD compatibility
     supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+    print(f"🤝 EPOCH {state.current_epoch}: Total supporters after actions: {len(supporters_dict)}")
     return ("supporters", supporters_dict)
 
 
@@ -301,9 +321,21 @@ def s_apply_support_decay(
     state = get_state_obj(previous_state)
     decay_multiplier = params["decay_multiplier"]
 
+    print(
+        f"🔍 EPOCH {state.current_epoch}: Decay SUF - received {len(state.initiatives)} initiatives"
+    )
+
+    active_supports_count = 0
     for support in state.supporters.values():
         if state.current_epoch < support.expiry_epoch:  # Only decay active, non-expired supports
+            old_weight = support.current_weight
             support.decay(decay_multiplier, state.current_epoch)
+            active_supports_count += 1
+
+    if active_supports_count > 0:
+        print(
+            f"📉 EPOCH {state.current_epoch}: Applied decay (×{decay_multiplier}) to {active_supports_count} active supports"
+        )
 
     # Convert dataclass objects to dictionaries for cadCAD compatibility
     supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
@@ -320,6 +352,13 @@ def s_update_initiative_aggregate_weights(
     """Recalculate the total weight for each initiative based on its current supports."""
     state = get_state_obj(previous_state)
     state.update_initiative_weights()  # This method is in the State class
+
+    # Debug: Show initiative weights
+    if state.initiatives:
+        print(f"⚖️  EPOCH {state.current_epoch}: Initiative weights updated:")
+        for init_id, initiative in state.initiatives.items():
+            print(f"   Initiative {init_id[:8]}...: weight = {initiative.weight:.1f}")
+
     # Convert dataclass objects to dictionaries for cadCAD compatibility
     initiatives_dict = {k: v.__dict__ for k, v in state.initiatives.items()}
     return ("initiatives", initiatives_dict)
@@ -345,6 +384,14 @@ def s_process_accepted_initiatives(
             if initiative.weight >= acceptance_threshold:
                 state.accepted_initiatives.add(init_id)
                 newly_accepted_initiatives_this_step.add(init_id)
+                print(
+                    f"✅ EPOCH {state.current_epoch}: Initiative {init_id[:8]}... ACCEPTED! (weight: {initiative.weight:.1f} >= threshold: {acceptance_threshold})"
+                )
+
+    if newly_accepted_initiatives_this_step:
+        print(
+            f"🎉 EPOCH {state.current_epoch}: {len(newly_accepted_initiatives_this_step)} initiatives accepted this epoch"
+        )
 
     return ("accepted_initiatives", state.accepted_initiatives)
 
@@ -360,16 +407,34 @@ def s_process_expired_initiatives(
     state = get_state_obj(previous_state)
     inactivity_period = params["inactivity_period"]
 
+    print(
+        f"🔍 EPOCH {state.current_epoch}: Expiration SUF - received {len(state.initiatives)} initiatives"
+    )
+
+    newly_expired_initiatives = []
+
     # Check for Initiative Expiration (Inactivity)
     for init_id, initiative in list(state.initiatives.items()):
         if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
             # Check if initiative still has any active support
             has_active_support = any(s.initiative_id == init_id for s in state.supporters.values())
+            epochs_since_last_support = state.current_epoch - initiative.last_support_epoch
 
-            if not has_active_support and (
-                state.current_epoch - initiative.last_support_epoch >= inactivity_period
-            ):
+            print(
+                f"🔍 EPOCH {state.current_epoch}: Checking initiative {init_id[:8]}... - has_support: {has_active_support}, epochs_since_last: {epochs_since_last_support}, threshold: {inactivity_period}"
+            )
+
+            if not has_active_support and epochs_since_last_support >= inactivity_period:
                 state.expired_initiatives.add(init_id)
+                newly_expired_initiatives.append(init_id)
+                print(
+                    f"❌ EPOCH {state.current_epoch}: Initiative {init_id[:8]}... EXPIRED! (no support for {epochs_since_last_support} epochs >= {inactivity_period})"
+                )
+
+    if newly_expired_initiatives:
+        print(
+            f"💀 EPOCH {state.current_epoch}: {len(newly_expired_initiatives)} initiatives expired this epoch"
+        )
 
     return ("expired_initiatives", state.expired_initiatives)
 
@@ -448,6 +513,8 @@ def s_process_support_lifecycle_supporters(
     acceptance_threshold = params["acceptance_threshold"]
 
     supports_to_remove: List[Tuple[str, str]] = []
+    supports_removed_for_acceptance = 0
+    supports_removed_for_expiry = 0
 
     # 1. Remove supports for accepted initiatives
     for init_id, initiative in list(state.initiatives.items()):
@@ -457,20 +524,34 @@ def s_process_support_lifecycle_supporters(
                 for sup_key, support_obj in list(state.supporters.items()):
                     if support_obj.initiative_id == init_id:
                         supports_to_remove.append(sup_key)
+                        supports_removed_for_acceptance += 1
 
     # 2. Remove expired supports (for non-accepted initiatives)
     for sup_key, support_obj in list(state.supporters.items()):
         if support_obj.initiative_id not in state.accepted_initiatives:
             if state.current_epoch >= support_obj.expiry_epoch:
                 supports_to_remove.append(sup_key)
+                supports_removed_for_expiry += 1
 
     # Remove the supports
     for sup_key in supports_to_remove:
         if sup_key in state.supporters:
             del state.supporters[sup_key]
 
+    if supports_removed_for_acceptance > 0:
+        print(
+            f"🔓 EPOCH {state.current_epoch}: Removed {supports_removed_for_acceptance} supports for accepted initiatives"
+        )
+    if supports_removed_for_expiry > 0:
+        print(
+            f"⏰ EPOCH {state.current_epoch}: Removed {supports_removed_for_expiry} expired supports"
+        )
+
     # Convert dataclass objects to dictionaries for cadCAD compatibility
     supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+    print(
+        f"🤝 EPOCH {state.current_epoch}: Supporters remaining after lifecycle: {len(supporters_dict)}"
+    )
     return ("supporters", supporters_dict)
 
 

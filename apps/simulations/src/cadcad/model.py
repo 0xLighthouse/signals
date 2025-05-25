@@ -69,34 +69,40 @@ def standard_state_update(key):
 
 
 # Define the partial state update blocks with our explicit update functions
-# Debugging - adding SUFs one by one
+# Split into multiple PSUBs so state updates are visible between blocks
 psubs = [
+    # PSUB 1: Time advancement and user actions
     {
         "policies": {
-            # Policy to advance time (signals intent, SUF does the work)
             "time_advancement_policy": p_advance_time,
-            # Policy for user behaviors (creating/supporting initiatives)
             "user_behavior_policy": p_user_actions,
         },
         "variables": {
-            # SUF to update current_epoch and current_time (should be early)
             "current_epoch": s_update_current_epoch,
             "current_time": s_update_current_time,
-            # SUFs to apply user actions (split into separate functions)
             "initiatives": s_apply_user_actions_initiatives,
             "supporters": s_apply_user_actions_supporters,
             "balances": s_apply_user_actions_balances,
             "circulating_supply": s_apply_user_actions_circulating_supply,
-            # SUF to apply decay to support weights
-            "supporters_after_decay": s_apply_support_decay,
-            # SUF to update aggregate initiative weights after decay/new support
-            "initiatives_after_weight_update": s_update_initiative_aggregate_weights,
-            # SUFs to process initiative/support lifecycles (split into separate functions)
-            "accepted_initiatives_lifecycle": s_process_accepted_initiatives,
-            "expired_initiatives_lifecycle": s_process_expired_initiatives,
-            "balances_after_lifecycle": s_process_support_lifecycle_balances,
-            "circulating_supply_after_lifecycle": s_process_support_lifecycle_circulating_supply,
-            "supporters_after_lifecycle": s_process_support_lifecycle_supporters,
+        },
+    },
+    # PSUB 2: Support decay and weight updates
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "supporters": s_apply_support_decay,
+            "initiatives": s_update_initiative_aggregate_weights,
+        },
+    },
+    # PSUB 3: Lifecycle management
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "accepted_initiatives": s_process_accepted_initiatives,
+            "expired_initiatives": s_process_expired_initiatives,
+            "balances": s_process_support_lifecycle_balances,
+            "circulating_supply": s_process_support_lifecycle_circulating_supply,
+            "supporters": s_process_support_lifecycle_supporters,
         },
     },
 ]
