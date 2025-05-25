@@ -1,5 +1,4 @@
 from collections import deque
-from dataclasses import asdict
 from typing import Dict, List
 from datetime import datetime
 from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
@@ -93,8 +92,9 @@ def run_simulation(initial_state: Dict) -> List[Dict]:
 
         # Create the cadCAD configuration
         # Note: config object is now created inside run_simulation to use dynamic initial_state
+        # initial_state is already a dict from generate_initial_state, no need to call asdict()
         live_config = Configuration(
-            initial_state=asdict(initial_state),
+            initial_state=initial_state,
             partial_state_update_blocks=psubs,
             sim_config=config_sim(simulation_parameters),
             user_id="signals-sim",

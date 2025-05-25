@@ -110,13 +110,16 @@ def generate_initial_state(
     num_users=10,
     total_supply=100_000,
     circulating_supply=100_000,
-    distribution: Optional[List[int, int]] = None,
+    distribution: Optional[List[int]] = None,
+    randomize: bool = True,
 ) -> Dict:
     # Generate user ids
     user_ids = [f"0x{i:02x}" for i in range(num_users)]
 
     # Allocate tokens to users
-    balance_by_user_id = allocate_tokens(user_ids, total_supply, circulating_supply, distribution)
+    balance_by_user_id = allocate_tokens(
+        user_ids, total_supply, circulating_supply, distribution, randomize
+    )
 
     current_time = datetime.now()
 
