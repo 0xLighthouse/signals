@@ -9,6 +9,9 @@ This package organizes SUFs into logical modules:
 - time: SUFs handling time progression
 """
 
+# Import base utilities
+from .base import SUFBase, get_state_obj, create_suf_function, log_epoch_transition, log_action
+
 # Import all SUFs for easy access
 from .user_actions import (
     s_apply_user_actions_initiatives,
@@ -36,6 +39,12 @@ from .time import (
 )
 
 __all__ = [
+    # Base utilities
+    "SUFBase",
+    "get_state_obj",
+    "create_suf_function",
+    "log_epoch_transition",
+    "log_action",
     # User actions
     "s_apply_user_actions_initiatives",
     "s_apply_user_actions_supporters",

@@ -16,6 +16,67 @@ from ..state import State, Initiative, Support
 SUFReturn = TypeVar("SUFReturn", Tuple[str, Any], List[Tuple[str, Any]])
 
 
+def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
+    """
+    Reconstruct State object from cadCAD dict representation.
+
+    This is a critical utility that handles the conversion between
+    cadCAD's dict-based state and our dataclass-based State objects.
+    """
+    # Create Initiative objects from dicts
+    initiatives_dict_of_obj = {}
+    for init_id, init_data in previous_state_dict.get("initiatives", {}).items():
+        if isinstance(init_data, dict):
+            initiatives_dict_of_obj[init_id] = Initiative(**init_data)
+        elif isinstance(init_data, Initiative):
+            initiatives_dict_of_obj[init_id] = init_data
+        else:
+            raise TypeError(f"Unexpected type for initiative data: {type(init_data)}")
+
+    # Create Support objects from dicts
+    supporters_dict_of_obj = {}
+    for sup_key_tuple, sup_data in previous_state_dict.get("supporters", {}).items():
+        key = tuple(sup_key_tuple) if isinstance(sup_key_tuple, list) else sup_key_tuple
+        if isinstance(sup_data, dict):
+            # Handle field mapping and filtering
+            init_fields = {}
+            for k, v in sup_data.items():
+                if k not in ["initial_weight", "current_weight", "expiry_epoch"]:
+                    if k == "creation_epoch":
+                        init_fields["start_epoch"] = v
+                    else:
+                        init_fields[k] = v
+
+            support_obj = Support(**init_fields)
+
+            # Preserve calculated fields
+            if "initial_weight" in sup_data:
+                support_obj.initial_weight = sup_data["initial_weight"]
+            if "current_weight" in sup_data:
+                support_obj.current_weight = sup_data["current_weight"]
+            if "expiry_epoch" in sup_data:
+                support_obj.expiry_epoch = sup_data["expiry_epoch"]
+
+            supporters_dict_of_obj[key] = support_obj
+        elif isinstance(sup_data, Support):
+            supporters_dict_of_obj[key] = sup_data
+        else:
+            raise TypeError(f"Unexpected type for support data: {type(sup_data)}")
+
+    # Create State instance
+    current_state_params = previous_state_dict.copy()
+    current_state_params["initiatives"] = initiatives_dict_of_obj
+    current_state_params["supporters"] = supporters_dict_of_obj
+
+    # Handle datetime parsing
+    if isinstance(current_state_params.get("current_time"), str):
+        current_state_params["current_time"] = datetime.fromisoformat(
+            current_state_params["current_time"]
+        )
+
+    return State(**current_state_params)
+
+
 class SUFBase(ABC):
     """Base class for State Update Functions with common functionality."""
 
@@ -24,61 +85,10 @@ class SUFBase(ABC):
         """
         Reconstruct State object from cadCAD dict representation.
 
-        This is a critical utility that handles the conversion between
-        cadCAD's dict-based state and our dataclass-based State objects.
+        This method delegates to the standalone get_state_obj function
+        for backward compatibility with existing SUF implementations.
         """
-        # Create Initiative objects from dicts
-        initiatives_dict_of_obj = {}
-        for init_id, init_data in previous_state_dict.get("initiatives", {}).items():
-            if isinstance(init_data, dict):
-                initiatives_dict_of_obj[init_id] = Initiative(**init_data)
-            elif isinstance(init_data, Initiative):
-                initiatives_dict_of_obj[init_id] = init_data
-            else:
-                raise TypeError(f"Unexpected type for initiative data: {type(init_data)}")
-
-        # Create Support objects from dicts
-        supporters_dict_of_obj = {}
-        for sup_key_tuple, sup_data in previous_state_dict.get("supporters", {}).items():
-            key = tuple(sup_key_tuple) if isinstance(sup_key_tuple, list) else sup_key_tuple
-            if isinstance(sup_data, dict):
-                # Handle field mapping and filtering
-                init_fields = {}
-                for k, v in sup_data.items():
-                    if k not in ["initial_weight", "current_weight", "expiry_epoch"]:
-                        if k == "creation_epoch":
-                            init_fields["start_epoch"] = v
-                        else:
-                            init_fields[k] = v
-
-                support_obj = Support(**init_fields)
-
-                # Preserve calculated fields
-                if "initial_weight" in sup_data:
-                    support_obj.initial_weight = sup_data["initial_weight"]
-                if "current_weight" in sup_data:
-                    support_obj.current_weight = sup_data["current_weight"]
-                if "expiry_epoch" in sup_data:
-                    support_obj.expiry_epoch = sup_data["expiry_epoch"]
-
-                supporters_dict_of_obj[key] = support_obj
-            elif isinstance(sup_data, Support):
-                supporters_dict_of_obj[key] = sup_data
-            else:
-                raise TypeError(f"Unexpected type for support data: {type(sup_data)}")
-
-        # Create State instance
-        current_state_params = previous_state_dict.copy()
-        current_state_params["initiatives"] = initiatives_dict_of_obj
-        current_state_params["supporters"] = supporters_dict_of_obj
-
-        # Handle datetime parsing
-        if isinstance(current_state_params.get("current_time"), str):
-            current_state_params["current_time"] = datetime.fromisoformat(
-                current_state_params["current_time"]
-            )
-
-        return State(**current_state_params)
+        return get_state_obj(previous_state_dict)
 
     @staticmethod
     def to_cadcad_dict(obj: Any) -> Any:
