@@ -325,6 +325,155 @@ def s_update_initiative_aggregate_weights(
     return ("initiatives", initiatives_dict)
 
 
+# Add separate SUFs for lifecycle management
+def s_process_accepted_initiatives(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Handle initiative acceptance."""
+    state = get_state_obj(previous_state)
+    acceptance_threshold = params["acceptance_threshold"]
+
+    newly_accepted_initiatives_this_step: Set[str] = set()
+
+    # Check for Initiative Acceptance
+    for init_id, initiative in list(state.initiatives.items()):
+        if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
+            if initiative.weight >= acceptance_threshold:
+                state.accepted_initiatives.add(init_id)
+                newly_accepted_initiatives_this_step.add(init_id)
+
+    return ("accepted_initiatives", state.accepted_initiatives)
+
+
+def s_process_expired_initiatives(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Handle initiative expiration due to inactivity."""
+    state = get_state_obj(previous_state)
+    inactivity_period = params["inactivity_period"]
+
+    # Check for Initiative Expiration (Inactivity)
+    for init_id, initiative in list(state.initiatives.items()):
+        if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
+            # Check if initiative still has any active support
+            has_active_support = any(s.initiative_id == init_id for s in state.supporters.values())
+
+            if not has_active_support and (
+                state.current_epoch - initiative.last_support_epoch >= inactivity_period
+            ):
+                state.expired_initiatives.add(init_id)
+
+    return ("expired_initiatives", state.expired_initiatives)
+
+
+def s_process_support_lifecycle_balances(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Handle token unlocking for accepted initiatives and expired supports."""
+    state = get_state_obj(previous_state)
+    acceptance_threshold = params["acceptance_threshold"]
+
+    # 1. Unlock tokens for accepted initiatives
+    for init_id, initiative in list(state.initiatives.items()):
+        if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
+            if initiative.weight >= acceptance_threshold:
+                # Unlock all tokens for this accepted initiative
+                for sup_key, support_obj in list(state.supporters.items()):
+                    if support_obj.initiative_id == init_id:
+                        state.balances[support_obj.user_id] = (
+                            state.balances.get(support_obj.user_id, 0) + support_obj.amount
+                        )
+
+    # 2. Unlock tokens for expired supports (for non-accepted initiatives)
+    for sup_key, support_obj in list(state.supporters.items()):
+        if support_obj.initiative_id not in state.accepted_initiatives:
+            if state.current_epoch >= support_obj.expiry_epoch:
+                state.balances[support_obj.user_id] = (
+                    state.balances.get(support_obj.user_id, 0) + support_obj.amount
+                )
+
+    return ("balances", state.balances)
+
+
+def s_process_support_lifecycle_circulating_supply(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Handle circulating supply updates for accepted initiatives and expired supports."""
+    state = get_state_obj(previous_state)
+    acceptance_threshold = params["acceptance_threshold"]
+
+    # 1. Unlock tokens for accepted initiatives
+    for init_id, initiative in list(state.initiatives.items()):
+        if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
+            if initiative.weight >= acceptance_threshold:
+                # Unlock all tokens for this accepted initiative
+                for sup_key, support_obj in list(state.supporters.items()):
+                    if support_obj.initiative_id == init_id:
+                        state.circulating_supply += support_obj.amount
+
+    # 2. Unlock tokens for expired supports (for non-accepted initiatives)
+    for sup_key, support_obj in list(state.supporters.items()):
+        if support_obj.initiative_id not in state.accepted_initiatives:
+            if state.current_epoch >= support_obj.expiry_epoch:
+                state.circulating_supply += support_obj.amount
+
+    return ("circulating_supply", state.circulating_supply)
+
+
+def s_process_support_lifecycle_supporters(
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
+    policy_input: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Handle support removal for accepted initiatives and expired supports."""
+    state = get_state_obj(previous_state)
+    acceptance_threshold = params["acceptance_threshold"]
+
+    supports_to_remove: List[Tuple[str, str]] = []
+
+    # 1. Remove supports for accepted initiatives
+    for init_id, initiative in list(state.initiatives.items()):
+        if init_id not in state.accepted_initiatives and init_id not in state.expired_initiatives:
+            if initiative.weight >= acceptance_threshold:
+                # Remove all supports for this accepted initiative
+                for sup_key, support_obj in list(state.supporters.items()):
+                    if support_obj.initiative_id == init_id:
+                        supports_to_remove.append(sup_key)
+
+    # 2. Remove expired supports (for non-accepted initiatives)
+    for sup_key, support_obj in list(state.supporters.items()):
+        if support_obj.initiative_id not in state.accepted_initiatives:
+            if state.current_epoch >= support_obj.expiry_epoch:
+                supports_to_remove.append(sup_key)
+
+    # Remove the supports
+    for sup_key in supports_to_remove:
+        if sup_key in state.supporters:
+            del state.supporters[sup_key]
+
+    # Convert dataclass objects to dictionaries for cadCAD compatibility
+    supporters_dict = {k: v.__dict__ for k, v in state.supporters.items()}
+    return ("supporters", supporters_dict)
+
+
 def s_process_initiative_and_support_lifecycles(
     params: Dict[str, Any],
     substep: int,

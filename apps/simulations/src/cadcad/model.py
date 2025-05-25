@@ -20,7 +20,11 @@ from .sufs import (
     s_apply_user_actions_circulating_supply,
     s_apply_support_decay,
     s_update_initiative_aggregate_weights,
-    s_process_initiative_and_support_lifecycles,
+    s_process_accepted_initiatives,
+    s_process_expired_initiatives,
+    s_process_support_lifecycle_balances,
+    s_process_support_lifecycle_circulating_supply,
+    s_process_support_lifecycle_supporters,
 )
 
 
@@ -83,6 +87,16 @@ psubs = [
             "supporters": s_apply_user_actions_supporters,
             "balances": s_apply_user_actions_balances,
             "circulating_supply": s_apply_user_actions_circulating_supply,
+            # SUF to apply decay to support weights
+            "supporters_after_decay": s_apply_support_decay,
+            # SUF to update aggregate initiative weights after decay/new support
+            "initiatives_after_weight_update": s_update_initiative_aggregate_weights,
+            # SUFs to process initiative/support lifecycles (split into separate functions)
+            "accepted_initiatives_lifecycle": s_process_accepted_initiatives,
+            "expired_initiatives_lifecycle": s_process_expired_initiatives,
+            "balances_after_lifecycle": s_process_support_lifecycle_balances,
+            "circulating_supply_after_lifecycle": s_process_support_lifecycle_circulating_supply,
+            "supporters_after_lifecycle": s_process_support_lifecycle_supporters,
         },
     },
 ]
