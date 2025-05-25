@@ -21,6 +21,9 @@ def results_to_dataframe(results: List[Dict]) -> pd.DataFrame:
                 "expired_count": len(row.get("expired_initiatives", set())),
                 "supporters_count": len(row.get("supporters", {})),
                 "acceptance_threshold": row.get("acceptance_threshold", 0),
+                "circulating_supply": row.get("circulating_supply", 0),
+                "total_supply": row.get("total_supply", 0),
+                "balances": row.get("balances", {}),  # Keep full object for metrics
                 "initiatives": row.get("initiatives", {}),  # Keep full object for metrics
                 "accepted_initiatives": row.get(
                     "accepted_initiatives", set()
