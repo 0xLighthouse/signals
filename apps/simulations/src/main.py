@@ -1,6 +1,11 @@
 import json
 import os
+import sys
 from datetime import datetime
+
+# Add the src directory to the path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from cadcad.helpers import results_to_dataframe
 from cadcad.model import run_simulation
 from cadcad.state import generate_initial_state

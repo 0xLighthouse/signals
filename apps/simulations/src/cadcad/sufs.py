@@ -32,12 +32,28 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
         key = tuple(sup_key_tuple) if isinstance(sup_key_tuple, list) else sup_key_tuple
         if isinstance(sup_data, dict):
             # Filter out fields that have init=False to avoid passing them to __init__
-            init_fields = {
-                k: v
-                for k, v in sup_data.items()
-                if k not in ["initial_weight", "current_weight", "expiry_epoch"]
-            }
-            supporters_dict_of_obj[key] = Support(**init_fields)
+            # Also handle legacy field names
+            init_fields = {}
+            for k, v in sup_data.items():
+                if k not in ["initial_weight", "current_weight", "expiry_epoch"]:
+                    # Handle legacy field name mapping
+                    if k == "creation_epoch":
+                        init_fields["start_epoch"] = v
+                    else:
+                        init_fields[k] = v
+
+            # Create the Support object
+            support_obj = Support(**init_fields)
+
+            # Preserve existing calculated fields if they exist in the data
+            if "initial_weight" in sup_data:
+                support_obj.initial_weight = sup_data["initial_weight"]
+            if "current_weight" in sup_data:
+                support_obj.current_weight = sup_data["current_weight"]
+            if "expiry_epoch" in sup_data:
+                support_obj.expiry_epoch = sup_data["expiry_epoch"]
+
+            supporters_dict_of_obj[key] = support_obj
         elif isinstance(sup_data, Support):
             supporters_dict_of_obj[key] = sup_data
         else:

@@ -12,15 +12,163 @@ This package contains a cadCAD-based simulation of initiative dynamics for the S
 - **Initiative expiration**: Initiatives expire if they receive no support for too long
 - **Detailed debugging**: Comprehensive logging of all state transitions
 
-## Running the Simulation
+## Quick Start
 
 ```shell
 # Install dependencies
 poetry install
 
-# Run the simulation
+# Run the complete simulation pipeline
+poetry run python src/main.py
+
+# Generate visualizations and analysis
+poetry run python src/visualize.py
+
+# Run the test suite
+poetry run pytest
+```
+
+## Running the Scripts
+
+### 1. Main Simulation (`src/main.py`)
+
+Runs the complete cadCAD simulation and exports results:
+
+```shell
 poetry run python src/main.py
 ```
+
+**What it does:**
+
+- Generates initial state with 50 users and 1M tokens
+- Runs 10-epoch simulation with governance dynamics
+- Exports results to `results/` directory:
+  - `simulation_results_TIMESTAMP.csv` - Main data for analysis
+  - `simulation_raw_TIMESTAMP.json` - Complete cadCAD output
+  - `initial_state_TIMESTAMP.json` - Starting conditions
+  - `summary_TIMESTAMP.json` - Key statistics
+
+**Output example:**
+
+```
+📊 Simulation completed with 31 timesteps
+🏁 Final state summary:
+   - Total initiatives: 38
+   - Accepted initiatives: 35
+   - Expired initiatives: 0
+   - Circulating supply: 100,000
+   - Final epoch: 10
+```
+
+### 2. Visualization & Analysis (`src/visualize.py`)
+
+Generates charts and analysis reports from the latest simulation:
+
+```shell
+poetry run python src/visualize.py
+```
+
+**What it generates:**
+
+- `timeline_TIMESTAMP.png` - Initiative creation and acceptance over time
+- `governance_metrics_TIMESTAMP.png` - Acceptance rates and participation
+- `user_behavior_TIMESTAMP.png` - Balance distribution and activity patterns
+- `analysis_report_TIMESTAMP.txt` - Comprehensive text analysis
+
+**Features:**
+
+- Automatically finds the latest simulation results
+- Creates publication-ready charts with seaborn styling
+- Generates detailed analysis with governance insights
+- Saves all outputs to `results/visualizations/`
+
+### 3. Testing (`pytest`)
+
+Comprehensive test suite with 49 tests covering all components:
+
+```shell
+# Run all tests
+poetry run pytest
+
+# Run with coverage report
+poetry run pytest --cov=src --cov-report=term-missing
+
+# Run specific test categories
+poetry run pytest -m unit          # Unit tests only
+poetry run pytest -m integration   # Integration tests only
+poetry run pytest tests/test_sufs.py  # Specific test file
+
+# Verbose output
+poetry run pytest -v
+```
+
+**Test coverage:**
+
+- **State management**: Data structures and initialization
+- **State Update Functions**: All SUFs with various scenarios
+- **Policy functions**: User behavior and time advancement
+- **Integration tests**: Full simulation workflows
+- **Edge cases**: Error handling and boundary conditions
+
+### 4. Development Workflow
+
+```shell
+# 1. Make changes to the code
+# 2. Run tests to ensure nothing breaks
+poetry run pytest
+
+# 3. Run simulation to test changes
+poetry run python src/main.py
+
+# 4. Generate visualizations to see results
+poetry run python src/visualize.py
+
+# 5. Check test coverage
+poetry run pytest --cov=src
+```
+
+## Project Structure
+
+```
+src/
+├── cadcad/
+│   ├── __init__.py
+│   ├── allocate.py          # Token allocation logic
+│   ├── helpers.py           # Data processing utilities
+│   ├── model.py            # cadCAD simulation configuration
+│   ├── policies.py         # Policy functions (user behavior)
+│   ├── state.py            # State dataclasses and initialization
+│   └── sufs.py             # State Update Functions
+├── main.py                 # Main simulation runner
+└── visualize.py           # Visualization and analysis
+
+tests/
+├── conftest.py            # Pytest configuration and fixtures
+├── test_policies.py       # Policy function tests
+├── test_simulation.py     # Integration tests
+├── test_state.py          # State management tests
+└── test_sufs.py           # SUF tests
+
+results/                   # Generated simulation outputs
+├── simulation_results_*.csv
+├── simulation_raw_*.json
+├── summary_*.json
+├── initial_state_*.json
+└── visualizations/
+    ├── timeline_*.png
+    ├── governance_metrics_*.png
+    ├── user_behavior_*.png
+    └── analysis_report_*.txt
+```
+
+## Key Files
+
+- **`src/cadcad/model.py`**: Core cadCAD configuration with multi-PSUB architecture
+- **`src/cadcad/sufs.py`**: State Update Functions handling all governance logic
+- **`src/cadcad/state.py`**: Dataclasses for Initiative, Support, and State objects
+- **`src/main.py`**: Main entry point with result export functionality
+- **`src/visualize.py`**: Automated chart generation and analysis
+- **`tests/`**: Comprehensive test suite with 49 tests (100% pass rate)
 
 ## Simulation Overview
 
@@ -33,6 +181,48 @@ The simulation models a token-based governance system where:
 5. **Acceptance**: Initiatives with weight ≥ threshold are accepted
 6. **Token Unlocking**: Tokens are unlocked when initiatives are accepted or supports expire
 7. **Initiative Expiration**: Initiatives expire if inactive for too long
+
+## Simulation Parameters
+
+The simulation can be configured by modifying parameters in `src/cadcad/model.py`:
+
+```python
+simulation_parameters = {
+    "T": range(10),  # Number of timesteps (epochs)
+    "N": 1,          # Number of monte carlo runs
+    "M": {           # Model parameters
+        "acceptance_threshold": 1000.0,           # Weight needed for acceptance
+        "decay_multiplier": 0.95,                 # Support decay per epoch
+        "initiative_creation_stake": 10.0,        # Cost to create initiative
+        "prob_create_initiative": 0.08,           # Probability per user per epoch
+        "prob_support_initiative": 0.2,           # Probability per user per epoch
+        "max_support_tokens_fraction": 0.5,       # Max % of balance to support with
+        "min_lock_duration_epochs": 5,            # Minimum support duration
+        "max_lock_duration_epochs": 20,           # Maximum support duration
+        "inactivity_period": 10,                  # Epochs before initiative expires
+    },
+}
+```
+
+**Key Parameters:**
+
+- **`acceptance_threshold`**: Higher values make acceptance harder
+- **`decay_multiplier`**: Lower values create more urgency (faster decay)
+- **`prob_create_initiative`**: Controls initiative creation rate
+- **`prob_support_initiative`**: Controls community engagement level
+- **`inactivity_period`**: How long initiatives survive without support
+
+## Initial State Configuration
+
+Modify initial conditions in `src/main.py`:
+
+```python
+initial_state = generate_initial_state(
+    num_users=50,           # Number of participants
+    total_supply=1_000_000, # Total token supply
+    randomize=True          # Random vs equal token distribution
+)
+```
 
 ## Critical cadCAD Implementation Insights
 
