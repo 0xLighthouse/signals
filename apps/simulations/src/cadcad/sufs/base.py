@@ -77,7 +77,7 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
     return State(**current_state_params)
 
 
-class SUFBase(ABC):
+class StateUpdateFunction(ABC):
     """Base class for State Update Functions with common functionality."""
 
     @staticmethod
@@ -96,9 +96,9 @@ class SUFBase(ABC):
         if hasattr(obj, "__dict__"):
             return obj.__dict__
         elif isinstance(obj, dict):
-            return {k: SUFBase.to_cadcad_dict(v) for k, v in obj.items()}
+            return {k: StateUpdateFunction.to_cadcad_dict(v) for k, v in obj.items()}
         elif isinstance(obj, (list, tuple)):
-            return [SUFBase.to_cadcad_dict(item) for item in obj]
+            return [StateUpdateFunction.to_cadcad_dict(item) for item in obj]
         else:
             return obj
 

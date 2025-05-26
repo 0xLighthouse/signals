@@ -10,10 +10,10 @@ This module contains SUFs that handle governance mechanics:
 
 from typing import Dict, List, Any, Tuple, Set
 
-from .base import SUFBase, log_action
+from .base import StateUpdateFunction, log_action
 
 
-class ApplySupportDecaySUF(SUFBase):
+class ApplySupportDecaySUF(StateUpdateFunction):
     """SUF for applying decay to the current_weight of all active supports."""
 
     def execute(
@@ -54,7 +54,7 @@ class ApplySupportDecaySUF(SUFBase):
         return ("supporters", supporters_dict)
 
 
-class UpdateInitiativeAggregateWeightsSUF(SUFBase):
+class UpdateInitiativeAggregateWeightsSUF(StateUpdateFunction):
     """SUF for recalculating the total weight for each initiative based on its current supports."""
 
     def execute(
@@ -83,7 +83,7 @@ class UpdateInitiativeAggregateWeightsSUF(SUFBase):
         return ("initiatives", initiatives_dict)
 
 
-class ProcessAcceptedInitiativesSUF(SUFBase):
+class ProcessAcceptedInitiativesSUF(StateUpdateFunction):
     """SUF for handling initiative acceptance."""
 
     def execute(
@@ -124,7 +124,7 @@ class ProcessAcceptedInitiativesSUF(SUFBase):
         return ("accepted_initiatives", state.accepted_initiatives)
 
 
-class ProcessExpiredInitiativesSUF(SUFBase):
+class ProcessExpiredInitiativesSUF(StateUpdateFunction):
     """SUF for handling initiative expiration due to inactivity."""
 
     def execute(

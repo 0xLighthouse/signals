@@ -11,11 +11,11 @@ This module contains SUFs that handle user-initiated actions:
 import uuid
 from typing import Dict, List, Any, Tuple
 
-from .base import SUFBase, log_action
+from .base import StateUpdateFunction, log_action, create_suf_function
 from ..state import Initiative, Support
 
 
-class ApplyUserActionsInitiativesSUF(SUFBase):
+class ApplyUserActionsInitiativesSUF(StateUpdateFunction):
     """SUF for applying user actions that affect initiatives."""
 
     def execute(
@@ -61,7 +61,7 @@ class ApplyUserActionsInitiativesSUF(SUFBase):
         return ("initiatives", initiatives_dict)
 
 
-class ApplyUserActionsSupportersSUF(SUFBase):
+class ApplyUserActionsSupportersSUF(StateUpdateFunction):
     """SUF for applying user actions that affect supporters."""
 
     def execute(
@@ -115,7 +115,7 @@ class ApplyUserActionsSupportersSUF(SUFBase):
         return ("supporters", supporters_dict)
 
 
-class ApplyUserActionsBalancesSUF(SUFBase):
+class ApplyUserActionsBalancesSUF(StateUpdateFunction):
     """SUF for applying user actions that affect balances."""
 
     def execute(
@@ -158,7 +158,7 @@ class ApplyUserActionsBalancesSUF(SUFBase):
         return ("balances", state.balances)
 
 
-class ApplyUserActionsCirculatingSupplySUF(SUFBase):
+class ApplyUserActionsCirculatingSupplySUF(StateUpdateFunction):
     """SUF for applying user actions that affect circulating supply."""
 
     def execute(
@@ -196,8 +196,6 @@ class ApplyUserActionsCirculatingSupplySUF(SUFBase):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf_function
-
 s_apply_user_actions_initiatives = create_suf_function(ApplyUserActionsInitiativesSUF)
 s_apply_user_actions_supporters = create_suf_function(ApplyUserActionsSupportersSUF)
 s_apply_user_actions_balances = create_suf_function(ApplyUserActionsBalancesSUF)

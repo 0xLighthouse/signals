@@ -7,7 +7,6 @@ from cadCAD.configuration.utils import config_sim
 
 from .state import State
 from .policies import (
-    advance_block,
     p_user_actions,
     p_advance_time,
 )

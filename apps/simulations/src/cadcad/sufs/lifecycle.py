@@ -8,10 +8,10 @@ This module contains SUFs that handle initiative and support lifecycles:
 
 from typing import Dict, List, Any, Tuple
 
-from .base import SUFBase, log_action
+from .base import StateUpdateFunction, log_action
 
 
-class ProcessSupportLifecycleBalancesSUF(SUFBase):
+class ProcessSupportLifecycleBalancesSUF(StateUpdateFunction):
     """SUF for handling token unlocking for accepted initiatives and expired supports."""
 
     def execute(
@@ -28,19 +28,14 @@ class ProcessSupportLifecycleBalancesSUF(SUFBase):
         total_unlocked = 0
 
         # 1. Unlock tokens for accepted initiatives
-        for init_id, initiative in list(state.initiatives.items()):
-            if (
-                init_id not in state.accepted_initiatives
-                and init_id not in state.expired_initiatives
-            ):
-                if initiative.weight >= acceptance_threshold:
-                    # Unlock all tokens for this accepted initiative
-                    for sup_key, support_obj in list(state.supporters.items()):
-                        if support_obj.initiative_id == init_id:
-                            state.balances[support_obj.user_id] = (
-                                state.balances.get(support_obj.user_id, 0) + support_obj.amount
-                            )
-                            total_unlocked += support_obj.amount
+        for init_id in state.accepted_initiatives:
+            # Unlock all tokens for this accepted initiative
+            for sup_key, support_obj in list(state.supporters.items()):
+                if support_obj.initiative_id == init_id:
+                    state.balances[support_obj.user_id] = (
+                        state.balances.get(support_obj.user_id, 0) + support_obj.amount
+                    )
+                    total_unlocked += support_obj.amount
 
         # 2. Unlock tokens for expired supports (for non-accepted initiatives)
         for sup_key, support_obj in list(state.supporters.items()):
@@ -61,7 +56,7 @@ class ProcessSupportLifecycleBalancesSUF(SUFBase):
         return ("balances", state.balances)
 
 
-class ProcessSupportLifecycleCirculatingSupplySUF(SUFBase):
+class ProcessSupportLifecycleCirculatingSupplySUF(StateUpdateFunction):
     """SUF for handling circulating supply updates for accepted initiatives and expired supports."""
 
     def execute(
@@ -78,17 +73,12 @@ class ProcessSupportLifecycleCirculatingSupplySUF(SUFBase):
         total_unlocked = 0
 
         # 1. Unlock tokens for accepted initiatives
-        for init_id, initiative in list(state.initiatives.items()):
-            if (
-                init_id not in state.accepted_initiatives
-                and init_id not in state.expired_initiatives
-            ):
-                if initiative.weight >= acceptance_threshold:
-                    # Unlock all tokens for this accepted initiative
-                    for sup_key, support_obj in list(state.supporters.items()):
-                        if support_obj.initiative_id == init_id:
-                            state.circulating_supply += support_obj.amount
-                            total_unlocked += support_obj.amount
+        for init_id in state.accepted_initiatives:
+            # Unlock all tokens for this accepted initiative
+            for sup_key, support_obj in list(state.supporters.items()):
+                if support_obj.initiative_id == init_id:
+                    state.circulating_supply += support_obj.amount
+                    total_unlocked += support_obj.amount
 
         # 2. Unlock tokens for expired supports (for non-accepted initiatives)
         for sup_key, support_obj in list(state.supporters.items()):
@@ -107,7 +97,7 @@ class ProcessSupportLifecycleCirculatingSupplySUF(SUFBase):
         return ("circulating_supply", state.circulating_supply)
 
 
-class ProcessSupportLifecycleSupportersSUF(SUFBase):
+class ProcessSupportLifecycleSupportersSUF(StateUpdateFunction):
     """SUF for handling support removal for accepted initiatives and expired supports."""
 
     def execute(
@@ -124,16 +114,11 @@ class ProcessSupportLifecycleSupportersSUF(SUFBase):
         supports_to_remove = []
 
         # 1. Remove supports for accepted initiatives
-        for init_id, initiative in list(state.initiatives.items()):
-            if (
-                init_id not in state.accepted_initiatives
-                and init_id not in state.expired_initiatives
-            ):
-                if initiative.weight >= acceptance_threshold:
-                    # Remove all supports for this accepted initiative
-                    for sup_key, support_obj in list(state.supporters.items()):
-                        if support_obj.initiative_id == init_id:
-                            supports_to_remove.append(sup_key)
+        for init_id in state.accepted_initiatives:
+            # Remove all supports for this accepted initiative
+            for sup_key, support_obj in list(state.supporters.items()):
+                if support_obj.initiative_id == init_id:
+                    supports_to_remove.append(sup_key)
 
         # 2. Remove expired supports (for non-accepted initiatives)
         for sup_key, support_obj in list(state.supporters.items()):

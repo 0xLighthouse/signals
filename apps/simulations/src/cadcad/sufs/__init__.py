@@ -10,7 +10,13 @@ This package organizes SUFs into logical modules:
 """
 
 # Import base utilities
-from .base import SUFBase, get_state_obj, create_suf_function, log_epoch_transition, log_action
+from .base import (
+    StateUpdateFunction,
+    get_state_obj,
+    create_suf_function,
+    log_epoch_transition,
+    log_action,
+)
 
 # Import all SUFs for easy access
 from .user_actions import (
@@ -40,7 +46,7 @@ from .time import (
 
 __all__ = [
     # Base utilities
-    "SUFBase",
+    "StateUpdateFunction",
     "get_state_obj",
     "create_suf_function",
     "log_epoch_transition",
