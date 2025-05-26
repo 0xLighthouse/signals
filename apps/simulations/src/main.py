@@ -98,14 +98,51 @@ def generate_summary_stats(results, df):
     total_user_tokens = sum(final_balances.values())
     circulating_supply = final_state.get("circulating_supply", 0)
 
-    # Simulation metadata
-    total_timesteps = len(results)
-    final_epoch = final_state.get("current_epoch", 0)
+    # Reward statistics
+    reward_earnings = final_state.get("reward_earnings", {})
+    reward_history = final_state.get("reward_history", [])
+
+    # Calculate reward statistics
+    total_rewards = sum(reward_earnings.values())
+    avg_reward_per_user = total_rewards / len(reward_earnings) if reward_earnings else 0
+
+    # Analyze reward distribution
+    reward_earnings_list = list(reward_earnings.values())
+    reward_earnings_list.sort()
+    median_reward = (
+        reward_earnings_list[len(reward_earnings_list) // 2] if reward_earnings_list else 0
+    )
+
+    # Calculate reward concentration (Gini-like metric)
+    if reward_earnings_list:
+        total_reward = sum(reward_earnings_list)
+        cumulative_reward = 0
+        concentration_score = 0
+        for i, reward in enumerate(reward_earnings_list):
+            cumulative_reward += reward
+            concentration_score += (i + 1) * reward
+        concentration_score = (2 * concentration_score) / (
+            len(reward_earnings_list) * total_reward
+        ) - 1
+    else:
+        concentration_score = 0
+
+    # Analyze reward patterns
+    reward_by_weight = {}
+    reward_by_lock = {}
+    for entry in reward_history:
+        weight_bucket = round(entry["weight_percentage"] * 10) / 10  # Round to nearest 0.1
+        lock_bucket = entry["lock_duration"]
+
+        reward_by_weight[weight_bucket] = (
+            reward_by_weight.get(weight_bucket, 0) + entry["reward_amount"]
+        )
+        reward_by_lock[lock_bucket] = reward_by_lock.get(lock_bucket, 0) + entry["reward_amount"]
 
     summary = {
         "simulation_metadata": {
-            "total_timesteps": total_timesteps,
-            "final_epoch": final_epoch,
+            "total_timesteps": len(results),
+            "final_epoch": final_state.get("current_epoch", 0),
             "total_users": len(final_balances),
             "simulation_completed": datetime.now().isoformat(),
         },
@@ -126,6 +163,18 @@ def generate_summary_stats(results, df):
             "average_user_balance": total_user_tokens / len(final_balances)
             if final_balances
             else 0,
+        },
+        "reward_statistics": {
+            "total_rewards_distributed": total_rewards,
+            "users_earning_rewards": len(reward_earnings),
+            "average_reward_per_user": avg_reward_per_user,
+            "median_reward": median_reward,
+            "reward_concentration": concentration_score,  # 0 = equal distribution, 1 = highly concentrated
+            "reward_by_initiative_weight": reward_by_weight,
+            "reward_by_lock_duration": reward_by_lock,
+            "top_reward_earners": dict(
+                sorted(reward_earnings.items(), key=lambda x: x[1], reverse=True)[:10]
+            ),
         },
         "governance_parameters": {
             "acceptance_threshold": final_state.get("acceptance_threshold", 0),
@@ -164,6 +213,9 @@ def main():
         print(f"   - Accepted initiatives: {len(final_state.get('accepted_initiatives', set()))}")
         print(f"   - Expired initiatives: {len(final_state.get('expired_initiatives', set()))}")
         print(f"   - Circulating supply: {final_state.get('circulating_supply', 0):,.0f}")
+        print(
+            f"   - Locked tokens: {final_state.get('total_supply', 0) - final_state.get('circulating_supply', 0):,.0f}"
+        )
         print(f"   - Final epoch: {final_state.get('current_epoch', 0)}")
 
         print(f"\n✅ All results saved with timestamp: {file_paths['timestamp']}")

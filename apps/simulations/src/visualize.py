@@ -365,6 +365,126 @@ def create_user_behavior_analysis(df: pd.DataFrame) -> plt.Figure:
     return fig
 
 
+def create_reward_analysis(df: pd.DataFrame, summary: Dict) -> plt.Figure:
+    """Create visualizations for reward distribution and patterns."""
+    fig = plt.figure(figsize=(20, 15))
+    gs = fig.add_gridspec(3, 2)
+
+    # Extract reward data from summary
+    reward_stats = summary.get("reward_statistics", {})
+    if not reward_stats:
+        print("⚠️ No reward statistics available in the summary")
+        return fig
+
+    # Plot 1: Reward Distribution by Initiative Weight
+    ax1 = fig.add_subplot(gs[0, 0])
+    reward_by_weight = reward_stats.get("reward_by_initiative_weight", {})
+    if reward_by_weight:
+        weights = sorted(reward_by_weight.keys())
+        rewards = [reward_by_weight[w] for w in weights]
+        ax1.bar(weights, rewards, color="skyblue", alpha=0.7)
+        ax1.set_xlabel("Initiative Weight (% of threshold)")
+        ax1.set_ylabel("Total Rewards Distributed")
+        ax1.set_title("Reward Distribution by Initiative Weight")
+        ax1.grid(True, alpha=0.3)
+
+    # Plot 2: Reward Distribution by Lock Duration
+    ax2 = fig.add_subplot(gs[0, 1])
+    reward_by_lock = reward_stats.get("reward_by_lock_duration", {})
+    if reward_by_lock:
+        locks = sorted(reward_by_lock.keys())
+        rewards = [reward_by_lock[l] for l in locks]
+        ax2.bar(locks, rewards, color="lightgreen", alpha=0.7)
+        ax2.set_xlabel("Lock Duration (hours)")
+        ax2.set_ylabel("Total Rewards Distributed")
+        ax2.set_title("Reward Distribution by Lock Duration")
+        ax2.grid(True, alpha=0.3)
+
+    # Plot 3: Top Reward Earners
+    ax3 = fig.add_subplot(gs[1, :])
+    top_earners = reward_stats.get("top_reward_earners", {})
+    if top_earners:
+        users = list(top_earners.keys())[:10]  # Top 10 earners
+        earnings = [top_earners[u] for u in users]
+        # Shorten user IDs for better display
+        short_users = [f"{u[:6]}...{u[-4:]}" for u in users]
+        ax3.barh(short_users, earnings, color="salmon", alpha=0.7)
+        ax3.set_xlabel("Total Rewards Earned")
+        ax3.set_title("Top 10 Reward Earners")
+        ax3.grid(True, alpha=0.3)
+
+    # Plot 4: Reward Concentration Analysis
+    ax4 = fig.add_subplot(gs[2, 0])
+    concentration = reward_stats.get("reward_concentration", 0)
+    ax4.bar(["Reward Concentration"], [concentration], color="purple", alpha=0.7)
+    ax4.set_ylim(0, 1)
+    ax4.set_ylabel("Concentration Score (0=Equal, 1=Concentrated)")
+    ax4.set_title("Reward Distribution Concentration")
+    ax4.grid(True, alpha=0.3)
+
+    # Plot 5: Reward Statistics Summary
+    ax5 = fig.add_subplot(gs[2, 1])
+    ax5.axis("off")
+    stats_text = [
+        f"Total Rewards: {reward_stats.get('total_rewards_distributed', 0):,.2f}",
+        f"Users Earning Rewards: {reward_stats.get('users_earning_rewards', 0)}",
+        f"Average Reward: {reward_stats.get('average_reward_per_user', 0):,.2f}",
+        f"Median Reward: {reward_stats.get('median_reward', 0):,.2f}",
+    ]
+    y_pos = 0.8
+    for stat in stats_text:
+        ax5.text(0.1, y_pos, stat, fontsize=12)
+        y_pos -= 0.15
+    ax5.set_title("Reward Statistics Summary", fontsize=14, fontweight="bold")
+
+    plt.tight_layout()
+    return fig
+
+
+def create_reward_correlation_analysis(df: pd.DataFrame, summary: Dict) -> plt.Figure:
+    """Create visualizations showing correlations between rewards and other metrics."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Extract reward history from the last state
+    reward_history = summary.get("reward_statistics", {}).get("reward_history", [])
+    if not reward_history:
+        print("⚠️ No reward history available for correlation analysis")
+        return fig
+
+    # Convert reward history to DataFrame for easier analysis
+    reward_df = pd.DataFrame(reward_history)
+    if reward_df.empty:
+        print("⚠️ Empty reward history DataFrame")
+        return fig
+
+    # Plot 1: Reward vs Balance Correlation
+    if "user_balance_before" in reward_df.columns and "reward_amount" in reward_df.columns:
+        ax1.scatter(
+            reward_df["user_balance_before"], reward_df["reward_amount"], alpha=0.5, color="blue"
+        )
+        ax1.set_xlabel("User Balance Before Reward")
+        ax1.set_ylabel("Reward Amount")
+        ax1.set_title("Reward Amount vs User Balance")
+        ax1.grid(True, alpha=0.3)
+
+    # Plot 2: Reward Rate vs Initiative Weight
+    if all(
+        col in reward_df.columns for col in ["weight_percentage", "reward_amount", "support_amount"]
+    ):
+        # Calculate reward rate (reward/support)
+        reward_df["reward_rate"] = reward_df["reward_amount"] / reward_df["support_amount"]
+        ax2.scatter(
+            reward_df["weight_percentage"], reward_df["reward_rate"], alpha=0.5, color="green"
+        )
+        ax2.set_xlabel("Initiative Weight (% of threshold)")
+        ax2.set_ylabel("Reward Rate (Reward/Support)")
+        ax2.set_title("Reward Rate vs Initiative Weight")
+        ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    return fig
+
+
 def generate_analysis_report(summary: Dict, df: pd.DataFrame) -> str:
     """Generate a text-based analysis report."""
     report = []
@@ -442,6 +562,44 @@ def generate_analysis_report(summary: Dict, df: pd.DataFrame) -> str:
     else:
         report.append(f"• {init_stats['expired']} expired initiatives show natural filtering")
 
+    # Add Reward Analysis Section
+    reward_stats = summary.get("reward_statistics", {})
+    if reward_stats:
+        report.append("🎁 REWARD SYSTEM ANALYSIS")
+        report.append("-" * 30)
+        report.append(
+            f"Total rewards distributed: {reward_stats.get('total_rewards_distributed', 0):,.2f}"
+        )
+        report.append(f"Users earning rewards: {reward_stats.get('users_earning_rewards', 0)}")
+        report.append(
+            f"Average reward per user: {reward_stats.get('average_reward_per_user', 0):,.2f}"
+        )
+        report.append(f"Median reward: {reward_stats.get('median_reward', 0):,.2f}")
+        report.append(f"Reward concentration: {reward_stats.get('reward_concentration', 0):.2f}")
+        report.append("")
+
+        # Add reward insights
+        concentration = reward_stats.get("reward_concentration", 0)
+        if concentration < 0.3:
+            report.append("• Low reward concentration indicates fair distribution")
+        elif concentration > 0.7:
+            report.append(
+                "• High reward concentration suggests rewards are concentrated among few users"
+            )
+        else:
+            report.append("• Moderate reward concentration shows balanced distribution")
+
+        # Analyze reward patterns
+        reward_by_weight = reward_stats.get("reward_by_initiative_weight", {})
+        if reward_by_weight:
+            early_weight_rewards = sum(v for k, v in reward_by_weight.items() if k < 0.3)
+            total_rewards = sum(reward_by_weight.values())
+            if total_rewards > 0:
+                early_percentage = early_weight_rewards / total_rewards
+                report.append(
+                    f"• {early_percentage:.1%} of rewards went to early supporters (weight < 30%)"
+                )
+
     report.append("")
     report.append("=" * 60)
 
@@ -460,15 +618,25 @@ def save_visualizations(
     timestamp = file_paths["timestamp"]
 
     # Save figures
-    figure_names = ["timeline", "governance_metrics", "user_behavior", "token_flux"]
+    figure_names = [
+        "timeline",
+        "governance_metrics",
+        "user_behavior",
+        "token_flux",
+        "reward_analysis",
+        "reward_correlation",
+    ]
     saved_files = []
 
     for i, (fig, name) in enumerate(zip(figures, figure_names)):
-        filename = f"{name}_{timestamp}.png"
-        filepath = os.path.join(output_dir, filename)
-        fig.savefig(filepath, dpi=300, bbox_inches="tight")
-        saved_files.append(filepath)
-        print(f"📊 Saved {name} chart: {filepath}")
+        if fig is not None:  # Only save if figure was created
+            filename = f"{name}_{timestamp}.png"
+            filepath = os.path.join(output_dir, filename)
+            fig.savefig(filepath, dpi=300, bbox_inches="tight")
+            saved_files.append(filepath)
+            print(f"📊 Saved {name} chart: {filepath}")
+        else:
+            print(f"⚠️ Skipping {name} chart - no data available")
 
     # Save analysis report
     report_path = os.path.join(output_dir, f"analysis_report_{timestamp}.txt")
@@ -498,8 +666,10 @@ def main():
     fig2 = create_governance_metrics(summary)
     fig3 = create_user_behavior_analysis(df)
     fig4 = create_token_flux_violin(df, summary)
+    fig5 = create_reward_analysis(df, summary)
+    fig6 = create_reward_correlation_analysis(df, summary)
 
-    figures = [fig1, fig2, fig3, fig4]
+    figures = [fig1, fig2, fig3, fig4, fig5, fig6]
 
     # Generate analysis report
     print("📄 Generating analysis report...")

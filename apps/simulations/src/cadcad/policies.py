@@ -11,7 +11,10 @@ def submit_initiative(params: Dict, step: int, sL: List, s: Dict) -> Dict:
     state = State(**s)  # Convert dict to State object
     initiative_id = str(uuid.uuid4())
     initiative = Initiative(
-        id=initiative_id, title=params["title"], description=params["description"], created_at=state.current_time
+        id=initiative_id,
+        title=params["title"],
+        description=params["description"],
+        created_at=state.current_time,
     )
     state.initiatives[initiative_id] = initiative
     return asdict(state)
@@ -65,7 +68,9 @@ def decay_weights(params: Dict, step: int, sL: List, s: Dict) -> Dict:
             support.weight = max(0, support.weight - decay)
         else:  # exponential
             # Exponential decay: cW = W * M^I
-            support.weight = support.amount * support.lock_duration * (state.decay_multiplier**epochs_passed)
+            support.weight = (
+                support.amount * support.lock_duration * (state.decay_multiplier**epochs_passed)
+            )
 
     state.update_initiative_weights()
     return asdict(state)
@@ -75,7 +80,10 @@ def check_acceptance(params: Dict, step: int, sL: List, s: Dict) -> Dict:
     """Check and accept initiatives that exceed the threshold."""
     state = State(**s)  # Convert dict to State object
     for initiative_id, initiative in state.initiatives.items():
-        if initiative.weight >= state.acceptance_threshold and initiative_id not in state.accepted_initiatives:
+        if (
+            initiative.weight >= state.acceptance_threshold
+            and initiative_id not in state.accepted_initiatives
+        ):
             state.accepted_initiatives.add(initiative_id)
     return asdict(state)
 
@@ -85,7 +93,10 @@ def check_expiration(params: Dict, step: int, sL: List, s: Dict) -> Dict:
     state = State(**s)  # Convert dict to State object
     current_time = state.current_time
     for initiative_id, initiative in state.initiatives.items():
-        if initiative_id not in state.accepted_initiatives and initiative_id not in state.expired_initiatives:
+        if (
+            initiative_id not in state.accepted_initiatives
+            and initiative_id not in state.expired_initiatives
+        ):
             time_since_last_support = (current_time - initiative.last_support_time).days
             if time_since_last_support >= state.inactivity_period:
                 state.expired_initiatives.add(initiative_id)
@@ -102,7 +113,10 @@ def advance_block(_params, _step, _sL, s: Dict) -> Dict:
 
 
 def p_create_initiative(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Policy for users creating new initiatives.
@@ -121,7 +135,10 @@ def p_create_initiative(
 
 
 def p_support_initiative(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Policy for users supporting existing initiatives.
@@ -136,7 +153,10 @@ def p_support_initiative(
 
 
 def p_apply_decay_to_supports(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Policy to apply decay to all active supports.
@@ -154,14 +174,19 @@ def p_apply_decay_to_supports(
 
 
 def p_check_initiative_status(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Policy to check initiatives for acceptance, expiration, and support lock expiration.
     """
     initiatives_to_accept: Set[str] = set()
     initiatives_to_expire: Set[str] = set()
-    supports_to_unlock_details: List[Dict[str, Any]] = []  # e.g. [{'user_id':x, 'amount':y, 'support_key': (uid,iid)}]
+    supports_to_unlock_details: List[
+        Dict[str, Any]
+    ] = []  # e.g. [{'user_id':x, 'amount':y, 'support_key': (uid,iid)}]
 
     # Logic to iterate through initiatives and supports to determine status changes.
     # - Check acceptance_threshold
@@ -176,7 +201,10 @@ def p_check_initiative_status(
 
 
 def p_user_actions(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Policy to determine actions taken by users in a given timestep.
@@ -242,7 +270,10 @@ def p_user_actions(
 # For simplicity, often the time update SUF is just called directly without a specific policy output.
 # However, to be explicit for now:
 def p_advance_time(
-    params: Dict[str, Any], substep: int, state_history: List[Dict[str, Any]], previous_state: Dict[str, Any]
+    params: Dict[str, Any],
+    substep: int,
+    state_history: List[Dict[str, Any]],
+    previous_state: Dict[str, Any],
 ) -> Dict[str, bool]:
     """
     Policy that signals the intent to advance time by one epoch.

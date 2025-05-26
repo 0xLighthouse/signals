@@ -55,6 +55,14 @@ class State:
         self.circulating_supply: int = kwargs.get("circulating_supply", 0)
         self.balances: Dict[str, int] = kwargs.get("balances", {})
 
+        # Add reward tracking
+        self.reward_earnings: Dict[str, float] = kwargs.get(
+            "reward_earnings", {}
+        )  # Total rewards earned per user
+        self.reward_history: List[Dict[str, Any]] = kwargs.get(
+            "reward_history", []
+        )  # Detailed reward history
+
     def __dict__(self):
         """Convert state to dictionary for cadCAD."""
         initiatives_copy = (
@@ -66,6 +74,8 @@ class State:
         balances_copy = dict(self.balances)
         accepted_copy = set(self.accepted_initiatives)
         expired_copy = set(self.expired_initiatives)
+        reward_earnings_copy = dict(self.reward_earnings)
+        reward_history_copy = list(self.reward_history)
 
         return {
             "current_epoch": self.current_epoch,
@@ -82,6 +92,8 @@ class State:
             "total_supply": self.total_supply,
             "circulating_supply": self.circulating_supply,
             "balances": balances_copy,
+            "reward_earnings": reward_earnings_copy,
+            "reward_history": reward_history_copy,
         }
 
     def get_initiative_weight(self, initiative_id: str) -> float:
@@ -104,6 +116,35 @@ class State:
             for (uid, initiative_id), support in self.supporters.items()
             if uid == user_id
         }
+
+    def record_reward(
+        self,
+        user_id: str,
+        amount: float,
+        initiative_id: str,
+        initiative_weight: float,
+        support_amount: float,
+        lock_duration: int,
+    ) -> None:
+        """Record a reward payment to a user with detailed information."""
+        # Update total earnings
+        self.reward_earnings[user_id] = self.reward_earnings.get(user_id, 0) + amount
+
+        # Record detailed history
+        reward_entry = {
+            "epoch": self.current_epoch,
+            "timestamp": self.current_time.isoformat(),
+            "user_id": user_id,
+            "initiative_id": initiative_id,
+            "reward_amount": amount,
+            "support_amount": support_amount,
+            "lock_duration": lock_duration,
+            "initiative_weight": initiative_weight,
+            "weight_percentage": initiative_weight / self.acceptance_threshold,
+            "user_balance_before": self.balances.get(user_id, 0) - amount,  # Balance before reward
+            "user_balance_after": self.balances.get(user_id, 0),  # Balance after reward
+        }
+        self.reward_history.append(reward_entry)
 
 
 def generate_initial_state(

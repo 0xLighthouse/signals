@@ -30,18 +30,30 @@ from .sufs import (
 
 # Define the simulation parameters
 simulation_parameters = {
-    "T": range(10),  # Number of timesteps
+    "T": range(744),  # Total timesteps (31 days = 744 hours)
     "N": 1,  # Number of monte carlo runs
     "M": {  # Model parameters
-        "acceptance_threshold": 1000.0,
-        "decay_multiplier": 0.95,
-        "initiative_creation_stake": 10.0,
-        "prob_create_initiative": 0.08,
-        "prob_support_initiative": 0.2,
-        "max_support_tokens_fraction": 0.5,
-        "min_lock_duration_epochs": 5,
-        "max_lock_duration_epochs": 20,
-        "inactivity_period": 10,
+        # Time configuration
+        "time_unit": "hours",  # Each timestep is 1 hour
+        "simulation_duration": 744,  # 31 days in hours
+        # Governance thresholds
+        "acceptance_threshold": 75000.0,  # ~75k units
+        "decay_multiplier": 0.999,  # 0.1% decay per hour
+        "initiative_creation_stake": 120.0,  # Increased stake to reduce total from 208 to 80-90
+        "prob_create_initiative": 0.00025,  # Probability to create an initiative
+        "prob_support_initiative": 0.005,  # Probability to give support to an initiative
+        # Economic constraints
+        "max_support_tokens_fraction": 0.3,  # How much of the user's balance can be used to support an initiative?
+        "min_lock_duration_epochs": 24,  # Minimum lock duration (24 hours)
+        "max_lock_duration_epochs": 336,  # Maximum lock duration (2 weeks)
+        # Lifecycle parameters
+        "inactivity_period": 720,  # Inactivity period (30 days) before expiration
+        # Reward system parameters
+        "reward_enabled": True,  # Whether to enable the reward system
+        "max_reward_rate": 0.1,  # Maximum reward rate (10% of support amount)
+        "min_reward_rate": 0.01,  # Minimum reward rate (1% of support amount)
+        "reward_steepness": 5.0,  # Controls how quickly the reward rate decreases
+        "reward_midpoint": 0.2,  # Weight percentage at which reward rate is halfway between min and max
     },
 }
 

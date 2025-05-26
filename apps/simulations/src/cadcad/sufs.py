@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Tuple, Set
+import math
 
 # Import the dataclasses from state.py to properly cast and work with them
 from .state import State, Initiative, Support
@@ -152,6 +153,50 @@ def s_apply_user_actions_initiatives(
     return ("initiatives", initiatives_dict)
 
 
+def calculate_support_reward(
+    params: Dict[str, Any],
+    initiative: Initiative,
+    support: Support,
+    current_epoch: int,
+    initiative_weight: float,
+) -> float:
+    """
+    Calculate reward using a sigmoid function based on initiative weight.
+    Higher rewards for early/risky supporters, smoothly decreasing as initiative gains support.
+
+    Args:
+        params: Simulation parameters
+        initiative: The initiative being supported
+        support: The support action
+        current_epoch: Current simulation epoch
+        initiative_weight: Current total weight of the initiative
+
+    Returns:
+        float: Reward amount to apply
+    """
+    if not params.get("reward_enabled", False):
+        return 0.0
+
+    # Calculate weight percentage relative to acceptance threshold
+    weight_percentage = initiative_weight / params["acceptance_threshold"]
+
+    # Sigmoid function to calculate reward rate
+    # f(x) = min_rate + (max_rate - min_rate) / (1 + e^(steepness * (x - midpoint)))
+    x = weight_percentage
+    steepness = params["reward_steepness"]
+    midpoint = params["reward_midpoint"]
+    min_rate = params["min_reward_rate"]
+    max_rate = params["max_reward_rate"]
+
+    # Calculate reward rate using sigmoid
+    reward_rate = min_rate + (max_rate - min_rate) / (1 + math.exp(steepness * (x - midpoint)))
+
+    # Calculate final reward
+    reward = support.amount * reward_rate
+
+    return reward
+
+
 def s_apply_user_actions_supporters(
     params: Dict[str, Any],
     substep: int,
@@ -173,6 +218,11 @@ def s_apply_user_actions_supporters(
             lock_duration_epochs = action.get("lock_duration_epochs")
 
             if initiative_id in state.initiatives and state.balances.get(user_id, 0) >= amount:
+                # Calculate initiative weight before new support
+                initiative = state.initiatives[initiative_id]
+                current_weight = state.get_initiative_weight(initiative_id)
+
+                # Create support object
                 support_key = (user_id, initiative_id)
                 support = Support(
                     user_id=user_id,
@@ -181,9 +231,41 @@ def s_apply_user_actions_supporters(
                     lock_duration_epochs=lock_duration_epochs,
                     start_epoch=state.current_epoch,
                 )
+
+                # Calculate and apply reward if enabled
+                reward = 0.0
+                if params.get("reward_enabled", False):
+                    reward = calculate_support_reward(
+                        params, initiative, support, state.current_epoch, current_weight
+                    )
+                    if reward > 0:
+                        # Add reward to user's balance
+                        state.balances[user_id] = state.balances.get(user_id, 0) + reward
+                        state.circulating_supply += reward
+
+                        # Record the reward with detailed information
+                        state.record_reward(
+                            user_id=user_id,
+                            amount=reward,
+                            initiative_id=initiative_id,
+                            initiative_weight=current_weight,
+                            support_amount=amount,
+                            lock_duration=lock_duration_epochs,
+                        )
+
+                        # Log detailed reward information
+                        weight_percentage = current_weight / params["acceptance_threshold"]
+                        print(
+                            f"🎁 EPOCH {state.current_epoch}: User {user_id} received {reward:.2f} reward tokens"
+                            f" (support: {amount:.2f}, lock: {lock_duration_epochs}h,"
+                            f" weight: {weight_percentage:.1%}, total earned: {state.reward_earnings.get(user_id, 0):.2f})"
+                        )
+
+                # Add the support
                 state.supporters[support_key] = support
+                # Combined support and reward log
                 print(
-                    f"💰 EPOCH {state.current_epoch}: User {user_id} supported initiative {initiative_id[:8]}... with {amount:.1f} tokens for {lock_duration_epochs} epochs"
+                    f"💰 EPOCH {state.current_epoch}: User {user_id} supported initiative {initiative_id[:8]}... with {amount:.2f} tokens for {lock_duration_epochs} epochs and received {reward:.2f} reward tokens."
                 )
 
                 # Update initiative's last support epoch
