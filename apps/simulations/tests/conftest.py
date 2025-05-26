@@ -5,8 +5,13 @@ Pytest configuration and shared fixtures for the simulation test suite.
 import pytest
 import tempfile
 import os
+import sys
 from datetime import datetime
-from src.cadcad.state import generate_initial_state
+
+# Add src directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from cadcad.state import generate_initial_state
 
 
 @pytest.fixture

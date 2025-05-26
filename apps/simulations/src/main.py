@@ -142,7 +142,7 @@ def main():
     print("Starting Signals simulation...")
 
     # Generate initial state
-    initial_state = generate_initial_state(num_users=50, total_supply=1_000_000, randomize=True)
+    initial_state = generate_initial_state(num_users=1000, total_supply=1_000_000, randomize=True)
     print(f"Initial state generated with {len(initial_state['balances'])} users.")
 
     # Run the simulation

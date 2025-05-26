@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Set, Any, Tuple, List, Optional
 import random
-from .allocate import allocate_tokens
+from supply.allocate import allocate_tokens
 
 
 @dataclass

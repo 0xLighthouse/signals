@@ -108,10 +108,17 @@ psubs = [
 ]
 
 
-def run_simulation(initial_state: Dict) -> List[Dict]:
+def run_simulation(initial_state: Dict, num_epochs: int = None) -> List[Dict]:
     """Run the cadCAD simulation and return the results."""
     try:
         print("Initializing simulation...")
+
+        # Use custom num_epochs if provided, otherwise use default
+        if num_epochs is not None:
+            custom_simulation_parameters = simulation_parameters.copy()
+            custom_simulation_parameters["T"] = range(num_epochs)
+        else:
+            custom_simulation_parameters = simulation_parameters
 
         # Create the cadCAD configuration
         # Note: config object is now created inside run_simulation to use dynamic initial_state
@@ -119,11 +126,11 @@ def run_simulation(initial_state: Dict) -> List[Dict]:
         live_config = Configuration(
             initial_state=initial_state,
             partial_state_update_blocks=psubs,
-            sim_config=config_sim(simulation_parameters),
+            sim_config=config_sim(custom_simulation_parameters),
             user_id="signals-sim",
             model_id="signals-v1",
             subset_id="default",
-            subset_window=deque([0, simulation_parameters["T"].stop]),  # Use T from params
+            subset_window=deque([0, custom_simulation_parameters["T"].stop]),  # Use T from params
         )
 
         exec_mode = ExecutionMode()
