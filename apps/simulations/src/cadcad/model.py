@@ -17,7 +17,7 @@ from .sufs import (
     s_apply_user_actions_supporters,
     s_apply_user_actions_balances,
     s_apply_user_actions_circulating_supply,
-    s_apply_support_decay,
+    s_calculate_current_support,
     s_update_initiative_aggregate_weights,
     s_process_accepted_initiatives,
     s_process_expired_initiatives,
@@ -82,15 +82,22 @@ def standard_state_update(key):
 # Define the partial state update blocks with our explicit update functions
 # Split into multiple PSUBs so state updates are visible between blocks
 psubs = [
-    # PSUB 1: Time advancement and user actions
+    # PSUB 1a: Time advancement
     {
         "policies": {
             "time_advancement_policy": p_advance_time,
-            "user_behavior_policy": p_user_actions,
         },
         "variables": {
             "current_epoch": s_update_current_epoch,
             "current_time": s_update_current_time,
+        },
+    },
+    # PSUB 1b: User actions
+    {
+        "policies": {
+            "user_behavior_policy": p_user_actions,
+        },
+        "variables": {
             "initiatives": s_apply_user_actions_initiatives,
             "supporters": s_apply_user_actions_supporters,
             "balances": s_apply_user_actions_balances,
@@ -101,16 +108,28 @@ psubs = [
     {
         "policies": {},  # No policies needed, just state updates
         "variables": {
-            "supporters": s_apply_support_decay,
+            "supporters": s_calculate_current_support,
             "initiatives": s_update_initiative_aggregate_weights,
         },
     },
     # PSUB 3: Lifecycle management
+    # PSUB 3a: Process accepted initiatives
     {
         "policies": {},  # No policies needed, just state updates
         "variables": {
             "accepted_initiatives": s_process_accepted_initiatives,
+        },
+    },
+    # PSUB 3b: Process expired initiatives
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
             "expired_initiatives": s_process_expired_initiatives,
+        },
+    },
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
             "balances": s_process_support_lifecycle_balances,
             "circulating_supply": s_process_support_lifecycle_circulating_supply,
             "supporters": s_process_support_lifecycle_supporters,

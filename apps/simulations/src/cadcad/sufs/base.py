@@ -115,7 +115,7 @@ class StateUpdateFunction(ABC):
         pass
 
 
-def create_suf_function(suf_class: type) -> Callable:
+def create_suf(suf_class: type) -> Callable:
     """
     Factory function to create SUF functions from SUF classes.
 

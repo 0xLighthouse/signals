@@ -13,7 +13,7 @@ This package organizes SUFs into logical modules:
 from .base import (
     StateUpdateFunction,
     get_state_obj,
-    create_suf_function,
+    create_suf,
     log_epoch_transition,
     log_action,
 )
@@ -27,7 +27,7 @@ from .user_actions import (
 )
 
 from .governance import (
-    s_apply_support_decay,
+    s_calculate_current_support,
     s_update_initiative_aggregate_weights,
     s_process_accepted_initiatives,
     s_process_expired_initiatives,
@@ -48,7 +48,7 @@ __all__ = [
     # Base utilities
     "StateUpdateFunction",
     "get_state_obj",
-    "create_suf_function",
+    "create_suf",
     "log_epoch_transition",
     "log_action",
     # User actions
@@ -57,7 +57,7 @@ __all__ = [
     "s_apply_user_actions_balances",
     "s_apply_user_actions_circulating_supply",
     # Governance
-    "s_apply_support_decay",
+    "s_calculate_current_support",
     "s_update_initiative_aggregate_weights",
     "s_process_accepted_initiatives",
     "s_process_expired_initiatives",

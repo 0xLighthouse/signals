@@ -11,7 +11,7 @@ This module contains SUFs that handle user-initiated actions:
 import uuid
 from typing import Dict, List, Any, Tuple
 
-from .base import StateUpdateFunction, log_action, create_suf_function
+from .base import StateUpdateFunction, log_action, create_suf
 from ..state import Initiative, Support
 
 
@@ -196,7 +196,7 @@ class ApplyUserActionsCirculatingSupplySUF(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-s_apply_user_actions_initiatives = create_suf_function(ApplyUserActionsInitiativesSUF)
-s_apply_user_actions_supporters = create_suf_function(ApplyUserActionsSupportersSUF)
-s_apply_user_actions_balances = create_suf_function(ApplyUserActionsBalancesSUF)
-s_apply_user_actions_circulating_supply = create_suf_function(ApplyUserActionsCirculatingSupplySUF)
+s_apply_user_actions_initiatives = create_suf(ApplyUserActionsInitiativesSUF)
+s_apply_user_actions_supporters = create_suf(ApplyUserActionsSupportersSUF)
+s_apply_user_actions_balances = create_suf(ApplyUserActionsBalancesSUF)
+s_apply_user_actions_circulating_supply = create_suf(ApplyUserActionsCirculatingSupplySUF)

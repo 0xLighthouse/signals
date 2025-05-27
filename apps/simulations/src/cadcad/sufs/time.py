@@ -53,7 +53,7 @@ class UpdateCurrentTime(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf_function
+from .base import create_suf
 
-s_update_current_epoch = create_suf_function(UpdateCurrentEpoch)
-s_update_current_time = create_suf_function(UpdateCurrentTime)
+s_update_current_epoch = create_suf(UpdateCurrentEpoch)
+s_update_current_time = create_suf(UpdateCurrentTime)

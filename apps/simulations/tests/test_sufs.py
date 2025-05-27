@@ -10,7 +10,7 @@ from src.cadcad.sufs import (
     s_apply_user_actions_supporters,
     s_apply_user_actions_balances,
     s_apply_user_actions_circulating_supply,
-    s_apply_support_decay,
+    s_calculate_current_support,
     s_update_initiative_aggregate_weights,
     s_process_accepted_initiatives,
     s_process_expired_initiatives,
@@ -255,7 +255,7 @@ class TestSupportDecayAndWeights:
         """Test support decay SUF."""
         self.initial_state["current_epoch"] = 2
 
-        result_key, result_value = s_apply_support_decay(
+        result_key, result_value = s_calculate_current_support(
             params=self.params,
             substep=1,
             state_history=[],

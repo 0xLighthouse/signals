@@ -13,7 +13,7 @@ from typing import Dict, List, Any, Tuple, Set
 from .base import StateUpdateFunction, log_action
 
 
-class ApplySupportDecaySUF(StateUpdateFunction):
+class CalculateCurrentSupport(StateUpdateFunction):
     """SUF for applying decay to the current_weight of all active supports."""
 
     def execute(
@@ -184,9 +184,9 @@ class ProcessExpiredInitiativesSUF(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf_function
+from .base import create_suf
 
-s_apply_support_decay = create_suf_function(ApplySupportDecaySUF)
-s_update_initiative_aggregate_weights = create_suf_function(UpdateInitiativeAggregateWeightsSUF)
-s_process_accepted_initiatives = create_suf_function(ProcessAcceptedInitiativesSUF)
-s_process_expired_initiatives = create_suf_function(ProcessExpiredInitiativesSUF)
+s_calculate_current_support = create_suf(CalculateCurrentSupport)
+s_update_initiative_aggregate_weights = create_suf(UpdateInitiativeAggregateWeightsSUF)
+s_process_accepted_initiatives = create_suf(ProcessAcceptedInitiativesSUF)
+s_process_expired_initiatives = create_suf(ProcessExpiredInitiativesSUF)

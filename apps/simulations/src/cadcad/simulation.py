@@ -6,15 +6,26 @@ import json
 
 # Import our simulation components
 from .state import generate_initial_state  # For creating the initial state dict
-from .parameters import simulation_config, initial_state_params, system_params  # Sim configs and params
+from .parameters import (
+    simulation_config,
+    initial_state_params,
+)  # Sim configs and params
 from .policies import p_user_actions, p_advance_time  # Our policy functions
 from .sufs import (
     s_update_current_epoch,
-    s_apply_user_actions,
-    s_apply_support_decay,
+    s_update_current_time,
+    s_apply_user_actions_initiatives,
+    s_apply_user_actions_supporters,
+    s_apply_user_actions_balances,
+    s_apply_user_actions_circulating_supply,
+    s_calculate_current_support,
     s_update_initiative_aggregate_weights,
-    s_process_initiative_and_support_lifecycles,
-)  # Our state update functions
+    s_process_accepted_initiatives,
+    s_process_expired_initiatives,
+    s_process_support_lifecycle_balances,
+    s_process_support_lifecycle_circulating_supply,
+    s_process_support_lifecycle_supporters,
+)  # Our modular state update functions
 
 # 1. Generate Initial State
 # We use system_params directly here if generate_initial_state needs them,
@@ -56,36 +67,60 @@ actual_initial_state_to_use = initial_state_dict
 # 2. Define Partial State Update Blocks (PSUBs)
 # This defines the order of operations within each timestep (epoch).
 psubs = [
+    # PSUB 1a: Time advancement
     {
         "policies": {
-            # Policy to advance time (signals intent, SUF does the work)
             "time_advancement_policy": p_advance_time,
-            # Policy for user behaviors (creating/supporting initiatives)
+        },
+        "variables": {
+            "current_epoch": s_update_current_epoch,
+            "current_time": s_update_current_time,
+        },
+    },
+    # PSUB 1b: User actions
+    {
+        "policies": {
             "user_behavior_policy": p_user_actions,
         },
         "variables": {
-            # SUF to update current_epoch and current_time (should be early)
-            # This SUF returns multiple state variable updates as a list of tuples.
-            # So, we assign it to one of the variables it updates, e.g., 'current_epoch'
-            # cadCAD will process all tuples returned.
-            "current_epoch": s_update_current_epoch,
-            # SUF to apply user actions (create/support initiatives)
-            # This also returns a list of tuples for multiple state variable updates.
-            # Assign to one, e.g. 'initiatives'
-            "initiatives": s_apply_user_actions,
-            # SUF to apply decay to support weights
-            "supporters": s_apply_support_decay,
-            # SUF to update aggregate initiative weights after decay/new support
-            # This happens after individual supports might have changed.
-            "initiatives_after_weight_update": s_update_initiative_aggregate_weights,
-            # Note: Key name here is just a label for cadCAD execution trace, actual state var updated is 'initiatives'
-            # SUF to process initiative/support lifecycles (acceptance, expiration)
-            # This can also update multiple state variables.
-            # Assign to one, e.g. 'accepted_initiatives'
-            "accepted_initiatives": s_process_initiative_and_support_lifecycles,
+            "initiatives": s_apply_user_actions_initiatives,
+            "supporters": s_apply_user_actions_supporters,
+            "balances": s_apply_user_actions_balances,
+            "circulating_supply": s_apply_user_actions_circulating_supply,
         },
-    }
-    # If more complex sub-step logic is needed, more PSUB blocks could be added.
+    },
+    # PSUB 2: Support decay and weight updates
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "supporters": s_calculate_current_support,
+            "initiatives": s_update_initiative_aggregate_weights,
+        },
+    },
+    # PSUB 3: Lifecycle management
+    # PSUB 3a: Process accepted initiatives
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "accepted_initiatives": s_process_accepted_initiatives,
+        },
+    },
+    # PSUB 3b: Process expired initiatives
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "expired_initiatives": s_process_expired_initiatives,
+        },
+    },
+    # PSUB 3c: Process support lifecycle
+    {
+        "policies": {},  # No policies needed, just state updates
+        "variables": {
+            "balances": s_process_support_lifecycle_balances,
+            "circulating_supply": s_process_support_lifecycle_circulating_supply,
+            "supporters": s_process_support_lifecycle_supporters,
+        },
+    },
 ]
 
 # 3. Configure Simulation Execution
@@ -132,7 +167,10 @@ for session_info in sessions:
     # The key for subset ID in session_info can be 'subset_id' or derived.
     # Let's use the index of the session in the sessions list as a reliable subset identifier.
     params_df_data.append(
-        {"subset": session_info.get("subset_id", sessions.index(session_info)), **session_info["params"]}
+        {
+            "subset": session_info.get("subset_id", sessions.index(session_info)),
+            **session_info["params"],
+        }
     )
 params_df = pd.DataFrame(params_df_data)
 
@@ -148,10 +186,17 @@ elif "subset" not in df.columns:
     if len(sessions) == 1:
         df["subset"] = 0
     else:
-        print("Warning: 'subset' column not found in DataFrame. Parameter-specific analysis might be limited.")
+        print(
+            "Warning: 'subset' column not found in DataFrame. Parameter-specific analysis might be limited."
+        )
 
 # Calculate number of accepted initiatives at the end of each run
-if "accepted_initiatives" in df.columns and "subset" in df.columns and "run" in df.columns and "timestep" in df.columns:
+if (
+    "accepted_initiatives" in df.columns
+    and "subset" in df.columns
+    and "run" in df.columns
+    and "timestep" in df.columns
+):
     # Get the state at the last timestep for each run and subset
     final_states_df = df.loc[df.groupby(["subset", "run"])["timestep"].idxmax()]
     final_states_df["num_accepted"] = final_states_df["accepted_initiatives"].apply(
@@ -164,7 +209,9 @@ if "accepted_initiatives" in df.columns and "subset" in df.columns and "run" in 
     # Merge with parameters to show which params led to which results
     results_with_params = pd.merge(avg_results_per_subset, params_df, on="subset", how="left")
 
-    print("\n--- Average Number of Accepted Initiatives (at final timestep) per Parameter Subset ---")
+    print(
+        "\n--- Average Number of Accepted Initiatives (at final timestep) per Parameter Subset ---"
+    )
     print(results_with_params)
 else:
     print(
@@ -185,7 +232,9 @@ for i, row in first_subset_df.tail(5).iterrows():
     else:
         print("  No initiatives data.")
 
-print("\nTo run this simulation, save the code and execute this file (e.g., python -m src.cadcad.simulation)")
+print(
+    "\nTo run this simulation, save the code and execute this file (e.g., python -m src.cadcad.simulation)"
+)
 print(
     "Ensure all dependent files (state.py, parameters.py, policies.py, sufs.py) are in the same directory or PYTHONPATH."
 )

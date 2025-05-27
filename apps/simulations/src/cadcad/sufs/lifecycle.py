@@ -144,10 +144,10 @@ class ProcessSupportLifecycleSupportersSUF(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf_function
+from .base import create_suf
 
-s_process_support_lifecycle_balances = create_suf_function(ProcessSupportLifecycleBalancesSUF)
-s_process_support_lifecycle_circulating_supply = create_suf_function(
+s_process_support_lifecycle_balances = create_suf(ProcessSupportLifecycleBalancesSUF)
+s_process_support_lifecycle_circulating_supply = create_suf(
     ProcessSupportLifecycleCirculatingSupplySUF
 )
-s_process_support_lifecycle_supporters = create_suf_function(ProcessSupportLifecycleSupportersSUF)
+s_process_support_lifecycle_supporters = create_suf(ProcessSupportLifecycleSupportersSUF)
