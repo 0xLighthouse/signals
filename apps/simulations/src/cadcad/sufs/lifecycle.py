@@ -8,7 +8,7 @@ This module contains SUFs that handle initiative and support lifecycles:
 
 from typing import Dict, List, Any, Tuple
 
-from .base import StateUpdateFunction, log_action
+from .base import StateUpdateFunction, log_action, create_suf
 
 
 class ProcessSupportLifecycleBalancesSUF(StateUpdateFunction):
@@ -144,8 +144,6 @@ class ProcessSupportLifecycleSupportersSUF(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf
-
 s_process_support_lifecycle_balances = create_suf(ProcessSupportLifecycleBalancesSUF)
 s_process_support_lifecycle_circulating_supply = create_suf(
     ProcessSupportLifecycleCirculatingSupplySUF

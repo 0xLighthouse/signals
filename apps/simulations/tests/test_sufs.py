@@ -4,7 +4,7 @@ Tests for State Update Functions (SUFs).
 
 import pytest
 from datetime import datetime
-from src.cadcad.state import State, Initiative, Support, generate_initial_state
+from src.cadcad.state import State, generate_initial_state
 from src.cadcad.sufs import (
     s_apply_user_actions_initiatives,
     s_apply_user_actions_supporters,

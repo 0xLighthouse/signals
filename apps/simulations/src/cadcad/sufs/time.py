@@ -9,7 +9,7 @@ This module contains SUFs that handle time-related updates:
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Tuple
 
-from .base import StateUpdateFunction, log_epoch_transition
+from .base import StateUpdateFunction, log_epoch_transition, create_suf
 
 
 class UpdateCurrentEpoch(StateUpdateFunction):
@@ -53,7 +53,5 @@ class UpdateCurrentTime(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf
-
 s_update_current_epoch = create_suf(UpdateCurrentEpoch)
 s_update_current_time = create_suf(UpdateCurrentTime)

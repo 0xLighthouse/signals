@@ -9,8 +9,7 @@ This module contains SUFs that handle governance mechanics:
 """
 
 from typing import Dict, List, Any, Tuple, Set
-
-from .base import StateUpdateFunction, log_action
+from .base import StateUpdateFunction, log_action, create_suf
 
 
 class CalculateCurrentSupport(StateUpdateFunction):
@@ -184,7 +183,6 @@ class ProcessExpiredInitiativesSUF(StateUpdateFunction):
 
 
 # Create function-based SUFs for cadCAD compatibility
-from .base import create_suf
 
 s_calculate_current_support = create_suf(CalculateCurrentSupport)
 s_update_initiative_aggregate_weights = create_suf(UpdateInitiativeAggregateWeightsSUF)
