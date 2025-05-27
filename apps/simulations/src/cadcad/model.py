@@ -1,11 +1,9 @@
 from collections import deque
 from typing import Dict, List
-from datetime import datetime
 from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
 from cadCAD.configuration import Configuration
 from cadCAD.configuration.utils import config_sim
 
-from .state import State
 from .policies import (
     p_user_actions,
     p_advance_time,
@@ -40,15 +38,15 @@ simulation_parameters = {
         # Governance thresholds
         "acceptance_threshold": 75000.0,  # ~75k units
         "decay_multiplier": 0.999,  # 0.1% decay per hour
-        "initiative_creation_stake": 120.0,  # Increased stake to reduce total from 208 to 80-90
-        "prob_create_initiative": 0.00025,  # Probability to create an initiative
-        "prob_support_initiative": 0.005,  # Probability to give support to an initiative
+        "initiative_creation_stake": 120.0,  # {n} tokens required to create an initiative
+        "prob_create_initiative": 0.00025,  # {p} chance to create an initiative
+        "prob_support_initiative": 0.005,  # {p} chance to give support to an initiative
         # Economic constraints
-        "max_support_tokens_fraction": 0.3,  # How much of the user's balance can be used to support an initiative?
-        "min_lock_duration_epochs": 24,  # Minimum lock duration (24 hours)
-        "max_lock_duration_epochs": 336,  # Maximum lock duration (2 weeks)
+        "max_support_tokens_fraction": 0.3,  # {f} of the user's balance can be used to support an initiative
+        "min_lock_duration_epochs": 24,  # {n} minimum lock duration (24 hours)
+        "max_lock_duration_epochs": 336,  # {n} maximum lock duration (2 weeks as hours)
         # Lifecycle parameters
-        "inactivity_period": 720,  # Inactivity period (30 days) before expiration
+        "inactivity_period": 720,  # {n} inactivity period (30 days) before expiration
         # Reward system parameters
         "reward_enabled": True,  # Whether to enable the reward system
         "max_reward_rate": 0.1,  # Maximum reward rate (10% of support amount)
@@ -57,28 +55,6 @@ simulation_parameters = {
         "reward_midpoint": 0.2,  # Weight percentage at which reward rate is halfway between min and max
     },
 }
-
-# Define the state keys for dynamic SUF creation
-state_keys = [
-    "current_epoch",
-    "current_time",
-]
-
-
-def standard_state_update(key):
-    """
-    Standard state update function that takes the policy output for the key if available, otherwise passes through the previous state value.
-    It always returns (new_value, old_value) tuple.
-    The outer lambda(key) captures the 'key' for the inner lambda.
-    """
-
-    def state_update(params, substep, history, state, policy_input):
-        # Handle the case where policy_input might return dictionaries that can't be hashed
-        if key in policy_input:
-            return policy_input[key], state[key]
-        return state[key], state[key]
-
-    return state_update
 
 
 # Define the partial state update blocks with our explicit update functions
@@ -115,7 +91,7 @@ psubs = [
             "initiatives": s_update_initiative_aggregate_weights,
         },
     },
-    # PSUB 3: Lifecycle management
+    # PSUB 3: Apply lifecycle management
     # PSUB 3a: Process accepted initiatives
     {
         "policies": {},  # No policies needed, just state updates
@@ -157,7 +133,7 @@ def run_simulation(initial_state: Dict, num_epochs: int = None) -> List[Dict]:
         # Create the cadCAD configuration
         # Note: config object is now created inside run_simulation to use dynamic initial_state
         # initial_state is already a dict from generate_initial_state, no need to call asdict()
-        live_config = Configuration(
+        config = Configuration(
             initial_state=initial_state,
             partial_state_update_blocks=psubs,
             sim_config=config_sim(custom_simulation_parameters),
@@ -169,7 +145,7 @@ def run_simulation(initial_state: Dict, num_epochs: int = None) -> List[Dict]:
 
         exec_mode = ExecutionMode()
         exec_context = ExecutionContext(exec_mode.single_mode)
-        executor = Executor(exec_context, [live_config])  # Use live_config
+        executor = Executor(exec_context, [config])
 
         print("Executing simulation...")
         raw_result, tensor_field, sessions = executor.execute()
@@ -183,23 +159,3 @@ def run_simulation(initial_state: Dict, num_epochs: int = None) -> List[Dict]:
 
         traceback.print_exc()
         return []  # Return empty list instead of raising to allow partial processing
-
-
-if __name__ == "__main__":
-    # Example usage
-    # results = run_simulation() # Old way
-    print("Running model.py directly with its default initial state:")
-    default_results = run_simulation()  # Test with default
-    print(f"Simulation completed with {len(default_results)} timesteps")
-
-    print("\nRunning model.py with a custom state (example):")
-    custom_initial_state_example = State(
-        current_epoch=10,  # Example of a different start
-        current_time=datetime.now(),
-        initiatives={"init_custom": "custom_data"},
-        total_supply=5000,
-    ).__dict__()
-    custom_initial_state_example["balances"] = {"user_custom": 5000}  # Add balances for consistency
-
-    custom_results = run_simulation(initial_state=custom_initial_state_example)
-    print(f"Simulation with custom state completed with {len(custom_results)} timesteps")

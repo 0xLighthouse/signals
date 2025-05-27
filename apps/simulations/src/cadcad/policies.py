@@ -257,6 +257,7 @@ def p_user_actions(
                         }
                     )
 
+    print(f"User actions generated: {len(actions)}")
     return {"user_actions": actions}
 
 
