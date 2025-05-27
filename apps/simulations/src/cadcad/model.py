@@ -71,6 +71,8 @@ psubs = [
         },
     },
     # PSUB 1b: User actions
+    # This policy is responsible for generating user actions based on the current state and parameters.
+    # It is called every epoch.
     {
         "policies": {
             "user_behavior_policy": p_user_actions,

@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 # System Parameters
 # These are parameters that define the rules of the system.
 # They can be swept in Monte Carlo runs if multiple values are provided in lists.
