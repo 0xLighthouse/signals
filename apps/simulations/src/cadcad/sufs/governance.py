@@ -33,7 +33,7 @@ class CalculateCurrentSupport(StateUpdateFunction):
         )
 
         active_supports_count = 0
-        for support in state.supporters.values():
+        for support in state.locks.values():
             if (
                 state.current_epoch < support.expiry_epoch
             ):  # Only decay active, non-expired supports
@@ -49,8 +49,8 @@ class CalculateCurrentSupport(StateUpdateFunction):
             )
 
         # Convert dataclass objects to dictionaries for cadCAD compatibility
-        supporters_dict = {k: self.to_cadcad_dict(v) for k, v in state.supporters.items()}
-        return ("supporters", supporters_dict)
+        locks_dict = {k: self.to_cadcad_dict(v) for k, v in state.locks.items()}
+        return ("locks", locks_dict)
 
 
 class UpdateInitiativeAggregateWeightsSUF(StateUpdateFunction):
@@ -152,9 +152,7 @@ class ProcessExpiredInitiativesSUF(StateUpdateFunction):
                 and init_id not in state.expired_initiatives
             ):
                 # Check if initiative still has any active support
-                has_active_support = any(
-                    s.initiative_id == init_id for s in state.supporters.values()
-                )
+                has_active_support = any(s.initiative_id == init_id for s in state.locks.values())
                 epochs_since_last_support = state.current_epoch - initiative.last_support_epoch
 
                 log_action(

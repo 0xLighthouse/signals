@@ -198,7 +198,7 @@ class TokenDistributionGenerator:
             "total_supply": total_supply,
             "circulating_supply": circulating_supply,
             "initiatives": {},
-            "supporters": {},
+            "locks": {},
             "accepted_initiatives": set(),
             "expired_initiatives": set(),
             "current_epoch": 0,

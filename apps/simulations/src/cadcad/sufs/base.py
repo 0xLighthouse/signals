@@ -33,8 +33,10 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
             raise TypeError(f"Unexpected type for initiative data: {type(init_data)}")
 
     # Create Support objects from dicts
-    supporters_dict_of_obj = {}
-    for sup_key_tuple, sup_data in previous_state_dict.get("supporters", {}).items():
+    locks_dict_of_obj = {}
+    # Handle both new "locks" key and legacy "supporters" key for backwards compatibility
+    locks_data = previous_state_dict.get("locks", previous_state_dict.get("supporters", {}))
+    for sup_key_tuple, sup_data in locks_data.items():
         key = tuple(sup_key_tuple) if isinstance(sup_key_tuple, list) else sup_key_tuple
         if isinstance(sup_data, dict):
             # Handle field mapping and filtering
@@ -56,16 +58,16 @@ def get_state_obj(previous_state_dict: Dict[str, Any]) -> State:
             if "expiry_epoch" in sup_data:
                 support_obj.expiry_epoch = sup_data["expiry_epoch"]
 
-            supporters_dict_of_obj[key] = support_obj
+            locks_dict_of_obj[key] = support_obj
         elif isinstance(sup_data, Support):
-            supporters_dict_of_obj[key] = sup_data
+            locks_dict_of_obj[key] = sup_data
         else:
             raise TypeError(f"Unexpected type for support data: {type(sup_data)}")
 
     # Create State instance
     current_state_params = previous_state_dict.copy()
     current_state_params["initiatives"] = initiatives_dict_of_obj
-    current_state_params["supporters"] = supporters_dict_of_obj
+    current_state_params["locks"] = locks_dict_of_obj
 
     # Handle datetime parsing
     if isinstance(current_state_params.get("current_time"), str):
@@ -142,7 +144,7 @@ def log_epoch_transition(state: State, message: str = "") -> None:
     print(f"\n🕐 === EPOCH {state.current_epoch} {message} ===")
     print(f"📈 Current state summary:")
     print(f"   - Initiatives: {len(state.initiatives)}")
-    print(f"   - Supporters: {len(state.supporters)}")
+    print(f"   - Locks: {len(state.locks)}")
     print(f"   - Accepted: {len(state.accepted_initiatives)}")
     print(f"   - Expired: {len(state.expired_initiatives)}")
     print(f"   - Circulating supply: {state.circulating_supply}")

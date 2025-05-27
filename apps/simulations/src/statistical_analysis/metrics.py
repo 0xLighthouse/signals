@@ -90,8 +90,8 @@ class GovernanceMetrics:
         lock_durations = []
 
         for state in results:
-            supporters = state.get("supporters", {})
-            for support_key, support_data in supporters.items():
+            locks = state.get("locks", {})
+            for support_key, support_data in locks.items():
                 if isinstance(support_data, dict):
                     amount = support_data.get("amount", 0)
                     duration = support_data.get("lock_duration_epochs", 0)
@@ -182,10 +182,10 @@ class GovernanceMetrics:
 
             # Analyze individual user lock ratios
             balances = state.get("balances", {})
-            supporters = state.get("supporters", {})
+            locks = state.get("locks", {})
 
             user_locked = {}
-            for support_key, support_data in supporters.items():
+            for support_key, support_data in locks.items():
                 if isinstance(support_key, tuple) and isinstance(support_data, dict):
                     user_id = support_key[0]
                     amount = support_data.get("amount", 0)

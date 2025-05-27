@@ -46,12 +46,14 @@ class State:
         self.initiatives: Dict[str, Initiative] = kwargs.get("initiatives", {})
         self.accepted_initiatives: Set[str] = kwargs.get("accepted_initiatives", set())
         self.expired_initiatives: Set[str] = kwargs.get("expired_initiatives", set())
-        self.supporters: Dict[Tuple[str, str], Support] = kwargs.get("supporters", {})
+        self.locks: Dict[Tuple[str, str], Support] = kwargs.get("locks", {})
         self.acceptance_threshold: float = kwargs.get("acceptance_threshold", 1000.0)
         self.inactivity_period: int = kwargs.get("inactivity_period", 10)
         self.decay_multiplier: float = kwargs.get("decay_multiplier", 0.95)
         self.total_supply: int = kwargs.get("total_supply", 0)
         self.circulating_supply: int = kwargs.get("circulating_supply", 0)
+        self.locked_supply: int = kwargs.get("locked_supply", 0)
+        self.rewards_distributed: int = kwargs.get("rewards_distributed", 0)
         self.balances: Dict[str, int] = kwargs.get("balances", {})
 
         # Add reward tracking
@@ -67,9 +69,7 @@ class State:
         initiatives_copy = (
             {k: v.__dict__ for k, v in self.initiatives.items()} if self.initiatives else {}
         )
-        supporters_copy = (
-            {k: v.__dict__ for k, v in self.supporters.items()} if self.supporters else {}
-        )
+        locks_copy = {k: v.__dict__ for k, v in self.locks.items()} if self.locks else {}
         balances_copy = dict(self.balances)
         accepted_copy = set(self.accepted_initiatives)
         expired_copy = set(self.expired_initiatives)
@@ -84,12 +84,14 @@ class State:
             "initiatives": initiatives_copy,
             "accepted_initiatives": accepted_copy,
             "expired_initiatives": expired_copy,
-            "supporters": supporters_copy,
+            "locks": locks_copy,
             "acceptance_threshold": self.acceptance_threshold,
             "inactivity_period": self.inactivity_period,
             "decay_multiplier": self.decay_multiplier,
             "total_supply": self.total_supply,
             "circulating_supply": self.circulating_supply,
+            "locked_supply": self.locked_supply,
+            "rewards_distributed": self.rewards_distributed,
             "balances": balances_copy,
             "reward_earnings": reward_earnings_copy,
             "reward_history": reward_history_copy,
@@ -99,7 +101,7 @@ class State:
         """Calculate total current weight for an initiative from all its supporters."""
         return sum(
             support.current_weight
-            for (uid, init_id), support in self.supporters.items()
+            for (uid, init_id), support in self.locks.items()
             if init_id == initiative_id
         )
 
@@ -112,7 +114,7 @@ class State:
         """Get all support entries for a user."""
         return {
             initiative_id: support
-            for (uid, initiative_id), support in self.supporters.items()
+            for (uid, initiative_id), support in self.locks.items()
             if uid == user_id
         }
 
@@ -148,7 +150,7 @@ class State:
 
 def generate_initial_state(
     num_users=10,
-    total_supply=100_000,
+    total_supply=1_000_000,
     circulating_supply=100_000,
     distribution: Optional[List[int]] = None,
     randomize: bool = True,
@@ -169,10 +171,12 @@ def generate_initial_state(
         initiatives={},
         accepted_initiatives=set(),
         expired_initiatives=set(),
-        supporters={},
+        locks={},
         balances=balance_by_user_id,
         total_supply=total_supply,
         circulating_supply=circulating_supply,
+        locked_supply=0,
+        rewards_distributed=0,
         # These will use defaults from State class __init__ or be overridden by system_params later in SUFs if needed.
         # No need to pass them here from a non-existent kwargs in generate_initial_state
         # acceptance_threshold=3000.0, # Default from State class is 1000.0

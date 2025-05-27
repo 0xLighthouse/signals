@@ -247,7 +247,7 @@ class TestPolicyIntegration:
             "current_epoch": 0,
             "current_time": datetime.now(),
             "initiatives": {},
-            "supporters": {},
+            "locks": {},
             "balances": {},
             "accepted_initiatives": set(),
             "expired_initiatives": set(),

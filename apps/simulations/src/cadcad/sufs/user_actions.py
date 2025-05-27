@@ -93,7 +93,7 @@ class ApplyUserActionsSupportersSUF(StateUpdateFunction):
                         lock_duration_epochs=lock_duration_epochs,
                         start_epoch=state.current_epoch,
                     )
-                    state.supporters[support_key] = support
+                    state.locks[support_key] = support
                     log_action(
                         state.current_epoch,
                         "support",
@@ -106,13 +106,13 @@ class ApplyUserActionsSupportersSUF(StateUpdateFunction):
                         state.initiatives[initiative_id].last_support_epoch = state.current_epoch
 
         # Convert dataclass objects to dictionaries for cadCAD compatibility
-        supporters_dict = {k: self.to_cadcad_dict(v) for k, v in state.supporters.items()}
+        locks_dict = {k: self.to_cadcad_dict(v) for k, v in state.locks.items()}
         log_action(
             state.current_epoch,
             "process",
-            f"Total supporters after actions: {len(supporters_dict)}",
+            f"Total locks after actions: {len(locks_dict)}",
         )
-        return ("supporters", supporters_dict)
+        return ("locks", locks_dict)
 
 
 class ApplyUserActionsBalancesSUF(StateUpdateFunction):
@@ -195,8 +195,40 @@ class ApplyUserActionsCirculatingSupplySUF(StateUpdateFunction):
         return ("circulating_supply", new_circulating_supply)
 
 
+class ApplyUserActionsLockedSupplySUF(StateUpdateFunction):
+    """SUF for applying user actions that affect locked supply."""
+
+    def execute(
+        self,
+        params: Dict[str, Any],
+        substep: int,
+        state_history: List[Dict[str, Any]],
+        previous_state: Dict[str, Any],
+        policy_input: Dict[str, Any],
+    ) -> Tuple[str, Any]:
+        state = self.get_state_obj(previous_state)
+        actions = policy_input.get("user_actions", [])
+
+        total_locked = 0
+        for action in actions:
+            action_type = action.get("type")
+            user_id = action.get("user_id")
+
+            if action_type == "support_initiative":
+                initiative_id = action.get("initiative_id")
+                amount = action.get("amount")
+
+                if initiative_id in state.initiatives and state.balances.get(user_id, 0) >= amount:
+                    total_locked += amount
+
+        new_locked_supply = state.locked_supply + total_locked
+
+        return ("locked_supply", new_locked_supply)
+
+
 # Create function-based SUFs for cadCAD compatibility
 s_apply_user_actions_initiatives = create_suf(ApplyUserActionsInitiativesSUF)
 s_apply_user_actions_supporters = create_suf(ApplyUserActionsSupportersSUF)
 s_apply_user_actions_balances = create_suf(ApplyUserActionsBalancesSUF)
 s_apply_user_actions_circulating_supply = create_suf(ApplyUserActionsCirculatingSupplySUF)
+s_apply_user_actions_locked_supply = create_suf(ApplyUserActionsLockedSupplySUF)

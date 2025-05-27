@@ -24,6 +24,7 @@ from .user_actions import (
     s_apply_user_actions_supporters,
     s_apply_user_actions_balances,
     s_apply_user_actions_circulating_supply,
+    s_apply_user_actions_locked_supply,
 )
 
 from .governance import (
@@ -36,6 +37,7 @@ from .governance import (
 from .lifecycle import (
     s_process_support_lifecycle_balances,
     s_process_support_lifecycle_circulating_supply,
+    s_process_support_lifecycle_locked_supply,
     s_process_support_lifecycle_supporters,
 )
 
@@ -56,6 +58,7 @@ __all__ = [
     "s_apply_user_actions_supporters",
     "s_apply_user_actions_balances",
     "s_apply_user_actions_circulating_supply",
+    "s_apply_user_actions_locked_supply",
     # Governance
     "s_calculate_current_support",
     "s_update_initiative_aggregate_weights",
@@ -64,6 +67,7 @@ __all__ = [
     # Lifecycle
     "s_process_support_lifecycle_balances",
     "s_process_support_lifecycle_circulating_supply",
+    "s_process_support_lifecycle_locked_supply",
     "s_process_support_lifecycle_supporters",
     # Time
     "s_update_current_epoch",

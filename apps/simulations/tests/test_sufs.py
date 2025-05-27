@@ -143,7 +143,7 @@ class TestUserActionSUFs:
             policy_input=policy_input,
         )
 
-        assert result_key == "supporters"
+        assert result_key == "locks"
         assert isinstance(result_value, dict)
         assert len(result_value) == 1
 
@@ -233,7 +233,7 @@ class TestSupportDecayAndWeights:
             }
         }
 
-        self.initial_state["supporters"] = {
+        self.initial_state["locks"] = {
             ("0x01", "init1"): {
                 "user_id": "0x01",
                 "initiative_id": "init1",
@@ -263,7 +263,7 @@ class TestSupportDecayAndWeights:
             policy_input={},
         )
 
-        assert result_key == "supporters"
+        assert result_key == "locks"
         support = result_value[("0x01", "init1")]
 
         # Weight should have decayed
@@ -346,7 +346,7 @@ class TestLifecycleSUFs:
                 "last_support_epoch": 0,  # Very old
             }
         }
-        state["supporters"] = {}  # No active support
+        state["locks"] = {}  # No active support
 
         result_key, result_value = s_process_expired_initiatives(
             params=self.params, substep=1, state_history=[], previous_state=state, policy_input={}

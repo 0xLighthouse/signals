@@ -110,7 +110,7 @@ class TestState:
         assert state.total_supply == 1000000
         assert state.circulating_supply == 100000
         assert len(state.initiatives) == 0
-        assert len(state.supporters) == 0
+        assert len(state.locks) == 0
 
     def test_add_initiative(self):
         """Test adding initiatives to state."""
@@ -146,9 +146,9 @@ class TestState:
             start_epoch=1,
         )
 
-        state.supporters[("user1", "init1")] = support
-        assert len(state.supporters) == 1
-        assert state.supporters[("user1", "init1")].amount == 1000.0
+        state.locks[("user1", "init1")] = support
+        assert len(state.locks) == 1
+        assert state.locks[("user1", "init1")].amount == 1000.0
 
     def test_update_initiative_weights(self):
         """Test initiative weight calculation."""
@@ -173,7 +173,7 @@ class TestState:
             lock_duration_epochs=10,
             start_epoch=1,
         )
-        state.supporters[("user1", "init1")] = support
+        state.locks[("user1", "init1")] = support
 
         # Update weights
         state.update_initiative_weights()
@@ -197,7 +197,7 @@ class TestState:
         assert state_dict["current_epoch"] == 0
         assert state_dict["total_supply"] == 1000000
         assert "initiatives" in state_dict
-        assert "supporters" in state_dict
+        assert "locks" in state_dict
 
 
 class TestGenerateInitialState:
@@ -243,6 +243,6 @@ class TestGenerateInitialState:
 
         # Should have empty collections initially
         assert len(initial_state["initiatives"]) == 0
-        assert len(initial_state["supporters"]) == 0
+        assert len(initial_state["locks"]) == 0
         assert len(initial_state["accepted_initiatives"]) == 0
         assert len(initial_state["expired_initiatives"]) == 0

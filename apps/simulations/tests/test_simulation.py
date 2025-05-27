@@ -115,7 +115,7 @@ class TestDataFrameConversion:
             "initiatives_count",
             "accepted_count",
             "expired_count",
-            "supporters_count",
+            "locks_count",
             "circulating_supply",
         ]
 

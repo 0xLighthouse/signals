@@ -34,7 +34,7 @@ class GovernanceMetricsChart(ChartBase):
         epoch_data = DataProcessor.group_by_epoch(
             df,
             {
-                "num_supporters": "last",
+                "num_locks": "last",
                 "num_initiatives": "last",
                 "num_accepted": "last",
                 "num_expired": "last",
@@ -46,13 +46,13 @@ class GovernanceMetricsChart(ChartBase):
         # Participation over time
         ax1.plot(
             epoch_data["current_epoch"],
-            epoch_data["num_supporters"],
+            epoch_data["num_locks"],
             marker="o",
             linewidth=2,
             color=ColorPalette.PRIMARY_PURPLE,
         )
         ax1.set_xlabel("Epoch")
-        ax1.set_ylabel("Active Supporters")
+        ax1.set_ylabel("Active Locks")
         ax1.set_title("Participation Over Time")
         self.add_grid(ax1)
 
@@ -80,10 +80,10 @@ class GovernanceMetricsChart(ChartBase):
         # Support activity
         ax3.plot(
             epoch_data["current_epoch"],
-            epoch_data["num_supporters"],
+            epoch_data["num_locks"],
             marker="s",
             linewidth=2,
-            label="Active Supports",
+            label="Active Locks",
             color=ColorPalette.PRIMARY_GREEN,
         )
         ax3.plot(

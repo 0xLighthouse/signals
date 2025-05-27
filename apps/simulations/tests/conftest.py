@@ -93,7 +93,7 @@ def state_with_initiative(basic_initial_state):
 def state_with_support(state_with_initiative):
     """Fixture providing a state with initiative and support."""
     state = state_with_initiative.copy()
-    state["supporters"] = {
+    state["locks"] = {
         "0x01_test-init-1": {
             "user_id": "0x01",
             "initiative_id": "test-init-1",

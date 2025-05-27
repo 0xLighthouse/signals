@@ -64,7 +64,7 @@ class SimulationDataLoader:
             df_processed["current_time"] = pd.to_datetime(df_processed["current_time"])
 
         # Parse JSON columns if they exist as strings
-        json_columns = ["initiatives", "supporters", "accepted_initiatives", "expired_initiatives"]
+        json_columns = ["initiatives", "locks", "accepted_initiatives", "expired_initiatives"]
         for col in json_columns:
             if col in df_processed.columns and df_processed[col].dtype == "object":
                 try:
@@ -91,8 +91,8 @@ class SimulationDataLoader:
             )
 
         # Add supporter counts
-        if "supporters" in df_derived.columns:
-            df_derived["num_supporters"] = df_derived["supporters"].apply(
+        if "locks" in df_derived.columns:
+            df_derived["num_locks"] = df_derived["locks"].apply(
                 lambda x: len(x) if isinstance(x, dict) else 0
             )
 
@@ -146,8 +146,8 @@ class SimulationDataLoader:
                 "total_expired": df["num_expired"].max() if "num_expired" in df.columns else 0,
             },
             "support_statistics": {
-                "max_concurrent_supports": df["num_supporters"].max()
-                if "num_supporters" in df.columns
+                "max_concurrent_supports": df["num_locks"].max()
+                if "num_locks" in df.columns
                 else 0,
             },
         }

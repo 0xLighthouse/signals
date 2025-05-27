@@ -65,7 +65,7 @@ def test_metrics_calculator():
             "total_supply": 100000,
             "circulating_supply": 10000,
             "balances": {"user1": 5000, "user2": 3000, "user3": 2000},
-            "supporters": {
+            "locks": {
                 ("user1", "init1"): {
                     "amount": 1000,
                     "lock_duration_epochs": 10,
@@ -86,7 +86,7 @@ def test_metrics_calculator():
             "total_supply": 100000,
             "circulating_supply": 8500,
             "balances": {"user1": 4000, "user2": 2500, "user3": 2000},
-            "supporters": {
+            "locks": {
                 ("user1", "init1"): {
                     "amount": 1000,
                     "lock_duration_epochs": 10,

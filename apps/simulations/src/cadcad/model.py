@@ -17,12 +17,14 @@ from .sufs import (
     s_apply_user_actions_supporters,
     s_apply_user_actions_balances,
     s_apply_user_actions_circulating_supply,
+    s_apply_user_actions_locked_supply,
     s_calculate_current_support,
     s_update_initiative_aggregate_weights,
     s_process_accepted_initiatives,
     s_process_expired_initiatives,
     s_process_support_lifecycle_balances,
     s_process_support_lifecycle_circulating_supply,
+    s_process_support_lifecycle_locked_supply,
     s_process_support_lifecycle_supporters,
 )
 
@@ -99,16 +101,17 @@ psubs = [
         },
         "variables": {
             "initiatives": s_apply_user_actions_initiatives,
-            "supporters": s_apply_user_actions_supporters,
+            "locks": s_apply_user_actions_supporters,
             "balances": s_apply_user_actions_balances,
             "circulating_supply": s_apply_user_actions_circulating_supply,
+            "locked_supply": s_apply_user_actions_locked_supply,
         },
     },
     # PSUB 2: Support decay and weight updates
     {
         "policies": {},  # No policies needed, just state updates
         "variables": {
-            "supporters": s_calculate_current_support,
+            "locks": s_calculate_current_support,
             "initiatives": s_update_initiative_aggregate_weights,
         },
     },
@@ -132,7 +135,8 @@ psubs = [
         "variables": {
             "balances": s_process_support_lifecycle_balances,
             "circulating_supply": s_process_support_lifecycle_circulating_supply,
-            "supporters": s_process_support_lifecycle_supporters,
+            "locked_supply": s_process_support_lifecycle_locked_supply,
+            "locks": s_process_support_lifecycle_supporters,
         },
     },
 ]

@@ -19,9 +19,11 @@ def results_to_dataframe(results: List[Dict]) -> pd.DataFrame:
                 "initiatives_count": len(row.get("initiatives", {})),
                 "accepted_count": len(row.get("accepted_initiatives", set())),
                 "expired_count": len(row.get("expired_initiatives", set())),
-                "supporters_count": len(row.get("supporters", {})),
+                "supporters_count": len(row.get("locks", {})),
                 "acceptance_threshold": row.get("acceptance_threshold", 0),
                 "circulating_supply": row.get("circulating_supply", 0),
+                "locked_supply": row.get("locked_supply", 0),
+                "rewards_distributed": row.get("rewards_distributed", 0),
                 "total_supply": row.get("total_supply", 0),
                 "balances": row.get("balances", {}),  # Keep full object for metrics
                 "initiatives": row.get("initiatives", {}),  # Keep full object for metrics
@@ -31,7 +33,7 @@ def results_to_dataframe(results: List[Dict]) -> pd.DataFrame:
                 "expired_initiatives": row.get(
                     "expired_initiatives", set()
                 ),  # Keep full object for metrics
-                "supporters": row.get("supporters", {}),  # Keep full object for metrics
+                "locks": row.get("locks", {}),  # Keep full object for metrics
             }
             processed_results.append(processed_row)
 
