@@ -18,7 +18,7 @@ def main():
     print(f"Initial state generated with {len(initial_state['balances'])} users.")
 
     # Run the simulation
-    results = run_simulation(initial_state=initial_state, num_epochs=100)
+    results = run_simulation(initial_state=initial_state)
 
     # Save results to files
     if results:

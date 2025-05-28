@@ -662,14 +662,15 @@ def main():
     # Create visualizations
     print("\n📊 Generating visualizations...")
 
-    fig1 = create_initiative_timeline(df, summary)
-    fig2 = create_governance_metrics(summary)
-    fig3 = create_user_behavior_analysis(df)
-    fig4 = create_token_flux_violin(df, summary)
-    fig5 = create_reward_analysis(df, summary)
-    fig6 = create_reward_correlation_analysis(df, summary)
+    # Comment out plots to improve them one by one
+    # fig1 = create_initiative_timeline(df, summary)
+    # fig2 = create_governance_metrics(summary)
+    # fig3 = create_user_behavior_analysis(df)
+    # fig4 = create_token_flux_violin(df, summary)
+    # fig5 = create_reward_analysis(df, summary)
+    # fig6 = create_reward_correlation_analysis(df, summary)
 
-    figures = [fig1, fig2, fig3, fig4, fig5, fig6]
+    figures = []  # Empty for now while we improve plots
 
     # Generate analysis report
     print("📄 Generating analysis report...")
@@ -679,13 +680,16 @@ def main():
     # Save everything
     saved_files = save_visualizations(figures, file_paths, report)
 
-    print(f"\n✅ Visualization complete! Generated {len(saved_files)} files:")
+    print(f"\n✅ Analysis complete! Generated {len(saved_files)} files:")
     for file in saved_files:
         print(f"   📁 {file}")
 
-    # Show plots
-    print("\n🖼️  Displaying charts...")
-    plt.show()
+    # Show plots (if any)
+    if figures:
+        print("\n🖼️  Displaying charts...")
+        plt.show()
+    else:
+        print("\n📊 No plots to display yet - ready to improve visualizations one by one!")
 
 
 if __name__ == "__main__":
