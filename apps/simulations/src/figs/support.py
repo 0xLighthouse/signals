@@ -256,6 +256,82 @@ def plot_scenario(locks, title, filename, highlight_color="#FF5B00"):
     plt.close()
 
 
+def plot_weight_duration_curves():
+    """Plot weight vs duration curves for different exponent values."""
+    # Parameters
+    T = 100  # Fixed token amount
+    durations = np.linspace(1, 100, 500)  # Duration in days
+    k_values = [1.0, 1.1, 1.2, 1.3]  # Exponent values to plot
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Plot each curve
+    for i, k in enumerate(k_values):
+        weight = T * durations**k
+        ax.plot(
+            durations,
+            weight,
+            label=f"k={k}",
+            linewidth=2,
+            solid_capstyle="round",
+        )
+
+    # Minimal axes styling
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color(theme["yaxis.linecolor"])
+    ax.spines["bottom"].set_color(theme["xaxis.linecolor"])
+
+    # Set tick parameters with custom colors
+    ax.tick_params(
+        left=True,
+        bottom=True,
+        labelleft=True,
+        labelbottom=True,
+    )
+
+    # Set tick label colors
+    ax.tick_params(axis="x", labelcolor=theme["xtick.labelcolor"], colors=theme["xtick.labelcolor"])
+    ax.tick_params(axis="y", labelcolor=theme["ytick.labelcolor"], colors=theme["ytick.labelcolor"])
+
+    # Labels with consistent styling
+    ax.set_xlabel(
+        "Lock Duration (Epochs)",
+        fontsize=theme["xaxis.labelsize"],
+        labelpad=10,
+        color=theme["xaxis.labelcolor"],
+    )
+    ax.set_ylabel(
+        "Starting Amount of Support",
+        fontsize=theme["yaxis.labelsize"],
+        labelpad=10,
+        color=theme["yaxis.labelcolor"],
+    )
+
+    # Title
+    ax.set_title(
+        "Example k values",
+        loc="left",
+        fontsize=theme["title.labelsize"],
+        fontweight="bold",
+        color=colors["black"],
+        pad=20,
+    )
+
+    # Grid with subtle styling
+    ax.grid(True, color=colors["light_gray"], alpha=0.5, linewidth=0.8)
+
+    # Legend
+    ax.legend(loc="upper left", fontsize=13, frameon=False)
+
+    # Margins
+    ax.margins(x=0.02, y=0.02)
+
+    plt.tight_layout()
+    plt.savefig("weight_duration_curves.png", dpi=150)
+    plt.close()
+
+
 # Generate all three scenarios with different highlight colors
 plot_scenario(
     scenario_a_locks,
@@ -281,3 +357,6 @@ plot_scenario(
     "scenario_d_micro_coalition.png",
     highlight_color=theme["highlight"],
 )
+
+# Generate the weight vs duration curves plot
+plot_weight_duration_curves()
