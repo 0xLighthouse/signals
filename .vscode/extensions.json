@@ -2,6 +2,7 @@
     "recommendations": [
         "ms-python.vscode-pylance",
         "shd101wyy.markdown-preview-enhanced",
-        "juanblanco.solidity"
+        "juanblanco.solidity",
+        "bradlc.vscode-tailwindcss"
     ]
 }

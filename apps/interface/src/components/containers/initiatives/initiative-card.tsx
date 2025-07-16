@@ -1,4 +1,3 @@
-import { NormalisedInitiative } from '@/app/api/initiatives/route'
 import React from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
@@ -9,8 +8,10 @@ import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
 import { AvatarGroup } from '@/components/ui/avatar-group'
 
+import type { Initiative } from 'indexers/src/api/types'
+
 interface Props {
-  initiative: NormalisedInitiative
+  initiative: Initiative
   index: number
   isFirst: boolean
   isLast: boolean
@@ -44,7 +45,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
             {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
           </CardDescription>
           <div>
-            <p className="line-clamp-4 break-words">{initiative.description}</p>
+            <p className="text-body line-clamp-4 break-words">{initiative.description}</p>
           </div>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
@@ -63,7 +64,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
           }
         />
         <CardDescription className="text-xs">
-          Last active,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
+          Last activity,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
         </CardDescription>
       </div>
     </Card>

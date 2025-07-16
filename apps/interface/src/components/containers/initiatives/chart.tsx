@@ -8,12 +8,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { InitiativeDetails, Lock } from '@/lib/curves'
-import { ChartTick, generateTicks, ChartOptions } from '@/lib/chart'
+import { InitiativeDetails } from '@/lib/curves'
+import { ChartTick, generateTicks, ChartOptions, InitiativeLocksToChartLocks } from '@/lib/chart'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { normaliseNumber } from '@/lib/utils'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+import { InitiativeLock } from '@/indexers/api/types'
 
 export const description = 'A line chart with a custom label'
 
@@ -30,7 +30,8 @@ const chartConfig = {
 
 interface Props {
   initiative?: InitiativeDetails
-  existingLocks: InitiativeSupportedEvent[]
+  existingLocks: InitiativeLock[]
+  decimals: number
   acceptanceThreshold?: number | null
   amountInput?: number | null
   durationInput?: number
@@ -39,12 +40,12 @@ interface Props {
 export const Chart: React.FC<Props> = ({
   initiative,
   existingLocks,
+  decimals,
   acceptanceThreshold,
   amountInput,
   durationInput,
 }) => {
   const [data, setData] = useState<ChartTick[]>([])
-  const [chartZoom, setChartZoom] = useState<[number, number]>([0, 1])
 
   useEffect(() => {
     if (!initiative || !acceptanceThreshold) return
@@ -57,32 +58,21 @@ export const Chart: React.FC<Props> = ({
       minTimeWindow: 60 * 60 * 24 * 7,
     }
 
-    const _locks = existingLocks.map((lock) => ({
-      tokenAmount: lock.tokenAmount,
-      lockDuration: lock.lockDuration,
-      createdAt: lock.timestamp,
-      isWithdrawn: false,
-    }))
-
-    // console.log('options', options)
-    // console.log('locks', _locks)
-    // console.log('newLock', {
-    //   amountInput,
-    //   durationInput,
-    // })
+    const existingChartLocks = InitiativeLocksToChartLocks(existingLocks, decimals)
 
     // Update chart if input data is provided
     const chartData =
       amountInput && durationInput
-        ? generateTicks(_locks, options, [
+        ? generateTicks(existingChartLocks, options, [
             {
-              tokenAmount: amountInput,
-              lockDuration: durationInput,
-              createdAt: DateTime.now().toUnixInteger(),
-              isWithdrawn: false,
+              nominalValue: BigInt(amountInput * 10 ** decimals),
+              nominalValueAsWAD: amountInput,
+              durationAsIntervals: BigInt(durationInput),
+              createdAt: BigInt(DateTime.now().toUnixInteger()),
+              isRedeemed: false,
             },
           ])
-        : generateTicks(_locks, options)
+        : generateTicks(existingChartLocks, options)
     setData(chartData)
   }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold])
 

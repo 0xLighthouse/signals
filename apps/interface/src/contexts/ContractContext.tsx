@@ -1,24 +1,26 @@
 'use client'
 
-import { ABI, ERC20_ADDRESS, readClient } from '@/config/web3'
+import { context, readClient } from '@/config/web3'
 import { useAccount } from '@/hooks/useAccount'
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { getContract } from 'viem'
 
 const token = getContract({
-  address: ERC20_ADDRESS,
-  abi: ABI,
+  address: context.contracts.BoardUnderlyingToken.address,
+  abi: context.contracts.BoardUnderlyingToken.abi,
   client: readClient,
 })
 
 // Types for contract metadata
 interface ContractContextType {
+  address: `0x${string}`
   name: string | null
   symbol: string | null
   decimals: number | null
   totalSupply: number | null
   balance: number | null
   fetchContractMetadata: () => Promise<void>
+  formatter: (value?: number | null | undefined) => number
 }
 
 // Default values for the context
@@ -39,7 +41,6 @@ interface Props {
 
 export const TokenProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
-
   const [name, setContractName] = useState<string | null>(null)
   const [symbol, setSymbol] = useState<string | null>(null)
   const [decimals, setDecimals] = useState<number | null>(null)
@@ -73,10 +74,26 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
     fetchContractMetadata()
   }, [fetchContractMetadata])
 
+  // Expose a formatter for the underlying token
+  const formatter = (value?: number | null | undefined) => {
+    if (!decimals || !value) return value
+    const exp = 10 ** decimals
+    return Math.ceil(value / exp)
+  }
+
   // Provide contract data to children
   return (
     <ContractContext.Provider
-      value={{ name, symbol, decimals, totalSupply, balance, fetchContractMetadata }}
+      value={{
+        address: context.contracts.BoardUnderlyingToken.address.toLowerCase() as `0x${string}`,
+        name,
+        symbol,
+        decimals,
+        totalSupply,
+        balance,
+        formatter: (value) => formatter(value) ?? 0,
+        fetchContractMetadata,
+      }}
     >
       {children}
     </ContractContext.Provider>

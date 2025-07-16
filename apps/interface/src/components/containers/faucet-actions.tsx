@@ -3,34 +3,30 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ERC20_ADDRESS, USDC_ADDRESS, ABI } from '@/config/web3'
-import { createWalletClient, custom } from 'viem'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { readClient, ERC20WithFaucetABI, context } from '@/config/web3'
+import { WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
+import { useWeb3 } from '@/contexts/Web3Provider'
+import { useRewardsStore } from '@/stores/useRewardsStore'
+import { useUnderlying } from '@/contexts/ContractContext'
 
-const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol: string) => {
+const handleFaucetClaim = async (
+  { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
+  signer: WalletClient,
+) => {
   if (!address) throw new Error('Address not available.')
   try {
-    const nonce = await readClient.getTransactionCount({ address })
-    const signer = createWalletClient({
-      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-      transport: custom(window.ethereum),
-    })
-
     const transactionHash = await signer.writeContract({
+      chain: signer.chain,
       account: address,
-      nonce,
       address: token,
-      abi: ABI,
+      abi: ERC20WithFaucetABI,
       functionName: 'faucet',
       args: [address],
       gas: 100_000n,
     })
-
-    console.log('Transaction Hash:', transactionHash)
-    console.log('Waiting for txn to be mined...')
 
     const receipt = await readClient.waitForTransactionReceipt({
       hash: transactionHash,
@@ -39,15 +35,13 @@ const claimTokens = async (token: `0x${string}`, address: `0x${string}`, symbol:
     })
 
     toast(`Claimed ${symbol} tokens`)
-    console.log('Transaction Receipt:', receipt)
-  } catch (error) {
-    // @ts-ignore
-    if (error?.message?.includes('User rejected the request')) {
-      toast('User rejected the request')
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('User rejected the request')) {
+      toast('User cancelled the request')
     } else {
       toast('Error claiming tokens :(')
     }
-    console.error('Error claiming tokens:', error)
+    console.error('Error claiming tokens:', err)
   }
 }
 
@@ -55,22 +49,38 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
+  const { walletClient } = useWeb3()
+  const { fetch: fetchUSDC } = useRewardsStore()
+  const { fetchContractMetadata, symbol: underlyingSymbol } = useUnderlying()
 
-  const handleClaimUSDC = async () => {
-    setIsLoadingUSDC(true)
-    try {
-      await claimTokens(USDC_ADDRESS, address as `0x${string}`, 'mUSDC')
-    } finally {
-      setIsLoadingUSDC(false)
+  const handleClaim = async ({
+    token,
+    address,
+    symbol,
+    isLoadingHandler,
+  }: {
+    token: `0x${string}`
+    address: `0x${string}`
+    symbol: string
+    isLoadingHandler: (isLoading: boolean) => void
+  }) => {
+    isLoadingHandler(true)
+    if (!walletClient) {
+      toast('No wallet client found')
+      isLoadingHandler(false)
+      return
     }
-  }
-
-  const handleClaimTokens = async () => {
-    setIsLoadingTokens(true)
     try {
-      await claimTokens(ERC20_ADDRESS, address as `0x${string}`, 'SGNL')
+      await handleFaucetClaim(
+        {
+          token,
+          address,
+          symbol,
+        },
+        walletClient,
+      )
     } finally {
-      setIsLoadingTokens(false)
+      isLoadingHandler(false)
     }
   }
 
@@ -79,17 +89,41 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   return (
     <div className="mt-10 md:mt-20">
       <div className="space-y-2">
-        <h4 className="text-md font-bold leading-none">Faucet</h4>
-        <p className="text-sm text-muted-foreground">Claim your test tokens</p>
+        <h5 className="text-md font-bold leading-none">Faucet</h5>
+        <p className="text-sm text-muted-foreground">Claim test tokens</p>
       </div>
       <Separator className="my-4" />
       <div className={cn('flex gap-2', vertical && 'flex-col')}>
-        <Button variant="outline" onClick={handleClaimUSDC} isLoading={isLoadingUSDC}>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await handleClaim({
+              token: context.contracts.USDC.address,
+              address: address as `0x${string}`,
+              symbol: context.contracts.USDC.label,
+              isLoadingHandler: setIsLoadingUSDC,
+            })
+            await fetchUSDC(address)
+          }}
+          isLoading={isLoadingUSDC}
+        >
           Get USDC
         </Button>
         {/* <Separator orientation="vertical" /> */}
-        <Button variant="outline" onClick={handleClaimTokens} isLoading={isLoadingTokens}>
-          Get SGNL
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await handleClaim({
+              token: context.contracts.BoardUnderlyingToken.address,
+              address: address as `0x${string}`,
+              symbol: context.contracts.BoardUnderlyingToken.label,
+              isLoadingHandler: setIsLoadingTokens,
+            })
+            await fetchContractMetadata()
+          }}
+          isLoading={isLoadingTokens}
+        >
+          Get {underlyingSymbol}
         </Button>
         <Button
           variant="outline"

@@ -1,9 +1,24 @@
-[submodule "apps/contracts/lib/forge-std"]
-	path = apps/contracts/lib/forge-std
+[submodule "apps/signals/lib/forge-std"]
+	path = apps/signals/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "apps/contracts/lib/openzeppelin-contracts"]
-	path = apps/contracts/lib/openzeppelin-contracts
+[submodule "apps/signals/lib/openzeppelin-contracts"]
+	path = apps/signals/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "apps/contracts/lib/solady"]
-	path = apps/contracts/lib/solady
+[submodule "apps/signals/lib/v4-periphery"]
+	path = apps/signals/lib/v4-periphery
+	url = https://github.com/Uniswap/v4-periphery
+[submodule "apps/signals/lib/solady"]
+	path = apps/signals/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "apps/bond-hook/lib/forge-std"]
+	path = apps/bond-hook/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "apps/bond-hook/lib/v4-core"]
+	path = apps/bond-hook/lib/v4-core
+	url = https://github.com/uniswap/v4-core
+[submodule "apps/bond-hook/lib/v4-periphery"]
+	path = apps/bond-hook/lib/v4-periphery
+	url = https://github.com/Uniswap/v4-periphery
+[submodule "apps/bond-hook/lib/solmate"]
+	path = apps/bond-hook/lib/solmate
+	url = https://github.com/transmissions11/solmate

@@ -1,9 +1,7 @@
-'use client'
-
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ERC20_ADDRESS, SIGNALS_ABI, readClient, SIGNALS_PROTOCOL } from '@/config/web3'
+import { context } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -15,56 +13,76 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { custom, useAccount } from 'wagmi'
+import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { createWalletClient } from 'viem'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
-import { useModal } from 'connectkit'
 
-export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiative }) {
+import { usePrivy } from '@privy-io/react-auth'
+import { useBondsStore } from '@/stores/useBondsStore'
+
+export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { walletClient, publicClient } = useWeb3()
+  const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
-  const { acceptanceThreshold, formatter, lockInterval, decayCurveType, decayCurveParameters } =
-    useSignals()
+  const { formatter, board } = useSignals()
 
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amountValue, setAmount] = useState('0')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [existingLocks, setExistingLocks] = useState<InitiativeSupportedEvent[] | undefined>(
-    undefined,
-  )
 
-  const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
+  const initiativeLocks = useBondsStore((s) => s.initiativeLocks)
+  const fetchInitiativeLocks = useBondsStore((s) => s.fetchInitiativeLocks)
+  const isInitiativeLocksInitialized = useBondsStore((s) => s.isInitiativeLocksInitialized)
+
+  useEffect(() => {
+    if (!isInitiativeLocksInitialized) {
+      console.log(`Fetching locks for [initiativeId:${initiative.initiativeId}]`)
+      fetchInitiativeLocks(initiative.initiativeId.toString())
+    }
+  }, [initiative.initiativeId, isInitiativeLocksInitialized, fetchInitiativeLocks])
+
+  const amount = amountValue ? Number(amountValue) : 0
+
+  const {
+    isApproving,
+    hasAllowance,
+    handleApprove,
+    allowance,
+    formattedAllowance,
+    handleRevokeAllowance,
+  } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: SIGNALS_PROTOCOL,
-    tokenAddress: ERC20_ADDRESS,
+    spender: context.contracts.SignalsProtocol.address,
+    tokenAddress: context.contracts.BoardUnderlyingToken.address,
+    tokenDecimals: 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
-  const weight = amount ? amount * duration : 0
-
   const resetFormState = () => {
-    setAmount(null)
+    setAmount('0')
     setDuration(1)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)
@@ -86,26 +104,27 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
     }
 
     try {
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
+
       setIsSubmitting(true)
-      const nonce = await readClient.getTransactionCount({ address })
+      const nonce = await publicClient.getTransactionCount({ address })
 
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
-
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
-        address: SIGNALS_PROTOCOL,
-        abi: SIGNALS_ABI,
+        address: context.contracts.SignalsProtocol.address,
+        abi: context.contracts.SignalsProtocol.abi,
         functionName: 'supportInitiative',
         nonce,
-        args: [initiative.initiativeId, amount * 1e18, duration],
+        args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
       })
 
-      const hash = await signer.writeContract(request)
+      console.log('Request:', request)
+      const hash = await walletClient.writeContract(request)
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,
@@ -116,9 +135,9 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       toast('Upvote submitted!')
       fetchInitiatives()
       fetchContractMetadata()
-    } catch (error) {
-      console.error(error)
-      toast('Error submitting upvote :(')
+    } catch (err) {
+      console.error(err)
+      toast('Error adding support')
       setIsSubmitting(false)
     }
   }
@@ -137,29 +156,6 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       </Button>
     )
   }
-
-  useEffect(() => {
-    if (existingLocks === undefined) {
-      fetch(`/api/locks?initiativeId=${initiative.initiativeId}`, {
-        next: {
-          revalidate: 60, // 1 min
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setExistingLocks(data)
-        })
-        .catch((error) => console.error('Error fetching locks:', error)) // Handle errors
-    }
-  }, [initiative.initiativeId, existingLocks])
-
-  useEffect(() => {
-    if (existingLocks && existingLocks.length > 0) {
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-      console.log('Has this user supported this initiative before?')
-    }
-  }, [existingLocks])
 
   return (
     <Drawer
@@ -183,7 +179,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
       </DrawerTrigger>
       <DrawerContent>
         <div className="overflow-y-auto flex p-8 space-x-8">
-          <div className="flex flex-col mx-auto lg:w-3/5">
+          <div className="flex flex-col mx-auto lg:w-3/5 lg:pr-8">
             <DrawerHeader>
               <DrawerTitle>Support initiative</DrawerTitle>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
@@ -217,7 +213,7 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                   Description
                 </Label>
                 <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-800 dark:bg-neutral-900 border-none shadow-none">
+                  <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
                     <div className="my-2">
                       <p className="line-clamp break-words">
                         {initiative.description || 'No description provided.'}
@@ -235,14 +231,26 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 <div className="w-4/5 flex flex-col">
                   <Input
                     id="amount"
-                    type="number"
-                    value={amount ?? undefined}
-                    defaultValue={0}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
-                    min="0"
+                    type="text"
+                    value={amountValue ?? undefined}
+                    onFocus={() => !Number(amountValue) && setAmount('')}
+                    onBlur={() => !Number(amountValue) && setAmount('0')}
+                    onChange={(e) => setAmount(e.target.value)}
                   />
                   {!amount && (
                     <Label className="text-red-500 mt-2">Please enter an amount to lock</Label>
+                  )}
+                  {allowance && (
+                    <Label className="text-gray-500 mt-2">
+                      Current allowance is: {formattedAllowance}.{' '}
+                      <Button
+                        variant="link"
+                        className="text-gray-500 underline"
+                        onClick={handleRevokeAllowance}
+                      >
+                        Revoke?
+                      </Button>
+                    </Label>
                   )}
                 </div>
               </div>
@@ -266,16 +274,16 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
                 <SubmissionLockDetails
                   initiative={{
                     createdAt: initiative.createdAtTimestamp,
-                    lockInterval,
-                    decayCurveType,
-                    decayCurveParameters,
+                    lockInterval: board.lockInterval,
+                    decayCurveType: board.decayCurveType,
+                    decayCurveParameters: board.decayCurveParameters,
                   }}
                   supporters={initiative.supporters}
                   amount={amount}
                   duration={duration}
-                  threshold={formatter(acceptanceThreshold)}
+                  threshold={formatter(board.acceptanceThreshold)}
                   supportInitiative={true}
-                  existingLocks={existingLocks || []}
+                  existingLocks={initiativeLocks}
                 />
               </div>
             </div>
@@ -286,16 +294,16 @@ export function AddSupportDrawer({ initiative }: { initiative: NormalisedInitiat
             <SubmissionLockDetails
               initiative={{
                 createdAt: initiative.createdAtTimestamp,
-                lockInterval,
-                decayCurveType,
-                decayCurveParameters,
+                lockInterval: board.lockInterval,
+                decayCurveType: board.decayCurveType,
+                decayCurveParameters: board.decayCurveParameters,
               }}
               supporters={initiative.supporters}
               amount={amount}
               duration={duration}
-              threshold={formatter(acceptanceThreshold)}
+              threshold={formatter(board.acceptanceThreshold)}
               supportInitiative={true}
-              existingLocks={existingLocks || []}
+              existingLocks={initiativeLocks}
             />
           </div>
         </div>

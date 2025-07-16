@@ -1,11 +1,9 @@
 import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { tv, type VariantProps } from 'tailwind-variants'
 
-import { cn } from '@/lib/utils'
-
-const alertVariants = cva(
-  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-1/2 [&>svg]:transform [&>svg]:-translate-y-1/2 [&>svg]:text-neutral-950 dark:border-neutral-800 dark:[&>svg]:text-neutral-50',
+const alertVariants = tv(
   {
+    base: 'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-1/2 [&>svg]:transform [&>svg]:-translate-y-1/2 [&>svg]:text-neutral-950 dark:border-neutral-800 dark:[&>svg]:text-neutral-50',
     variants: {
       variant: {
         default:
@@ -17,14 +15,14 @@ const alertVariants = cva(
     defaultVariants: {
       variant: 'default',
     },
-  },
+  }
 )
 
 const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
 >(({ className, variant, ...props }, ref) => (
-  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
+  <div ref={ref} role="alert" className={alertVariants({ variant, class: className })} {...props} />
 ))
 Alert.displayName = 'Alert'
 
@@ -32,7 +30,7 @@ const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<H
   ({ className, ...props }, ref) => (
     <h5
       ref={ref}
-      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      className={tv({ base: 'mb-1 font-medium leading-none tracking-tight' })({ class: className })}
       {...props}
     />
   ),
@@ -43,7 +41,11 @@ const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  <div
+    ref={ref}
+    className={tv({ base: 'text-sm [&_p]:leading-relaxed' })({ class: className })}
+    {...props}
+  />
 ))
 AlertDescription.displayName = 'AlertDescription'
 

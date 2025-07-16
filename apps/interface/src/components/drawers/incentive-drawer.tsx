@@ -2,7 +2,6 @@
 
 import { ArrowRight, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import { ethers } from 'ethers'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,29 +15,28 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
-import { NormalisedInitiative } from '@/app/api/initiatives/route'
+import type { Initiative } from 'indexers/src/api/types'
 import { TokenSelector } from '../token-selector'
-import { INCENTIVES, INCENTIVES_ABI, readClient, USDC_ADDRESS } from '@/config/web3'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { createWalletClient, custom } from 'viem'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { cn } from '@/lib/utils'
-import { useModal } from 'connectkit'
+import { usePrivy } from '@privy-io/react-auth'
+import { context } from '@/config/web3'
 
 interface Props {
-  initiative: NormalisedInitiative
+  initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
   const { address } = useAccount()
-  const { setOpen } = useModal()
+  const { walletClient, publicClient } = useWeb3()
+  const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const [amount, setAmount] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(0)
   const [shares, setShares] = useState<number[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,19 +44,23 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spenderAddress: INCENTIVES,
-    tokenAddress: USDC_ADDRESS,
-    decimals: 6,
+    spender: context.contracts.Incentives.address,
+    tokenAddress: context.contracts.USDC.address,
+    tokenDecimals: 6,
   })
 
   const resetFormState = () => {
-    setAmount(null)
+    setAmount(0)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
     if (!address) {
-      setOpen(true)
+      toast('Please connect a wallet')
       return
     }
     setIsDrawerOpen(true)
@@ -76,31 +78,37 @@ export function IncentiveDrawer({ initiative }: Props) {
     }
 
     try {
-      setIsSubmitting(true)
-      const nonce = await readClient.getTransactionCount({ address })
+      if (!walletClient) {
+        toast('Wallet not connected')
+        return
+      }
 
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        transport: custom(window.ethereum),
-      })
+      setIsSubmitting(true)
+      const nonce = await publicClient.getTransactionCount({ address })
 
       // Define the token address and other required parameters
-      const tokenAddress = USDC_ADDRESS // Replace with the selected token if dynamic
+      const tokenAddress = context.contracts.USDC.address // Replace with the selected token if dynamic
       const expiresAt = 0
       const terms = 0
 
-      const { request } = await readClient.simulateContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
-        address: INCENTIVES,
-        abi: INCENTIVES_ABI,
+        address: context.contracts.Incentives.address,
+        abi: context.contracts.Incentives.abi,
         functionName: 'addIncentive',
         nonce,
-        args: [initiative.initiativeId, tokenAddress, amount * 1e6, expiresAt, terms],
+        args: [
+          BigInt(initiative.initiativeId),
+          tokenAddress,
+          BigInt(amount * 1e6),
+          BigInt(expiresAt),
+          terms,
+        ],
       })
 
-      const hash = await signer.writeContract(request)
+      const hash = await walletClient.writeContract(request)
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,
@@ -110,13 +118,15 @@ export function IncentiveDrawer({ initiative }: Props) {
       resetFormState()
       toast('Incentive added successfully!')
       fetchUSDC(address)
-    } catch (error) {
-      console.error(error)
-      // @ts-ignore
-      if (error?.message?.includes('User rejected the request')) {
-        toast('User rejected the request')
-      } else {
-        toast('Error submitting incentive :(')
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes('User rejected the request')) {
+          toast('User rejected the request')
+        } else if (err.message.includes('Insufficient balance')) {
+          toast('Insufficient balance')
+        } else {
+          toast('Error submitting incentive :(')
+        }
       }
       setIsSubmitting(false)
     }
@@ -195,7 +205,7 @@ export function IncentiveDrawer({ initiative }: Props) {
                 id="amount"
                 type="number"
                 value={amount ?? ''}
-                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
                 min="0"
               />
               {!amount && (

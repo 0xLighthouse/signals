@@ -1,6 +1,6 @@
 'use client'
 
-import { INCENTIVES, INCENTIVES_ABI, readClient } from '@/config/web3'
+import { context, readClient } from '@/config/web3'
 import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
@@ -8,8 +8,8 @@ import { getContract } from 'viem'
 interface ContextValues {
   address: string
   version: number | null
-  allocations: number[] | null
-  receivers: string[] | null
+  allocations: bigint[] | null
+  receivers: `0x${string}`[] | null
 }
 
 interface Props {
@@ -21,8 +21,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
 
   const [version, setVersion] = useState<number | null>(null)
-  const [allocations, setAllocations] = useState<number[] | null>(null)
-  const [receivers, setReceivers] = useState<string[] | null>(null)
+  const [allocations, setAllocations] = useState<bigint[] | null>(null)
+  const [receivers, setReceivers] = useState<`0x${string}`[] | null>(null)
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -30,8 +30,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
       try {
         const incentives = getContract({
-          address: INCENTIVES,
-          abi: INCENTIVES_ABI,
+          address: context.contracts.Incentives.address,
+          abi: context.contracts.Incentives.abi,
           client: readClient,
         })
 
@@ -40,8 +40,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
         const [_, allocations, receivers] = await incentives.read.config([version])
 
         setVersion(Number(version))
-        setAllocations(allocations)
-        setReceivers(receivers)
+        setAllocations([...allocations])
+        setReceivers([...receivers])
       } catch (error) {
         console.error('Error fetching contract metadata:', error)
       }
@@ -55,7 +55,7 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   return (
     <IncentivesContext.Provider
       value={{
-        address: INCENTIVES,
+        address: context.contracts.Incentives.address,
         version,
         allocations,
         receivers,

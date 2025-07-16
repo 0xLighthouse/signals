@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { ABI, SIGNALS_ABI, SIGNALS_PROTOCOL } from '@/config/web3'
+import { context } from '@/config/web3'
 import { createWalletClient, custom } from 'viem'
 import { readClient } from '@/config/web3'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
@@ -35,8 +35,8 @@ export const Submission = () => {
       const transactionHash = await signer.writeContract({
         account: address,
         nonce,
-        address: SIGNALS_PROTOCOL,
-        abi: SIGNALS_ABI,
+        address: context.contracts.SignalsProtocol.address,
+        abi: context.contracts.SignalsProtocol.abi,
         functionName: 'proposeInitiative',
         args: ['Initiative 1', 'Description 1'],
         gas: 100_000n,

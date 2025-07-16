@@ -6,9 +6,9 @@ export function Footer() {
     <div className="mt-10 md:mt-20">
       <div className="space-y-2">
         <div className="flex items-center">
-          <h4 className="text-xl font-bold leading-none">Signals Protocol</h4>
+          <h4 className="text-xl font-bold leading-none">Signals</h4>
         </div>
-        <p className="text-sm text-muted-foreground">Real time community sentiment</p>
+        <p className="text-sm text-muted-foreground">Reward contributions onchain.</p>
       </div>
       <Separator className="my-4" />
       <div className="flex h-5 items-center space-x-4 text-sm">

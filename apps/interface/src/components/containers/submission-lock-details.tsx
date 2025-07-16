@@ -5,9 +5,10 @@ import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
 import { useUnderlying } from '@/contexts/ContractContext'
-import { InitiativeSupportedEvent } from '@/app/api/locks/route'
+
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
+import { InitiativeLock } from '@/indexers/api/types'
 
 interface Props {
   initiative: InitiativeDetails | undefined
@@ -15,7 +16,7 @@ interface Props {
   amount?: number | null
   duration?: number
   threshold?: number | null
-  existingLocks: InitiativeSupportedEvent[]
+  existingLocks: InitiativeLock[]
   proposeNewInitiative?: boolean
   supportInitiative?: boolean
 }
@@ -30,7 +31,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   proposeNewInitiative = false,
   supportInitiative = false,
 }) => {
-  const { symbol } = useUnderlying()
+  const { symbol, decimals } = useUnderlying()
 
   const weight = amount ? amount * (duration || 1) : 0
 
@@ -87,6 +88,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
             existingLocks={existingLocks}
             amountInput={amount}
             durationInput={duration}
+            decimals={decimals || 1}
           />
         </CardContent>
       )}

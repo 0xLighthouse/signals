@@ -1,15 +1,29 @@
+'use client'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { CreateInitiativeDrawer } from '../drawers/create-initiative-drawer'
+import { ProvideLiquidityDrawer } from '../drawers/provide-liquidity-drawer'
 import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
+import { Lightbulb, Store, Droplets } from 'lucide-react'
+import { NavList } from './nav'
 
 export const TopNav = () => {
   return (
-    <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-500 border-b">
-      <div className="container mx-auto max-w-7xl flex justify-between">
+    <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-700 border-b">
+      <div className="container mx-auto max-w-7xl flex justify-between relative">
         <div className="flex items-center">
           <Breadcrumbs />
+        </div>
+        <div className="flex items-center absolute left-1/2 transform -translate-x-1/2 sm:top-0 top-[60px]">
+          <NavList
+            items={[
+              { href: '/', label: 'Initiatives', icon: Lightbulb },
+              { href: '/marketplace', label: 'Marketplace', icon: Store },
+              { href: '/pools', label: 'Pools', icon: Droplets },
+            ]}
+            className="max-w-md"
+          />
         </div>
         <div className="flex lg:hidden items-center gap-4">
           <CreateInitiativeDrawer />
@@ -17,6 +31,7 @@ export const TopNav = () => {
         </div>
         <div className="hidden lg:flex items-center gap-4">
           <CreateInitiativeDrawer />
+          <ProvideLiquidityDrawer />
           <ConnectButton />
           <ThemeToggle className="" />
         </div>

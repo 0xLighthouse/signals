@@ -1,0 +1,63 @@
+name: Signals
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - 'release/capstone'
+    paths:
+      - 'apps/bond-hook/**'
+      - 'apps/signals/**'
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  bond-hook:
+    name: Bond Marketplace Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: rc
+
+      - name: Show Forge version
+        run: forge --version
+
+      - name: "Build"
+        working-directory: apps/bond-hook
+        run: forge build --sizes
+
+      - name: "Test"
+        working-directory: apps/bond-hook
+        run: forge test -vvv
+
+  signals:
+    name: Protocol Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: rc
+
+      - name: Show Forge version
+        run: forge --version
+
+      - name: "Build"
+        working-directory: apps/signals
+        run: forge build --sizes
+
+      - name: "Test"
+        working-directory: apps/signals
+        run: forge test -vvv
+

@@ -1,0 +1,8 @@
+schema: "http://localhost:42069/graphql"
+documents:
+  - "./src/**/*.ts"
+generates:
+  ./src/types/graphql.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"

@@ -1,5 +1,23 @@
 # 📡 Signals: Discover community sentiment
 
+## Getting started
+
+### Local development
+
+```shell
+# tty0 (root)
+# Produce a block every 5 secs
+anvil --block-time 5
+
+# tty1 (root)
+# Setup development environment (uniswap, signals, txns etc)
+bash scripts/dev.sh
+
+# tty1 (app/indexers)
+# Start indexer
+yarn dev
+```
+
 #### A project for the RnDAO Arbitrum CollabTech Hackathon
 
 ***

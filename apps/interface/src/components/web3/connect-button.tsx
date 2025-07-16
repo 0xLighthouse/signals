@@ -1,13 +1,17 @@
-'use client'
-
-import { ConnectKitButton } from 'connectkit'
+import { usePrivy } from '@privy-io/react-auth'
 import React from 'react'
+import { Button } from '../ui/button'
 
-// Wraps the ConnectKitButton component to apply 'use client' directive
+// Uses Privy's login/logout functionality
 export const ConnectButton: React.FC = () => {
+  const { login, logout, authenticated, ready } = usePrivy()
+  if (!ready) return null
+
   return (
     <div>
-      <ConnectKitButton />
+      <Button onClick={authenticated ? logout : login}>
+        {authenticated ? 'Disconnect' : 'Connect'}
+      </Button>
     </div>
   )
 }
