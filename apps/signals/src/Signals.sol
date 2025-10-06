@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "solmate/src/utils/ReentrancyGuard.sol";
 
-import {IBondIssuer} from "@bondhook/interfaces/IBondIssuer.sol";
+import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IIncentives} from "./interfaces/IIncentives.sol";
 

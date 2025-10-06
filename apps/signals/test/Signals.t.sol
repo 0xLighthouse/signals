@@ -8,7 +8,7 @@ import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "solmate/src/test/utils/mocks/MockERC20.sol";
 
-import {IBondIssuer} from "@bondhook/interfaces/IBondIssuer.sol";
+import {IBondIssuer} from "../src/interfaces/IBondIssuer.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 import {Signals} from "../src/Signals.sol";
 
