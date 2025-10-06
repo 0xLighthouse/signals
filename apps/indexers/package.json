@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@uniswap/v4-sdk": "^1.21.2",
-    "hono": "^4.5.0",
+    "hono": "^4.9.7",
     "lru-cache": "^11.0.2",
     "ponder": "^0.10.4",
     "viem": "^2.21.3"
