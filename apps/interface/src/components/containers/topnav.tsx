@@ -2,10 +2,9 @@
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { CreateInitiativeDrawer } from '../drawers/create-initiative-drawer'
-import { ProvideLiquidityDrawer } from '../drawers/provide-liquidity-drawer'
 import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
-import { Lightbulb, Store, Droplets } from 'lucide-react'
+import { Lightbulb } from 'lucide-react'
 import { NavList } from './nav'
 
 export const TopNav = () => {
@@ -19,8 +18,6 @@ export const TopNav = () => {
           <NavList
             items={[
               { href: '/', label: 'Initiatives', icon: Lightbulb },
-              { href: '/marketplace', label: 'Marketplace', icon: Store },
-              { href: '/pools', label: 'Pools', icon: Droplets },
             ]}
             className="max-w-md"
           />
@@ -31,7 +28,6 @@ export const TopNav = () => {
         </div>
         <div className="hidden lg:flex items-center gap-4">
           <CreateInitiativeDrawer />
-          <ProvideLiquidityDrawer />
           <ConnectButton />
           <ThemeToggle className="" />
         </div>

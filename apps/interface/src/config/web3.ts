@@ -1,7 +1,7 @@
 import { createPublicClient, http, erc20Abi, Abi } from 'viem'
 import { arbitrumSepolia, hardhat } from 'viem/chains'
 
-import { SignalsABI, IncentivesABI, BondHookABI } from '../../../../packages/abis'
+import { SignalsABI, IncentivesABI } from '../../../../packages/abis'
 
 // Default public client for server components or initial loading
 // Components should prefer using the context via useWeb3() whenever possible
@@ -53,10 +53,6 @@ export const context = {
       address: '0x4713635357F9d01cBAF4DAc7E93B66D69544DEa8' as `0x${string}`,
       label: 'Hook',
       decimals: 18, // TODO: Should be dynamic
-    },
-    BondHook: {
-      abi: BondHookABI,
-      address: '0xA429a75F874B899Ee6b0ea080d7281544506b8c0' as `0x${string}`,
     },
     SignalsProtocol: {
       abi: SIGNALS_ABI,

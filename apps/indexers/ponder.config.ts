@@ -5,7 +5,6 @@ import { http, parseAbiItem } from 'viem'
 import signalsTestnet from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
 import { resolveDeployment } from './src/utils/resolve-deployment'
 import {
-  BondHookABI,
   IncentivesABI,
   PoolManagerABI,
   SignalsABI,
@@ -71,17 +70,6 @@ export default createConfig({
           startBlock: latestFactory.startBlock,
         },
       },
-    },
-    BondMarket: {
-      network: 'arbitrumSepolia',
-      abi: BondHookABI,
-      address: factory({
-        address: '0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317',
-        event: poolManagerInitializeEvent,
-        parameter: 'hooks',
-      }),
-      // Start indexing from the last factory deployment
-      startBlock: latestFactory.startBlock,
     },
   },
 })
