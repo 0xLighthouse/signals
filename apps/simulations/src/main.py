@@ -1,124 +1,52 @@
-import random
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+import os
+import sys
 
-from collections import deque
-from cadCAD.configuration import Configuration
-from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
+# Import helpers first
+from helpers import save_simulation_results
 
-# Initialize an empty list for configurations
-configs = []
+from cadcad.helpers import results_to_dataframe
+from cadcad.model import run_simulation
+from cadcad.state import generate_initial_state
 
-# State Variables
-genesis_states = {
-    'initiatives': {},
-    'users': {},
-    'current_time': 0,
-    'total_weight': 0,
-}
 
-# System Parameters
-system_params = {
-    'acceptanceThreshold': [100],
-    'lockDurationCap': [12],
-    'proposalCap': [100],
-    'decayCurveType': [0],
-    'inactivityThreshold': [60],
-    'simulation_days': 180,
-    'num_users': 100000,
-}
+def main():
+    """Main entry point for running the simulation."""
+    print("Starting Signals simulation...")
 
-def propose_initiative_policy(params, step, sL, s):
-    num_users = params['num_users']
-    proposal_chance = 0.01  # 1% chance
-    proposed_initiatives = {}
-    for user_id in range(num_users):
-        if random.random() < proposal_chance:
-            # Create a new initiative
-            initiative_id = f"initiative_{step}_{user_id}"
-            proposed_initiatives[initiative_id] = {
-                'proposer': user_id,
-                'time': step,
-            }
-    return {'new_initiatives': proposed_initiatives}
+    # Generate initial state
+    initial_state = generate_initial_state(num_users=1000, total_supply=1_000_000, randomize=True)
+    print(f"Initial state generated with {len(initial_state['balances'])} users.")
 
-def update_initiatives(params, step, sL, s, inputs):
-    initiatives = s['initiatives'].copy()
-    # Update initiatives based on inputs from policies
-    new_initiatives = inputs.get('new_initiatives', {})
-    initiatives.update(new_initiatives)
-    return ('initiatives', initiatives)
+    # Run the simulation
+    results = run_simulation(initial_state=initial_state)
 
-# Define partial state update blocks
-partial_state_update_blocks = [
-    {
-        'policies': {
-            'propose_initiative': propose_initiative_policy,
-        },
-        'variables': {
-            'initiatives': update_initiatives,
-        }
-    },
-]
+    # Save results to files
+    if results:
+        file_paths = save_simulation_results(results, initial_state)
 
-# Create configuration
-sim_config = {
-    'N': 1,
-    'T': range(system_params['simulation_days']),
-    'M': system_params,
-}
+        # Display summary
+        df = results_to_dataframe(results)
+        print(f"\n📊 Simulation completed with {len(results)} timesteps")
+        print(df.head())
 
-# Assign values for the required arguments
-user_id = 'user_1'
-model_id = 'model_1'
-subset_id = 'subset_1'
-subset_window = deque()
+        # Print the final state summary
+        final_state = results[-1]
+        print(f"\n🏁 Final state summary:")
+        print(f"   - Total initiatives: {len(final_state.get('initiatives', {}))}")
+        print(f"   - Accepted initiatives: {len(final_state.get('accepted_initiatives', set()))}")
+        print(f"   - Expired initiatives: {len(final_state.get('expired_initiatives', set()))}")
+        print(f"   - Circulating supply: {final_state.get('circulating_supply', 0):,.0f}")
+        print(f"   - Locked supply: {final_state.get('locked_supply', 0):,.0f}")
+        print(f"   - Rewards distributed: {final_state.get('rewards_distributed', 0):,.0f}")
+        print(f"   - Final epoch: {final_state.get('current_epoch', 0)}")
 
-config = Configuration(
-    user_id=user_id,
-    model_id=model_id,
-    subset_id=subset_id,
-    subset_window=subset_window,
-    initial_state=genesis_states,
-    partial_state_update_blocks=partial_state_update_blocks,
-    sim_config=sim_config
-)
+        print(f"\n✅ All results saved with timestamp: {file_paths['timestamp']}")
+        print("📈 Run 'python src/visualize.py' to generate charts and analysis!")
+    else:
+        print("❌ No results to save - simulation may have failed")
 
-configs.append(config)
+    print("\n🎉 Summary: Successfully simulated initiative dynamics over 10 epochs.")
 
-# Execute
-exec_mode = ExecutionMode()
-exec_context = ExecutionContext(context=exec_mode.local_mode)
-simulation = Executor(exec_context=exec_context, configs=configs)
 
-# Unpack the results
-raw_result, tensor_field, sessions = simulation.execute()
-
-# Convert results to DataFrame
-df = pd.DataFrame(raw_result)
-
-print(df.head())
-
-# Calculate number of initiatives
-df['num_initiatives'] = df['initiatives'].apply(lambda x: len(x))
-
-# # Calculate cumulative initiatives
-df['cumulative_initiatives'] = df['num_initiatives'].cumsum()
-
-# Plot number of initiatives over time
-sns.set_style('whitegrid')
-# plt.figure(figsize=(12, 6))
-# sns.lineplot(data=df, x='timestep', y='num_initiatives', marker='o')
-# plt.title('Number of Initiatives Over Time')
-# plt.xlabel('Timestep')
-# plt.ylabel('Number of Initiatives')
-# plt.show()
-
-# Plot cumulative initiatives over time
-plt.figure(figsize=(12, 6))
-sns.lineplot(data=df, x='timestep', y='cumulative_initiatives', marker='o', color='green')
-plt.title('Cumulative Number of Initiatives Over Time')
-plt.xlabel('Timestep')
-plt.ylabel('Cumulative Number of Initiatives')
-plt.show()
+if __name__ == "__main__":
+    main()

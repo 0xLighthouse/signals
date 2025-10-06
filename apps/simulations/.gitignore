@@ -1,1 +1,5 @@
+.coverage/
 __pycache__
+
+# Simulation results and generated data
+results/
