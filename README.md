@@ -86,7 +86,7 @@ bash scripts/dev.sh
 
 # tty2 – Start indexer
 cd apps/indexers
-yarn dev
+pnpm dev
 ```
 
 ---

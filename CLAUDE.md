@@ -2,16 +2,16 @@
 
 ## Build & Development Commands
 
-- Root: `yarn build` - Build all packages
-- Root: `yarn dev` - Run all dev servers
-- Root: `yarn lint` - Lint all packages
-- Interface: `yarn interface` - Run just the interface dev server
+- Root: `pnpm build` - Build all packages
+- Root: `pnpm dev` - Run all dev servers
+- Root: `pnpm lint` - Lint all packages
+- Interface: `pnpm interface` - Run just the interface dev server
 
 ## Testing
 
 - Contracts: `forge test` - Run all tests
 - Contracts: `forge test src/__tests__/TestFilename.t.sol -vvvv` - Run specific test with verbose output
-- Interface: `cd apps/interface && yarn jest TestName` - Run specific jest test
+- Interface: `cd apps/interface && pnpm jest TestName` - Run specific jest test
 
 ## Code Style
 

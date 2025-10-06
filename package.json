@@ -7,7 +7,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "abis": "wagmi generate"
+    "abis": "wagmi generate",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.3",
@@ -19,9 +20,5 @@
     "turbo": "^2.4.4"
   },
   "name": "signals",
-  "packageManager": "yarn@1.22.19",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "packageManager": "pnpm@9.0.0"
 }
