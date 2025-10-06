@@ -121,7 +121,7 @@ contract TestnetDataScript is Script {
                 // Top up balance from deployer
                 vm.startBroadcast(deployerKey);
                 console.log("topping up address:", proposers[i], "with", balanceNeeded);
-                token.transfer(proposers[i], balanceNeeded);
+                require(token.transfer(proposers[i], balanceNeeded), "Transfer failed");
                 vm.stopBroadcast();
             }
 

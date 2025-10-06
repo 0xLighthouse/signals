@@ -7,21 +7,10 @@ import "forge-std/console.sol";
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {MockStable} from "../../test/mocks/MockStable.m.sol";
-import {TokenRegistry} from "../../src/TokenRegistry.sol";
-import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
-import {Hooks} from "v4-core/libraries/Hooks.sol";
+import {Currency} from "v4-core/types/Currency.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {SortTokens} from "@uniswap/v4-core/test/utils/SortTokens.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
-
-import {ExampleLinearPricing} from "../../src/pricing/ExampleLinearPricing.sol";
-import {IBondPricing} from "../../src/interfaces/IBondPricing.sol";
-import {PipsLib} from "../../src/PipsLib.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
 

@@ -12,7 +12,6 @@ import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
 
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
 
 contract SignalsFactoryTest is Test, SignalsHarness {

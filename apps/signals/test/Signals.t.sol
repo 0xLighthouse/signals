@@ -10,7 +10,6 @@ import "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {IBondIssuer} from "../src/interfaces/IBondIssuer.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
-import {Signals} from "../src/Signals.sol";
 
 contract SignalsTest is Test, SignalsHarness {
     ISignals signals;
