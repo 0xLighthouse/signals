@@ -2,12 +2,20 @@
 
 A protocol for surfacing and prioritizing community objectives
 
+> We will be at the `d/acc` [residency](https://x.com/LighthouseGov/status/1973754291744886846) in Patagonia! 🏔️hosted by [Protocol Labs](https://github.com/protocol) and running some field tests. Please reach out if you will be there!
+
 ## Intoduction
 
-Signals is a new coordination primitive for decentralized communities.
+Signals is a new coordination protocol for decentralized communities.
 It enables participants to lock governance tokens behind initiatives they believe in, surfacing real-time sentiment and collective intent before formal governance or funding decisions take place.
 
-Unlike rigid proposal-vote systems, Signals lets communities explore ideas fluidly, observe where alignment emerges, and experiment with incentive-aligned decision discovery.
+Signals lets communities explore ideas fluidly, observe where alignment emerges, and experiment with incentive-aligned decision discovery.
+
+You can learn more about the mechanics here:
+
+- Initial Idea, <https://mirror.xyz/lighthousegov.eth/M2MQV8O-AOoLW9RAK3zpsRSHZ2vsp9CRlaOPgUbpyHQ>
+- Primer, <https://mirror.xyz/lighthousegov.eth/yOY3vgiiE5HfPbUNLSbYUpjICDA3SrcJkQVEjTPiQR4>
+- Incentive Design, <https://mirror.xyz/lighthousegov.eth/mEZhb9Nwav_ZpwrvOAKCxzmJFbsez-jow9t2b4mjc2k>
 
 **Original demo** → <https://www.youtube.com/watch?v=JKchm2MFXWA>
 
@@ -88,19 +96,3 @@ bash scripts/dev.sh
 cd apps/indexers
 pnpm dev
 ```
-
----
-
-## 🌐 Deployments
-
-- **Testnet**: <https://signals.testnet.lighthouse.cx>
-- **Network**: Arbitrum Sepolia (default)
-- **Contracts**: See `/apps/signals/deployments` for addresses
-
----
-
-## 🪞 Learn More
-
-- [Whitepaper (draft)](WHITEPAPER.md)
-- [Signals Documentation](apps/signals/README.md)
-- [Interface Documentation](apps/interface/README.md)
