@@ -1,24 +1,31 @@
-# Harbor Protocol
+# Signals Protocol
 
-Open liquidity for bonds, built on Uniswap v4.
+Community-driven initiative governance with token-weighted voting.
 
 ::::steps
 
-### Bond holders
+### Initiative Proposers
 
-Sell locked-token bonds instantly — no need to wait until the unlock date or navigate complex OTC deals. Lighthouse's Harbor AMM offers on-demand, transparent pricing powered by algorithmic market making.
+Create and propose initiatives to your community. Lock tokens to demonstrate commitment and gather support from other token holders.
 
-### Capital Providers
+### Token Holders
 
-Supply liquidity to earn native yield and trading fees. Deepen your exposure to assets you’re already holding for the long term, while contributing to ecosystem growth.
+Support initiatives by locking your tokens for a specified duration. Your locked tokens generate voting weight that decays over time, creating dynamic, time-weighted governance.
 
-### Bond Issuers
+### Board Administrators
 
-Give recipients the flexibility to sell their bonds without negating the impact of keeping tokens locked until a future date.
+Configure proposal requirements, acceptance thresholds, and decay curves to match your community's governance needs. Set parameters at initialization for immutable, transparent rules.
 
 ::::
 
+## Core Features
+
+- **Token-Weighted Voting**: Support initiatives by locking tokens for custom durations
+- **Decay Curves**: Vote weight decays over time (linear or exponential)
+- **Transferable Positions**: Lock positions are represented as ERC721 NFTs
+- **Configurable Requirements**: Set minimum balances and holding durations for proposers
+- **Initiative Lifecycle**: Proposed → Accepted/Expired → Redeemable
+
 ## Next Steps
 
-- [Components](/components/bonds) - Important components that comprise the overall system
-- [Architecture](/architecture/overview) - More technical architecture details
+- [Configuration](/configuration/proposal-requirements) - Configure proposal requirements and board parameters

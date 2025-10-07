@@ -8,8 +8,8 @@ const nav = new navGenerator(__dirname)
 
 export default defineConfig({
   aiCta: false,
-  title: 'Harbor Docs',
-  description: 'Harbor - A Uniswap V4 bond trading protocol',
+  title: 'Signals Docs',
+  description: 'Signals - Community-driven initiative governance with token-weighted voting',
   logoUrl: '/logo.png',
   iconUrl: '/favicon.ico',
   rootDir: '.',
@@ -22,19 +22,15 @@ export default defineConfig({
       text: 'Introduction',
       link: '/',
     },
-    // {
-    //   text: 'Quickstart',
-    //   link: '/quick-start',
-    // },
+    {
+      text: 'Configuration',
+      collapsed: false,
+      items: nav.navItems('/configuration'),
+    },
     {
       text: 'Components',
       collapsed: false,
       items: nav.navItems('/components'),
-    },
-    {
-      text: 'Architecture',
-      collapsed: false,
-      items: nav.navItems('/architecture'),
     },
   ],
 })
