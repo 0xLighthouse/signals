@@ -244,4 +244,57 @@ contract SignalsHarness is Test, Deployers {
             releaseLockDuration: config.releaseLockDuration
         });
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    TEST HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Helper to propose initiative with lock and accept it
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAndAccept(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
+        internal
+        returns (uint256 initiativeId, uint256 tokenId)
+    {
+        vm.startPrank(proposer);
+        _tokenERC20.approve(address(signals), amount);
+        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        vm.stopPrank();
+
+        initiativeId = 1; // First initiative
+        vm.prank(_deployer);
+        signals.acceptInitiative(initiativeId);
+    }
+
+    /// @notice Helper to propose, accept, and time travel
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAcceptAndWarp(
+        ISignals signals,
+        address proposer,
+        uint256 amount,
+        uint256 lockDuration,
+        uint256 warpTime
+    ) internal returns (uint256 initiativeId, uint256 tokenId) {
+        (initiativeId, tokenId) = proposeAndAccept(signals, proposer, amount, lockDuration);
+        vm.warp(block.timestamp + warpTime);
+    }
+
+    /// @notice Helper to propose initiative and expire it
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAndExpire(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
+        internal
+        returns (uint256 initiativeId, uint256 tokenId)
+    {
+        vm.startPrank(proposer);
+        _tokenERC20.approve(address(signals), amount);
+        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        vm.stopPrank();
+
+        initiativeId = 1;
+        vm.warp(block.timestamp + 61 days); // Past activity timeout
+        vm.prank(_deployer);
+        signals.expireInitiative(initiativeId);
+    }
 }

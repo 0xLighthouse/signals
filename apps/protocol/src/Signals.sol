@@ -318,6 +318,15 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @notice Permit initializing the contract exactly once
      */
     function initialize(ISignals.SignalsConfig calldata config) external isNotInitialized {
+        // Validate configuration parameters
+        if (config.underlyingToken == address(0)) revert ISignals.InvalidInput("underlyingToken cannot be zero address");
+        if (config.owner == address(0)) revert ISignals.InvalidInput("owner cannot be zero address");
+        if (config.acceptanceThreshold == 0) revert ISignals.InvalidInput("acceptanceThreshold must be greater than 0");
+        if (config.maxLockIntervals == 0) revert ISignals.InvalidInput("maxLockIntervals must be greater than 0");
+        if (config.lockInterval == 0) revert ISignals.InvalidInput("lockInterval must be greater than 0");
+        if (config.proposalCap == 0) revert ISignals.InvalidInput("proposalCap must be greater than 0");
+        if (config.decayCurveType >= 2) revert ISignals.InvalidInput("decayCurveType must be 0 (linear) or 1 (exponential)");
+
         version = config.version;
         underlyingToken = config.underlyingToken;
         proposalThreshold = config.proposalThreshold;
