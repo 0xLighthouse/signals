@@ -9,7 +9,7 @@ export default defineConfig([
     out: 'packages/abis/signals.ts',
     plugins: [
       foundry({
-        project: 'apps/signals',
+        project: 'apps/protocol',
         include: ['Signals.sol/**', 'SignalsFactory.sol/**', 'Incentives.sol/**'],
       }),
     ],

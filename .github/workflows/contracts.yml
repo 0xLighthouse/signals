@@ -6,7 +6,7 @@ on:
     branches:
       - 'release/capstone'
     paths:
-      - 'apps/signals/**'
+      - 'apps/protocol/**'
 
 env:
   FOUNDRY_PROFILE: ci
@@ -29,10 +29,10 @@ jobs:
         run: forge --version
 
       - name: "Build"
-        working-directory: apps/signals
+        working-directory: apps/protocol
         run: forge build --sizes
 
       - name: "Test"
-        working-directory: apps/signals
+        working-directory: apps/protocol
         run: forge test -vvv
 

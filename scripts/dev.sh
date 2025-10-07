@@ -13,7 +13,7 @@ fi
 #   Requires:
 #     - a local anvil instance running on port 8545
 #     - the LOCAL_RPC environment variable set
-cd apps/signals
+cd apps/protocol
 forge clean && forge install
 forge script script/Development.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
 cd ../..
@@ -27,6 +27,6 @@ fi
 # Create Signals test data
 #
 #  - This script creates three initiatives, with minimum support amounts and a 12 month lock duration
-cd apps/signals
+cd apps/protocol
 forge script script/TestData.s.sol --fork-url $LOCAL_RPC --broadcast --private-key $LOCAL_DEPLOYER_PRIVATE_KEY
 cd ../..
