@@ -16,7 +16,7 @@ import "./DecayCurves.sol";
 import "./Incentives.sol";
 
 /**
- * @title Signals by Lighthouse <https://lighthouse.cx>
+ * @title Signals by Lighthouse Labs <https://lighthouse.cx>
  *
  * @notice Manage community initiatives with governance tokens
  * @notice Locked positions are represented by transferrable ERC721 tokens
