@@ -16,16 +16,21 @@ BoardConfig memory config = BoardConfig({
     version: "1.0",
     owner: msg.sender,
     underlyingToken: address(token),
-    proposalThreshold: 50_000 * 1e18,
     acceptanceThreshold: 100_000 * 1e18,
     maxLockIntervals: 365,
     proposalCap: 100,
     lockInterval: 1 days,
     decayCurveType: 0,
     decayCurveParameters: new uint256[](1),
-    proposalRequirements: ProposalRequirements({
-        requirementType: ProposalRequirementType.MinBalance,
+    proposerRequirements: ProposerRequirements({
+        eligibilityType: EligibilityType.MinBalance,
         minBalance: 10_000 * 1e18,
+        minHoldingDuration: 0,
+        threshold: 50_000 * 1e18
+    }),
+    participantRequirements: ParticipantRequirements({
+        eligibilityType: EligibilityType.None,
+        minBalance: 0,
         minHoldingDuration: 0
     }),
     releaseLockDuration: 7 days
@@ -38,19 +43,20 @@ signals.initialize(config);
 
 Control who can create new initiatives based on token holdings.
 
-### Requirement Types
+### Eligibility Types
 
 #### None
 
-No restrictions - anyone with sufficient tokens to meet the `proposalThreshold` can propose initiatives.
+No restrictions - anyone with sufficient tokens to meet the `threshold` can propose initiatives.
 
 **Use case:** Open, permissionless boards where you want maximum participation.
 
 ```solidity
-ProposalRequirements({
-    requirementType: ProposalRequirementType.None,
+ProposerRequirements({
+    eligibilityType: EligibilityType.None,
     minBalance: 0,
-    minHoldingDuration: 0
+    minHoldingDuration: 0,
+    threshold: 1_000 * 1e18  // Amount locked when proposing
 })
 ```
 
@@ -61,16 +67,17 @@ Users must hold a minimum token balance to propose initiatives. The balance chec
 **Use case:** Boards that want to ensure proposers have skin in the game.
 
 ```solidity
-ProposalRequirements({
-    requirementType: ProposalRequirementType.MinBalance,
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalance,
     minBalance: 10_000 * 1e18,  // 10,000 tokens
-    minHoldingDuration: 0
+    minHoldingDuration: 0,
+    threshold: 1_000 * 1e18
 })
 ```
 
 **Notes:**
 - Works with any ERC20 token
-- Balance check is separate from `proposalThreshold`
+- Balance check is separate from `threshold` (the amount locked)
 
 #### MinBalanceAndDuration
 
@@ -79,10 +86,11 @@ Users must hold a minimum token balance for a minimum duration (measured in bloc
 **Use case:** Prevent flash-loan attacks or ensure proposers are long-term community members.
 
 ```solidity
-ProposalRequirements({
-    requirementType: ProposalRequirementType.MinBalanceAndDuration,
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalanceAndDuration,
     minBalance: 10_000 * 1e18,  // 10,000 tokens
-    minHoldingDuration: 50400   // ~7 days at 12s blocks
+    minHoldingDuration: 50400,  // ~7 days at 12s blocks
+    threshold: 1_000 * 1e18
 })
 ```
 
@@ -90,14 +98,14 @@ ProposalRequirements({
 - **Requires ERC20Votes tokens** - Must implement the `IVotes` interface with checkpoint functionality
 - Standard ERC20 tokens will revert
 
-### Relationship to Proposal Threshold
+### Relationship to Threshold
 
-Proposal requirements and proposal threshold serve different purposes:
+Proposer requirements serve two purposes:
 
-- **Proposal Requirements** (`proposalRequirements`): Determines *who* can propose based on token holdings
-- **Proposal Threshold** (`proposalThreshold`): Determines *how much* must be paid to create a proposal
+- **Eligibility** (`eligibilityType`, `minBalance`, `minHoldingDuration`): Determines *who* can propose based on token holdings
+- **Threshold** (`threshold`): Determines *how much* must be locked when creating a proposal
 
-Both checks are enforced independently.
+Both checks are enforced independently. The `threshold` amount is locked and contributes to the initiative's weight.
 
 ## Release Timelock
 
@@ -191,7 +199,6 @@ When a board is closed:
 | `version` | `string` | Contract version identifier |
 | `owner` | `address` | Board owner address (can accept/expire initiatives and close board) |
 | `underlyingToken` | `address` | ERC20 token used for locking and voting |
-| `proposalThreshold` | `uint256` | Tokens required to propose an initiative |
 | `acceptanceThreshold` | `uint256` | Weight required for initiative acceptance |
 
 ### Lock Parameters
@@ -213,7 +220,8 @@ When a board is closed:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `proposalRequirements` | `ProposalRequirements` | Who can propose initiatives |
+| `proposerRequirements` | `ProposerRequirements` | Who can propose initiatives and how much they must lock |
+| `participantRequirements` | `ParticipantRequirements` | Who can support initiatives |
 | `releaseLockDuration` | `uint256` | Token lock duration after acceptance (0 = immediate) |
 
 ## Interface
@@ -221,15 +229,22 @@ When a board is closed:
 ### Data Structures
 
 ```solidity
-enum ProposalRequirementType {
+enum EligibilityType {
     None,                    // No requirements
     MinBalance,              // Requires minimum token balance
     MinBalanceAndDuration    // Requires min balance held for min duration
 }
 
-struct ProposalRequirements {
-    ProposalRequirementType requirementType;
-    uint256 minBalance;           // Minimum tokens required
+struct ProposerRequirements {
+    EligibilityType eligibilityType;
+    uint256 minBalance;           // Minimum tokens required to be eligible
+    uint256 minHoldingDuration;   // Minimum blocks to hold tokens
+    uint256 threshold;            // Tokens locked when proposing
+}
+
+struct ParticipantRequirements {
+    EligibilityType eligibilityType;
+    uint256 minBalance;           // Minimum tokens required to be eligible
     uint256 minHoldingDuration;   // Minimum blocks to hold tokens
 }
 
@@ -241,15 +256,26 @@ enum BoardState {
 
 ### Functions
 
-#### getProposalRequirements()
+#### getProposerRequirements()
 
-Returns the current proposal requirements configuration.
+Returns the current proposer requirements configuration.
 
 ```solidity
-function getProposalRequirements()
+function getProposerRequirements()
     external
     view
-    returns (ProposalRequirements memory);
+    returns (ProposerRequirements memory);
+```
+
+#### getParticipantRequirements()
+
+Returns the current participant requirements configuration.
+
+```solidity
+function getParticipantRequirements()
+    external
+    view
+    returns (ParticipantRequirements memory);
 ```
 
 #### canPropose(address)
@@ -277,17 +303,23 @@ function closeBoard() external onlyOwner;
 
 ```solidity
 BoardConfig({
+    version: "1.0",
     owner: msg.sender,
     underlyingToken: address(token),
-    proposalThreshold: 1000 * 1e18,
     acceptanceThreshold: 100_000 * 1e18,
     maxLockIntervals: 365,
     proposalCap: 10,
     lockInterval: 1 days,
     decayCurveType: 0,
     decayCurveParameters: [9e17], // 0.9 linear decay
-    proposalRequirements: ProposalRequirements({
-        requirementType: ProposalRequirementType.None,
+    proposerRequirements: ProposerRequirements({
+        eligibilityType: EligibilityType.None,
+        minBalance: 0,
+        minHoldingDuration: 0,
+        threshold: 1000 * 1e18
+    }),
+    participantRequirements: ParticipantRequirements({
+        eligibilityType: EligibilityType.None,
         minBalance: 0,
         minHoldingDuration: 0
     }),
@@ -299,19 +331,25 @@ BoardConfig({
 
 ```solidity
 BoardConfig({
+    version: "1.0",
     owner: msg.sender,
     underlyingToken: address(governanceToken),
-    proposalThreshold: 50_000 * 1e18,
     acceptanceThreshold: 500_000 * 1e18,
     maxLockIntervals: 365,
     proposalCap: 5,
     lockInterval: 1 days,
     decayCurveType: 0,
     decayCurveParameters: [11e17], // 1.1 linear decay
-    proposalRequirements: ProposalRequirements({
-        requirementType: ProposalRequirementType.MinBalanceAndDuration,
+    proposerRequirements: ProposerRequirements({
+        eligibilityType: EligibilityType.MinBalanceAndDuration,
         minBalance: 100_000 * 1e18,
-        minHoldingDuration: 50400  // ~7 days
+        minHoldingDuration: 50400,  // ~7 days
+        threshold: 50_000 * 1e18
+    }),
+    participantRequirements: ParticipantRequirements({
+        eligibilityType: EligibilityType.MinBalance,
+        minBalance: 10_000 * 1e18,
+        minHoldingDuration: 0
     }),
     releaseLockDuration: 7 days  // 7-day cooling-off period
 })
@@ -322,11 +360,22 @@ BoardConfig({
 ### Proposal Requirements Not Met
 
 ```solidity
-error ProposalRequirementsNotMet(string reason);
+error ProposerRequirementsNotMet(string reason);
 ```
 
 **Possible reasons:**
 - `"Insufficient token balance for proposal"`
+- `"Tokens not held long enough"`
+- `"Token does not support holding duration checks"`
+
+### Participant Requirements Not Met
+
+```solidity
+error ParticipantRequirementsNotMet(string reason);
+```
+
+**Possible reasons:**
+- `"Insufficient token balance to participate"`
 - `"Tokens not held long enough"`
 - `"Token does not support holding duration checks"`
 
