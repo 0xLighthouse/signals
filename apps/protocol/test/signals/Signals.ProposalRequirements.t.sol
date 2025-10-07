@@ -8,10 +8,10 @@ import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {Signals} from "../../src/Signals.sol";
 
 /**
- * @title SignalsProposalRequirementsTest
+ * @title SignalsProposerRequirementsTest
  * @notice Tests for proposal requirements configuration
  */
-contract SignalsProposalRequirementsTest is Test, SignalsHarness {
+contract SignalsProposerRequirementsTest is Test, SignalsHarness {
     /*//////////////////////////////////////////////////////////////
                         INITIALIZATION TESTS
     //////////////////////////////////////////////////////////////*/
@@ -19,33 +19,35 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     function test_Initialize_AllRequirementModes() public {
         // None mode (default)
         (, Signals signals1) = deploySignalsWithFactory(false);
-        ISignals.ProposalRequirements memory reqs1 = signals1.getProposalRequirements();
-        assertEq(uint256(reqs1.requirementType), uint256(ISignals.ProposalRequirementType.None));
+        ISignals.ProposerRequirements memory reqs1 = signals1.getProposerRequirements();
+        assertEq(uint256(reqs1.eligibilityType), uint256(ISignals.EligibilityType.None));
 
         // MinBalance mode
-        ISignals.SignalsConfig memory config2 = defaultConfig;
-        config2.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config2 = defaultConfig;
+        config2.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 10_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
         Signals signals2 = new Signals();
         signals2.initialize(config2);
-        ISignals.ProposalRequirements memory reqs2 = signals2.getProposalRequirements();
-        assertEq(uint256(reqs2.requirementType), uint256(ISignals.ProposalRequirementType.MinBalance));
+        ISignals.ProposerRequirements memory reqs2 = signals2.getProposerRequirements();
+        assertEq(uint256(reqs2.eligibilityType), uint256(ISignals.EligibilityType.MinBalance));
         assertEq(reqs2.minBalance, 10_000 * 1e18);
 
         // MinBalanceAndDuration mode
-        ISignals.SignalsConfig memory config3 = getERC20VotesConfig();
-        config3.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalanceAndDuration,
+        ISignals.BoardConfig memory config3 = getERC20VotesConfig();
+        config3.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalanceAndDuration,
             minBalance: 10_000 * 1e18,
-            minHoldingDuration: 100
+            minHoldingDuration: 100,
+            threshold: 50_000 * 1e18
         });
         Signals signals3 = new Signals();
         signals3.initialize(config3);
-        ISignals.ProposalRequirements memory reqs3 = signals3.getProposalRequirements();
-        assertEq(uint256(reqs3.requirementType), uint256(ISignals.ProposalRequirementType.MinBalanceAndDuration));
+        ISignals.ProposerRequirements memory reqs3 = signals3.getProposerRequirements();
+        assertEq(uint256(reqs3.eligibilityType), uint256(ISignals.EligibilityType.MinBalanceAndDuration));
         assertEq(reqs3.minHoldingDuration, 100);
     }
 
@@ -71,11 +73,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Propose_MinBalance_EnforcesThreshold() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 75_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -87,7 +90,7 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposalRequirementsNotMet.selector, "Insufficient token balance for proposal"
+                ISignals.ProposerRequirementsNotMet.selector, "Insufficient token balance for proposal"
             )
         );
         signals.proposeInitiative("Test", "Description");
@@ -103,11 +106,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     }
 
     function test_CanPropose_MinBalance_ChecksCorrectly() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 75_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -124,11 +128,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Propose_MinBalanceAndDuration_AllowsWhenMet() public {
-        ISignals.SignalsConfig memory config = getERC20VotesConfig();
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalanceAndDuration,
+        ISignals.BoardConfig memory config = getERC20VotesConfig();
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalanceAndDuration,
             minBalance: 40_000 * 1e18,
-            minHoldingDuration: 10
+            minHoldingDuration: 10,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -146,11 +151,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     }
 
     function test_Propose_MinBalanceAndDuration_RevertsOnFailure() public {
-        ISignals.SignalsConfig memory config = getERC20VotesConfig();
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalanceAndDuration,
+        ISignals.BoardConfig memory config = getERC20VotesConfig();
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalanceAndDuration,
             minBalance: 40_000 * 1e18,
-            minHoldingDuration: 50
+            minHoldingDuration: 50,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -167,18 +173,19 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20Votes.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
-            abi.encodeWithSelector(ISignals.ProposalRequirementsNotMet.selector, "Tokens not held long enough")
+            abi.encodeWithSelector(ISignals.ProposerRequirementsNotMet.selector, "Tokens not held long enough")
         );
         signals.proposeInitiative("Test", "Description");
         vm.stopPrank();
     }
 
     function test_Propose_MinBalanceAndDuration_RevertsForStandardERC20() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalanceAndDuration,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalanceAndDuration,
             minBalance: 10_000 * 1e18,
-            minHoldingDuration: 10
+            minHoldingDuration: 10,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -191,7 +198,7 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposalRequirementsNotMet.selector, "Token does not support holding duration checks"
+                ISignals.ProposerRequirementsNotMet.selector, "Token does not support holding duration checks"
             )
         );
         signals.proposeInitiative("Test", "Description");
@@ -204,29 +211,31 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
 
     function test_Initialize_RevertsInvalidConfigurations() public {
         // MinBalance with zero balance
-        ISignals.SignalsConfig memory config1 = defaultConfig;
-        config1.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config1 = defaultConfig;
+        config1.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 0,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
         Signals signals1 = new Signals();
         vm.expectRevert(
-            abi.encodeWithSelector(ISignals.ProposalRequirementsNotMet.selector, "MinBalance must be greater than 0")
+            abi.encodeWithSelector(ISignals.ProposerRequirementsNotMet.selector, "MinBalance must be greater than 0")
         );
         signals1.initialize(config1);
 
         // MinBalanceAndDuration with zero duration
-        ISignals.SignalsConfig memory config2 = getERC20VotesConfig();
-        config2.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalanceAndDuration,
+        ISignals.BoardConfig memory config2 = getERC20VotesConfig();
+        config2.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalanceAndDuration,
             minBalance: 10_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
         Signals signals2 = new Signals();
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposalRequirementsNotMet.selector, "MinHoldingDuration must be greater than 0"
+                ISignals.ProposerRequirementsNotMet.selector, "MinHoldingDuration must be greater than 0"
             )
         );
         signals2.initialize(config2);
@@ -237,12 +246,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Integration_RequirementsIndependentFromThreshold() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalThreshold = 50_000 * 1e18;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 75_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -257,11 +266,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     }
 
     function test_Integration_BalanceChangesAffectEligibility() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 60_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -281,11 +291,12 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
     }
 
     function test_Integration_LockingReducesEligibility() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
-        config.proposalRequirements = ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.MinBalance,
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.proposerRequirements = ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.MinBalance,
             minBalance: 40_000 * 1e18,
-            minHoldingDuration: 0
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18
         });
 
         Signals signals = new Signals();
@@ -301,7 +312,7 @@ contract SignalsProposalRequirementsTest is Test, SignalsHarness {
         assertFalse(signals.canPropose(_alice));
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposalRequirementsNotMet.selector, "Insufficient token balance for proposal"
+                ISignals.ProposerRequirementsNotMet.selector, "Insufficient token balance for proposal"
             )
         );
         signals.proposeInitiative("Second", "Description");

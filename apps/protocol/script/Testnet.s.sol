@@ -86,15 +86,20 @@ contract TestnetScript is Script {
             ISignalsFactory.FactoryDeployment({
                 owner: _alice,
                 underlyingToken: address(_token),
-                proposalThreshold: 50_000 * 1e18, // 50k _proposalThreshold
                 acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
                 maxLockIntervals: 365, // Lock for a maximum of 365 days
                 proposalCap: 10, // Maximum number of proposals per user
                 lockInterval: 1 days, // 1 day
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params, // decayCurveParameters
-                proposalRequirements: ISignals.ProposalRequirements({
-                    requirementType: ISignals.ProposalRequirementType.None,
+                proposerRequirements: ISignals.ProposerRequirements({
+                    eligibilityType: ISignals.EligibilityType.None,
+                    minBalance: 0,
+                    minHoldingDuration: 0,
+                    threshold: 50_000 * 1e18 // 50k proposalThreshold
+                }),
+                participantRequirements: ISignals.ParticipantRequirements({
+                    eligibilityType: ISignals.EligibilityType.None,
                     minBalance: 0,
                     minHoldingDuration: 0
                 }),
@@ -106,7 +111,7 @@ contract TestnetScript is Script {
 
         console.log("SignalsContract", address(protocolAddress));
         console.log("Total proposals", protocol.totalInitiatives());
-        console.log("Proposal threshold", protocol.proposalThreshold());
+        console.log("Proposal threshold", protocol.getProposerRequirements().threshold);
         console.log("Acceptance threshold", protocol.acceptanceThreshold());
 
         vm.broadcast(_deployer);

@@ -72,7 +72,7 @@ contract MyGovernanceToken is ERC20, ERC20Permit, ERC20Votes {
 Configure your board to require holding duration:
 
 ```solidity
-SignalsConfig memory config = SignalsConfig({
+BoardConfig memory config = BoardConfig({
     version: "1.0",
     owner: msg.sender,
     underlyingToken: address(governanceToken), // ERC20Votes token
@@ -198,7 +198,7 @@ ProposalRequirements({
 Combine with proposal threshold for dual requirements:
 
 ```solidity
-SignalsConfig({
+BoardConfig({
     // ... other config
     proposalThreshold: 1_000 * 1e18,  // 1k tokens to propose
     proposalRequirements: ProposalRequirements({

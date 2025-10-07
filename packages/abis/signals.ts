@@ -625,7 +625,7 @@ export const signalsAbi = [
     inputs: [
       {
         name: 'config',
-        internalType: 'struct ISignals.SignalsConfig',
+        internalType: 'struct ISignals.BoardConfig',
         type: 'tuple',
         components: [
           { name: 'version', internalType: 'string', type: 'string' },

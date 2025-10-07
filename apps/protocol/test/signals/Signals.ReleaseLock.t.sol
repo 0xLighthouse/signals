@@ -22,7 +22,7 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
         signals = Signals(address(_signals));
 
         // Deploy board with 7-day timelock
-        ISignals.SignalsConfig memory timelockConfig = defaultConfig;
+        ISignals.BoardConfig memory timelockConfig = defaultConfig;
         timelockConfig.releaseLockDuration = 7 days;
 
         vm.startPrank(_deployer);

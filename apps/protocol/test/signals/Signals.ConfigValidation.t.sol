@@ -25,7 +25,7 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
 
     /// Test that critical zero values are rejected
     function test_Initialize_RejectsInvalidZeroValues() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
+        ISignals.BoardConfig memory config = defaultConfig;
 
         // Zero address for token
         config.underlyingToken = address(0);
@@ -95,19 +95,24 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
 
     /// Test minimal valid configuration
     function test_Initialize_MinimalConfig() public {
-        ISignals.SignalsConfig memory config = ISignals.SignalsConfig({
+        ISignals.BoardConfig memory config = ISignals.BoardConfig({
             version: "1.0",
             owner: _deployer,
             underlyingToken: address(_tokenERC20),
-            proposalThreshold: 0, // Free proposals allowed
             acceptanceThreshold: 1, // Minimal non-zero
             maxLockIntervals: 1,
             proposalCap: 1,
             lockInterval: 1,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposalRequirements: ISignals.ProposalRequirements({
-                requirementType: ISignals.ProposalRequirementType.None,
+            proposerRequirements: ISignals.ProposerRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
+                minBalance: 0,
+                minHoldingDuration: 0,
+                threshold: 1 // Minimal threshold when eligibility type is None
+            }),
+            participantRequirements: ISignals.ParticipantRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
@@ -115,40 +120,45 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
         });
 
         signals.initialize(config);
-        assertEq(signals.proposalThreshold(), 0);
+        assertEq(signals.getProposerRequirements().threshold, 1);
         assertEq(signals.acceptanceThreshold(), 1);
     }
 
     /// Test production configuration
     function test_Initialize_ProductionConfig() public {
-        ISignals.SignalsConfig memory config = ISignals.SignalsConfig({
+        ISignals.BoardConfig memory config = ISignals.BoardConfig({
             version: "1.0",
             owner: _deployer,
             underlyingToken: address(_tokenERC20),
-            proposalThreshold: 50_000 * 1e18,
             acceptanceThreshold: 500_000 * 1e18,
             maxLockIntervals: 365,
             proposalCap: 10,
             lockInterval: 1 days,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposalRequirements: ISignals.ProposalRequirements({
-                requirementType: ISignals.ProposalRequirementType.MinBalance,
+            proposerRequirements: ISignals.ProposerRequirements({
+                eligibilityType: ISignals.EligibilityType.MinBalance,
                 minBalance: 10_000 * 1e18,
+                minHoldingDuration: 0,
+                threshold: 50_000 * 1e18
+            }),
+            participantRequirements: ISignals.ParticipantRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
+                minBalance: 0,
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 7 days
         });
 
         signals.initialize(config);
-        assertEq(signals.proposalThreshold(), 50_000 * 1e18);
+        assertEq(signals.getProposerRequirements().threshold, 50_000 * 1e18);
         assertEq(signals.acceptanceThreshold(), 500_000 * 1e18);
         assertEq(signals.releaseLockDuration(), 7 days);
     }
 
     /// Test that both decay types are valid
     function test_Initialize_BothDecayTypes() public {
-        ISignals.SignalsConfig memory config = defaultConfig;
+        ISignals.BoardConfig memory config = defaultConfig;
 
         // Linear
         config.decayCurveType = 0;

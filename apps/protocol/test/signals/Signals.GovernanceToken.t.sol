@@ -19,7 +19,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
 
     function setUp() public {
         // Deploy signals with ERC20Votes token config
-        ISignals.SignalsConfig memory config = getERC20VotesConfig();
+        ISignals.BoardConfig memory config = getERC20VotesConfig();
         signals = new Signals();
         signals.initialize(config);
 
@@ -33,7 +33,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
 
     function test_Initialize_WithERC20Votes() public view {
         assertEq(signals.underlyingToken(), address(_tokenERC20Votes));
-        assertEq(signals.proposalThreshold(), 50_000 * 1e18);
+        assertEq(signals.getProposerRequirements().threshold, 50_000 * 1e18);
         assertEq(signals.acceptanceThreshold(), 100_000 * 1e18);
     }
 
@@ -233,15 +233,20 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
         ISignalsFactory.FactoryDeployment memory factoryConfig = ISignalsFactory.FactoryDeployment({
             owner: _deployer,
             underlyingToken: address(_tokenERC20Votes),
-            proposalThreshold: 50_000 * 1e18,
             acceptanceThreshold: 100_000 * 1e18,
             maxLockIntervals: 365 days,
             proposalCap: 100,
             lockInterval: 1 days,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposalRequirements: ISignals.ProposalRequirements({
-                requirementType: ISignals.ProposalRequirementType.None,
+            proposerRequirements: ISignals.ProposerRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
+                minBalance: 0,
+                minHoldingDuration: 0,
+                threshold: 50_000 * 1e18
+            }),
+            participantRequirements: ISignals.ParticipantRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
@@ -252,7 +257,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
         Signals deployedSignals = Signals(instance);
 
         assertEq(deployedSignals.underlyingToken(), address(_tokenERC20Votes));
-        assertEq(deployedSignals.proposalThreshold(), 50_000 * 1e18);
+        assertEq(deployedSignals.getProposerRequirements().threshold, 50_000 * 1e18);
         assertEq(deployedSignals.owner(), _deployer);
     }
 
@@ -262,7 +267,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
 
     function test_GovernanceToken_WithoutDelegation() public {
         // Create a new governance token board
-        ISignals.SignalsConfig memory config = getERC20VotesConfig();
+        ISignals.BoardConfig memory config = getERC20VotesConfig();
         Signals newSignals = new Signals();
         newSignals.initialize(config);
 

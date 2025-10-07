@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+// TODO: We can own the wrapper; Maybe ISignalsLock
 interface IBondIssuer {
     struct BondInfo {
         uint256 referenceId;

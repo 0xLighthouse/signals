@@ -11,28 +11,28 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param owner The address which will own the contract
      * @param underlyingToken The address of the underlying ERC20 token
      * @param version The version of the Signals contract
-     * @param proposalThreshold Minimum tokens to propose an initiative
-     * @param acceptanceThreshold Minimum tokens to accept an initiative
+     * @param acceptanceThreshold Weight required for an initiative to be accepted
      * @param maxLockIntervals Maximum lock intervals allowed
      * @param proposalCap The maximum active proposals a user can submit (TODO: Verify this, rename to activeProposalLimit)
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
-     * @param proposalRequirements Requirements for who can propose (immutable)
+     * @param proposerRequirements Requirements for who can propose (immutable)
+     * @param participantRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
      */
-    struct SignalsConfig {
+    struct BoardConfig {
         string version;
         address owner;
         address underlyingToken;
-        uint256 proposalThreshold;
         uint256 acceptanceThreshold;
         uint256 maxLockIntervals;
         uint256 proposalCap;
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
-        ProposalRequirements proposalRequirements;
+        ProposerRequirements proposerRequirements;
+        ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
     }
 
@@ -77,14 +77,29 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     }
 
     /**
-     * @notice Configuration for proposal requirements
+     * @notice Requirements for who can propose initiatives
      *
-     * @param requirementType Type of requirement (None, MinBalance, MinBalanceAndDuration)
-     * @param minBalance Minimum token balance required to propose
+     * @param eligibilityType Type of eligibility check (None, MinBalance, MinBalanceAndDuration)
+     * @param minBalance Minimum token balance required to be eligible
+     * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
+     * @param threshold Tokens proposer must lock when creating an initiative
+     */
+    struct ProposerRequirements {
+        EligibilityType eligibilityType;
+        uint256 minBalance;
+        uint256 minHoldingDuration;
+        uint256 threshold;
+    }
+
+    /**
+     * @notice Requirements for who can participate (support initiatives)
+     *
+     * @param eligibilityType Type of eligibility check (None, MinBalance, MinBalanceAndDuration)
+     * @param minBalance Minimum token balance required to be eligible
      * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
      */
-    struct ProposalRequirements {
-        ProposalRequirementType requirementType;
+    struct ParticipantRequirements {
+        EligibilityType eligibilityType;
         uint256 minBalance;
         uint256 minHoldingDuration;
     }
@@ -102,9 +117,9 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         Closed
     }
 
-    /// @notice Types of proposal requirements
-    enum ProposalRequirementType {
-        None,                    // No requirements - anyone can propose
+    /// @notice Types of eligibility requirements for proposers and participants
+    enum EligibilityType {
+        None,                    // No requirements
         MinBalance,              // Requires minimum token balance
         MinBalanceAndDuration    // Requires min balance held for min duration
     }
@@ -142,11 +157,13 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     error InvalidTokenId();
     error BoardClosedError();
 
-    /// @notice Error when user doesn't meet proposal requirements
-    error ProposalRequirementsNotMet(string reason);
+    /// @notice Error when user doesn't meet proposer requirements
+    error ProposerRequirementsNotMet(string reason);
+
+    /// @notice Error when user doesn't meet participant requirements
+    error ParticipantRequirementsNotMet(string reason);
 
     // Public state variables
-    function proposalThreshold() external view returns (uint256);
     function acceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
     function proposalCap() external view returns (uint256);
@@ -165,7 +182,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function boardState() external view returns (BoardState);
 
     // Public functions
-    function initialize(SignalsConfig calldata config) external;
+    function initialize(BoardConfig calldata config) external;
     function proposeInitiative(string memory title, string memory body) external;
     function proposeInitiativeWithLock(string memory title, string memory body, uint256 amount, uint256 lockDuration)
         external
@@ -195,12 +212,21 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
     function listPositions(address owner) external view returns (uint256[] memory);
 
-    /// @notice Get current proposal requirements (immutable)
-    /// @return Current proposal requirements configuration
-    function getProposalRequirements() external view returns (ProposalRequirements memory);
+    /// @notice Get current proposer requirements (immutable)
+    /// @return Current proposer requirements configuration
+    function getProposerRequirements() external view returns (ProposerRequirements memory);
 
-    /// @notice Check if an address meets proposal requirements
+    /// @notice Get current participant requirements (immutable)
+    /// @return Current participant requirements configuration
+    function getParticipantRequirements() external view returns (ParticipantRequirements memory);
+
+    /// @notice Check if an address meets proposer requirements
     /// @param proposer Address to check
     /// @return True if address can propose
     function canPropose(address proposer) external view returns (bool);
+
+    /// @notice Check if an address meets participant requirements
+    /// @param participant Address to check
+    /// @return True if address can participate
+    function canParticipate(address participant) external view returns (bool);
 }

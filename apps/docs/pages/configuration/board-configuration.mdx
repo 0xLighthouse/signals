@@ -9,10 +9,10 @@ Configure your Signals board parameters during initialization. All settings are 
 
 ## Overview
 
-Boards are configured via the `SignalsConfig` struct during initialization:
+Boards are configured via the `BoardConfig` struct during initialization:
 
 ```solidity
-SignalsConfig memory config = SignalsConfig({
+BoardConfig memory config = BoardConfig({
     version: "1.0",
     owner: msg.sender,
     underlyingToken: address(token),
@@ -276,7 +276,7 @@ function closeBoard() external onlyOwner;
 ### Open Community Board
 
 ```solidity
-SignalsConfig({
+BoardConfig({
     owner: msg.sender,
     underlyingToken: address(token),
     proposalThreshold: 1000 * 1e18,
@@ -298,7 +298,7 @@ SignalsConfig({
 ### Conservative Governance Board
 
 ```solidity
-SignalsConfig({
+BoardConfig({
     owner: msg.sender,
     underlyingToken: address(governanceToken),
     proposalThreshold: 50_000 * 1e18,
