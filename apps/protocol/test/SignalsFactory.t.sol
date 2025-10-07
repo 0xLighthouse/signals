@@ -39,7 +39,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         // Deploy a new instance using the factory
         ISignalsFactory.FactoryDeployment memory _defaultConfig = ISignalsFactory.FactoryDeployment({
             owner: _alice,
-            underlyingToken: address(_token),
+            underlyingToken: address(_tokenERC20),
             proposalThreshold: defaultConfig.proposalThreshold,
             acceptanceThreshold: defaultConfig.acceptanceThreshold,
             maxLockIntervals: defaultConfig.maxLockIntervals,
@@ -61,7 +61,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
 
         // Verify the parameters were initialized correctly
         assertEq(_instance.owner(), _alice);
-        assertEq(_instance.underlyingToken(), address(_token));
+        assertEq(_instance.underlyingToken(), address(_tokenERC20));
         assertEq(_instance.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
         assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
         assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
@@ -85,7 +85,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _factory.create(
             ISignalsFactory.FactoryDeployment({
                 owner: address(0), // This is an invalid owner address
-                underlyingToken: address(_token),
+                underlyingToken: address(_tokenERC20),
                 proposalThreshold: defaultConfig.proposalThreshold,
                 acceptanceThreshold: defaultConfig.acceptanceThreshold,
                 maxLockIntervals: defaultConfig.maxLockIntervals,

@@ -28,7 +28,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_AfterAcceptance() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
-        _token.approve(address(signals), 200 * 1e18);
+        _tokenERC20.approve(address(signals), 200 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", 200 * 1e18, 6);
 
         // Accept the initiative
@@ -38,11 +38,11 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         // Check initial token balance
         // Withdraw tokens
         vm.startPrank(_bob);
-        uint256 initialBalance = _token.balanceOf(_bob);
+        uint256 initialBalance = _tokenERC20.balanceOf(_bob);
         signals.redeem(1);
 
         // Check token balance after withdrawal
-        uint256 finalBalance = _token.balanceOf(_bob);
+        uint256 finalBalance = _tokenERC20.balanceOf(_bob);
         assertEq(finalBalance, initialBalance + 200 * 1e18);
 
         // Note: Double redemption is tested separately in test_Redeem_RevertsTwice()
@@ -52,7 +52,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_RevertsBeforeAcceptance() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
-        _token.approve(address(signals), 200 * 1e18);
+        _tokenERC20.approve(address(signals), 200 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", 200 * 1e18, 6);
 
         // Attempt to withdraw tokens before acceptance
@@ -70,15 +70,15 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_MultipleLocks() public {
         // Propose an initiative with lock
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
 
         // Add a second lock to the same initiative
-        _token.approve(address(signals), 75 * 1e18);
+        _tokenERC20.approve(address(signals), 75 * 1e18);
         signals.supportInitiative(1, 75 * 1e18, 6);
 
         // Support another initiative
-        _token.approve(address(signals), 150 * 1e18);
+        _tokenERC20.approve(address(signals), 150 * 1e18);
         signals.supportInitiative(1, 150 * 1e18, 6);
 
         // Accept the initiative
@@ -87,7 +87,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
 
         // Record the balance before withdrawal
         vm.startPrank(_alice);
-        uint256 balanceBefore = _token.balanceOf(_alice);
+        uint256 balanceBefore = _tokenERC20.balanceOf(_alice);
 
         // List all NFTs owned by the alice
         uint256[] memory nfts = signals.listPositions(_alice);
@@ -98,7 +98,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
             signals.redeem(nfts[i]);
         }
 
-        uint256 balanceAfter = _token.balanceOf(_alice);
+        uint256 balanceAfter = _tokenERC20.balanceOf(_alice);
         uint256 balanceDifference = balanceAfter - balanceBefore;
 
         // Assert that the balance difference is equal to the withdrawn amount
@@ -109,11 +109,11 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_PartialWithdrawal() public {
         // Propose initiative with lock
         vm.startPrank(_bob);
-        _token.approve(address(signals), defaultConfig.proposalThreshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", defaultConfig.proposalThreshold, 6);
 
         // Propose another initiative with lock
-        _token.approve(address(signals), defaultConfig.proposalThreshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold);
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", defaultConfig.proposalThreshold, 6);
 
         // Accept the first initiative
@@ -122,13 +122,13 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
 
         // Record the balance before first withdrawal
         vm.startPrank(_bob);
-        uint256 initialBalance = _token.balanceOf(_bob);
+        uint256 initialBalance = _tokenERC20.balanceOf(_bob);
 
         // Withdraw all tokens (should only withdraw from the accepted initiative)
         signals.redeem(1); // veBond 1
 
         // Record the balance after first withdrawal
-        uint256 balanceAfterFirstWithdraw = _token.balanceOf(_bob);
+        uint256 balanceAfterFirstWithdraw = _tokenERC20.balanceOf(_bob);
         uint256 balanceDifference = balanceAfterFirstWithdraw - initialBalance;
         assertEq(balanceDifference, defaultConfig.proposalThreshold);
 
@@ -149,7 +149,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         signals.redeem(2); // veBond 2
 
         // Assert that the total balance difference equals the sum of both withdrawals
-        uint256 finalBalance = _token.balanceOf(_bob);
+        uint256 finalBalance = _tokenERC20.balanceOf(_bob);
         uint256 totalBalanceDifference = finalBalance - initialBalance;
         assertEq(totalBalanceDifference, defaultConfig.proposalThreshold * 2);
     }
@@ -162,7 +162,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_AfterExpiration() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
-        _token.approve(address(signals), 200 * 1e18);
+        _tokenERC20.approve(address(signals), 200 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", 200 * 1e18, 6);
 
         // Fast forward time beyond inactivity threshold
@@ -176,10 +176,10 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         // Withdraw tokens
         vm.startPrank(_bob);
 
-        uint256 initialBalance = _token.balanceOf(_bob);
+        uint256 initialBalance = _tokenERC20.balanceOf(_bob);
         signals.redeem(1);
 
-        uint256 finalBalance = _token.balanceOf(_bob);
+        uint256 finalBalance = _tokenERC20.balanceOf(_bob);
         assertEq(finalBalance, initialBalance + 200 * 1e18);
     }
 
@@ -191,7 +191,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_RevertsTwice() public {
         // Propose an initiative with lock
         vm.startPrank(_bob);
-        _token.approve(address(signals), 200 * 1e18);
+        _tokenERC20.approve(address(signals), 200 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 200 * 1e18, 6);
 
         // Accept the initiative

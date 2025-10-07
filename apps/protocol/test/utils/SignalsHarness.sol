@@ -7,6 +7,10 @@ import "forge-std/console.sol";
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
@@ -14,16 +18,43 @@ import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
 
+/**
+ * @notice Simple ERC20Votes token for testing
+ */
+contract MockVotesToken is ERC20, ERC20Permit, ERC20Votes {
+    constructor() ERC20("Governance Token", "vGOV") ERC20Permit("Governance Token") {}
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._update(from, to, amount);
+    }
+
+    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256) {
+        return super.nonces(owner);
+    }
+}
+
 contract SignalsHarness is Test, Deployers {
     address _deployer = address(this);
     address _alice = address(0x1111);
     address _bob = address(0x2222);
     address _charlie = address(0x3333);
     address _liquidityProvider = address(0x4444);
+
     // --- Tokens ---
-    MockERC20 internal _token = new MockERC20("SomeGovToken", "GOV", 18);
+    // Standard ERC20 token (no checkpoints)
+    MockERC20 internal _tokenERC20 = new MockERC20("StandardToken", "STD", 18);
+
+    // ERC20Votes token (with checkpoints for governance)
+    MockVotesToken internal _tokenERC20Votes = new MockVotesToken();
+
+    // Incentive tokens
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
     MockERC20 internal _dai = new MockERC20("DAI", "DAI", 18);
+
 
     // --- Factory ---
     SignalsFactory internal factory = new SignalsFactory();
@@ -45,7 +76,7 @@ contract SignalsHarness is Test, Deployers {
     ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
         version: factory.version(),
         owner: _deployer,
-        underlyingToken: address(_token),
+        underlyingToken: address(_tokenERC20),
         proposalThreshold: 50_000 * 1e18, // 50k
         acceptanceThreshold: 100_000 * 1e18, // 100k
         maxLockIntervals: 365 days, // 1 year
@@ -74,7 +105,7 @@ contract SignalsHarness is Test, Deployers {
     }
 
     function dealMockTokens() public {
-        _dealToken(_token);
+        _dealToken(_tokenERC20);
         _dealToken(_usdc);
         _dealToken(_dai);
     }
@@ -87,16 +118,59 @@ contract SignalsHarness is Test, Deployers {
     }
 
     function _dealDefaultTokens() public {
-        // --- Issue governance tokens to participants ---
+        // --- Issue standard ERC20 tokens to participants ---
         // Alice has 50k
-        deal(address(_token), _alice, defaultConfig.proposalThreshold);
+        deal(address(_tokenERC20), _alice, defaultConfig.proposalThreshold);
         // Bob has 100k
-        deal(address(_token), _bob, defaultConfig.acceptanceThreshold);
+        deal(address(_tokenERC20), _bob, defaultConfig.acceptanceThreshold);
         // Charlie has 25k
-        deal(address(_token), _charlie, defaultConfig.proposalThreshold / 2);
+        deal(address(_tokenERC20), _charlie, defaultConfig.proposalThreshold / 2);
         // Liquidity provider has 1M
-        deal(address(_token), _liquidityProvider, 100_000_000 * 1e18);
+        deal(address(_tokenERC20), _liquidityProvider, 100_000_000 * 1e18);
     }
+
+    /**
+     * @notice Deal ERC20Votes tokens and delegate voting power
+     * @dev Mints tokens and delegates to self to activate checkpoints
+     */
+    function _dealAndDelegateERC20Votes() public {
+        // Mint and delegate to activate checkpoints
+        _tokenERC20Votes.mint(_alice, defaultConfig.proposalThreshold);
+        vm.prank(_alice);
+        _tokenERC20Votes.delegate(_alice);
+
+        _tokenERC20Votes.mint(_bob, defaultConfig.acceptanceThreshold);
+        vm.prank(_bob);
+        _tokenERC20Votes.delegate(_bob);
+
+        _tokenERC20Votes.mint(_charlie, defaultConfig.proposalThreshold / 2);
+        vm.prank(_charlie);
+        _tokenERC20Votes.delegate(_charlie);
+
+        _tokenERC20Votes.mint(_liquidityProvider, 100_000_000 * 1e18);
+        vm.prank(_liquidityProvider);
+        _tokenERC20Votes.delegate(_liquidityProvider);
+    }
+
+    /**
+     * @notice Create a Signals config using the ERC20Votes token
+     * @return Configuration using _tokenERC20Votes as underlying
+     */
+    function getERC20VotesConfig() public view returns (ISignals.SignalsConfig memory) {
+        return ISignals.SignalsConfig({
+            version: factory.version(),
+            owner: _deployer,
+            underlyingToken: address(_tokenERC20Votes),
+            proposalThreshold: 50_000 * 1e18,
+            acceptanceThreshold: 100_000 * 1e18,
+            maxLockIntervals: 365 days,
+            proposalCap: 100,
+            lockInterval: 1 days,
+            decayCurveType: 0,
+            decayCurveParameters: new uint256[](1)
+        });
+    }
+
 
     function _uniswapApprovals(MockERC20 token) internal returns (Currency currency) {
         address[9] memory toApprove = [
@@ -122,7 +196,7 @@ contract SignalsHarness is Test, Deployers {
         returns (uint256 tokenId)
     {
         vm.startPrank(_user);
-        _token.approve(address(_signals), _amount);
+        _tokenERC20.approve(address(_signals), _amount);
         (tokenId) = _signals.proposeInitiativeWithLock("Some Initiative", "Some Description", _amount, _duration);
         vm.stopPrank();
     }
@@ -149,7 +223,7 @@ contract SignalsHarness is Test, Deployers {
 
     function printPoolInfo() public view {
         console.log("Address and decimals: ");
-        console.log("GOV: ", address(_token), _token.decimals());
+        console.log("GOV: ", address(_tokenERC20), _tokenERC20.decimals());
         console.log("DAI: ", address(_dai), _dai.decimals());
         console.log("USDC: ", address(_usdc), _usdc.decimals());
         console.log("Pool currencies (0 and 1): ");

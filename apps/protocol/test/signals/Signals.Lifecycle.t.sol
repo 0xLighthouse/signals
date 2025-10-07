@@ -42,7 +42,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
      */
     function test_Propose_WithoutLock() public {
         vm.startPrank(_alice);
-        _token.approve(address(signals), defaultConfig.proposalThreshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold);
 
         vm.expectEmit();
         emit ISignals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1");
@@ -62,7 +62,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_ProposeWithLock_EmitsTokenId() public {
         vm.startPrank(_bob);
         // Approve the total amount needed (proposal threshold + locked amount)
-        _token.approve(address(signals), defaultConfig.proposalThreshold * 2);
+        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold * 2);
 
         uint256 lockedAmount = 50_000 * 1e18;
 
@@ -78,9 +78,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Propose_WithLock() public {
         vm.startPrank(_bob);
         // Approve the total amount needed (proposal threshold + locked amount)
-        _token.approve(address(signals), defaultConfig.proposalThreshold * 2);
+        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold * 2);
 
-        uint256 balanceBefore = _token.balanceOf(_bob);
+        uint256 balanceBefore = _tokenERC20.balanceOf(_bob);
         uint256 lockedAmount = 50_000 * 1e18;
 
         // Propose an initiative with lock
@@ -88,7 +88,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         emit ISignals.InitiativeProposed(1, _bob, "Initiative 2", "Description 2");
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", lockedAmount, 6);
 
-        assertEq(_token.balanceOf(_bob), balanceBefore - lockedAmount);
+        assertEq(_tokenERC20.balanceOf(_bob), balanceBefore - lockedAmount);
 
         // Check that the initiative is stored correctly
         ISignals.Initiative memory initiative = signals.getInitiative(1);
@@ -118,7 +118,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Accept_Success() public {
         // Propose an initiative
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
 
         // Accept the initiative
@@ -134,7 +134,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Accept_OnlyOwner() public {
         // Propose an initiative
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
 
         // Attempt to accept the initiative as a non-owner
@@ -150,7 +150,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Expire_AfterInactivity() public {
         // Propose an initiative
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
 
         // Fast forward time beyond inactivity threshold
@@ -167,7 +167,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Expire_RevertsBeforeThreshold() public {
         // Propose an initiative
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
         vm.stopPrank();
 

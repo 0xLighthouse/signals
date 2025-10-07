@@ -28,7 +28,7 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
     /// Test retrieving bond details through IBondIssuer interface
     function test_BondDetails_Retrieve() public {
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
         vm.stopPrank();
 
@@ -49,7 +49,7 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
 
     function test_ListPositions_ByOwner() public {
         vm.startPrank(_alice);
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
         vm.stopPrank();
 

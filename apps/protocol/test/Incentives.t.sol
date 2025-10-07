@@ -32,7 +32,7 @@ contract IncentivesTest is Test, SignalsHarness {
         dealMockTokens();
 
         _registry = new TokenRegistry();
-        _registry.allow(address(_token));
+        _registry.allow(address(_tokenERC20));
         _registry.allow(address(_usdc));
 
         // Declare how incentives are allocated
@@ -58,11 +58,11 @@ contract IncentivesTest is Test, SignalsHarness {
         assertEq(signals.owner(), address(_deployer));
 
         // Accounts have been created with the expected balances
-        assertEq(_token.balanceOf(_alice), 200_000 * 1e18);
+        assertEq(_tokenERC20.balanceOf(_alice), 200_000 * 1e18);
         assertEq(_usdc.balanceOf(_alice), 200_000 * 1e6);
 
         // TokenRegistry has token and usdc registered
-        assertEq(_registry.isAllowed(address(_token)), true);
+        assertEq(_registry.isAllowed(address(_tokenERC20)), true);
         assertEq(_registry.isAllowed(address(_usdc)), true);
     }
 
@@ -111,7 +111,7 @@ contract IncentivesTest is Test, SignalsHarness {
 
         // Propose an initiative with a lock
         uint256 lockedAmount = 200 * 1e18;
-        _token.approve(address(signals), lockedAmount);
+        _tokenERC20.approve(address(signals), lockedAmount);
         signals.proposeInitiativeWithLock("Initiative 1", "Test adding incentives", lockedAmount, 6);
 
         // Add a 500 USDC bounty (4 times)

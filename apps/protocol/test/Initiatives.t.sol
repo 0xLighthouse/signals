@@ -32,7 +32,7 @@ contract InitiativesTest is Test, SignalsHarness {
         string memory body = "This initiative should fail due to insufficient tokens";
 
         // Approve the contract to spend the tokens
-        _token.approve(address(signals), 40_000);
+        _tokenERC20.approve(address(signals), 40_000);
 
         // Charlie has InsufficientTokens, so this should revert
         vm.expectRevert(ISignals.InsufficientTokens.selector);
@@ -42,7 +42,7 @@ contract InitiativesTest is Test, SignalsHarness {
     /// @notice Test proposing an initiative with empty title or body
     function testProposeInitiativeWithEmptyTitleOrBody() public {
         // Mint tokens to the alice account
-        deal(address(_token), _alice, 200_000 * 1e18);
+        deal(address(_tokenERC20), _alice, 200_000 * 1e18);
 
         // Propose an initiative
         vm.startPrank(_alice);
@@ -93,12 +93,12 @@ contract InitiativesTest is Test, SignalsHarness {
 
         uint256 amountToLock = 100_000 * 1e18;
 
-        console.log("Bob balance:", _token.balanceOf(_bob));
-        console.log("Decimals:", _token.decimals());
+        console.log("Bob balance:", _tokenERC20.balanceOf(_bob));
+        console.log("Decimals:", _tokenERC20.decimals());
 
         // Approve the contract to spend the tokens
         vm.startPrank(_bob);
-        _token.approve(address(signals), amountToLock);
+        _tokenERC20.approve(address(signals), amountToLock);
         signals.proposeInitiativeWithLock(title, body, amountToLock, 1);
         vm.stopPrank();
 

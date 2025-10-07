@@ -29,13 +29,13 @@ contract SignalsSupportTest is Test, SignalsHarness {
         vm.startPrank(_alice);
 
         // Propose an initiative
-        _token.approve(address(signals), 100 * 1e18);
+        _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiative("Initiative 1", "Description 1");
         vm.stopPrank();
 
         vm.startPrank(_bob);
         // Approve tokens
-        _token.approve(address(signals), 150 * 1e18);
+        _tokenERC20.approve(address(signals), 150 * 1e18);
 
         // Support the initiative
         signals.supportInitiative(1, 150 * 1e18, 6);
