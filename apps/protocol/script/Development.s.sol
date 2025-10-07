@@ -99,7 +99,8 @@ contract DevelopmentScript is Script {
                     requirementType: ISignals.ProposalRequirementType.None,
                     minBalance: 0,
                     minHoldingDuration: 0
-                })
+                }),
+                releaseLockDuration: 0 // Immediate release on acceptance
             })
         );
 

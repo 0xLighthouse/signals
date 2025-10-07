@@ -244,7 +244,8 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
                 requirementType: ISignals.ProposalRequirementType.None,
                 minBalance: 0,
                 minHoldingDuration: 0
-            })
+            }),
+            releaseLockDuration: 0
         });
 
         address instance = factory.create(factoryConfig);

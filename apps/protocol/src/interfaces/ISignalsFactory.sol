@@ -15,6 +15,7 @@ interface ISignalsFactory {
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
         ISignals.ProposalRequirements proposalRequirements;
+        uint256 releaseLockDuration;
     }
 
     function create(ISignalsFactory.FactoryDeployment calldata config) external payable returns (address);

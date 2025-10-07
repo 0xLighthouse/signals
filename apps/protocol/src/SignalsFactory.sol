@@ -54,7 +54,8 @@ contract SignalsFactory is ISignalsFactory {
             lockInterval: config.lockInterval,
             decayCurveType: config.decayCurveType,
             decayCurveParameters: config.decayCurveParameters,
-            proposalRequirements: config.proposalRequirements
+            proposalRequirements: config.proposalRequirements,
+            releaseLockDuration: config.releaseLockDuration
         });
 
         instance.initialize(mergedConfig);

@@ -19,6 +19,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
      * @param proposalRequirements Requirements for who can propose (immutable)
+     * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
      */
     struct SignalsConfig {
         string version;
@@ -32,6 +33,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
         ProposalRequirements proposalRequirements;
+        uint256 releaseLockDuration;
     }
 
     /**
@@ -44,6 +46,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param proposer The address of the account that proposed this initiative
      * @param timestamp The timestamp when the initiative was created
      * @param lastActivity Used to determine if an initiative has become inactive and can be expired
+     * @param acceptanceTimestamp The timestamp when the initiative was accepted (0 if not accepted)
      */
     struct Initiative {
         string title;
@@ -53,6 +56,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         uint256 timestamp;
         uint256 lastActivity;
         uint256 underlyingLocked;
+        uint256 acceptanceTimestamp;
     }
 
     /**
@@ -93,6 +97,11 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         Expired
     }
 
+    enum BoardState {
+        Open,
+        Closed
+    }
+
     /// @notice Types of proposal requirements
     enum ProposalRequirementType {
         None,                    // No requirements - anyone can propose
@@ -121,6 +130,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
     event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
     event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
+    event BoardClosed(address indexed actor);
 
     // Errors
     error InvalidInput(string message);
@@ -130,6 +140,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     error InvalidRedemption();
     error InitiativeNotFound();
     error InvalidTokenId();
+    error BoardClosedError();
 
     /// @notice Error when user doesn't meet proposal requirements
     error ProposalRequirementsNotMet(string reason);
@@ -150,6 +161,8 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function isSupporter(uint256, address) external view returns (bool);
     function nextTokenId() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
+    function releaseLockDuration() external view returns (uint256);
+    function boardState() external view returns (BoardState);
 
     // Public functions
     function initialize(SignalsConfig calldata config) external;
@@ -176,6 +189,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function setInactivityThreshold(uint256 _newThreshold) external;
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
     function setIncentives(address _incentives) external;
+    function closeBoard() external;
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);

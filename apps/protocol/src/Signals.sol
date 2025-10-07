@@ -68,6 +68,12 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Configuration for proposal requirements (immutable after initialization)
     ProposalRequirements public proposalRequirements;
 
+    /// @notice Duration tokens remain locked after acceptance (0 = immediate release)
+    uint256 public releaseLockDuration;
+
+    /// @notice Current state of the board (Open or Closed)
+    BoardState public boardState;
+
     /// @notice (initiativeId => Initiative)
     mapping(uint256 => Initiative) internal _initiatives;
 
@@ -101,6 +107,11 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     modifier isNotInitialized() {
         require(acceptanceThreshold == 0, "Already initialized");
+        _;
+    }
+
+    modifier boardIsOpen() {
+        if (boardState == BoardState.Closed) revert ISignals.BoardClosedError();
         _;
     }
 
@@ -192,7 +203,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             proposer: msg.sender,
             timestamp: block.timestamp,
             lastActivity: block.timestamp,
-            underlyingLocked: 0
+            underlyingLocked: 0,
+            acceptanceTimestamp: 0
         });
 
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
@@ -316,6 +328,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         decayCurveType = config.decayCurveType;
         decayCurveParameters = config.decayCurveParameters;
         proposalRequirements = config.proposalRequirements;
+        releaseLockDuration = config.releaseLockDuration;
+        boardState = BoardState.Open;
 
         // Validate proposal requirements
         _validateProposalRequirements(config.proposalRequirements);
@@ -331,6 +345,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     function proposeInitiative(string memory _title, string memory _body)
         external
+        boardIsOpen
         meetsProposalRequirements
         hasSufficientTokens(proposalThreshold)
         hasValidInput(_title, _body)
@@ -353,6 +368,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         uint256 _lockDuration
     )
         external
+        boardIsOpen
         meetsProposalRequirements
         hasSufficientTokens(proposalThreshold)
         hasValidInput(_title, _body)
@@ -371,6 +387,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
         external
+        boardIsOpen
         exists(initiativeId)
         returns (uint256 tokenId)
     {
@@ -384,6 +401,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
 
         initiative.state = InitiativeState.Accepted;
+        initiative.acceptanceTimestamp = block.timestamp;
 
         // Notify the Incentives contract
         // TODO: Reconsider tradeoffs of this design pattern properly
@@ -423,6 +441,16 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         Initiative storage initiative = _initiatives[lock.initiativeId];
         if (!(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)) {
             revert ISignals.InvalidInitiativeState("Initiative not withdrawable");
+        }
+
+        // Check release timelock for accepted initiatives (unless board is closed)
+        if (initiative.state == InitiativeState.Accepted && boardState != BoardState.Closed) {
+            if (releaseLockDuration > 0) {
+                uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration;
+                if (block.timestamp < releaseTime) {
+                    revert ISignals.InvalidInitiativeState("Tokens still locked after acceptance");
+                }
+            }
         }
 
         uint256 amount = lock.tokenAmount;
@@ -582,6 +610,18 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice (Optional) Allows the owner to set the Incentives contract
     function setIncentives(address _incentives) external onlyOwner {
         incentives = Incentives(_incentives);
+    }
+
+    /**
+     * @notice Permanently closes the board, making all locks immediately withdrawable
+     * @dev This is an irreversible action that should be used as an emergency exit or end-of-season cleanup
+     */
+    function closeBoard() external onlyOwner {
+        if (boardState == BoardState.Closed) {
+            revert ISignals.InvalidInitiativeState("Board already closed");
+        }
+        boardState = BoardState.Closed;
+        emit BoardClosed(msg.sender);
     }
 
     // TODO: EIP-1153: Transient Storage?
