@@ -1,0 +1,294 @@
+---
+title: "Governance Tokens (ERC20Votes)"
+weight: 2
+---
+
+# Governance Tokens (ERC20Votes)
+
+Use ERC20Votes tokens to unlock time-based proposal requirements, ensuring only committed long-term holders can create initiatives.
+
+## Overview
+
+Standard ERC20 tokens only provide current balance information. Governor-style ERC20Votes tokens add **checkpoint functionality** that tracks historical balances at specific blocks, enabling Signals boards to verify how long users have held tokens.
+
+This unlocks the `MinBalanceAndDuration` requirement type, preventing flash-loan attacks and ensuring proposers are genuine community members.
+
+## Why ERC20Votes?
+
+**Without checkpoints (standard ERC20):**
+- Users can borrow tokens, propose, then return them in one transaction
+- No way to verify holding duration
+- Only supports `MinBalance` requirements
+
+**With checkpoints (ERC20Votes):**
+- Historical balance tracking per block
+- Provable holding duration
+- Supports both `MinBalance` and `MinBalanceAndDuration` requirements
+- Standard governance token format (compatible with OpenZeppelin Governor, Compound, etc.)
+
+## Token Requirements
+
+Your token must implement the `IVotes` interface:
+
+```solidity
+interface IVotes {
+    function getPastVotes(address account, uint256 timepoint)
+        external view returns (uint256);
+
+    function getPastTotalSupply(uint256 timepoint)
+        external view returns (uint256);
+}
+```
+
+**Recommended implementation:** Use OpenZeppelin's `ERC20Votes`:
+
+```solidity
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+
+contract MyGovernanceToken is ERC20, ERC20Permit, ERC20Votes {
+    constructor()
+        ERC20("Governance Token", "GOV")
+        ERC20Permit("Governance Token")
+    {}
+
+    // Required overrides
+    function _update(address from, address to, uint256 amount)
+        internal override(ERC20, ERC20Votes)
+    {
+        super._update(from, to, amount);
+    }
+
+    function nonces(address owner)
+        public view override(ERC20Permit, Nonces)
+        returns (uint256)
+    {
+        return super.nonces(owner);
+    }
+}
+```
+
+## Board Configuration
+
+Configure your board to require holding duration:
+
+```solidity
+SignalsConfig memory config = SignalsConfig({
+    version: "1.0",
+    owner: msg.sender,
+    underlyingToken: address(governanceToken), // ERC20Votes token
+    proposalThreshold: 50_000 * 1e18,
+    acceptanceThreshold: 100_000 * 1e18,
+    maxLockIntervals: 365,
+    proposalCap: 100,
+    lockInterval: 1 days,
+    decayCurveType: 0,
+    decayCurveParameters: new uint256[](1),
+    proposalRequirements: ProposalRequirements({
+        requirementType: ProposalRequirementType.MinBalanceAndDuration,
+        minBalance: 100_000 * 1e18,      // Must hold 100k tokens
+        minHoldingDuration: 50400         // For ~7 days (50,400 blocks at 12s)
+    }),
+    releaseLockDuration: 0
+});
+
+signals.initialize(config);
+```
+
+## How It Works
+
+When a user attempts to propose an initiative, Signals verifies their historical balance:
+
+```solidity
+// Inside Signals.sol
+function meetsProposalRequirements() internal view returns (bool) {
+    ProposalRequirements memory reqs = getProposalRequirements();
+
+    if (reqs.requirementType == ProposalRequirementType.MinBalanceAndDuration) {
+        // Check balance from N blocks ago
+        uint256 pastBlock = block.number - reqs.minHoldingDuration;
+        uint256 pastBalance = IVotes(underlyingToken).getPastVotes(
+            msg.sender,
+            pastBlock
+        );
+
+        return pastBalance >= reqs.minBalance;
+    }
+
+    // ... other requirement types
+}
+```
+
+## Example Timeline
+
+```
+Block 1000: Alice receives 100,000 GOV tokens
+            Alice delegates to self
+            ✅ getVotes(alice) = 100,000
+
+Block 1500: Alice tries to propose (needs 7-day holding period)
+            Board checks getPastVotes(alice, 1500 - 50400)
+            ❌ Reverts: "Tokens not held long enough"
+
+Block 51400: Alice tries to propose again
+             Board checks getPastVotes(alice, 51400 - 50400) = block 1000
+             ✅ getPastVotes(alice, 1000) = 100,000
+             ✅ Proposal succeeds
+
+Block 52000: Alice transfers 50,000 to Bob
+             ✅ getVotes(alice) = 50,000
+             ✅ getVotes(bob) = 0 (Bob hasn't delegated)
+
+Block 52001: Bob delegates to self
+             ✅ getVotes(bob) = 50,000
+```
+
+## Delegation Requirement
+
+**Critical:** Users must delegate their tokens to activate checkpoints, even if delegating to themselves.
+
+```solidity
+// Without delegation - NO voting power
+governanceToken.mint(alice, 100_000 * 1e18);
+governanceToken.getVotes(alice); // Returns 0
+
+// With delegation - voting power activated
+governanceToken.delegate(alice); // Alice delegates to herself
+governanceToken.getVotes(alice); // Returns 100,000 * 1e18
+```
+
+## Block Time Calculations
+
+Configure `minHoldingDuration` based on your chain's block time:
+
+| Chain | Block Time | 7 Days | 30 Days |
+|-------|------------|--------|---------|
+| Ethereum | 12s | 50,400 blocks | 216,000 blocks |
+| Polygon | 2s | 302,400 blocks | 1,296,000 blocks |
+| Arbitrum | ~0.25s | 2,419,200 blocks | 10,368,000 blocks |
+| Base | 2s | 302,400 blocks | 1,296,000 blocks |
+
+## Use Cases
+
+### Conservative DAO Governance
+
+Require 30-day holding periods to ensure only committed members propose major initiatives:
+
+```solidity
+ProposalRequirements({
+    requirementType: ProposalRequirementType.MinBalanceAndDuration,
+    minBalance: 500_000 * 1e18,
+    minHoldingDuration: 216_000  // 30 days on Ethereum
+})
+```
+
+### Anti-Flash-Loan Protection
+
+Require modest holdings for a short period to prevent borrowed-token attacks:
+
+```solidity
+ProposalRequirements({
+    requirementType: ProposalRequirementType.MinBalanceAndDuration,
+    minBalance: 10_000 * 1e18,
+    minHoldingDuration: 100  // ~20 minutes on Ethereum
+})
+```
+
+### Tiered Access
+
+Combine with proposal threshold for dual requirements:
+
+```solidity
+SignalsConfig({
+    // ... other config
+    proposalThreshold: 1_000 * 1e18,  // 1k tokens to propose
+    proposalRequirements: ProposalRequirements({
+        requirementType: ProposalRequirementType.MinBalanceAndDuration,
+        minBalance: 100_000 * 1e18,    // Must hold 100k tokens
+        minHoldingDuration: 50_400      // For 7 days
+    })
+})
+```
+
+Users must hold 100k tokens for 7 days AND pay 1k tokens to propose.
+
+## Token Compatibility
+
+### ✅ Compatible Tokens
+
+- OpenZeppelin ERC20Votes
+- Compound COMP
+- Uniswap UNI
+- Any token implementing IVotes
+
+### ❌ Incompatible Tokens
+
+- Standard ERC20 (no checkpoints)
+- ERC20Snapshot (different interface)
+- Rebasing tokens (checkpoints may be inaccurate)
+
+If you configure `MinBalanceAndDuration` with a non-IVotes token, proposals will revert with "Token does not support holding duration checks".
+
+## Best Practices
+
+### Delegation UX
+
+Always prompt users to delegate after receiving tokens:
+
+```typescript
+// Frontend example
+const activateVotingPower = async (token: Contract, user: string) => {
+  // Check if already delegated
+  const currentDelegate = await token.delegates(user)
+
+  if (currentDelegate === ethers.constants.AddressZero) {
+    // Delegate to self
+    await token.delegate(user)
+  }
+}
+```
+
+### Block Time Variations
+
+Account for block time instability:
+
+```solidity
+// Add 10% buffer for variable block times
+uint256 targetDays = 7;
+uint256 expectedBlocks = (targetDays * 24 * 60 * 60) / 12; // Ethereum
+uint256 bufferBlocks = expectedBlocks * 110 / 100;         // +10%
+
+ProposalRequirements({
+    minHoldingDuration: bufferBlocks
+})
+```
+
+### Testing
+
+Always test proposal requirements with realistic scenarios:
+
+```solidity
+function test_ProposalRequirements() public {
+    // Mint and delegate
+    token.mint(alice, 100_000 * 1e18);
+    vm.prank(alice);
+    token.delegate(alice);
+
+    // Try immediately - should fail
+    vm.prank(alice);
+    vm.expectRevert("Tokens not held long enough");
+    signals.proposeInitiative("Test", "Description");
+
+    // Advance blocks
+    vm.roll(block.number + minHoldingDuration);
+
+    // Try again - should succeed
+    vm.prank(alice);
+    signals.proposeInitiative("Test", "Description");
+}
+```
+
+## References
+
+- [OpenZeppelin ERC20Votes](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Votes)
+- [EIP-5805: Voting with delegation](https://eips.ethereum.org/EIPS/eip-5805)
+- [Board Configuration](/configuration/board-configuration)
