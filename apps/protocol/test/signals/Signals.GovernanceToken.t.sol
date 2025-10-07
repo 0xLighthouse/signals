@@ -239,7 +239,12 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
             proposalCap: 100,
             lockInterval: 1 days,
             decayCurveType: 0,
-            decayCurveParameters: new uint256[](1)
+            decayCurveParameters: new uint256[](1),
+            proposalRequirements: ISignals.ProposalRequirements({
+                requirementType: ISignals.ProposalRequirementType.None,
+                minBalance: 0,
+                minHoldingDuration: 0
+            })
         });
 
         address instance = factory.create(factoryConfig);

@@ -18,6 +18,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
+     * @param proposalRequirements Requirements for who can propose (immutable)
      */
     struct SignalsConfig {
         string version;
@@ -30,6 +31,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
+        ProposalRequirements proposalRequirements;
     }
 
     /**
@@ -70,12 +72,32 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         bool withdrawn;
     }
 
+    /**
+     * @notice Configuration for proposal requirements
+     *
+     * @param requirementType Type of requirement (None, MinBalance, MinBalanceAndDuration)
+     * @param minBalance Minimum token balance required to propose
+     * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
+     */
+    struct ProposalRequirements {
+        ProposalRequirementType requirementType;
+        uint256 minBalance;
+        uint256 minHoldingDuration;
+    }
+
     // Enums
     enum InitiativeState {
         Proposed,
         Accepted,
         Cancelled,
         Expired
+    }
+
+    /// @notice Types of proposal requirements
+    enum ProposalRequirementType {
+        None,                    // No requirements - anyone can propose
+        MinBalance,              // Requires minimum token balance
+        MinBalanceAndDuration    // Requires min balance held for min duration
     }
 
     /**
@@ -108,6 +130,9 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     error InvalidRedemption();
     error InitiativeNotFound();
     error InvalidTokenId();
+
+    /// @notice Error when user doesn't meet proposal requirements
+    error ProposalRequirementsNotMet(string reason);
 
     // Public state variables
     function proposalThreshold() external view returns (uint256);
@@ -155,4 +180,13 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function getLockCountForSupporter(address supporter) external view returns (uint256);
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
     function listPositions(address owner) external view returns (uint256[] memory);
+
+    /// @notice Get current proposal requirements (immutable)
+    /// @return Current proposal requirements configuration
+    function getProposalRequirements() external view returns (ProposalRequirements memory);
+
+    /// @notice Check if an address meets proposal requirements
+    /// @param proposer Address to check
+    /// @return True if address can propose
+    function canPropose(address proposer) external view returns (bool);
 }

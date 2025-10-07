@@ -65,6 +65,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
     uint256 public activityTimeout = 60 days;
 
+    /// @notice Configuration for proposal requirements (immutable after initialization)
+    ProposalRequirements public proposalRequirements;
+
     /// @notice (initiativeId => Initiative)
     mapping(uint256 => Initiative) internal _initiatives;
 
@@ -111,6 +114,44 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             revert ISignals.InvalidInput("Title or body cannot be empty");
         }
         _;
+    }
+
+    /// @notice Modifier to check proposal requirements
+    modifier meetsProposalRequirements() {
+        ProposalRequirements memory reqs = proposalRequirements;
+
+        if (reqs.requirementType == ProposalRequirementType.None) {
+            _;
+            return;
+        }
+
+        if (reqs.requirementType == ProposalRequirementType.MinBalance) {
+            uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
+            if (balance < reqs.minBalance) {
+                revert ProposalRequirementsNotMet("Insufficient token balance for proposal");
+            }
+            _;
+            return;
+        }
+
+        if (reqs.requirementType == ProposalRequirementType.MinBalanceAndDuration) {
+            uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
+            if (balance < reqs.minBalance) {
+                revert ProposalRequirementsNotMet("Insufficient token balance for proposal");
+            }
+
+            // Check holding duration (requires governance token with checkpoints)
+            try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration)
+                returns (uint256 pastBalance) {
+                if (pastBalance < reqs.minBalance) {
+                    revert ProposalRequirementsNotMet("Tokens not held long enough");
+                }
+            } catch {
+                revert ProposalRequirementsNotMet("Token does not support holding duration checks");
+            }
+            _;
+            return;
+        }
     }
 
     /// @notice (Optional) Reference to the Incentives contract (can only be set once)
@@ -274,6 +315,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         lockInterval = config.lockInterval;
         decayCurveType = config.decayCurveType;
         decayCurveParameters = config.decayCurveParameters;
+        proposalRequirements = config.proposalRequirements;
+
+        // Validate proposal requirements
+        _validateProposalRequirements(config.proposalRequirements);
 
         transferOwnership(config.owner);
     }
@@ -286,6 +331,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     function proposeInitiative(string memory _title, string memory _body)
         external
+        meetsProposalRequirements
         hasSufficientTokens(proposalThreshold)
         hasValidInput(_title, _body)
     {
@@ -305,7 +351,13 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         string memory _body,
         uint256 _amount,
         uint256 _lockDuration
-    ) external hasSufficientTokens(proposalThreshold) hasValidInput(_title, _body) returns (uint256 tokenId) {
+    )
+        external
+        meetsProposalRequirements
+        hasSufficientTokens(proposalThreshold)
+        hasValidInput(_title, _body)
+        returns (uint256 tokenId)
+    {
         uint256 id = _addInitiative(_title, _body);
         tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
     }
@@ -559,4 +611,66 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
         return tokens;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    PROPOSAL REQUIREMENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Get current proposal requirements
+    function getProposalRequirements() external view returns (ProposalRequirements memory) {
+        return proposalRequirements;
+    }
+
+    /// @notice Check if an address meets proposal requirements
+    function canPropose(address proposer) public view returns (bool) {
+        ProposalRequirements memory reqs = proposalRequirements;
+
+        if (reqs.requirementType == ProposalRequirementType.None) {
+            return true;
+        }
+
+        if (reqs.requirementType == ProposalRequirementType.MinBalance) {
+            uint256 balance = IERC20(underlyingToken).balanceOf(proposer);
+            return balance >= reqs.minBalance;
+        }
+
+        if (reqs.requirementType == ProposalRequirementType.MinBalanceAndDuration) {
+            uint256 balance = IERC20(underlyingToken).balanceOf(proposer);
+            if (balance < reqs.minBalance) {
+                return false;
+            }
+
+            // Try to check past balance (requires ERC20Votes)
+            try IVotes(underlyingToken).getPastVotes(proposer, block.number - reqs.minHoldingDuration)
+                returns (uint256 pastBalance) {
+                return pastBalance >= reqs.minBalance;
+            } catch {
+                return false; // Token doesn't support checkpoints
+            }
+        }
+
+        return false;
+    }
+
+    /// @notice Internal function to validate proposal requirements
+    function _validateProposalRequirements(ProposalRequirements memory reqs) internal pure {
+        if (reqs.requirementType == ProposalRequirementType.MinBalance) {
+            if (reqs.minBalance == 0) {
+                revert ProposalRequirementsNotMet("MinBalance must be greater than 0");
+            }
+        }
+
+        if (reqs.requirementType == ProposalRequirementType.MinBalanceAndDuration) {
+            if (reqs.minBalance == 0) {
+                revert ProposalRequirementsNotMet("MinBalance must be greater than 0");
+            }
+            if (reqs.minHoldingDuration == 0) {
+                revert ProposalRequirementsNotMet("MinHoldingDuration must be greater than 0");
+            }
+        }
+    }
+}
+
+interface IVotes {
+    function getPastVotes(address account, uint256 blockNumber) external view returns (uint256);
 }

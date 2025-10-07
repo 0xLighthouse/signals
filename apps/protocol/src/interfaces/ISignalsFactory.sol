@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import {ISignals} from "./ISignals.sol";
 
 interface ISignalsFactory {
     struct FactoryDeployment {
@@ -13,6 +14,7 @@ interface ISignalsFactory {
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
+        ISignals.ProposalRequirements proposalRequirements;
     }
 
     function create(ISignalsFactory.FactoryDeployment calldata config) external payable returns (address);

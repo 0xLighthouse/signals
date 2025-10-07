@@ -12,10 +12,10 @@ As a board administrator, I want to configure proposal requirements so that I ca
 
 ### Acceptance Criteria
 
-- [ ] Boards can configure proposal requirements
+- [ ] Boards can configure proposal requirements at initialization
 - [ ] Three requirement modes: None, MinBalance, MinBalanceAndDuration
 - [ ] Requirements are enforced when proposing initiatives
-- [ ] Requirements are configurable at initialization and updateable by owner
+- [ ] Requirements are IMMUTABLE after initialization (set once, never changed)
 - [ ] Requirements are queryable via interface
 - [ ] Full test coverage for all modes
 
@@ -44,9 +44,11 @@ struct ProposalRequirements {
 ### Storage Variables
 
 ```solidity
-/// @notice Configuration for proposal requirements
-ProposalRequirements public proposalRequirements;
+/// @notice Configuration for proposal requirements (immutable after initialization)
+ProposalRequirements public immutable proposalRequirements;
 ```
+
+**Note**: Requirements are set during initialization and cannot be changed.
 
 ### Interface Changes
 
@@ -69,23 +71,12 @@ struct ProposalRequirements {
     uint256 minHoldingDuration;
 }
 
-/// @notice Emitted when proposal requirements are updated
-event ProposalRequirementsUpdated(
-    ProposalRequirementType requirementType,
-    uint256 minBalance,
-    uint256 minHoldingDuration
-);
-
 /// @notice Error when user doesn't meet proposal requirements
 error ProposalRequirementsNotMet(string reason);
 
-/// @notice Get current proposal requirements
+/// @notice Get current proposal requirements (immutable)
 /// @return Current proposal requirements configuration
 function getProposalRequirements() external view returns (ProposalRequirements memory);
-
-/// @notice Update proposal requirements (owner only)
-/// @param requirements New proposal requirements
-function setProposalRequirements(ProposalRequirements calldata requirements) external;
 
 /// @notice Check if an address meets proposal requirements
 /// @param proposer Address to check

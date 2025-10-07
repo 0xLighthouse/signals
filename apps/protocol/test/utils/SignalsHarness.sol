@@ -83,7 +83,12 @@ contract SignalsHarness is Test, Deployers {
         proposalCap: 100, // 100 proposals
         lockInterval: 1 days, // 1 day
         decayCurveType: 0, // Linear
-        decayCurveParameters: new uint256[](1)
+        decayCurveParameters: new uint256[](1),
+        proposalRequirements: ISignals.ProposalRequirements({
+            requirementType: ISignals.ProposalRequirementType.None,
+            minBalance: 0,
+            minHoldingDuration: 0
+        })
     });
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
@@ -167,7 +172,12 @@ contract SignalsHarness is Test, Deployers {
             proposalCap: 100,
             lockInterval: 1 days,
             decayCurveType: 0,
-            decayCurveParameters: new uint256[](1)
+            decayCurveParameters: new uint256[](1),
+            proposalRequirements: ISignals.ProposalRequirements({
+                requirementType: ISignals.ProposalRequirementType.None,
+                minBalance: 0,
+                minHoldingDuration: 0
+            })
         });
     }
 
@@ -249,7 +259,8 @@ contract SignalsHarness is Test, Deployers {
             proposalCap: config.proposalCap,
             lockInterval: config.lockInterval,
             decayCurveType: config.decayCurveType,
-            decayCurveParameters: config.decayCurveParameters
+            decayCurveParameters: config.decayCurveParameters,
+            proposalRequirements: config.proposalRequirements
         });
     }
 }

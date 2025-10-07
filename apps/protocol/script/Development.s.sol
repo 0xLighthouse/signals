@@ -6,6 +6,7 @@ import "forge-std/Script.sol";
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
 import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
@@ -93,7 +94,12 @@ contract DevelopmentScript is Script {
                 proposalCap: 5, // map active initiatives
                 lockInterval: 1 hours, // decayInterval
                 decayCurveType: 0, // decayCurveType, linear
-                decayCurveParameters: params // decayCurveParameters
+                decayCurveParameters: params, // decayCurveParameters
+                proposalRequirements: ISignals.ProposalRequirements({
+                    requirementType: ISignals.ProposalRequirementType.None,
+                    minBalance: 0,
+                    minHoldingDuration: 0
+                })
             })
         );
 

@@ -46,7 +46,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             proposalCap: defaultConfig.proposalCap,
             lockInterval: defaultConfig.lockInterval,
             decayCurveType: defaultConfig.decayCurveType,
-            decayCurveParameters: defaultConfig.decayCurveParameters
+            decayCurveParameters: defaultConfig.decayCurveParameters,
+            proposalRequirements: defaultConfig.proposalRequirements
         });
 
         // Check that the Signals contract was deployed
@@ -92,7 +93,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
                 proposalCap: defaultConfig.proposalCap,
                 lockInterval: defaultConfig.lockInterval,
                 decayCurveType: defaultConfig.decayCurveType,
-                decayCurveParameters: defaultConfig.decayCurveParameters
+                decayCurveParameters: defaultConfig.decayCurveParameters,
+                proposalRequirements: defaultConfig.proposalRequirements
             })
         );
     }
