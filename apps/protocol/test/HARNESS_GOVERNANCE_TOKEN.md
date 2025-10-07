@@ -2,16 +2,16 @@
 
 ## Overview
 
-The test harness now includes `MockVotesToken`, an ERC20Votes token for testing proposal requirements that depend on historical token balances.
+The test harness now includes `MockERC20Votes`, an ERC20Votes token for testing proposal requirements that depend on historical token balances.
 
 ## Implementation
 
-### MockVotesToken
+### MockERC20Votes
 
-Located in: `test/utils/SignalsHarness.sol`
+Located in: `test/mocks/MockERC20Votes.m.sol`
 
 ```solidity
-contract MockVotesToken is ERC20, ERC20Permit, ERC20Votes {
+contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
     constructor() ERC20("Governance Token", "vGOV") ERC20Permit("Governance Token") {}
 
     function mint(address to, uint256 amount) external {
@@ -42,15 +42,15 @@ contract MockVotesToken is ERC20, ERC20Permit, ERC20Votes {
 ```solidity
 contract MyTest is Test, SignalsHarness {
     function setUp() public {
-        // Governance token is already available as _govToken
-        _dealAndDelegateGovernanceTokens();
+        // Governance token is already available as _tokenERC20Votes
+        _dealAndDelegateERC20Votes();
     }
 }
 ```
 
 ### Helper Functions
 
-#### `_dealAndDelegateGovernanceTokens()`
+#### `_dealAndDelegateERC20Votes()`
 
 Mints tokens and delegates voting power to test users:
 - Alice: 50,000 vGOV
@@ -59,22 +59,22 @@ Mints tokens and delegates voting power to test users:
 - Liquidity Provider: 100M vGOV
 
 ```solidity
-function _dealAndDelegateGovernanceTokens() public {
-    _govToken.mint(_alice, 50_000 * 1e18);
+function _dealAndDelegateERC20Votes() public {
+    _tokenERC20Votes.mint(_alice, 50_000 * 1e18);
     vm.prank(_alice);
-    _govToken.delegate(_alice); // Activate checkpoints!
+    _tokenERC20Votes.delegate(_alice); // Activate checkpoints!
 
     // ... same for bob, charlie, liquidityProvider
 }
 ```
 
-#### `getGovernanceTokenConfig()`
+#### `getERC20VotesConfig()`
 
 Returns a SignalsConfig using the governance token:
 
 ```solidity
-ISignals.SignalsConfig memory config = getGovernanceTokenConfig();
-// config.underlyingToken == address(_govToken)
+ISignals.SignalsConfig memory config = getERC20VotesConfig();
+// config.underlyingToken == address(_tokenERC20Votes)
 ```
 
 ## Example: Testing MinBalanceAndDuration
@@ -82,7 +82,7 @@ ISignals.SignalsConfig memory config = getGovernanceTokenConfig();
 ```solidity
 function test_Propose_RequiresHoldingDuration() public {
     // Setup: Use governance token
-    ISignals.SignalsConfig memory config = getGovernanceTokenConfig();
+    ISignals.SignalsConfig memory config = getERC20VotesConfig();
     Signals signals = deploySignalsWithConfig(config);
 
     // Set requirements: Must hold 50k tokens for 10 blocks
@@ -94,9 +94,9 @@ function test_Propose_RequiresHoldingDuration() public {
     signals.setProposalRequirements(reqs);
 
     // Alice gets tokens NOW
-    _govToken.mint(_alice, 50_000 * 1e18);
+    _tokenERC20Votes.mint(_alice, 50_000 * 1e18);
     vm.prank(_alice);
-    _govToken.delegate(_alice);
+    _tokenERC20Votes.delegate(_alice);
 
     // Try to propose immediately - should FAIL (hasn't held long enough)
     vm.startPrank(_alice);
@@ -114,12 +114,12 @@ function test_Propose_RequiresHoldingDuration() public {
 
 ## Token Comparison
 
-### MockERC20 (_token)
+### MockERC20 (_tokenERC20)
 - **Use Case**: Standard ERC20, no checkpoints
 - **Supports**: MinBalance requirements
 - **Does NOT Support**: MinBalanceAndDuration
 
-### MockVotesToken (_govToken)
+### MockERC20Votes (_tokenERC20Votes)
 - **Use Case**: Governance/voting tokens
 - **Supports**: MinBalance AND MinBalanceAndDuration requirements
 - **Features**: Checkpoints, delegation, historical queries
@@ -160,24 +160,24 @@ Block 10: Query historical votes
 
 ```solidity
 // Mint AND delegate
-_govToken.mint(alice, 1000 ether);
+_tokenERC20Votes.mint(alice, 1000 ether);
 vm.prank(alice);
-_govToken.delegate(alice);
+_tokenERC20Votes.delegate(alice);
 
 // Query past blocks (not current)
 vm.roll(block.number + 1);
-uint256 pastVotes = _govToken.getPastVotes(alice, block.number - 1);
+uint256 pastVotes = _tokenERC20Votes.getPastVotes(alice, block.number - 1);
 ```
 
 ### ❌ DON'T
 
 ```solidity
 // Don't forget to delegate
-_govToken.mint(alice, 1000 ether);
+_tokenERC20Votes.mint(alice, 1000 ether);
 // ❌ getVotes(alice) = 0 (not delegated!)
 
 // Don't query current block
-uint256 votes = _govToken.getPastVotes(alice, block.number);
+uint256 votes = _tokenERC20Votes.getPastVotes(alice, block.number);
 // ❌ Reverts with ERC5805FutureLookup
 ```
 

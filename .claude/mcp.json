@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "openzeppelin-solidity": {
+      "command": "pnpm",
+      "args": [
+        "dlx",
+        "@openzeppelin/mcp-server-solidity"
+      ]
+    },
+    "foundry": {
+      "command": "pnpm",
+      "args": [
+        "dlx",
+        "@modelcontextprotocol/server-foundry"
+      ]
+    }
+  }
+}

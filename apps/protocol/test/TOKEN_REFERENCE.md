@@ -13,7 +13,7 @@
 - **Use Case**: Testing with regular ERC20 tokens, MinBalance requirements
 
 #### `_tokenERC20Votes` - Governance Token
-- **Type**: `MockVotesToken` (extends ERC20Votes)
+- **Type**: `MockERC20Votes` (extends ERC20Votes)
 - **Symbol**: `vGOV`
 - **Decimals**: 18
 - **Features**: ERC20Votes, delegation, checkpoints
@@ -39,17 +39,6 @@
 - **Decimals**: 18
 - **Use Case**: Testing incentive payments
 
-### Legacy Aliases
-
-#### `_token`
-- **Points to**: `_tokenERC20`
-- **Purpose**: Backwards compatibility with existing tests
-- **Note**: Prefer using `_tokenERC20` or `_tokenERC20Votes` explicitly in new tests
-
-#### `_govToken`
-- **Points to**: `_tokenERC20Votes`
-- **Purpose**: Backwards compatibility
-- **Note**: Prefer using `_tokenERC20Votes` in new tests
 
 ## Helper Functions
 

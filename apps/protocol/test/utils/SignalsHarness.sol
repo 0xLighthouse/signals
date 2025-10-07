@@ -7,35 +7,13 @@ import "forge-std/console.sol";
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
-
-/**
- * @notice Simple ERC20Votes token for testing
- */
-contract MockVotesToken is ERC20, ERC20Permit, ERC20Votes {
-    constructor() ERC20("Governance Token", "vGOV") ERC20Permit("Governance Token") {}
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-
-    function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {
-        super._update(from, to, amount);
-    }
-
-    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256) {
-        return super.nonces(owner);
-    }
-}
 
 contract SignalsHarness is Test, Deployers {
     address _deployer = address(this);
@@ -49,7 +27,7 @@ contract SignalsHarness is Test, Deployers {
     MockERC20 internal _tokenERC20 = new MockERC20("StandardToken", "STD", 18);
 
     // ERC20Votes token (with checkpoints for governance)
-    MockVotesToken internal _tokenERC20Votes = new MockVotesToken();
+    MockERC20Votes internal _tokenERC20Votes = new MockERC20Votes();
 
     // Incentive tokens
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
