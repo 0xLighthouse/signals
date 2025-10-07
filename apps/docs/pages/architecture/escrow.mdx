@@ -1,0 +1,35 @@
+---
+title: "Escrow"
+weight: 3
+---
+
+### Escrow Contract
+
+The Escrow Contract manages the tokenized representations of both collateral and bonds. It ensures proper collateralization of `hTokens` through a combination of open wrapping/unwrapping functions and access-controlled minting and burning. It also facilitates settlement and redemption workflows through integration with the Harbor market contract (hook).
+
+### Key Responsibilities
+
+* Token Wrapping: Convert underlying collateral into wrapped forms (e.g., UNI → hUNI) and back
+* Bond Collateralization: Lock and release bond NFTs as collateral
+* Access Control: Only `market` contracts can deposit and withdraw bond NFTs
+* (Planned): Manage redemption and settlement of matured bond positions
+
+### Core Functions
+
+```solidity
+interface IEscrow is ERC20 {
+    // Corresponding token
+    address public immutable underlying;
+
+    // Public: wrapping/unwrapping collateral
+    function wrapToken(uint256 amount) external;
+    function unwrapToken(uint256 amount) external;
+
+    // Role-restricted: bond management
+    function depositBond(address issuer, uint256 tokenId, address from) external;
+    function withdrawBond(address issuer, uint256 tokenId, address to) external;
+
+    // TODO:
+    function redeemBond(address issuer, uint256 tokenId) internal;
+}
+```

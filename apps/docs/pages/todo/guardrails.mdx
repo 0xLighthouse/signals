@@ -1,0 +1,61 @@
+---
+title: "Guardrails"
+weight: 6
+---
+
+## Guardrails
+
+ guard against common risks.
+
+### JIT Profit Extraction
+
+1. Attacker sees profitable bond incoming via mempool
+2. Front-runs by wrapping large amount OP → vOP
+3. Bond purchase happens, profit distributed across all vOP holders
+4. Attacker immediately unwraps vOP → OP, capturing profit
+5. LP who provided long-term liquidity gets diluted returns
+
+:::warning
+
+### Liquidity Drain
+
+Syntetic token is trading below 1:1 parity on external markets
+
+1. Arbitrageur buys cheap vTKN (e.g., 0.95 vTKN each)
+2. Unwraps vTKN for full 1:1 TKN value
+3. 5% instant profit extracted from LP reserves
+4. Repeat until pool drained
+
+::::
+
+:::warning
+
+### Fee Structure for Non-LP Operations
+
+```
+If allowing public wrap/unwrap:
+- Wrap fee: 0.5% (discourages profit extraction)
+- Unwrap fee: 1% (protects against arbitrage)
+- Fees go to LP rewards pool
+```
+
+::::
+
+:::warning
+
+### Time Delays
+
+```
+- Wrap to unwrap delay: 24 hours minimum
+- Prevents MEV sandwich attacks
+- Forces commitment to LP position
+```
+
+External market scenario:
+
+- vOP trades at $1.40 on vOP/USDC (below $1.50 fair value)
+- Attacker buys 50k vOP for $70k
+- Unwraps internally for 50k OP = $150k
+- $80k profit extracted from pool
+
+::::

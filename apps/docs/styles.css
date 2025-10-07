@@ -1,0 +1,105 @@
+/* Hide katex-html */
+.katex-html {
+  display: none;
+}
+
+:root {
+  /* Custom spacing for cards */
+  --card-gap: 24px;
+  --card-gap-mobile: 20px;
+  --card-padding: 24px;
+  --card-margin-vertical: 40px;
+
+  /* Custom border radius */
+  --card-border-radius: 8px;
+  --card-icon-border-radius: 8px;
+
+  /* Custom card colors */
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-background: rgba(255, 255, 255, 0.02);
+  --card-background-hover: rgba(255, 255, 255, 0.04);
+  --card-accent-background: rgba(59, 130, 246, 0.05);
+}
+
+.card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-border-radius);
+  padding: var(--card-padding);
+  background: var(--card-background);
+  transition: all 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--card-background-hover);
+  transform: translateY(-1px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: var(--vocs-font-size-xl);
+  font-weight: var(--vocs-font-weight-semibold);
+  color: var(--vocs-color-text);
+  margin: 0;
+  line-height: var(--vocs-line-height-tight);
+  flex: 1;
+  padding-right: 16px;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--card-icon-border-radius);
+  flex-shrink: 0;
+  background: var(--card-accent-background);
+}
+
+.card-description {
+  color: var(--vocs-color-text-secondary);
+  font-size: var(--vocs-font-size-base);
+  line-height: var(--vocs-line-height-normal);
+  margin: 0 0 24px 0;
+  flex-grow: 1;
+}
+
+.card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vocs-color-accent);
+  text-decoration: none;
+  font-weight: var(--vocs-font-weight-medium);
+  font-size: var(--vocs-font-size-base);
+  margin-top: auto;
+}
+
+.card-link:hover {
+  color: var(--vocs-color-accent-hover);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--card-gap);
+  margin: var(--card-margin-vertical) 0;
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: var(--card-gap-mobile);
+  }
+}

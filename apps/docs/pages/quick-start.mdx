@@ -1,0 +1,41 @@
+import { Card } from '../components/Card'
+import { CardGrid } from '../components/CardGrid'
+import { Coins, TrendingUp, Shield, Code } from 'lucide-react'
+
+# Get started
+
+Learn how on  bond trading infrastructure with our comprehensive integration tools.
+
+<CardGrid>
+  <Card
+    title="Trade - Harbor Markets"
+    description="Enable bond trading functionality in your applications with seamless Uniswap V4 integration."
+    icon={<TrendingUp size={24} color="#3b82f6" />}
+    href="/developers/trading-api"
+    moreText="More"
+  />
+
+  <Card
+    title="Issue - Bond Creation"
+    description="Create and manage tokenized bond markets with automated settlement and escrow."
+    icon={<Coins size={24} color="#3b82f6" />}
+    href="/developers/bond-issuance"
+    moreText="More"
+  />
+
+  <Card
+    title="Secure - Escrow System"
+    description="Integrate with Harbor's secure escrow infrastructure for automated bond settlement."
+    icon={<Shield size={24} color="#3b82f6" />}
+    href="/developers/escrow-integration"
+    moreText="More"
+  />
+
+  <Card
+    title="Build - SDK & APIs"
+    description="Use our comprehensive SDK and APIs to build custom bond trading applications."
+    icon={<Code size={24} color="#3b82f6" />}
+    href="/developers/sdk"
+    moreText="More"
+  />
+</CardGrid>

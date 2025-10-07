@@ -1,0 +1,31 @@
+---
+title: "Bonds"
+weight: 1
+---
+
+# Bonds
+
+Harbor considers a bond to be any [Non-Fungible Token](https://en.wikipedia.org/wiki/ERC-721) that represents ownership of locked tokens that will become unlocked in the future (also called a vesting NTF, etc). Bonds are only accepted from whitelisted issuers to ensure that all bonds in the system will work correctly. All bonds must either implement the `IHarbor.sol` interface, or utilize an adapter which presents the required information in the correct format.
+
+```solidity
+interface IHarbor is IERC721Enumerable {
+    /**
+     * @notice Reference data postion needed to calculate offers.
+     *
+     * @param underlying Address of the underlying token 
+     * @param faceValue Face value of the bond
+     * @param duration Total duration of the lock in seconds
+     * @param created Timestamp of when the lock was created
+     * @param maturity Timestamp of when the lock matures
+     * @param redeemed Flag indicating whether the locked tokens have been redeemed
+     */
+    struct ReferenceData {
+        address underlying;
+        uint256 faceValue;
+        uint256 duration;
+        uint256 created;
+        uint256 maturity;
+        bool redeemed;
+    }
+}
+```

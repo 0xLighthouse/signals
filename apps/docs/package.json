@@ -1,0 +1,36 @@
+{
+  "name": "harbor-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Harbor protocol",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vocs dev",
+    "build": "vocs build",
+    "preview": "vocs preview"
+  },
+  "keywords": [
+    "harbor",
+    "uniswap",
+    "v4",
+    "hooks",
+    "bonds",
+    "escrow"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "@types/react": "^18.2.0",
+    "front-matter": "^4.0.2",
+    "lucide-react": "^0.263.1",
+    "playwright": "^1.40.0",
+    "react": "^18.2.0",
+    "vocs": "^1.0.13"
+  },
+  "dependencies": {
+    "@web3icons/react": "^4.0.19",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
+  }
+}
