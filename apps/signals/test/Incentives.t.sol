@@ -9,11 +9,9 @@ import "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Incentives} from "../src/Incentives.sol";
-import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {IIncentives} from "../src/interfaces/IIncentives.sol";
 

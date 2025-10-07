@@ -1,2 +1,2 @@
 # --- pre-commit checks ---
-# yarn build
+# pnpm build

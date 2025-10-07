@@ -3,7 +3,7 @@
 ## Getting Started
 
 ```bash
-yarn dev
+pnpm dev
 ```
 
 ## UI
@@ -11,5 +11,5 @@ yarn dev
 We use [shadcn](https://ui.shadcn.com/) for now.
 
 ```sh
-npx shadcn@latest add button
+pnpm dlx shadcn@latest add button
 ```

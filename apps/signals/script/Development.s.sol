@@ -5,7 +5,6 @@ import "forge-std/Script.sol";
 
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";

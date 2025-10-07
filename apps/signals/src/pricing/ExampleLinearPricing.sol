@@ -16,12 +16,12 @@ contract ExampleLinearPricing is IBondPricing {
     using FixedPointMathLib for uint256;
     // Discount and premium rates to generate profit for the LPs. These could instead be changeable or dynamic based on some other factor
 
-    uint256 public immutable bidDiscount;
-    uint256 public immutable askPremium;
+    uint256 public immutable BID_DISCOUNT;
+    uint256 public immutable ASK_PREMIUM;
 
     constructor(uint256 _bidDiscount, uint256 _askPremium) {
-        bidDiscount = _bidDiscount;
-        askPremium = _askPremium;
+        BID_DISCOUNT = _bidDiscount;
+        ASK_PREMIUM = _askPremium;
     }
 
     /**
@@ -39,7 +39,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 discount = currentValue.mulDiv(bidDiscount, PipsLib.OneHundred);
+        uint256 discount = currentValue.mulDiv(BID_DISCOUNT, PipsLib.ONE_HUNDRED);
         return currentValue - discount;
     }
 
@@ -59,7 +59,7 @@ contract ExampleLinearPricing is IBondPricing {
         returns (uint256)
     {
         uint256 currentValue = _calculateCurrentBondValue(principal, startTime, duration, currentTime);
-        uint256 premium = currentValue.mulDiv(askPremium, PipsLib.OneHundred);
+        uint256 premium = currentValue.mulDiv(ASK_PREMIUM, PipsLib.ONE_HUNDRED);
         return currentValue + premium;
     }
 

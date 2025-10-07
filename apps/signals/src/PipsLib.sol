@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 library PipsLib {
-    uint256 public constant OneHundred = 100_0000;
+    uint256 public constant ONE_HUNDRED = 100_0000;
 
     function percentToPips(uint256 percent) public pure returns (uint256) {
         return percent * 10000;
