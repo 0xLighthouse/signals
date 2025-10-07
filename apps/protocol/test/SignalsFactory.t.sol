@@ -21,11 +21,15 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         _factory = new SignalsFactory();
     }
 
-    function testVersion() public {
+    /*//////////////////////////////////////////////////////////////
+                        INITIALIZATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_Version_Correct() public {
         assertEq(_factory.version(), "0.1.0");
     }
 
-    function testFactoryDeployment() public {
+    function test_Create_DeploysSignalsContract() public {
         // Ensure the caller is the owner
         vm.prank(_deployer);
 
@@ -66,7 +70,11 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         assertEq(_instance.version(), _factory.version());
     }
 
-    function testRevertsWithInvalidOwnerAddress() public {
+    /*//////////////////////////////////////////////////////////////
+                        ERROR HANDLING TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_Create_RevertsWithInvalidOwner() public {
         // Set the implementation to an invalid address and attempt to create a clone
         vm.prank(_deployer);
         vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
@@ -89,34 +97,87 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         );
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        TODO: EVENT EMISSION TESTS
+    //////////////////////////////////////////////////////////////*/
+
     // TODO: Test that the SignalsCreated event is emitted with correct parameters
-    // function testSignalsCreatedEvent() public {
-    //   // Implement this test
-    // }
+    // function test_Create_EmitsSignalsCreatedEvent() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: MULTIPLE DEPLOYMENT TESTS
+    //////////////////////////////////////////////////////////////*/
 
     // TODO: Test creating multiple Signals contracts
-    // function testCreateMultipleSignals() public {
-    //   // Implement this test
-    // }
+    // function test_Create_MultipleSignalsContracts() public {}
 
-    // TODO: Test with different parameters (e.g. acceptanceThreshold, lockDurationCap, proposalCap, decayCurveType)
-    // Also include fuzzing tests
-    // function testCreateWithDifferentParameters() public {
-    //   // Implement this test
-    // }
+    // TODO: Test creating with different underlying tokens
+    // function test_Create_WithDifferentUnderlyingTokens() public {}
 
-    // TODO: Test that the created Signals contract is a clone
-    // function testCreatedContractIsClone() public {
-    //   // Implement this test
-    // }
+    // TODO: Test that duplicate deployments are handled correctly
+    // function test_Create_RevertsOnDuplicateDeployment() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: PARAMETER VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test with different acceptanceThreshold values
+    // function test_Create_WithDifferentAcceptanceThreshold() public {}
+
+    // TODO: Test with different maxLockIntervals values
+    // function test_Create_WithDifferentMaxLockIntervals() public {}
+
+    // TODO: Test with different proposalCap values
+    // function test_Create_WithDifferentProposalCap() public {}
+
+    // TODO: Test with different decayCurveType values
+    // function test_Create_WithDifferentDecayCurveTypes() public {}
+
+    // TODO: Test with invalid parameter combinations
+    // function test_Create_RevertsWithInvalidParameters() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: CLONE VERIFICATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test that the created Signals contract is a proper clone
+    // function test_Create_CreatesProperClone() public {}
+
+    // TODO: Test that clones are independent
+    // function test_Clone_AreIndependent() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: TOKEN VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
 
     // TODO: Add guard to only allow ERC20 tokens
-    // function testUnderlyingTokenInteraction() public {
-    //   // Implement this test
-    // }
+    // function test_Create_OnlyAllowsERC20Tokens() public {}
 
-    // TODO: Add guard to only allow ERC20 tokens
-    // function testUnderlyingTokenInteraction() public {
-    //   // Implement this test
-    // }
+    // TODO: Test with invalid token address
+    // function test_Create_RevertsWithInvalidTokenAddress() public {}
+
+    // TODO: Test with non-contract address as token
+    // function test_Create_RevertsWithNonContractToken() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: FUZZ TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Fuzz test with various parameter combinations
+    // function testFuzz_Create_VariousParameters(
+    //     uint256 proposalThreshold,
+    //     uint256 acceptanceThreshold,
+    //     uint256 maxLockIntervals,
+    //     uint256 proposalCap
+    // ) public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test end-to-end factory deployment and usage
+    // function test_FullFlow_DeploymentAndUsage() public {}
+
+    // TODO: Test deploying and using multiple instances simultaneously
+    // function test_MultipleInstances_Simultaneously() public {}
 }

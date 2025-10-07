@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(forge test:*)",
-      "Bash(forge lint:*)"
+      "Bash(forge lint:*)",
+      "Read(//Users/arnold/Development/lighthouse.cx/harbor/apps/protocol/test/**)"
     ],
     "deny": [],
     "ask": []

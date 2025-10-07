@@ -49,7 +49,11 @@ contract IncentivesTest is Test, SignalsHarness {
         signals.setIncentives(address(_incentives));
     }
 
-    function test_initialState() public view {
+    /*//////////////////////////////////////////////////////////////
+                        INITIALIZATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_Setup_InitialState() public view {
         // Ensure the owner is the deployer
         assertEq(signals.owner(), address(_deployer));
 
@@ -62,7 +66,11 @@ contract IncentivesTest is Test, SignalsHarness {
         assertEq(_registry.isAllowed(address(_usdc)), true);
     }
 
-    function test_addMultipleIncentives() public {
+    /*//////////////////////////////////////////////////////////////
+                        INCENTIVE ADDITION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_AddIncentive_Multiple() public {
         // Propose an initiative
         vm.startPrank(_alice);
         signals.proposeInitiative("Initiative 1", "Test adding incentives");
@@ -93,7 +101,11 @@ contract IncentivesTest is Test, SignalsHarness {
         assertEq(expiredCount, 0);
     }
 
-    function test_previewRewards() public {
+    /*//////////////////////////////////////////////////////////////
+                        REWARD CALCULATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_PreviewRewards_CalculatesCorrectly() public {
         // Propose an initiative
         vm.startPrank(_alice);
 
@@ -121,4 +133,89 @@ contract IncentivesTest is Test, SignalsHarness {
         uint256 rewards = _incentives.previewRewards(initiativeId, 1);
         assertEq(rewards, amount * 4 * 20 / 100);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: CLAIM REWARD TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test claiming rewards after initiative acceptance
+    // function test_Claim_AfterAcceptance() public {}
+
+    // TODO: Test claiming rewards with multiple supporters
+    // function test_Claim_WithMultipleSupporters() public {}
+
+    // TODO: Test cannot claim rewards before acceptance
+    // function test_Claim_RevertsBeforeAcceptance() public {}
+
+    // TODO: Test cannot claim expired incentives
+    // function test_Claim_RevertsForExpiredIncentives() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: ALLOCATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test allocation distribution matches configuration
+    // function test_Allocation_DistributionMatchesConfig() public {}
+
+    // TODO: Test changing allocation percentages
+    // function test_Allocation_ChangePercentages() public {}
+
+    // TODO: Test allocation with different token types
+    // function test_Allocation_WithDifferentTokenTypes() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: TOKEN REGISTRY TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test adding incentives with unregistered token
+    // function test_AddIncentive_RevertsWithUnregisteredToken() public {}
+
+    // TODO: Test registering and unregistering tokens
+    // function test_Registry_RegisterAndUnregisterTokens() public {}
+
+    // TODO: Test only owner can modify registry
+    // function test_Registry_OnlyOwnerCanModify() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: EXPIRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test incentive expiration handling
+    // function test_Incentive_HandlesExpiration() public {}
+
+    // TODO: Test expired incentive count
+    // function test_Incentive_CountsExpired() public {}
+
+    // TODO: Test claiming non-expired incentives only
+    // function test_Claim_OnlyNonExpiredIncentives() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test full flow: add incentive -> support -> accept -> claim
+    // function test_FullFlow_AddToClaim() public {}
+
+    // TODO: Test multiple incentives across multiple initiatives
+    // function test_MultipleIncentives_AcrossMultipleInitiatives() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: EVENT EMISSION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test IncentiveAdded event emits correctly
+    // function test_AddIncentive_EmitsEvent() public {}
+
+    // TODO: Test IncentiveClaimed event emits correctly
+    // function test_Claim_EmitsEvent() public {}
+
+    /*//////////////////////////////////////////////////////////////
+                        TODO: BALANCE VERIFICATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO: Test contract holds correct amount of incentive tokens
+    // function test_Balance_ContractHoldsCorrectAmount() public {}
+
+    // TODO: Test balance consistency after claims
+    // function test_Balance_ConsistencyAfterClaims() public {}
 }
