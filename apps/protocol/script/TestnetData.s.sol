@@ -108,7 +108,7 @@ contract TestnetDataScript is Script {
         }
 
         // Get threshold
-        uint256 proposalThreshold = board.proposalThreshold();
+        uint256 proposalThreshold = board.getProposerRequirements().threshold;
         console.log("Proposal Threshold:", proposalThreshold);
 
         for (uint256 i = 0; i < proposers.length; i++) {

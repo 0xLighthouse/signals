@@ -28,7 +28,7 @@ contract SignalsConfigurationTest is Test, SignalsHarness {
     function test_Config_DefaultValues() public view {
         assertEq(Ownable(address(signals)).owner(), address(_deployer));
         assertEq(signals.underlyingToken(), address(_tokenERC20));
-        assertEq(signals.proposalThreshold(), defaultConfig.proposalThreshold);
+        assertEq(signals.getProposerRequirements().threshold, defaultConfig.proposerRequirements.threshold);
         assertEq(signals.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
         assertEq(signals.maxLockIntervals(), defaultConfig.maxLockIntervals);
         assertEq(signals.proposalCap(), defaultConfig.proposalCap);

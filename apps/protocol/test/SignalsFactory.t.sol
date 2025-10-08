@@ -40,14 +40,15 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         ISignalsFactory.FactoryDeployment memory _defaultConfig = ISignalsFactory.FactoryDeployment({
             owner: _alice,
             underlyingToken: address(_tokenERC20),
-            proposalThreshold: defaultConfig.proposalThreshold,
             acceptanceThreshold: defaultConfig.acceptanceThreshold,
             maxLockIntervals: defaultConfig.maxLockIntervals,
             proposalCap: defaultConfig.proposalCap,
             lockInterval: defaultConfig.lockInterval,
             decayCurveType: defaultConfig.decayCurveType,
             decayCurveParameters: defaultConfig.decayCurveParameters,
-            proposalRequirements: defaultConfig.proposalRequirements
+            proposerRequirements: defaultConfig.proposerRequirements,
+            participantRequirements: defaultConfig.participantRequirements,
+            releaseLockDuration: defaultConfig.releaseLockDuration
         });
 
         // Check that the Signals contract was deployed
@@ -87,14 +88,15 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             ISignalsFactory.FactoryDeployment({
                 owner: address(0), // This is an invalid owner address
                 underlyingToken: address(_tokenERC20),
-                proposalThreshold: defaultConfig.proposalThreshold,
                 acceptanceThreshold: defaultConfig.acceptanceThreshold,
                 maxLockIntervals: defaultConfig.maxLockIntervals,
                 proposalCap: defaultConfig.proposalCap,
                 lockInterval: defaultConfig.lockInterval,
                 decayCurveType: defaultConfig.decayCurveType,
                 decayCurveParameters: defaultConfig.decayCurveParameters,
-                proposalRequirements: defaultConfig.proposalRequirements
+                proposerRequirements: defaultConfig.proposerRequirements,
+                participantRequirements: defaultConfig.participantRequirements,
+                releaseLockDuration: defaultConfig.releaseLockDuration
             })
         );
     }

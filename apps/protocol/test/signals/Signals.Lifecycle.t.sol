@@ -42,7 +42,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
      */
     function test_Propose_WithoutLock() public {
         vm.startPrank(_alice);
-        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold);
 
         vm.expectEmit();
         emit ISignals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1");
@@ -62,7 +62,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_ProposeWithLock_EmitsTokenId() public {
         vm.startPrank(_bob);
         // Approve the total amount needed (proposal threshold + locked amount)
-        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold * 2);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold * 2);
 
         uint256 lockedAmount = 50_000 * 1e18;
 
@@ -78,7 +78,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Propose_WithLock() public {
         vm.startPrank(_bob);
         // Approve the total amount needed (proposal threshold + locked amount)
-        _tokenERC20.approve(address(signals), defaultConfig.proposalThreshold * 2);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold * 2);
 
         uint256 balanceBefore = _tokenERC20.balanceOf(_bob);
         uint256 lockedAmount = 50_000 * 1e18;

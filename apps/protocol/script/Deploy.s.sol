@@ -69,25 +69,31 @@ contract DevelopmentScript is Script {
             ISignalsFactory.FactoryDeployment({
                 owner: _owner,
                 underlyingToken: address(_token),
-                proposalThreshold: 25_000 * 1e18, // 25k _proposalThreshold
                 acceptanceThreshold: 1_000_000 * 1e18, // 1M _acceptanceThreshold
                 maxLockIntervals: 30, // lockDurationCap (30 days)
                 proposalCap: 5, // map active initiatives
                 lockInterval: 1 days, // decayInterval
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params, // decayCurveParameters
-                proposalRequirements: ISignals.ProposalRequirements({
-                    requirementType: ISignals.ProposalRequirementType.None,
+                proposerRequirements: ISignals.ProposerRequirements({
+                    eligibilityType: ISignals.EligibilityType.None,
+                    minBalance: 0,
+                    minHoldingDuration: 0,
+                    threshold: 25_000 * 1e18 // 25k proposalThreshold
+                }),
+                participantRequirements: ISignals.ParticipantRequirements({
+                    eligibilityType: ISignals.EligibilityType.None,
                     minBalance: 0,
                     minHoldingDuration: 0
-                })
+                }),
+                releaseLockDuration: 0 // Immediate release on acceptance
             })
         );
 
         Signals protocol = Signals(protocolAddress);
 
         console.log("SignalsContract:", address(protocolAddress));
-        console.log("->Proposal threshold:", protocol.proposalThreshold());
+        console.log("->Proposal threshold:", protocol.getProposerRequirements().threshold);
         console.log("-> Acceptance threshold:", protocol.acceptanceThreshold());
 
         vm.broadcast(deployerPrivateKey);

@@ -51,22 +51,28 @@ contract SignalsHarness is Test, Deployers {
     PoolKey _keyB; // DAI/GOV
     bool _keyBIsGovZero;
 
-    ISignals.SignalsConfig public defaultConfig = ISignals.SignalsConfig({
+    ISignals.BoardConfig public defaultConfig = ISignals.BoardConfig({
         version: factory.version(),
         owner: _deployer,
         underlyingToken: address(_tokenERC20),
-        proposalThreshold: 50_000 * 1e18, // 50k
         acceptanceThreshold: 100_000 * 1e18, // 100k
         maxLockIntervals: 365 days, // 1 year
         proposalCap: 100, // 100 proposals
         lockInterval: 1 days, // 1 day
         decayCurveType: 0, // Linear
         decayCurveParameters: new uint256[](1),
-        proposalRequirements: ISignals.ProposalRequirements({
-            requirementType: ISignals.ProposalRequirementType.None,
+        proposerRequirements: ISignals.ProposerRequirements({
+            eligibilityType: ISignals.EligibilityType.None,
+            minBalance: 0,
+            minHoldingDuration: 0,
+            threshold: 50_000 * 1e18 // 50k tokens to propose
+        }),
+        participantRequirements: ISignals.ParticipantRequirements({
+            eligibilityType: ISignals.EligibilityType.None,
             minBalance: 0,
             minHoldingDuration: 0
-        })
+        }),
+        releaseLockDuration: 0
     });
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
@@ -103,11 +109,11 @@ contract SignalsHarness is Test, Deployers {
     function _dealDefaultTokens() public {
         // --- Issue standard ERC20 tokens to participants ---
         // Alice has 50k
-        deal(address(_tokenERC20), _alice, defaultConfig.proposalThreshold);
+        deal(address(_tokenERC20), _alice, defaultConfig.proposerRequirements.threshold);
         // Bob has 100k
         deal(address(_tokenERC20), _bob, defaultConfig.acceptanceThreshold);
         // Charlie has 25k
-        deal(address(_tokenERC20), _charlie, defaultConfig.proposalThreshold / 2);
+        deal(address(_tokenERC20), _charlie, defaultConfig.proposerRequirements.threshold / 2);
         // Liquidity provider has 1M
         deal(address(_tokenERC20), _liquidityProvider, 100_000_000 * 1e18);
     }
@@ -118,7 +124,7 @@ contract SignalsHarness is Test, Deployers {
      */
     function _dealAndDelegateERC20Votes() public {
         // Mint and delegate to activate checkpoints
-        _tokenERC20Votes.mint(_alice, defaultConfig.proposalThreshold);
+        _tokenERC20Votes.mint(_alice, defaultConfig.proposerRequirements.threshold);
         vm.prank(_alice);
         _tokenERC20Votes.delegate(_alice);
 
@@ -126,7 +132,7 @@ contract SignalsHarness is Test, Deployers {
         vm.prank(_bob);
         _tokenERC20Votes.delegate(_bob);
 
-        _tokenERC20Votes.mint(_charlie, defaultConfig.proposalThreshold / 2);
+        _tokenERC20Votes.mint(_charlie, defaultConfig.proposerRequirements.threshold / 2);
         vm.prank(_charlie);
         _tokenERC20Votes.delegate(_charlie);
 
@@ -139,23 +145,29 @@ contract SignalsHarness is Test, Deployers {
      * @notice Create a Signals config using the ERC20Votes token
      * @return Configuration using _tokenERC20Votes as underlying
      */
-    function getERC20VotesConfig() public view returns (ISignals.SignalsConfig memory) {
-        return ISignals.SignalsConfig({
+    function getERC20VotesConfig() public view returns (ISignals.BoardConfig memory) {
+        return ISignals.BoardConfig({
             version: factory.version(),
             owner: _deployer,
             underlyingToken: address(_tokenERC20Votes),
-            proposalThreshold: 50_000 * 1e18,
             acceptanceThreshold: 100_000 * 1e18,
             maxLockIntervals: 365 days,
             proposalCap: 100,
             lockInterval: 1 days,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposalRequirements: ISignals.ProposalRequirements({
-                requirementType: ISignals.ProposalRequirementType.None,
+            proposerRequirements: ISignals.ProposerRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
+                minBalance: 0,
+                minHoldingDuration: 0,
+                threshold: 50_000 * 1e18
+            }),
+            participantRequirements: ISignals.ParticipantRequirements({
+                eligibilityType: ISignals.EligibilityType.None,
                 minBalance: 0,
                 minHoldingDuration: 0
-            })
+            }),
+            releaseLockDuration: 0
         });
     }
 
@@ -223,7 +235,7 @@ contract SignalsHarness is Test, Deployers {
         console.log("Pool B: ", b0.symbol(), b1.symbol());
     }
 
-    function _toFactoryDeployment(ISignals.SignalsConfig storage config)
+    function _toFactoryDeployment(ISignals.BoardConfig storage config)
         internal
         view
         returns (ISignalsFactory.FactoryDeployment memory)
@@ -231,14 +243,68 @@ contract SignalsHarness is Test, Deployers {
         return ISignalsFactory.FactoryDeployment({
             owner: config.owner,
             underlyingToken: config.underlyingToken,
-            proposalThreshold: config.proposalThreshold,
             acceptanceThreshold: config.acceptanceThreshold,
             maxLockIntervals: config.maxLockIntervals,
             proposalCap: config.proposalCap,
             lockInterval: config.lockInterval,
             decayCurveType: config.decayCurveType,
             decayCurveParameters: config.decayCurveParameters,
-            proposalRequirements: config.proposalRequirements
+            proposerRequirements: config.proposerRequirements,
+            participantRequirements: config.participantRequirements,
+            releaseLockDuration: config.releaseLockDuration
         });
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    TEST HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Helper to propose initiative with lock and accept it
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAndAccept(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
+        internal
+        returns (uint256 initiativeId, uint256 tokenId)
+    {
+        vm.startPrank(proposer);
+        _tokenERC20.approve(address(signals), amount);
+        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        vm.stopPrank();
+
+        initiativeId = 1; // First initiative
+        vm.prank(_deployer);
+        signals.acceptInitiative(initiativeId);
+    }
+
+    /// @notice Helper to propose, accept, and time travel
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAcceptAndWarp(
+        ISignals signals,
+        address proposer,
+        uint256 amount,
+        uint256 lockDuration,
+        uint256 warpTime
+    ) internal returns (uint256 initiativeId, uint256 tokenId) {
+        (initiativeId, tokenId) = proposeAndAccept(signals, proposer, amount, lockDuration);
+        vm.warp(block.timestamp + warpTime);
+    }
+
+    /// @notice Helper to propose initiative and expire it
+    /// @return initiativeId The ID of the created initiative
+    /// @return tokenId The ID of the lock NFT
+    function proposeAndExpire(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
+        internal
+        returns (uint256 initiativeId, uint256 tokenId)
+    {
+        vm.startPrank(proposer);
+        _tokenERC20.approve(address(signals), amount);
+        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        vm.stopPrank();
+
+        initiativeId = 1;
+        vm.warp(block.timestamp + 61 days); // Past activity timeout
+        vm.prank(_deployer);
+        signals.expireInitiative(initiativeId);
     }
 }

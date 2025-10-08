@@ -43,18 +43,19 @@ contract SignalsFactory is ISignalsFactory {
         Signals instance = new Signals();
 
         // Merge the version into the config
-        ISignals.SignalsConfig memory mergedConfig = ISignals.SignalsConfig({
+        ISignals.BoardConfig memory mergedConfig = ISignals.BoardConfig({
             version: VERSION,
             owner: config.owner,
             underlyingToken: config.underlyingToken,
-            proposalThreshold: config.proposalThreshold,
             acceptanceThreshold: config.acceptanceThreshold,
             maxLockIntervals: config.maxLockIntervals,
             proposalCap: config.proposalCap,
             lockInterval: config.lockInterval,
             decayCurveType: config.decayCurveType,
             decayCurveParameters: config.decayCurveParameters,
-            proposalRequirements: config.proposalRequirements
+            proposerRequirements: config.proposerRequirements,
+            participantRequirements: config.participantRequirements,
+            releaseLockDuration: config.releaseLockDuration
         });
 
         instance.initialize(mergedConfig);
