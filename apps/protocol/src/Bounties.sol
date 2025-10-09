@@ -9,16 +9,23 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "solady/src/utils/ReentrancyGuard.sol";
 
-import "./Signals.sol";
 import "./interfaces/ISignals.sol";
 import "./interfaces/IBounties.sol";
-import "./TokenRegistry.sol";
 
+import "./Signals.sol";
+import "./TokenRegistry.sol";
+import {SignalsConstants} from "./utils/Constants.sol";
+
+/**
+ * @title Bounties
+ * @notice Manages bounties (rewards) attached to Signals initiatives
+ * @dev Handles bounty creation, distribution on acceptance, and refunds on expiration
+ */
 contract Bounties is IBounties, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    ISignals public signalsContract;
-    TokenRegistry public registry;
+    ISignals public immutable signalsContract;
+    TokenRegistry public immutable registry;
 
     /// @notice [0]: protocolFee, [1]: voterRewards, [2]: treasuryShare
     mapping(uint256 => uint256[3]) public allocations;
@@ -26,23 +33,38 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
 
     mapping(uint256 => Bounty) public bounties;
 
-    /// (address => (token => amount))
+    /// @notice (address => (token => amount))
     mapping(address => mapping(address => uint256)) public balances;
 
-    /// (initiativeId => bountyId[])
+    /// @notice (initiativeId => bountyId[])
     mapping(uint256 => uint256[]) public bountiesByInitiative;
-    uint256 public version = 0;
+    uint256 public version = SignalsConstants.INITIAL_VERSION;
 
     uint256 public bountyCount;
 
+    /**
+     * @notice Internal function to update bounty split allocations
+     * @dev Validates allocations sum to 100 (basis points), increments version
+     * @param _allocations Array of [protocolFee, voterRewards, treasuryShare]
+     * @param _receivers Array of addresses to receive each allocation
+     */
     function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
-        require(_allocations[0] + _allocations[1] + _allocations[2] == 100, "Total distribution must be 100%");
+        if (_allocations[0] + _allocations[1] + _allocations[2] != SignalsConstants.BASIS_POINTS) {
+            revert IBounties.Bounties_InvalidAllocation();
+        }
         version++;
         allocations[version] = _allocations;
         receivers[version] = _receivers;
         emit BountiesUpdated(version);
     }
 
+    /**
+     * @notice Initialize the Bounties contract
+     * @param _signalsContract Address of the Signals contract
+     * @param _tokenRegistry Address of the TokenRegistry contract
+     * @param _allocations Initial split allocations
+     * @param _receivers Initial receiver addresses
+     */
     constructor(
         address _signalsContract,
         address _tokenRegistry,
@@ -55,18 +77,17 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         _updateShares(_allocations, _receivers);
     }
 
+    /// @inheritdoc IBounties
     function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers) external onlyOwner {
         _updateShares(_allocations, _receivers);
     }
 
+    /// @inheritdoc IBounties
     function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory) {
         return (version, allocations[_version], receivers[_version]);
     }
 
-    /**
-     * Quick and dirty greedy function to get all the bounties for an initiative
-     * and sum them by token address. This is not efficient and should be replaced
-     */
+    /// @inheritdoc IBounties
     function getBounties(uint256 _initiativeId)
         public
         view
@@ -120,15 +141,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         return (resultTokens, resultAmounts, _expiredCount);
     }
 
-    /**
-     * @notice Add a bounty to the contract.
-     *
-     * @param _initiativeId The ID of the initiative to which the bounty belongs.
-     * @param _token The address of the token to be used for the bounty.
-     * @param _amount The amount of the token to be used for the bounty.
-     * @param _expiresAt The timestamp at which the bounty expires.
-     * @param _terms The terms of the bounty.
-     */
+    /// @inheritdoc IBounties
     function addBounty(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
         external
         payable
@@ -136,6 +149,15 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         _addBounty(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
+    /**
+     * @notice Internal function to add a bounty
+     * @dev Validates token is registered, transfers tokens, and stores bounty data
+     * @param _initiativeId Initiative ID to attach bounty to
+     * @param _token Token address for the bounty
+     * @param _amount Amount of tokens to bounty
+     * @param _expiresAt Expiration timestamp
+     * @param _terms Conditions for distribution
+     */
     function _addBounty(
         uint256 _initiativeId,
         address _token,
@@ -143,12 +165,12 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         uint256 _expiresAt,
         Conditions _terms
     ) internal {
-        require(registry.isAllowed(_token), "Token not registered for bounties");
-        require(_initiativeId <= signalsContract.initiativeCount(), "Invalid initiative");
+        if (!registry.isAllowed(_token)) revert IBounties.Bounties_TokenNotRegistered();
+        if (_initiativeId > signalsContract.initiativeCount()) revert IBounties.Bounties_InvalidInitiative();
 
         IERC20 token = IERC20(_token);
-        require(token.balanceOf(msg.sender) >= _amount, "Insufficient balance");
-        require(token.allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance");
+        if (token.balanceOf(msg.sender) < _amount) revert IBounties.Bounties_InsufficientBalance();
+        if (token.allowance(msg.sender, address(this)) < _amount) revert IBounties.Bounties_InsufficientAllowance();
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -171,11 +193,21 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         emit BountyAdded(bountyCount, _initiativeId, address(_token), _amount, _expiresAt, _terms);
     }
 
+    /**
+     * @notice Internal function to refund a bounty to its contributor
+     * @dev Marks bounty as refunded and credits contributor's balance
+     * @param _bounty Storage reference to the bounty to refund
+     */
     function _refundBounty(Bounty storage _bounty) internal {
         _bounty.refunded = _bounty.amount;
         balances[_bounty.contributor][address(_bounty.token)] += _bounty.amount;
     }
 
+    /**
+     * @notice Internal function to distribute bounties when initiative is accepted
+     * @dev Splits bounties according to current version's allocations
+     * @param _initiativeId Initiative ID to distribute bounties for
+     */
     function _distributeBounties(uint256 _initiativeId) internal {
         (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getBounties(_initiativeId);
 
@@ -192,9 +224,9 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
             uint256[3] memory _allocations = allocations[version];
             address[3] memory _receivers = receivers[version];
 
-            uint256 protocolAmount = (amount * _allocations[0]) / 100;
-            uint256 voterAmount = (amount * _allocations[1]) / 100;
-            uint256 treasuryAmount = (amount * _allocations[2]) / 100;
+            uint256 protocolAmount = (amount * _allocations[0]) / SignalsConstants.BASIS_POINTS;
+            uint256 voterAmount = (amount * _allocations[1]) / SignalsConstants.BASIS_POINTS;
+            uint256 treasuryAmount = (amount * _allocations[2]) / SignalsConstants.BASIS_POINTS;
 
             balances[_receivers[0]][token] += protocolAmount;
             balances[_receivers[1]][token] += voterAmount;
@@ -202,14 +234,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         }
     }
 
-    /**
-     * @notice Returns the voter rewards for a specific bond.
-     *
-     * @param _initiativeId The ID of the initiative.
-     * @param _tokenId The ID of the NFT token (lock position).
-     *
-     * @return The voter rewards amount.
-     */
+    /// @inheritdoc IBounties
     function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256) {
         // Fetch bounties for this initiative
         uint256[] memory bountyIds = bountiesByInitiative[_initiativeId];
@@ -236,7 +261,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         // Calculate voter rewards
         uint256 underlyingLocked = signalsContract.getInitiative(_initiativeId).underlyingLocked;
         uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
-        uint256 voterRewards = (totalRewards * allocations[version][1]) / 100;
+        uint256 voterRewards = (totalRewards * allocations[version][1]) / SignalsConstants.BASIS_POINTS;
         uint256 tokenRewards = (voterRewards * shareOfPool);
 
         console.log("Share of pool", shareOfPool);
@@ -244,17 +269,22 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         return tokenRewards;
     }
 
-    // Functions to handle notifications from Signals contract
+    /// @inheritdoc IBounties
     function handleInitiativeAccepted(uint256 _initiativeId) external nonReentrant {
-        require(msg.sender == address(signalsContract), "Only Signals contract can call this function");
+        if (msg.sender != address(signalsContract)) {
+            revert IBounties.Bounties_NotAuthorized();
+        }
 
         console.log("Initiative accepted", _initiativeId);
         // Pay out relevant parties
         _distributeBounties(_initiativeId);
     }
 
+    /// @inheritdoc IBounties
     function handleInitiativeExpired(uint256 _initiativeId) external view {
-        require(msg.sender == address(signalsContract), "Only Signals contract can call this function");
+        if (msg.sender != address(signalsContract)) {
+            revert IBounties.Bounties_NotAuthorized();
+        }
         // Additional logic if needed
         // TODO: Flag any bounties for this initiative as ready to be refunded
         console.log("Initiative expired", _initiativeId);

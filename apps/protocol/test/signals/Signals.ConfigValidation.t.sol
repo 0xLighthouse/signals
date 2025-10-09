@@ -29,63 +29,49 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
 
         // Zero address for token
         config.underlyingToken = address(0);
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.InvalidInput.selector, "underlyingToken cannot be zero address")
-        );
+        vm.expectRevert(ISignals.Signals_ZeroAddressToken.selector);
         signals.initialize(config);
 
         // Reset and test zero owner
         signals = new Signals();
         config = defaultConfig;
         config.owner = address(0);
-        vm.expectRevert(abi.encodeWithSelector(ISignals.InvalidInput.selector, "owner cannot be zero address"));
+        vm.expectRevert(ISignals.Signals_ZeroAddressOwner.selector);
         signals.initialize(config);
 
         // Reset and test zero acceptanceThreshold
         signals = new Signals();
         config = defaultConfig;
         config.acceptanceThreshold = 0;
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.InvalidInput.selector, "acceptanceThreshold must be greater than 0")
-        );
+        vm.expectRevert(ISignals.Signals_ZeroAcceptanceThreshold.selector);
         signals.initialize(config);
 
         // Reset and test zero maxLockIntervals
         signals = new Signals();
         config = defaultConfig;
         config.maxLockIntervals = 0;
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.InvalidInput.selector, "maxLockIntervals must be greater than 0")
-        );
+        vm.expectRevert(ISignals.Signals_ZeroMaxLockIntervals.selector);
         signals.initialize(config);
 
         // Reset and test zero lockInterval
         signals = new Signals();
         config = defaultConfig;
         config.lockInterval = 0;
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.InvalidInput.selector, "lockInterval must be greater than 0")
-        );
+        vm.expectRevert(ISignals.Signals_ZeroLockInterval.selector);
         signals.initialize(config);
 
         // Reset and test zero proposalCap
         signals = new Signals();
         config = defaultConfig;
         config.proposalCap = 0;
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.InvalidInput.selector, "proposalCap must be greater than 0")
-        );
+        vm.expectRevert(ISignals.Signals_ZeroProposalCap.selector);
         signals.initialize(config);
 
         // Reset and test invalid decayCurveType
         signals = new Signals();
         config = defaultConfig;
         config.decayCurveType = 2;
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISignals.InvalidInput.selector, "decayCurveType must be 0 (linear) or 1 (exponential)"
-            )
-        );
+        vm.expectRevert(ISignals.Signals_InvalidDecayCurveType.selector);
         signals.initialize(config);
     }
 

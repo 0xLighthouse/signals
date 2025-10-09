@@ -3,10 +3,13 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "solady/src/utils/ReentrancyGuard.sol";
 
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
+
+import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
  * @title IncentivesPool
@@ -45,13 +48,13 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
     /// @notice Modifier to check if caller is the owner
     modifier onlyOwner() {
-        if (msg.sender != owner) revert NotAuthorized();
+        if (msg.sender != owner) revert IIncentivesPool.IncentivesPool_NotAuthorized();
         _;
     }
 
     /// @notice Modifier to check if caller is an approved board
     modifier onlyApprovedBoard() {
-        if (!approvedBoards[msg.sender]) revert NotApprovedBoard();
+        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
         _;
     }
 
@@ -62,23 +65,20 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         owner = msg.sender;
     }
 
-    /**
-     * @notice Initialize the pool with token, amount, and max reward per initiative
-     * @dev Can only be called once
-     *
-     * @param token Address of the reward token
-     * @param amount Initial amount of tokens to deposit
-     * @param maxRewardPerInitiative Maximum tokens to allocate per initiative
-     */
+    /// @inheritdoc IIncentivesPool
     function initializePool(address token, uint256 amount, uint256 maxRewardPerInitiative)
         external
         onlyOwner
     {
-        if (poolConfig.token != address(0)) revert PoolAlreadyInitialized();
-        if (token == address(0)) revert InvalidConfiguration();
-        if (amount == 0) revert InvalidConfiguration();
-        if (maxRewardPerInitiative == 0) revert InvalidConfiguration();
-        if (amount < maxRewardPerInitiative) revert InvalidConfiguration();
+        if (poolConfig.token != SignalsConstants.ADDRESS_ZERO) {
+            revert IIncentivesPool.IncentivesPool_AlreadyInitialized();
+        }
+        if (token == SignalsConstants.ADDRESS_ZERO) {
+            revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
+        }
+        if (amount == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
+        if (maxRewardPerInitiative == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
+        if (amount < maxRewardPerInitiative) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
 
         poolConfig = PoolConfig({
             token: token,
@@ -94,15 +94,12 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         emit PoolInitialized(token, amount, maxRewardPerInitiative);
     }
 
-    /**
-     * @notice Approve a board to use this pool for incentives
-     * @dev Can only be called by owner
-     *
-     * @param board Address of the Signals board to approve
-     */
+    /// @inheritdoc IIncentivesPool
     function approveBoard(address board) external onlyOwner {
-        if (board == address(0)) revert InvalidConfiguration();
-        if (approvedBoards[board]) revert BoardAlreadyApproved();
+        if (board == SignalsConstants.ADDRESS_ZERO) {
+            revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
+        }
+        if (approvedBoards[board]) revert IIncentivesPool.IncentivesPool_BoardAlreadyApproved();
 
         approvedBoards[board] = true;
         boardList.push(board);
@@ -110,46 +107,35 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         emit BoardApproved(board);
     }
 
-    /**
-     * @notice Remove approval for a board
-     * @dev Can only be called by owner. Does not affect already allocated rewards.
-     *
-     * @param board Address of the Signals board to revoke
-     */
+    /// @inheritdoc IIncentivesPool
     function revokeBoard(address board) external onlyOwner {
-        if (!approvedBoards[board]) revert BoardNotApproved();
+        if (!approvedBoards[board]) revert IIncentivesPool.IncentivesPool_BoardNotApproved();
 
         approvedBoards[board] = false;
 
         emit BoardRevoked(board);
     }
 
-    /**
-     * @notice Update the maximum reward per initiative
-     * @dev Can only be called by owner
-     *
-     * @param maxRewardPerInitiative New maximum reward per initiative
-     */
+    /// @inheritdoc IIncentivesPool
     function setMaxRewardPerInitiative(uint256 maxRewardPerInitiative) external onlyOwner {
-        if (poolConfig.token == address(0)) revert PoolNotInitialized();
-        if (maxRewardPerInitiative == 0) revert InvalidConfiguration();
+        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO) {
+            revert IIncentivesPool.IncentivesPool_NotInitialized();
+        }
+        if (maxRewardPerInitiative == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         if (maxRewardPerInitiative > poolConfig.totalAmount - poolConfig.allocated) {
-            revert InvalidConfiguration();
+            revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
 
         poolConfig.maxRewardPerInitiative = maxRewardPerInitiative;
         emit PoolConfigUpdated(maxRewardPerInitiative);
     }
 
-    /**
-     * @notice Add more tokens to the pool
-     * @dev Can be called anytime by owner
-     *
-     * @param amount Amount of tokens to add
-     */
+    /// @inheritdoc IIncentivesPool
     function addToPool(uint256 amount) external onlyOwner {
-        if (poolConfig.token == address(0)) revert PoolNotInitialized();
-        if (amount == 0) revert InvalidConfiguration();
+        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO) {
+            revert IIncentivesPool.IncentivesPool_NotInitialized();
+        }
+        if (amount == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
 
         poolConfig.totalAmount += amount;
 
@@ -159,15 +145,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         emit PoolFunded(amount);
     }
 
-    /**
-     * @notice Calculate and allocate incentives for an accepted initiative
-     * @dev Only callable by approved Signals boards when initiative is accepted
-     *
-     * @param initiativeId ID of the accepted initiative
-     * @param boardOpensAt Timestamp when the board opened
-     * @param acceptanceTimestamp Timestamp when initiative was accepted
-     * @return rewardAmount Total amount of rewards allocated for this initiative
-     */
+    /// @inheritdoc IIncentivesPool
     function calculateIncentives(uint256 initiativeId, uint256 boardOpensAt, uint256 acceptanceTimestamp)
         external
         onlyApprovedBoard
@@ -176,15 +154,15 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         address board = msg.sender;
 
         // If pool not initialized or disabled, return 0 (non-blocking)
-        if (poolConfig.token == address(0) || !poolConfig.enabled) {
+        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO || !poolConfig.enabled) {
             return 0;
         }
 
         // Check if already calculated
-        if (distributionsCalculated[board][initiativeId]) revert AlreadyCalculated();
+        if (distributionsCalculated[board][initiativeId]) revert IIncentivesPool.IncentivesPool_AlreadyCalculated();
 
         // Check if board has opened
-        if (block.timestamp < boardOpensAt) revert InvalidConfiguration();
+        if (block.timestamp < boardOpensAt) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
 
         // Calculate reward allocation for this initiative
         uint256 availableBalance = poolConfig.totalAmount - poolConfig.allocated;
@@ -304,30 +282,40 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         }
 
         // Calculate time-weighted support for each lock position
+        // Early supporters get more weight, later supporters get less
         for (uint256 i = 0; i < lockIds.length; i++) {
             ISignals.TokenLock memory lock = signals.getTokenLock(lockIds[i]);
 
             // Only include locks for this initiative that haven't been withdrawn
             if (lock.initiativeId == initiativeId && !lock.withdrawn) {
                 // Calculate normalized time: t = (lockTime - boardOpensAt) / (acceptTime - boardOpensAt)
-                // Scaled by 1e18 for precision
+                // This gives a value between 0 (locked at board open) and 1e18 (locked at acceptance)
+                // Example: Board opens at T=0, initiative accepted at T=100, lock at T=25
+                //   timeSinceBoardOpen = 25
+                //   t = (25 * 1e18) / 100 = 0.25e18 (25% of the way through)
                 uint256 timeSinceBoardOpen = lock.created >= boardOpensAt ? lock.created - boardOpensAt : 0;
-                uint256 t = (timeSinceBoardOpen * 1e18) / duration;
+                uint256 t = (timeSinceBoardOpen * SignalsConstants.PRECISION) / duration;
 
                 // Calculate weight based on curve type
                 uint256 weight;
-                if (curveType == 0) {
+                if (curveType == SignalsConstants.INCENTIVE_CURVE_LINEAR) {
                     // Linear decay: weight = lockAmount * (1 - k * t)
-                    // Ensure we don't underflow: if k * t > 1e18, weight = 0
-                    uint256 decay = (k * t) / 1e18;
-                    if (decay >= 1e18) {
+                    // k is the decay rate (e.g., 1e18 means full decay from 100% to 0%)
+                    // Example: k=1e18, t=0.5e18 (locked halfway through)
+                    //   decay = (1e18 * 0.5e18) / 1e18 = 0.5e18
+                    //   weight = lockAmount * (1e18 - 0.5e18) / 1e18 = lockAmount * 50%
+                    // Early supporters (t≈0) get full weight, late supporters (t≈1) get minimal weight
+                    uint256 decay = (k * t) / SignalsConstants.PRECISION;
+                    if (decay >= SignalsConstants.PRECISION) {
+                        // Decay rate too high - no weight for this lock
                         weight = 0;
                     } else {
-                        weight = (lock.tokenAmount * (1e18 - decay)) / 1e18;
+                        // Apply time-weighted decay
+                        weight = (lock.tokenAmount * (SignalsConstants.PRECISION - decay)) / SignalsConstants.PRECISION;
                     }
                 } else {
                     // Future: exponential or other curves
-                    // For now, default to no decay
+                    // For now, default to no decay (all supporters weighted equally)
                     weight = lock.tokenAmount;
                 }
 
@@ -338,20 +326,12 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         return totalWeight;
     }
 
-    /**
-     * @notice Claim allocated rewards for a specific initiative and supporter
-     * @dev Transfers rewards to the supporter and marks as claimed
-     * @dev Can be called by Signals contract (auto-claim on redeem) or by supporter directly
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative to claim rewards for
-     * @param supporter Address of the supporter claiming rewards
-     */
+    /// @inheritdoc IIncentivesPool
     function claimRewards(address board, uint256 initiativeId, address supporter) external nonReentrant {
-        if (!distributionsCalculated[board][initiativeId]) revert NotCalculated();
+        if (!distributionsCalculated[board][initiativeId]) revert IIncentivesPool.IncentivesPool_NotCalculated();
 
         uint256 reward = supporterRewards[board][initiativeId][supporter];
-        if (reward == 0) revert NoRewardsAvailable();
+        if (reward == 0) revert IIncentivesPool.IncentivesPool_NoRewards();
 
         // Mark as claimed
         supporterRewards[board][initiativeId][supporter] = 0;
@@ -362,14 +342,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         emit RewardsClaimed(board, initiativeId, supporter, reward);
     }
 
-    /**
-     * @notice Preview rewards for a supporter on a specific initiative
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter
-     * @return Amount of rewards claimable
-     */
+    /// @inheritdoc IIncentivesPool
     function previewRewards(address board, uint256 initiativeId, address supporter)
         external
         view
@@ -378,14 +351,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         return supporterRewards[board][initiativeId][supporter];
     }
 
-    /**
-     * @notice Get rewards allocated to a supporter for a specific initiative
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter
-     * @return Amount of rewards allocated (0 if already claimed)
-     */
+    /// @inheritdoc IIncentivesPool
     function getSupporterRewards(address board, uint256 initiativeId, address supporter)
         external
         view
@@ -394,72 +360,37 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         return supporterRewards[board][initiativeId][supporter];
     }
 
-    /**
-     * @notice Get the current pool configuration
-     *
-     * @return PoolConfig struct with current pool state
-     */
+    /// @inheritdoc IIncentivesPool
     function getPoolConfig() external view returns (PoolConfig memory) {
         return poolConfig;
     }
 
-    /**
-     * @notice Get available pool balance (total - allocated)
-     *
-     * @return Amount of tokens available for future allocations
-     */
+    /// @inheritdoc IIncentivesPool
     function getAvailablePoolBalance() external view returns (uint256) {
         return poolConfig.totalAmount - poolConfig.allocated;
     }
 
-    /**
-     * @notice Check if distributions have been calculated for an initiative
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative
-     * @return True if distributions calculated, false otherwise
-     */
+    /// @inheritdoc IIncentivesPool
     function isDistributionCalculated(address board, uint256 initiativeId) external view returns (bool) {
         return distributionsCalculated[board][initiativeId];
     }
 
-    /**
-     * @notice Get the total weight calculated for an initiative
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative
-     * @return Total weight sum for the initiative
-     */
+    /// @inheritdoc IIncentivesPool
     function getInitiativeTotalWeight(address board, uint256 initiativeId) external view returns (uint256) {
         return initiativeTotalWeight[board][initiativeId];
     }
 
-    /**
-     * @notice Get the total reward pool allocated for an initiative
-     *
-     * @param board Address of the Signals board
-     * @param initiativeId ID of the initiative
-     * @return Amount of rewards allocated for this initiative
-     */
+    /// @inheritdoc IIncentivesPool
     function getInitiativeRewardPool(address board, uint256 initiativeId) external view returns (uint256) {
         return initiativeRewardPool[board][initiativeId];
     }
 
-    /**
-     * @notice Get all approved boards
-     *
-     * @return Array of approved board addresses
-     */
+    /// @inheritdoc IIncentivesPool
     function getApprovedBoards() external view returns (address[] memory) {
         return boardList;
     }
 
-    /**
-     * @notice Check if a board is approved
-     *
-     * @param board Address of the board to check
-     * @return True if board is approved, false otherwise
-     */
+    /// @inheritdoc IIncentivesPool
     function isBoardApproved(address board) external view returns (bool) {
         return approvedBoards[board];
     }

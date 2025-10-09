@@ -14,6 +14,18 @@ contract TokenRegistry is AccessControl {
 
     bytes32 public constant TOKEN_MANAGER_ROLE = keccak256("TOKEN_MANAGER_ROLE");
 
+    /// @notice Thrown when token address is zero
+    error TokenRegistry_InvalidTokenAddress();
+
+    /// @notice Thrown when token is already registered
+    error TokenRegistry_TokenAlreadyRegistered();
+
+    /// @notice Thrown when token does not support ERC20
+    error TokenRegistry_TokenNotERC20();
+
+    /// @notice Thrown when token is not approved in registry
+    error TokenRegistry_TokenNotApproved();
+
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
 
@@ -23,16 +35,26 @@ contract TokenRegistry is AccessControl {
     }
 
     function allow(address _token) external onlyRole(TOKEN_MANAGER_ROLE) {
-        require(_token != address(0), "Invalid token address");
-        require(!registry[_token], "Token already registered");
-        require(_supportsERC20(_token), "Token is not ERC20");
+        if (_token == address(0)) {
+            revert TokenRegistry_InvalidTokenAddress();
+        }
+        if (registry[_token]) {
+            revert TokenRegistry_TokenAlreadyRegistered();
+        }
+        if (!_supportsERC20(_token)) {
+            revert TokenRegistry_TokenNotERC20();
+        }
         registry[_token] = true;
         emit TokenAdded(_token);
     }
 
     function deny(address _token) external onlyRole(TOKEN_MANAGER_ROLE) {
-        require(_token != address(0), "Invalid token address");
-        require(registry[_token], "Token not approved");
+        if (_token == address(0)) {
+            revert TokenRegistry_InvalidTokenAddress();
+        }
+        if (!registry[_token]) {
+            revert TokenRegistry_TokenNotApproved();
+        }
         registry[_token] = false;
         emit TokenRemoved(_token);
     }

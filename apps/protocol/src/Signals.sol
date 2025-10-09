@@ -15,6 +15,7 @@ import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 
 import "./DecayCurves.sol";
 import "./Bounties.sol";
+import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
  * @title Signals by Lighthouse Labs <https://lighthouse.cx>
@@ -61,7 +62,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     address public underlyingToken;
 
     /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
-    uint256 public activityTimeout = 60 days;
+    uint256 public activityTimeout = SignalsConstants.DEFAULT_ACTIVITY_TIMEOUT;
 
     /// @notice Configuration for proposer requirements (immutable after initialization)
     ProposerRequirements public proposerRequirements;
@@ -101,37 +102,36 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => bool)) public isSupporter;
 
     /// @notice Track locked tokens with NFTs
-    uint256 public nextTokenId = 1;
+    uint256 public nextTokenId = SignalsConstants.INITIAL_TOKEN_ID;
 
     /// @notice Add back the initiative counter
-    uint256 public initiativeCount = 0;
+    uint256 public initiativeCount = SignalsConstants.INITIAL_INITIATIVE_COUNT;
 
     /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
     modifier exists(uint256 initiativeId) {
-        if (initiativeId > initiativeCount) revert ISignals.InitiativeNotFound();
+        if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
         _;
     }
 
     modifier isNotInitialized() {
-        require(acceptanceThreshold == 0, "Already initialized");
+        if (acceptanceThreshold != 0) revert ISignals.Signals_AlreadyInitialized();
         _;
     }
 
     modifier isOpen() {
-        if (block.timestamp < boardOpensAt) revert ISignals.BoardNotYetOpen();
-        if (boardState == BoardState.Closed) revert ISignals.BoardClosedError();
+        if (block.timestamp < boardOpensAt) revert ISignals.Signals_BoardNotYetOpen();
+        if (boardState == BoardState.Closed) revert ISignals.Signals_BoardClosed();
         _;
     }
 
     modifier hasSufficientTokens(uint256 amount) {
-        if (IERC20(underlyingToken).balanceOf(msg.sender) < amount) revert ISignals.InsufficientTokens();
+        if (IERC20(underlyingToken).balanceOf(msg.sender) < amount) revert ISignals.Signals_InsufficientTokens();
         _;
     }
 
     modifier hasValidInput(string memory _title, string memory _body) {
-        if (bytes(_title).length == 0 || bytes(_body).length == 0) {
-            revert ISignals.InvalidInput("Title or body cannot be empty");
-        }
+        if (bytes(_title).length == 0) revert ISignals.Signals_EmptyTitle();
+        if (bytes(_body).length == 0) revert ISignals.Signals_EmptyBody();
         _;
     }
 
@@ -139,34 +139,42 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     modifier isEligibleProposer() {
         ProposerRequirements memory reqs = proposerRequirements;
 
+        // No restrictions - anyone can propose (threshold still applies in _addInitiative)
         if (reqs.eligibilityType == EligibilityType.None) {
             _;
             return;
         }
 
+        // Simple balance check - proposer must hold minimum tokens at time of proposal
         if (reqs.eligibilityType == EligibilityType.MinBalance) {
             uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
             if (balance < reqs.minBalance) {
-                revert ProposerRequirementsNotMet("Insufficient token balance for proposal");
+                revert ISignals.Signals_ProposerInsufficientBalance();
             }
             _;
             return;
         }
 
+        // Advanced sybil resistance - proposer must have held min tokens for min duration
+        // Prevents flash-loan attacks and ensures proposer commitment
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            // First check current balance
             uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
             if (balance < reqs.minBalance) {
-                revert ProposerRequirementsNotMet("Insufficient token balance for proposal");
+                revert ISignals.Signals_ProposerInsufficientBalance();
             }
 
-            // Check holding duration (requires governance token with checkpoints)
+            // Then check historical balance using ERC20Votes checkpoints
+            // This requires the underlying token to support getPastVotes (e.g., governance tokens)
             try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration)
                 returns (uint256 pastBalance) {
+                // Verify they held the minimum balance for the required duration
                 if (pastBalance < reqs.minBalance) {
-                    revert ProposerRequirementsNotMet("Tokens not held long enough");
+                    revert ISignals.Signals_ProposerInsufficientDuration();
                 }
             } catch {
-                revert ProposerRequirementsNotMet("Token does not support holding duration checks");
+                // Token doesn't support checkpoints - cannot verify holding duration
+                revert ISignals.Signals_ProposerNoCheckpointSupport();
             }
             _;
             return;
@@ -177,34 +185,42 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     modifier meetsParticipantRequirements() {
         ParticipantRequirements memory reqs = participantRequirements;
 
+        // No restrictions - anyone can participate
         if (reqs.eligibilityType == EligibilityType.None) {
             _;
             return;
         }
 
+        // Simple balance check - participant must hold minimum tokens to support initiatives
         if (reqs.eligibilityType == EligibilityType.MinBalance) {
             uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
             if (balance < reqs.minBalance) {
-                revert ParticipantRequirementsNotMet("Insufficient token balance to participate");
+                revert ISignals.Signals_ParticipantInsufficientBalance();
             }
             _;
             return;
         }
 
+        // Advanced sybil resistance - participant must have held min tokens for min duration
+        // Prevents flash-loan attacks and last-minute manipulation
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            // First check current balance
             uint256 balance = IERC20(underlyingToken).balanceOf(msg.sender);
             if (balance < reqs.minBalance) {
-                revert ParticipantRequirementsNotMet("Insufficient token balance to participate");
+                revert ISignals.Signals_ParticipantInsufficientBalance();
             }
 
-            // Check holding duration (requires governance token with checkpoints)
+            // Then check historical balance using ERC20Votes checkpoints
+            // This requires the underlying token to support getPastVotes (e.g., governance tokens)
             try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration)
                 returns (uint256 pastBalance) {
+                // Verify they held the minimum balance for the required duration
                 if (pastBalance < reqs.minBalance) {
-                    revert ParticipantRequirementsNotMet("Tokens not held long enough");
+                    revert ISignals.Signals_ParticipantInsufficientDuration();
                 }
             } catch {
-                revert ParticipantRequirementsNotMet("Token does not support holding duration checks");
+                // Token doesn't support checkpoints - cannot verify holding duration
+                revert ISignals.Signals_ParticipantNoCheckpointSupport();
             }
             _;
             return;
@@ -220,26 +236,56 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
+    /**
+     * @notice Set the board title
+     * @param _title New title for the board
+     */
     function setTitle(string memory _title) external onlyOwner {
         title = _title;
     }
 
+    /**
+     * @notice Get the current board title
+     * @return Current board title
+     */
     function getTitle() external view returns (string memory) {
         return title;
     }
 
+    /**
+     * @notice Returns the ERC721 token name
+     * @dev Combines underlying token name with "Locked Support"
+     * @return Token name string
+     */
     function name() public view override returns (string memory) {
         return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), " Locked Support"));
     }
 
+    /**
+     * @notice Returns the ERC721 token symbol
+     * @dev Prefixes underlying token symbol with "sx"
+     * @return Token symbol string
+     */
     function symbol() public view override returns (string memory) {
         return string(abi.encodePacked("sx", IERC20Metadata(underlyingToken).symbol()));
     }
 
+    /**
+     * @notice Returns the token URI for metadata
+     * @dev Currently returns empty string - can be implemented for on-chain or off-chain metadata
+     * @return Empty string
+     */
     function tokenURI(uint256) public pure override returns (string memory) {
         return ""; // Return empty string for now
     }
 
+    /**
+     * @notice Internal function to create a new initiative
+     * @dev Validates proposer has sufficient tokens based on threshold
+     * @param _title Title of the initiative
+     * @param _body Body content of the initiative
+     * @return id The ID of the newly created initiative
+     */
     function _addInitiative(string memory _title, string memory _body)
         internal
         hasSufficientTokens(proposerRequirements.threshold)
@@ -264,23 +310,32 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return initiativeCount;
     }
 
+    /**
+     * @notice Internal function to add a lock position to an initiative
+     * @dev Creates NFT representing the lock, transfers tokens, and updates all tracking
+     * @param initiativeId ID of the initiative to support
+     * @param supporter Address receiving the lock NFT
+     * @param amount Amount of tokens to lock
+     * @param lockDuration Duration of the lock in intervals
+     * @return tokenId The NFT token ID representing this lock position
+     */
     function _addLock(uint256 initiativeId, address supporter, uint256 amount, uint256 lockDuration)
         internal
         hasSufficientTokens(amount)
         returns (uint256 tokenId)
     {
         if (lockDuration == 0 || lockDuration > maxLockIntervals) {
-            revert ISignals.InvalidInput("Invalid lock interval");
+            revert ISignals.Signals_InvalidLockDuration();
         }
 
         Initiative storage initiative = _initiatives[initiativeId];
 
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
+            revert ISignals.Signals_NotProposedState();
         }
 
         if (!IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount)) {
-            revert ISignals.TokenTransferFailed();
+            revert ISignals.Signals_TokenTransferFailed();
         }
 
         tokenId = nextTokenId++;
@@ -315,13 +370,25 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return tokenId;
     }
 
+    /**
+     * @notice Internal function to calculate total weight of an initiative at a specific time
+     * @dev Iterates through all locks and sums their individual weights
+     * @param initiativeId ID of the initiative
+     * @param timestamp Timestamp to calculate weight at
+     * @return Total weight at the specified timestamp
+     */
     function _calculateWeightAt(uint256 initiativeId, uint256 timestamp) internal view returns (uint256) {
+        // Get all lock positions supporting this initiative
         uint256[] memory tokenIds = initiativeLocks[initiativeId];
         uint256 weight = 0;
 
+        // Sum weights from all active (non-withdrawn) locks
+        // Each lock's weight decays over time according to the configured decay curve
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
             TokenLock memory lock = _locks[tokenId];
+
+            // Only count locks that haven't been redeemed yet
             if (!lock.withdrawn) {
                 weight += _calculateLockWeightAt(lock, timestamp);
             }
@@ -330,17 +397,29 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return weight;
     }
 
+    /**
+     * @notice Internal function to calculate a supporter's weight for an initiative at a specific time
+     * @dev Iterates through supporter's locks and sums weights for the specified initiative
+     * @param initiativeId ID of the initiative
+     * @param supporter Address of the supporter
+     * @param timestamp Timestamp to calculate weight at
+     * @return Total weight contributed by supporter at the specified timestamp
+     */
     function _calculateWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
         internal
         view
         returns (uint256)
     {
+        // Get all locks owned by this supporter (across all initiatives)
         uint256[] memory tokenIds = supporterLocks[supporter];
         uint256 weight = 0;
 
+        // Filter for locks supporting the specific initiative and sum their weights
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
             TokenLock memory lock = _locks[tokenId];
+
+            // Only count locks for this specific initiative that haven't been redeemed
             if (lock.initiativeId == initiativeId && !lock.withdrawn) {
                 weight += _calculateLockWeightAt(lock, timestamp);
             }
@@ -349,32 +428,50 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return weight;
     }
 
+    /**
+     * @notice Internal function to calculate the weight of a single lock at a specific time
+     * @dev Applies decay curve based on elapsed intervals. Returns 0 if lock expired or withdrawn
+     * @param lock The lock position to calculate weight for
+     * @param timestamp Timestamp to calculate weight at
+     * @return Weight of the lock at the specified timestamp
+     */
     function _calculateLockWeightAt(TokenLock memory lock, uint256 timestamp) internal view returns (uint256) {
+        // Calculate how many complete intervals have elapsed since lock creation
+        // Example: If lockInterval = 1 day, and 2.5 days passed, elapsedIntervals = 2
         uint256 elapsedIntervals = (timestamp - lock.created) / lockInterval;
+
+        // Lock has expired (duration passed) or already withdrawn - no weight
         if (elapsedIntervals >= lock.lockDuration || lock.withdrawn) {
             return 0;
         }
 
-        require(decayCurveType < 2, "Invalid decayCurveType");
-        if (decayCurveType == 0) {
+        // Validate the decay curve type is recognized
+        if (decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
+
+        // Apply the configured decay curve to calculate time-weighted value
+        // Linear: weight decreases steadily over time
+        // Exponential: weight decreases at an accelerating rate
+        if (decayCurveType == SignalsConstants.DECAY_LINEAR) {
             return DecayCurves.linear(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
         } else {
             return DecayCurves.exponential(lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters);
         }
     }
 
-    /**
-     * @notice Permit initializing the contract exactly once
-     */
+    /// @inheritdoc ISignals
     function initialize(ISignals.BoardConfig calldata config) external isNotInitialized {
         // Validate configuration parameters
-        if (config.underlyingToken == address(0)) revert ISignals.InvalidInput("underlyingToken cannot be zero address");
-        if (config.owner == address(0)) revert ISignals.InvalidInput("owner cannot be zero address");
-        if (config.acceptanceThreshold == 0) revert ISignals.InvalidInput("acceptanceThreshold must be greater than 0");
-        if (config.maxLockIntervals == 0) revert ISignals.InvalidInput("maxLockIntervals must be greater than 0");
-        if (config.lockInterval == 0) revert ISignals.InvalidInput("lockInterval must be greater than 0");
-        if (config.proposalCap == 0) revert ISignals.InvalidInput("proposalCap must be greater than 0");
-        if (config.decayCurveType >= 2) revert ISignals.InvalidInput("decayCurveType must be 0 (linear) or 1 (exponential)");
+        if (config.underlyingToken == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressToken();
+        if (config.owner == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressOwner();
+        if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
+        if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
+        if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
+        if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
+        if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
 
         version = config.version;
         underlyingToken = config.underlyingToken;
@@ -398,12 +495,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         transferOwnership(config.owner);
     }
 
-    /**
-     * @notice Proposes a new initiative
-     *
-     * @param _title Title of the initiative
-     * @param _body Body of the initiative
-     */
+    /// @inheritdoc ISignals
     function proposeInitiative(string memory _title, string memory _body)
         external
         isOpen
@@ -413,14 +505,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         _addInitiative(_title, _body);
     }
 
-    /**
-     * @notice Proposes a new initiative with locked tokens
-     *
-     * @param _title Title of the initiative
-     * @param _body Body of the initiative
-     * @param _amount Amount of tokens to lock
-     * @param _lockDuration Duration for which tokens are locked (in intervals)
-     */
+    /// @inheritdoc ISignals
     function proposeInitiativeWithLock(
         string memory _title,
         string memory _body,
@@ -437,13 +522,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
     }
 
-    /**
-     * @notice Allows a user to support an existing initiative with locked tokens
-     *
-     * @param initiativeId ID of the initiative to support
-     * @param amount Amount of tokens to lock
-     * @param lockDuration Duration for which tokens are locked (in intervals)
-     */
+    /// @inheritdoc ISignals
     function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
         external
         isOpen
@@ -454,23 +533,34 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         tokenId = _addLock(initiativeId, msg.sender, amount, lockDuration);
     }
 
+    /**
+     * @notice Mark an initiative as accepted
+     * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
+     * @param initiativeId ID of the initiative to accept
+     */
     function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
         Initiative storage initiative = _initiatives[initiativeId];
+
+        // State transition: Proposed → Accepted
+        // Can only accept initiatives in Proposed state (not already Accepted, Cancelled, or Expired)
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
+            revert ISignals.Signals_NotProposedState();
         }
 
+        // Update state and record acceptance timestamp for release timelock calculation
         initiative.state = InitiativeState.Accepted;
         initiative.acceptanceTimestamp = block.timestamp;
 
-        // Notify the Bounties contract
+        // Notify the Bounties contract to distribute bounty rewards if configured
+        // This is optional - bounties may not be set for all boards
         // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(bounties) != address(0)) {
+        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
             bounties.handleInitiativeAccepted(initiativeId);
         }
 
-        // Calculate incentives if pool is configured (non-blocking)
-        if (address(incentivesPool) != address(0)) {
+        // Calculate and allocate incentives for supporters (non-blocking)
+        // Uses try-catch to prevent incentive failures from blocking acceptance
+        if (address(incentivesPool) != SignalsConstants.ADDRESS_ZERO) {
             try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
                 // Incentives calculation failed, but don't block acceptance
                 // Silently continue - pool contract will emit events for monitoring
@@ -480,56 +570,83 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
 
+    /**
+     * @notice Mark an inactive initiative as expired
+     * @dev Only callable by owner after activityTimeout has passed. Notifies bounties if configured.
+     * @param initiativeId ID of the initiative to expire
+     */
     function expireInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
         Initiative storage initiative = _initiatives[initiativeId];
+
+        // State transition: Proposed → Expired
+        // Can only expire initiatives that are still in Proposed state
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.InvalidInitiativeState("Initiative is not in Proposed state");
-        }
-        if (block.timestamp <= initiative.lastActivity + activityTimeout) {
-            revert ISignals.InvalidInitiativeState("Initiative not yet eligible for expiration");
+            revert ISignals.Signals_NotProposedState();
         }
 
+        // Verify initiative has been inactive for longer than activityTimeout
+        // This prevents expiring initiatives that still have recent activity
+        if (block.timestamp <= initiative.lastActivity + activityTimeout) {
+            revert ISignals.Signals_NotEligibleForExpiration();
+        }
+
+        // Update state to Expired - allows supporters to redeem their locked tokens
         initiative.state = InitiativeState.Expired;
 
-        // Notify the Bounties contract
+        // Notify the Bounties contract to handle refunds if configured
         // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(bounties) != address(0)) {
+        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
             bounties.handleInitiativeExpired(initiativeId);
         }
 
         emit InitiativeExpired(initiativeId, msg.sender);
     }
 
+    /**
+     * @notice Redeem a lock position to retrieve underlying tokens
+     * @dev Burns the NFT, transfers underlying tokens, and auto-claims incentives if available
+     * @dev Only callable for Accepted or Expired initiatives. Respects releaseLockDuration for accepted initiatives.
+     * @param tokenId The NFT token ID representing the lock position
+     */
     function redeem(uint256 tokenId) public nonReentrant {
-        require(!_locks[tokenId].withdrawn, ISignals.InvalidRedemption());
-        require(ownerOf(tokenId) == msg.sender, "Not token owner");
+        // Validate lock hasn't already been redeemed
+        if (_locks[tokenId].withdrawn) revert ISignals.Signals_AlreadyRedeemed();
+
+        // Only the NFT owner can redeem (allows trading lock positions)
+        if (ownerOf(tokenId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
 
         TokenLock storage lock = _locks[tokenId];
-
         Initiative storage initiative = _initiatives[lock.initiativeId];
+
+        // State validation: Can only redeem from Accepted or Expired initiatives
+        // Proposed initiatives are still active - locks cannot be redeemed yet
         if (!(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)) {
-            revert ISignals.InvalidInitiativeState("Initiative not withdrawable");
+            revert ISignals.Signals_NotWithdrawableState();
         }
 
-        // Check release timelock for accepted initiatives (unless board is closed)
+        // Release timelock: Accepted initiatives may have a cooldown period before redemption
+        // This prevents immediately dumping tokens after acceptance
+        // Timelock is bypassed if board is closed (emergency exit mechanism)
         if (initiative.state == InitiativeState.Accepted && boardState != BoardState.Closed) {
             if (releaseLockDuration > 0) {
                 uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration;
                 if (block.timestamp < releaseTime) {
-                    revert ISignals.InvalidInitiativeState("Tokens still locked after acceptance");
+                    revert ISignals.Signals_StillTimelocked();
                 }
             }
         }
 
+        // Mark as withdrawn and burn the NFT (prevents double-redemption)
         uint256 amount = lock.tokenAmount;
         lock.withdrawn = true;
         _burn(tokenId);
 
-        // Transfer underlying tokens
-        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.TokenTransferFailed();
+        // Transfer underlying tokens back to the supporter
+        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.Signals_TokenTransferFailed();
 
-        // Auto-claim incentives if pool is configured and initiative was accepted
-        // Only claim if there are rewards to prevent revert on already-claimed or zero rewards
+        // Auto-claim any pending incentive rewards (convenience feature)
+        // Only applies to accepted initiatives with configured incentive pools
+        // Silently skips if no rewards to prevent revert
         if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
             uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
             if (pendingRewards > 0) {
@@ -540,9 +657,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit Redeemed(tokenId, msg.sender, amount);
     }
 
+    /// @inheritdoc ISignalsLock
     function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
         if (_locks[tokenId].initiativeId == 0) {
-            revert ISignals.InvalidTokenId();
+            revert ISignals.Signals_InvalidTokenId();
         }
 
         TokenLock memory lock = _locks[tokenId];
@@ -556,38 +674,27 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         });
     }
 
+    /// @inheritdoc ISignalsLock
     function getUnderlyingToken() external view returns (address) {
         return underlyingToken;
     }
 
-    // NOTE: This is not needed, as it is exactly the same as `signals.locks(tokenId)`
+    /// @inheritdoc ISignals
     function getTokenLock(uint256 tokenId) public view returns (TokenLock memory) {
         return _locks[tokenId];
     }
 
-    /**
-     * @notice Returns details about the specified initiative
-     *
-     * @param initiativeId The initiative to return
-     */
+    /// @inheritdoc ISignals
     function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
         return _initiatives[initiativeId];
     }
 
-    /**
-     * @notice Returns a list of addresses which have supported this initiative
-     *
-     * @param initiativeId The initiative to return supporters for
-     */
+    /// @inheritdoc ISignals
     function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
         return supporters[initiativeId];
     }
 
-    /**
-     * @notice Returns the current, real-time weight of the specified initiative
-     *
-     * @param initiativeId The initiative to return the weight for
-     */
+    /// @inheritdoc ISignals
     function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
         uint256 totalCurrentWeight = 0;
         address[] memory _supporters = supporters[initiativeId];
@@ -604,12 +711,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return totalCurrentWeight;
     }
 
-    /**
-     * @notice Returns the weight the initiative did/will have at a specific timestamp
-     *
-     * @param initiativeId The initiative to return
-     * @param timestamp The timestamp to calculate the weight for
-     */
+    /// @inheritdoc ISignals
     function getWeightAt(uint256 initiativeId, uint256 timestamp)
         external
         view
@@ -619,12 +721,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return _calculateWeightAt(initiativeId, timestamp);
     }
 
-    /**
-     * @notice Returns the weight a supporter has provided/is providing for the specified initiative at a specific timestamp
-     *
-     * @param initiativeId The initiative to return the weight for
-     * @param supporter The supporter to return the weight for
-     */
+    /// @inheritdoc ISignals
     function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
         external
         view
@@ -634,50 +731,33 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
     }
 
-    /**
-     * @notice Returns the address of the token being used for lockups
-     */
+    /// @inheritdoc ISignals
     function token() external view returns (address) {
         return underlyingToken;
     }
 
-    /**
-     * @notice Returns the total number of initiatives
-     */
+    /// @inheritdoc ISignals
     function totalInitiatives() external view returns (uint256) {
         return initiativeCount;
     }
 
-    /**
-     * @notice Returns the total number of supporters for the specified initiative
-     *
-     * @param initiativeId The initiative to return the number of supporters for
-     */
+    /// @inheritdoc ISignals
     function totalSupporters(uint256 initiativeId) external view returns (uint256) {
         return supporters[initiativeId].length;
     }
 
-    /**
-     * @notice Allows the owner to update the inactivity threshold
-     *
-     * @param _newThreshold New inactivity threshold in seconds
-     */
+    /// @inheritdoc ISignals
     function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
         activityTimeout = _newThreshold;
     }
 
-    /**
-     * @notice Allows the owner to update the decay curve type and parameters
-     *
-     * @param _decayCurveType New curve type (0 = linear, 1 = exponential)
-     * @param _decayCurveParameters New curve parameters
-     */
+    /// @inheritdoc ISignals
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
-        require(_decayCurveType < 2, "Invalid decayCurveType");
-        if (_decayCurveType == 0) {
-            require(_decayCurveParameters.length == 1, "Invalid decayCurveParameters");
-        } else if (_decayCurveType == 1) {
-            require(_decayCurveParameters.length == 1, "Invalid decayCurveParameters");
+        if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
+        if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
+            revert ISignals.Signals_InvalidDecayCurveType();
         }
 
         decayCurveType = _decayCurveType;
@@ -685,49 +765,48 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
     }
 
-    /// @notice (Optional) Allows the owner to set the Bounties contract
+    /// @inheritdoc ISignals
     function setBounties(address _bounties) external onlyOwner {
         bounties = Bounties(_bounties);
     }
 
-    /// @notice (Optional) Allows the owner to set the IncentivesPool contract
-    /// @dev Can only be set before board opens to ensure fair configuration
+    /// @inheritdoc ISignals
     function setIncentivesPool(address _incentivesPool) external onlyOwner {
         if (block.timestamp >= boardOpensAt) {
-            revert ISignals.BoardAlreadyOpened();
+            revert ISignals.Signals_BoardAlreadyOpened();
         }
         incentivesPool = IIncentivesPool(_incentivesPool);
     }
 
-    /**
-     * @notice Permanently closes the board, making all locks immediately withdrawable
-     * @dev This is an irreversible action that should be used as an emergency exit or end-of-season cleanup
-     */
+    /// @inheritdoc ISignals
     function closeBoard() external onlyOwner {
         if (boardState == BoardState.Closed) {
-            revert ISignals.InvalidInitiativeState("Board already closed");
+            revert ISignals.Signals_BoardClosed();
         }
         boardState = BoardState.Closed;
         emit BoardClosed(msg.sender);
     }
 
-    // TODO: EIP-1153: Transient Storage?
+    /// @inheritdoc ISignals
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory) {
         return initiativeLocks[initiativeId];
     }
 
+    /**
+     * @notice Get the number of lock positions a supporter has
+     * @param supporter Address of the supporter
+     * @return Number of locks
+     */
     function getLockCountForSupporter(address supporter) public view returns (uint256) {
         return supporterLocks[supporter].length;
     }
 
+    /// @inheritdoc ISignals
     function getLocksForSupporter(address supporter) public view returns (uint256[] memory) {
         return supporterLocks[supporter];
     }
 
-    /**
-     * @notice Returns all token IDs owned by an address
-     * @param owner The address to return the tokens for
-     */
+    /// @inheritdoc ISignals
     function listPositions(address owner) public view returns (uint256[] memory) {
         uint256 tokenCount = balanceOf(owner);
         uint256[] memory tokens = new uint256[](tokenCount);
@@ -743,16 +822,17 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
                     PROPOSAL REQUIREMENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Get current proposal requirements
+    /// @inheritdoc ISignals
     function getProposerRequirements() external view returns (ProposerRequirements memory) {
         return proposerRequirements;
     }
 
+    /// @inheritdoc ISignals
     function getParticipantRequirements() external view returns (ParticipantRequirements memory) {
         return participantRequirements;
     }
 
-    /// @notice Check if an address meets proposer requirements
+    /// @inheritdoc ISignals
     function canPropose(address proposer) public view returns (bool) {
         ProposerRequirements memory reqs = proposerRequirements;
 
@@ -783,7 +863,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return false;
     }
 
-    /// @notice Check if an address meets participant requirements
+    /// @inheritdoc ISignals
     function canParticipate(address participant) public view returns (bool) {
         ParticipantRequirements memory reqs = participantRequirements;
 
@@ -819,22 +899,22 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         // When eligibility type is None, threshold provides the only gate to proposing
         if (reqs.eligibilityType == EligibilityType.None) {
             if (reqs.threshold == 0) {
-                revert ProposerRequirementsNotMet("Threshold must be greater than 0 when eligibility type is None");
+                revert ISignals.Signals_ProposerZeroThreshold();
             }
         }
 
         if (reqs.eligibilityType == EligibilityType.MinBalance) {
             if (reqs.minBalance == 0) {
-                revert ProposerRequirementsNotMet("MinBalance must be greater than 0");
+                revert ISignals.Signals_ProposerZeroMinBalance();
             }
         }
 
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
             if (reqs.minBalance == 0) {
-                revert ProposerRequirementsNotMet("MinBalance must be greater than 0");
+                revert ISignals.Signals_ProposerZeroMinBalance();
             }
             if (reqs.minHoldingDuration == 0) {
-                revert ProposerRequirementsNotMet("MinHoldingDuration must be greater than 0");
+                revert ISignals.Signals_ProposerZeroMinDuration();
             }
         }
     }
@@ -843,22 +923,21 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     function _validateParticipantRequirements(ParticipantRequirements memory reqs) internal pure {
         if (reqs.eligibilityType == EligibilityType.MinBalance) {
             if (reqs.minBalance == 0) {
-                revert ParticipantRequirementsNotMet("MinBalance must be greater than 0");
+                revert ISignals.Signals_ParticipantZeroMinBalance();
             }
         }
 
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
             if (reqs.minBalance == 0) {
-                revert ParticipantRequirementsNotMet("MinBalance must be greater than 0");
+                revert ISignals.Signals_ParticipantZeroMinBalance();
             }
             if (reqs.minHoldingDuration == 0) {
-                revert ParticipantRequirementsNotMet("MinHoldingDuration must be greater than 0");
+                revert ISignals.Signals_ParticipantZeroMinDuration();
             }
         }
     }
 
-    /// @notice Get board incentives configuration
-    /// @return Board incentives configuration
+    /// @inheritdoc ISignals
     function boardIncentives() external view returns (BoardIncentives memory) {
         return _boardIncentives;
     }

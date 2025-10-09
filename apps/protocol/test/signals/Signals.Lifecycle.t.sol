@@ -32,7 +32,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
      */
     function test_Propose_RevertsWithInsufficientTokens() public {
         vm.startPrank(_charlie);
-        vm.expectRevert(ISignals.InsufficientTokens.selector);
+        vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
         signals.proposeInitiative("Should revert", "Description 1");
         vm.stopPrank();
     }

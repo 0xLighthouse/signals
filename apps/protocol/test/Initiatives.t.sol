@@ -35,7 +35,7 @@ contract InitiativesTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 40_000);
 
         // Charlie has InsufficientTokens, so this should revert
-        vm.expectRevert(ISignals.InsufficientTokens.selector);
+        vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
         signals.proposeInitiative(title, body);
     }
 
@@ -48,11 +48,11 @@ contract InitiativesTest is Test, SignalsHarness {
         vm.startPrank(_alice);
 
         // Attempt to propose with empty title
-        vm.expectRevert(abi.encodeWithSelector(ISignals.InvalidInput.selector, "Title or body cannot be empty"));
+        vm.expectRevert(ISignals.Signals_EmptyTitle.selector);
         signals.proposeInitiative("", "Some body");
 
         // Attempt to propose with empty body
-        vm.expectRevert(abi.encodeWithSelector(ISignals.InvalidInput.selector, "Title or body cannot be empty"));
+        vm.expectRevert(ISignals.Signals_EmptyBody.selector);
         signals.proposeInitiative("Some title", "");
     }
 

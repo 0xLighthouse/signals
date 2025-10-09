@@ -166,22 +166,114 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     event BoardClosed(address indexed actor);
 
     // Errors
-    error InvalidInput(string message);
-    error InsufficientTokens();
-    error InvalidInitiativeState(string message);
-    error TokenTransferFailed();
-    error InvalidRedemption();
-    error InitiativeNotFound();
-    error InvalidTokenId();
-    error BoardClosedError();
-    error BoardNotYetOpen();
-    error BoardAlreadyOpened();
 
-    /// @notice Error when user doesn't meet proposer requirements
-    error ProposerRequirementsNotMet(string reason);
+    /// @notice Thrown when title is empty
+    error Signals_EmptyTitle();
 
-    /// @notice Error when user doesn't meet participant requirements
-    error ParticipantRequirementsNotMet(string reason);
+    /// @notice Thrown when body is empty
+    error Signals_EmptyBody();
+
+    /// @notice Thrown when caller has insufficient token balance
+    error Signals_InsufficientTokens();
+
+    /// @notice Thrown when initiative is not in the required state
+    error Signals_InvalidInitiativeState();
+
+    /// @notice Thrown when initiative is not in Proposed state
+    error Signals_NotProposedState();
+
+    /// @notice Thrown when initiative is not in Accepted or Expired state
+    error Signals_NotWithdrawableState();
+
+    /// @notice Thrown when token transfer fails
+    error Signals_TokenTransferFailed();
+
+    /// @notice Thrown when attempting to redeem already-withdrawn tokens
+    error Signals_AlreadyRedeemed();
+
+    /// @notice Thrown when attempting to redeem before release timelock expires
+    error Signals_StillTimelocked();
+
+    /// @notice Thrown when token owner attempts to redeem token they don't own
+    error Signals_NotTokenOwner();
+
+    /// @notice Thrown when initiative ID exceeds initiative count
+    error Signals_InitiativeNotFound();
+
+    /// @notice Thrown when token ID does not exist
+    error Signals_InvalidTokenId();
+
+    /// @notice Thrown when board is closed
+    error Signals_BoardClosed();
+
+    /// @notice Thrown when attempting to interact before board opens
+    error Signals_BoardNotYetOpen();
+
+    /// @notice Thrown when attempting to set incentives pool after board has opened
+    error Signals_BoardAlreadyOpened();
+
+    /// @notice Thrown when contract is already initialized
+    error Signals_AlreadyInitialized();
+
+    /// @notice Thrown when lock duration is zero or exceeds max
+    error Signals_InvalidLockDuration();
+
+    /// @notice Thrown when underlying token address is zero
+    error Signals_ZeroAddressToken();
+
+    /// @notice Thrown when owner address is zero
+    error Signals_ZeroAddressOwner();
+
+    /// @notice Thrown when acceptance threshold is zero
+    error Signals_ZeroAcceptanceThreshold();
+
+    /// @notice Thrown when max lock intervals is zero
+    error Signals_ZeroMaxLockIntervals();
+
+    /// @notice Thrown when lock interval is zero
+    error Signals_ZeroLockInterval();
+
+    /// @notice Thrown when proposal cap is zero
+    error Signals_ZeroProposalCap();
+
+    /// @notice Thrown when decay curve type is invalid
+    error Signals_InvalidDecayCurveType();
+
+    /// @notice Thrown when user has insufficient token balance for proposing
+    error Signals_ProposerInsufficientBalance();
+
+    /// @notice Thrown when user hasn't held tokens long enough to propose
+    error Signals_ProposerInsufficientDuration();
+
+    /// @notice Thrown when token doesn't support holding duration checks
+    error Signals_ProposerNoCheckpointSupport();
+
+    /// @notice Thrown when proposer threshold is zero with no eligibility requirements
+    error Signals_ProposerZeroThreshold();
+
+    /// @notice Thrown when proposer min balance is zero
+    error Signals_ProposerZeroMinBalance();
+
+    /// @notice Thrown when proposer min holding duration is zero
+    error Signals_ProposerZeroMinDuration();
+
+    /// @notice Thrown when user has insufficient token balance for participating
+    error Signals_ParticipantInsufficientBalance();
+
+    /// @notice Thrown when user hasn't held tokens long enough to participate
+    error Signals_ParticipantInsufficientDuration();
+
+    /// @notice Thrown when token doesn't support holding duration checks
+    error Signals_ParticipantNoCheckpointSupport();
+
+    /// @notice Thrown when participant min balance is zero
+    error Signals_ParticipantZeroMinBalance();
+
+    /// @notice Thrown when participant min holding duration is zero
+    error Signals_ParticipantZeroMinDuration();
+
+    /// @notice Thrown when initiative not eligible for expiration (still active)
+    error Signals_NotEligibleForExpiration();
 
     // Public state variables
     function acceptanceThreshold() external view returns (uint256);

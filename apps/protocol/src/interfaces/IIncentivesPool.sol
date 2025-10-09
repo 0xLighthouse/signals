@@ -40,19 +40,45 @@ interface IIncentivesPool {
     event RewardsClaimed(address indexed board, uint256 indexed initiativeId, address indexed supporter, uint256 amount);
 
     // Errors
-    error PoolAlreadyInitialized();
-    error PoolNotInitialized();
-    error BoardAlreadyOpened();
-    error InsufficientPoolFunds();
-    error NotApprovedBoard();
-    error BoardAlreadyApproved();
-    error BoardNotApproved();
-    error NotAuthorized();
-    error AlreadyCalculated();
-    error NotCalculated();
-    error NoRewardsAvailable();
-    error TransferFailed();
-    error InvalidConfiguration();
+
+    /// @notice Thrown when attempting to initialize an already initialized pool
+    error IncentivesPool_AlreadyInitialized();
+
+    /// @notice Thrown when performing operations on uninitialized pool
+    error IncentivesPool_NotInitialized();
+
+    /// @notice Thrown when attempting to approve a board after it has already opened
+    error IncentivesPool_BoardAlreadyOpened();
+
+    /// @notice Thrown when pool has insufficient funds to allocate rewards
+    error IncentivesPool_InsufficientFunds();
+
+    /// @notice Thrown when non-approved board attempts protected operations
+    error IncentivesPool_NotApprovedBoard();
+
+    /// @notice Thrown when attempting to approve an already approved board
+    error IncentivesPool_BoardAlreadyApproved();
+
+    /// @notice Thrown when attempting operations on a board that is not approved
+    error IncentivesPool_BoardNotApproved();
+
+    /// @notice Thrown when caller is not authorized for the operation
+    error IncentivesPool_NotAuthorized();
+
+    /// @notice Thrown when incentives already calculated for an initiative
+    error IncentivesPool_AlreadyCalculated();
+
+    /// @notice Thrown when attempting to claim before calculation
+    error IncentivesPool_NotCalculated();
+
+    /// @notice Thrown when supporter has no rewards available to claim
+    error IncentivesPool_NoRewards();
+
+    /// @notice Thrown when token transfer fails
+    error IncentivesPool_TransferFailed();
+
+    /// @notice Thrown when pool configuration is invalid
+    error IncentivesPool_InvalidConfiguration();
 
     /**
      * @notice Initialize the pool with token, amount, and max reward per initiative
