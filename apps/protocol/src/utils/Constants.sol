@@ -18,9 +18,6 @@ library SignalsConstants {
     /// @notice Maximum value for uint128
     uint128 internal constant MAX_UINT128 = type(uint128).max;
 
-    /// @notice Zero address constant
-    address internal constant ADDRESS_ZERO = address(0);
-
     /*//////////////////////////////////////////////////////////////
                         DECAY CURVE TYPES
     //////////////////////////////////////////////////////////////*/
@@ -63,23 +60,4 @@ library SignalsConstants {
 
     /// @notice Linear incentive curve type identifier
     uint256 internal constant INCENTIVE_CURVE_LINEAR = 0;
-
-    /// @notice Exponential incentive curve type identifier (future use)
-    uint256 internal constant INCENTIVE_CURVE_EXPONENTIAL = 1;
-
-    /*//////////////////////////////////////////////////////////////
-                        INITIALIZATION VALUES
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Starting token ID for NFT locks
-    uint256 internal constant INITIAL_TOKEN_ID = 1;
-
-    /// @notice Starting initiative count
-    uint256 internal constant INITIAL_INITIATIVE_COUNT = 0;
-
-    /// @notice Starting bounty count
-    uint256 internal constant INITIAL_BOUNTY_COUNT = 0;
-
-    /// @notice Starting version number
-    uint256 internal constant INITIAL_VERSION = 0;
 }

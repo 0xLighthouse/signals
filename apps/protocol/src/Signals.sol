@@ -102,10 +102,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => bool)) public isSupporter;
 
     /// @notice Track locked tokens with NFTs
-    uint256 public nextTokenId = SignalsConstants.INITIAL_TOKEN_ID;
+    uint256 public nextTokenId = 1;
 
-    /// @notice Add back the initiative counter
-    uint256 public initiativeCount = SignalsConstants.INITIAL_INITIATIVE_COUNT;
+    /// @notice Initiative counter
+    uint256 public initiativeCount;
 
     /// @notice (Optional) Reference to the Bounties contract (can only be set once)
     // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
@@ -241,8 +241,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @inheritdoc ISignals
     function initialize(ISignals.BoardConfig calldata config) external isNotInitialized {
         // Validate configuration parameters
-        if (config.underlyingToken == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressToken();
-        if (config.owner == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressOwner();
+        if (config.underlyingToken == address(0)) revert ISignals.Signals_ZeroAddressToken();
+        if (config.owner == address(0)) revert ISignals.Signals_ZeroAddressOwner();
         if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
         if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
         if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
@@ -334,13 +334,13 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
         //                Consider event-driven pattern to reduce tight coupling
         //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
+        if (address(bounties) != address(0)) {
             bounties.handleInitiativeAccepted(initiativeId);
         }
 
         // Calculate and allocate incentives for supporters (non-blocking)
         // Uses try-catch to prevent incentive failures from blocking acceptance
-        if (address(incentivesPool) != SignalsConstants.ADDRESS_ZERO) {
+        if (address(incentivesPool) != address(0)) {
             try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
                 // Incentives calculation failed, but don't block acceptance
                 // Silently continue - pool contract will emit events for monitoring
@@ -377,7 +377,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
         //                Consider event-driven pattern to reduce tight coupling
         //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
+        if (address(bounties) != address(0)) {
             bounties.handleInitiativeExpired(initiativeId);
         }
 
@@ -871,9 +871,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
         for (uint256 i = 0; i < _supporters.length; i++) {
             address supporter = _supporters[i];
-            uint256 lockCount = supporterLocks[supporter].length;
+            uint256[] memory locks = supporterLocks[supporter]; // Cache storage array
+            uint256 lockCount = locks.length;
             for (uint256 j = 0; j < lockCount; j++) {
-                uint256 currentWeight = _calculateLockWeightAt(_locks[supporterLocks[supporter][j]], block.timestamp);
+                uint256 currentWeight = _calculateLockWeightAt(_locks[locks[j]], block.timestamp);
                 totalCurrentWeight += currentWeight;
             }
         }
