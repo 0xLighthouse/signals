@@ -90,7 +90,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposerRequirementsNotMet.selector, "Insufficient token balance for proposal"
+                ISignals.Signals_ProposerInsufficientBalance.selector
             )
         );
         signals.proposeInitiative("Test", "Description");
@@ -173,7 +173,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20Votes.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
-            abi.encodeWithSelector(ISignals.ProposerRequirementsNotMet.selector, "Tokens not held long enough")
+            abi.encodeWithSelector(ISignals.Signals_ProposerInsufficientDuration.selector)
         );
         signals.proposeInitiative("Test", "Description");
         vm.stopPrank();
@@ -198,7 +198,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 50_000 * 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposerRequirementsNotMet.selector, "Token does not support holding duration checks"
+                ISignals.Signals_ProposerNoCheckpointSupport.selector
             )
         );
         signals.proposeInitiative("Test", "Description");
@@ -220,7 +220,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         });
         Signals signals1 = new Signals();
         vm.expectRevert(
-            abi.encodeWithSelector(ISignals.ProposerRequirementsNotMet.selector, "MinBalance must be greater than 0")
+            abi.encodeWithSelector(ISignals.Signals_ProposerZeroMinBalance.selector)
         );
         signals1.initialize(config1);
 
@@ -235,7 +235,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         Signals signals2 = new Signals();
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposerRequirementsNotMet.selector, "MinHoldingDuration must be greater than 0"
+                ISignals.Signals_ProposerZeroMinDuration.selector
             )
         );
         signals2.initialize(config2);
@@ -312,7 +312,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
         assertFalse(signals.canPropose(_alice));
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISignals.ProposerRequirementsNotMet.selector, "Insufficient token balance for proposal"
+                ISignals.Signals_ProposerInsufficientBalance.selector
             )
         );
         signals.proposeInitiative("Second", "Description");

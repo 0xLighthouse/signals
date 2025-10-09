@@ -203,7 +203,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         signals.redeem(1);
 
         // Attempt to withdraw again
-        vm.expectRevert(ISignals.InvalidRedemption.selector);
+        vm.expectRevert(ISignals.Signals_AlreadyRedeemed.selector);
         signals.redeem(1);
     }
 

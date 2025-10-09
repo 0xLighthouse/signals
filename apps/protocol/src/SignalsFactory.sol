@@ -8,9 +8,10 @@ import "forge-std/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./Signals.sol";
 import "./interfaces/ISignals.sol";
 import "./interfaces/ISignalsFactory.sol";
+
+import "./Signals.sol";
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
 
@@ -19,8 +20,11 @@ contract SignalsFactory is ISignalsFactory {
 
     string public constant VERSION = "0.1.0";
 
-    error FactoryDeploymentFailed();
-    error InvalidOwnerAddress();
+    /// @notice Thrown when deployment of Signals instance fails
+    error SignalsFactory_DeploymentFailed();
+
+    /// @notice Thrown when owner address is zero
+    error SignalsFactory_ZeroAddressOwner();
 
     /// @notice Event emitted when a new Signals contract is created
     event BoardCreated(address indexed board, address indexed owner);
@@ -34,7 +38,7 @@ contract SignalsFactory is ISignalsFactory {
     /// @return Address of the newly created Signals contract
     /// --------------------------------------------------------
     function create(ISignalsFactory.FactoryDeployment calldata config) public payable returns (address) {
-        if (config.owner == address(0)) revert InvalidOwnerAddress();
+        if (config.owner == address(0)) revert SignalsFactory_ZeroAddressOwner();
 
         // TODO: Also init the Incentives contract from the factory
         // TODO: Perform additional config checks here; So the board does not get bricked;

@@ -241,7 +241,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         vm.warp(block.timestamp + 1);
 
         vm.prank(_deployer);
-        vm.expectRevert(ISignals.BoardAlreadyOpened.selector);
+        vm.expectRevert(ISignals.Signals_BoardAlreadyOpened.selector);
         signals.setIncentivesPool(address(incentivesPool));
     }
 

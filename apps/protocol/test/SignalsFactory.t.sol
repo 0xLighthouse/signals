@@ -81,7 +81,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     function test_Create_RevertsWithInvalidOwner() public {
         // Set the implementation to an invalid address and attempt to create a clone
         vm.prank(_deployer);
-        vm.expectRevert(abi.encodeWithSelector(SignalsFactory.InvalidOwnerAddress.selector));
+        vm.expectRevert(SignalsFactory.SignalsFactory_ZeroAddressOwner.selector);
 
         uint256[] memory _decayCurveParameters = new uint256[](1); // 0.9
         _decayCurveParameters[0] = 9e17;

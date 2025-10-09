@@ -52,7 +52,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         token.approve(address(signals), 100 * 1e18);
 
-        vm.expectRevert(ISignals.BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
         signals.proposeInitiative("Early Initiative", "Should fail");
         vm.stopPrank();
     }
@@ -78,7 +78,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_bob);
         token.approve(address(newSignals), 150 * 1e18);
 
-        vm.expectRevert(ISignals.BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
         newSignals.proposeInitiative("Should fail", "Board not open yet");
         vm.stopPrank();
     }
@@ -141,7 +141,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         token.approve(address(signals), 200 * 1e18);
 
-        vm.expectRevert(ISignals.BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
         signals.proposeInitiativeWithLock("Early Initiative", "Should fail", 100 * 1e18, 10);
         vm.stopPrank();
     }
