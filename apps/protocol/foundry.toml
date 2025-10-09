@@ -10,3 +10,10 @@ ffi = false
 
 [profile.formatter]
 line_length = 100
+
+[lint]
+exclude_lints = [
+    "unaliased-plain-import",
+    "mixed-case-variable",
+    "mixed-case-function",
+]
