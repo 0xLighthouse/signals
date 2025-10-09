@@ -43,22 +43,6 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
     uint256 public bountyCount;
 
     /**
-     * @notice Internal function to update bounty split allocations
-     * @dev Validates allocations sum to 100 (basis points), increments version
-     * @param _allocations Array of [protocolFee, voterRewards, treasuryShare]
-     * @param _receivers Array of addresses to receive each allocation
-     */
-    function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
-        if (_allocations[0] + _allocations[1] + _allocations[2] != SignalsConstants.BASIS_POINTS) {
-            revert IBounties.Bounties_InvalidAllocation();
-        }
-        version++;
-        allocations[version] = _allocations;
-        receivers[version] = _receivers;
-        emit BountiesUpdated(version);
-    }
-
-    /**
      * @notice Initialize the Bounties contract
      * @param _signalsContract Address of the Signals contract
      * @param _tokenRegistry Address of the TokenRegistry contract
@@ -83,70 +67,50 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBounties
-    function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory) {
-        return (version, allocations[_version], receivers[_version]);
-    }
-
-    /// @inheritdoc IBounties
-    function getBounties(uint256 _initiativeId)
-        public
-        view
-        returns (address[] memory, uint256[] memory, uint256 expiredCount)
-    {
-        uint256[] memory _bountyIds = bountiesByInitiative[_initiativeId];
-
-        // Using arrays to store tokens and their total amounts
-        address[] memory tokens = new address[](_bountyIds.length);
-        uint256[] memory amounts = new uint256[](_bountyIds.length);
-        uint256 _expiredCount = 0;
-        uint256 tokenCount = 0;
-
-        for (uint256 i = 0; i < _bountyIds.length; i++) {
-            Bounty storage bounty = bounties[_bountyIds[i]];
-
-            // If the bounty has expired, exclude it from the sum
-            if (bounty.expiresAt != 0 && block.timestamp > bounty.expiresAt) {
-                _expiredCount++;
-                continue;
-            }
-
-            address tokenAddress = address(bounty.token);
-            bool found = false;
-            for (uint256 j = 0; j < tokenCount; j++) {
-                if (tokens[j] == tokenAddress) {
-                    // Token found, accumulate the amount
-                    amounts[j] += bounty.amount;
-                    found = true;
-                    break;
-                }
-            }
-
-            // If the token was not found, add it to the tokens array
-            if (!found) {
-                tokens[tokenCount] = tokenAddress;
-                amounts[tokenCount] = bounty.amount;
-                tokenCount++;
-            }
-        }
-
-        // Create arrays with the actual size
-        address[] memory resultTokens = new address[](tokenCount);
-        uint256[] memory resultAmounts = new uint256[](tokenCount);
-
-        for (uint256 i = 0; i < tokenCount; i++) {
-            resultTokens[i] = tokens[i];
-            resultAmounts[i] = amounts[i];
-        }
-
-        return (resultTokens, resultAmounts, _expiredCount);
-    }
-
-    /// @inheritdoc IBounties
     function addBounty(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
         external
         payable
     {
         _addBounty(_initiativeId, _token, _amount, _expiresAt, _terms);
+    }
+
+    /// @inheritdoc IBounties
+    function handleInitiativeAccepted(uint256 _initiativeId) external nonReentrant {
+        if (msg.sender != address(signalsContract)) {
+            revert IBounties.Bounties_NotAuthorized();
+        }
+
+        console.log("Initiative accepted", _initiativeId);
+        // Pay out relevant parties
+        _distributeBounties(_initiativeId);
+    }
+
+    /// @inheritdoc IBounties
+    function handleInitiativeExpired(uint256 _initiativeId) external view {
+        if (msg.sender != address(signalsContract)) {
+            revert IBounties.Bounties_NotAuthorized();
+        }
+        // Additional logic if needed
+        // TODO(@arnold): [MEDIUM] Flag bounties for this initiative as refundable
+        //                When an initiative expires, mark associated bounties as refundable
+        //                so contributors can reclaim their tokens via a claim function
+        console.log("Initiative expired", _initiativeId);
+    }
+
+    /**
+     * @notice Internal function to update bounty split allocations
+     * @dev Validates allocations sum to 100 (basis points), increments version
+     * @param _allocations Array of [protocolFee, voterRewards, treasuryShare]
+     * @param _receivers Array of addresses to receive each allocation
+     */
+    function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
+        if (_allocations[0] + _allocations[1] + _allocations[2] != SignalsConstants.BASIS_POINTS) {
+            revert IBounties.Bounties_InvalidAllocation();
+        }
+        version++;
+        allocations[version] = _allocations;
+        receivers[version] = _receivers;
+        emit BountiesUpdated(version);
     }
 
     /**
@@ -212,7 +176,9 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getBounties(_initiativeId);
 
         if (expiredCount > 0) {
-            // TODO: Refund expired bounties
+            // TODO(@arnold): [MEDIUM] Implement refund logic for expired bounties
+            //                Expired bounties should be marked as refundable and returned to contributors
+            //                Consider gas implications of processing expired bounties in this function
         }
 
         // Iterate through all the tokens for this initiative
@@ -232,6 +198,65 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
             balances[_receivers[1]][token] += voterAmount;
             balances[_receivers[2]][token] += treasuryAmount;
         }
+    }
+
+    /// @inheritdoc IBounties
+    function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory) {
+        return (version, allocations[_version], receivers[_version]);
+    }
+
+    /// @inheritdoc IBounties
+    function getBounties(uint256 _initiativeId)
+        public
+        view
+        returns (address[] memory, uint256[] memory, uint256 expiredCount)
+    {
+        uint256[] memory _bountyIds = bountiesByInitiative[_initiativeId];
+
+        // Using arrays to store tokens and their total amounts
+        address[] memory tokens = new address[](_bountyIds.length);
+        uint256[] memory amounts = new uint256[](_bountyIds.length);
+        uint256 _expiredCount = 0;
+        uint256 tokenCount = 0;
+
+        for (uint256 i = 0; i < _bountyIds.length; i++) {
+            Bounty storage bounty = bounties[_bountyIds[i]];
+
+            // If the bounty has expired, exclude it from the sum
+            if (bounty.expiresAt != 0 && block.timestamp > bounty.expiresAt) {
+                _expiredCount++;
+                continue;
+            }
+
+            address tokenAddress = address(bounty.token);
+            bool found = false;
+            for (uint256 j = 0; j < tokenCount; j++) {
+                if (tokens[j] == tokenAddress) {
+                    // Token found, accumulate the amount
+                    amounts[j] += bounty.amount;
+                    found = true;
+                    break;
+                }
+            }
+
+            // If the token was not found, add it to the tokens array
+            if (!found) {
+                tokens[tokenCount] = tokenAddress;
+                amounts[tokenCount] = bounty.amount;
+                tokenCount++;
+            }
+        }
+
+        // Create arrays with the actual size
+        address[] memory resultTokens = new address[](tokenCount);
+        uint256[] memory resultAmounts = new uint256[](tokenCount);
+
+        for (uint256 i = 0; i < tokenCount; i++) {
+            resultTokens[i] = tokens[i];
+            resultAmounts[i] = amounts[i];
+        }
+
+        return (resultTokens, resultAmounts, _expiredCount);
     }
 
     /// @inheritdoc IBounties
@@ -267,26 +292,5 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         console.log("Share of pool", shareOfPool);
 
         return tokenRewards;
-    }
-
-    /// @inheritdoc IBounties
-    function handleInitiativeAccepted(uint256 _initiativeId) external nonReentrant {
-        if (msg.sender != address(signalsContract)) {
-            revert IBounties.Bounties_NotAuthorized();
-        }
-
-        console.log("Initiative accepted", _initiativeId);
-        // Pay out relevant parties
-        _distributeBounties(_initiativeId);
-    }
-
-    /// @inheritdoc IBounties
-    function handleInitiativeExpired(uint256 _initiativeId) external view {
-        if (msg.sender != address(signalsContract)) {
-            revert IBounties.Bounties_NotAuthorized();
-        }
-        // Additional logic if needed
-        // TODO: Flag any bounties for this initiative as ready to be refunded
-        console.log("Initiative expired", _initiativeId);
     }
 }

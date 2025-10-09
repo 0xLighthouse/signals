@@ -107,6 +107,15 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Add back the initiative counter
     uint256 public initiativeCount = SignalsConstants.INITIAL_INITIATIVE_COUNT;
 
+    /// @notice (Optional) Reference to the Bounties contract (can only be set once)
+    // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
+    //                Consider event-driven pattern to reduce tight coupling
+    //                See: Similar adapter pattern discussion in other modules
+    IBounties public bounties;
+
+    /// @notice (Optional) Reference to the IncentivesPool contract (can be set before board opens)
+    IIncentivesPool public incentivesPool;
+
     /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
     modifier exists(uint256 initiativeId) {
         if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
@@ -227,14 +236,153 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice (Optional) Reference to the Bounties contract (can only be set once)
-    // TODO: Reconsider tradeoffs of this design pattern properly
-    IBounties public bounties;
-
-    /// @notice (Optional) Reference to the IncentivesPool contract (can be set before board opens)
-    IIncentivesPool public incentivesPool;
-
     constructor() ERC721("", "") Ownable(msg.sender) {}
+
+    /// @inheritdoc ISignals
+    function initialize(ISignals.BoardConfig calldata config) external isNotInitialized {
+        // Validate configuration parameters
+        if (config.underlyingToken == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressToken();
+        if (config.owner == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressOwner();
+        if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
+        if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
+        if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
+        if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
+        if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
+
+        version = config.version;
+        underlyingToken = config.underlyingToken;
+        acceptanceThreshold = config.acceptanceThreshold;
+        maxLockIntervals = config.maxLockIntervals;
+        proposalCap = config.proposalCap;
+        lockInterval = config.lockInterval;
+        decayCurveType = config.decayCurveType;
+        decayCurveParameters = config.decayCurveParameters;
+        proposerRequirements = config.proposerRequirements;
+        participantRequirements = config.participantRequirements;
+        releaseLockDuration = config.releaseLockDuration;
+        boardOpensAt = config.boardOpensAt;
+        _boardIncentives = config.boardIncentives;
+        boardState = BoardState.Open;
+
+        // Validate requirements
+        _validateProposerRequirements(config.proposerRequirements);
+        _validateParticipantRequirements(config.participantRequirements);
+
+        transferOwnership(config.owner);
+    }
+
+    /// @inheritdoc ISignals
+    function proposeInitiative(string memory _title, string memory _body)
+        external
+        isOpen
+        isEligibleProposer
+        hasValidInput(_title, _body)
+    {
+        _addInitiative(_title, _body);
+    }
+
+    /// @inheritdoc ISignals
+    function proposeInitiativeWithLock(
+        string memory _title,
+        string memory _body,
+        uint256 _amount,
+        uint256 _lockDuration
+    )
+        external
+        isOpen
+        isEligibleProposer
+        hasValidInput(_title, _body)
+        returns (uint256 tokenId)
+    {
+        uint256 id = _addInitiative(_title, _body);
+        tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
+    }
+
+    /// @inheritdoc ISignals
+    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
+        external
+        isOpen
+        meetsParticipantRequirements
+        exists(initiativeId)
+        returns (uint256 tokenId)
+    {
+        tokenId = _addLock(initiativeId, msg.sender, amount, lockDuration);
+    }
+
+    /**
+     * @notice Mark an initiative as accepted
+     * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
+     * @param initiativeId ID of the initiative to accept
+     */
+    function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
+        Initiative storage initiative = _initiatives[initiativeId];
+
+        // State transition: Proposed → Accepted
+        // Can only accept initiatives in Proposed state (not already Accepted, Cancelled, or Expired)
+        if (initiative.state != InitiativeState.Proposed) {
+            revert ISignals.Signals_NotProposedState();
+        }
+
+        // Update state and record acceptance timestamp for release timelock calculation
+        initiative.state = InitiativeState.Accepted;
+        initiative.acceptanceTimestamp = block.timestamp;
+
+        // Notify the Bounties contract to distribute bounty rewards if configured
+        // This is optional - bounties may not be set for all boards
+        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
+        //                Consider event-driven pattern to reduce tight coupling
+        //                See: Similar adapter pattern discussion in other modules
+        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
+            bounties.handleInitiativeAccepted(initiativeId);
+        }
+
+        // Calculate and allocate incentives for supporters (non-blocking)
+        // Uses try-catch to prevent incentive failures from blocking acceptance
+        if (address(incentivesPool) != SignalsConstants.ADDRESS_ZERO) {
+            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
+                // Incentives calculation failed, but don't block acceptance
+                // Silently continue - pool contract will emit events for monitoring
+            }
+        }
+
+        emit InitiativeAccepted(initiativeId, msg.sender);
+    }
+
+    /**
+     * @notice Mark an inactive initiative as expired
+     * @dev Only callable by owner after activityTimeout has passed. Notifies bounties if configured.
+     * @param initiativeId ID of the initiative to expire
+     */
+    function expireInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
+        Initiative storage initiative = _initiatives[initiativeId];
+
+        // State transition: Proposed → Expired
+        // Can only expire initiatives that are still in Proposed state
+        if (initiative.state != InitiativeState.Proposed) {
+            revert ISignals.Signals_NotProposedState();
+        }
+
+        // Verify initiative has been inactive for longer than activityTimeout
+        // This prevents expiring initiatives that still have recent activity
+        if (block.timestamp <= initiative.lastActivity + activityTimeout) {
+            revert ISignals.Signals_NotEligibleForExpiration();
+        }
+
+        // Update state to Expired - allows supporters to redeem their locked tokens
+        initiative.state = InitiativeState.Expired;
+
+        // Notify the Bounties contract to handle refunds if configured
+        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
+        //                Consider event-driven pattern to reduce tight coupling
+        //                See: Similar adapter pattern discussion in other modules
+        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
+            bounties.handleInitiativeExpired(initiativeId);
+        }
+
+        emit InitiativeExpired(initiativeId, msg.sender);
+    }
 
     /**
      * @notice Set the board title
@@ -244,39 +392,100 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         title = _title;
     }
 
-    /**
-     * @notice Get the current board title
-     * @return Current board title
-     */
-    function getTitle() external view returns (string memory) {
-        return title;
+    /// @inheritdoc ISignals
+    function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
+        activityTimeout = _newThreshold;
+    }
+
+    /// @inheritdoc ISignals
+    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
+        if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
+        if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
+            revert ISignals.Signals_InvalidDecayCurveType();
+        }
+
+        decayCurveType = _decayCurveType;
+        decayCurveParameters = _decayCurveParameters;
+        emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
+    }
+
+    /// @inheritdoc ISignals
+    function setBounties(address _bounties) external onlyOwner {
+        bounties = Bounties(_bounties);
+    }
+
+    /// @inheritdoc ISignals
+    function setIncentivesPool(address _incentivesPool) external onlyOwner {
+        if (block.timestamp >= boardOpensAt) {
+            revert ISignals.Signals_BoardAlreadyOpened();
+        }
+        incentivesPool = IIncentivesPool(_incentivesPool);
+    }
+
+    /// @inheritdoc ISignals
+    function closeBoard() external onlyOwner {
+        if (boardState == BoardState.Closed) {
+            revert ISignals.Signals_BoardClosed();
+        }
+        boardState = BoardState.Closed;
+        emit BoardClosed(msg.sender);
     }
 
     /**
-     * @notice Returns the ERC721 token name
-     * @dev Combines underlying token name with "Locked Support"
-     * @return Token name string
+     * @notice Redeem a lock position to retrieve underlying tokens
+     * @dev Burns the NFT, transfers underlying tokens, and auto-claims incentives if available
+     * @dev Only callable for Accepted or Expired initiatives. Respects releaseLockDuration for accepted initiatives.
+     * @param tokenId The NFT token ID representing the lock position
      */
-    function name() public view override returns (string memory) {
-        return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), " Locked Support"));
-    }
+    function redeem(uint256 tokenId) public nonReentrant {
+        // Validate lock hasn't already been redeemed
+        if (_locks[tokenId].withdrawn) revert ISignals.Signals_AlreadyRedeemed();
 
-    /**
-     * @notice Returns the ERC721 token symbol
-     * @dev Prefixes underlying token symbol with "sx"
-     * @return Token symbol string
-     */
-    function symbol() public view override returns (string memory) {
-        return string(abi.encodePacked("sx", IERC20Metadata(underlyingToken).symbol()));
-    }
+        // Only the NFT owner can redeem (allows trading lock positions)
+        if (ownerOf(tokenId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
 
-    /**
-     * @notice Returns the token URI for metadata
-     * @dev Currently returns empty string - can be implemented for on-chain or off-chain metadata
-     * @return Empty string
-     */
-    function tokenURI(uint256) public pure override returns (string memory) {
-        return ""; // Return empty string for now
+        TokenLock storage lock = _locks[tokenId];
+        Initiative storage initiative = _initiatives[lock.initiativeId];
+
+        // State validation: Can only redeem from Accepted or Expired initiatives
+        // Proposed initiatives are still active - locks cannot be redeemed yet
+        if (!(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)) {
+            revert ISignals.Signals_NotWithdrawableState();
+        }
+
+        // Release timelock: Accepted initiatives may have a cooldown period before redemption
+        // This prevents immediately dumping tokens after acceptance
+        // Timelock is bypassed if board is closed (emergency exit mechanism)
+        if (initiative.state == InitiativeState.Accepted && boardState != BoardState.Closed) {
+            if (releaseLockDuration > 0) {
+                uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration;
+                if (block.timestamp < releaseTime) {
+                    revert ISignals.Signals_StillTimelocked();
+                }
+            }
+        }
+
+        // Mark as withdrawn and burn the NFT (prevents double-redemption)
+        uint256 amount = lock.tokenAmount;
+        lock.withdrawn = true;
+        _burn(tokenId);
+
+        // Transfer underlying tokens back to the supporter
+        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.Signals_TokenTransferFailed();
+
+        // Auto-claim any pending incentive rewards (convenience feature)
+        // Only applies to accepted initiatives with configured incentive pools
+        // Silently skips if no rewards to prevent revert
+        if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
+            uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
+            if (pendingRewards > 0) {
+                incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
+            }
+        }
+
+        emit Redeemed(tokenId, msg.sender, amount);
     }
 
     /**
@@ -460,336 +669,79 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @inheritdoc ISignals
-    function initialize(ISignals.BoardConfig calldata config) external isNotInitialized {
-        // Validate configuration parameters
-        if (config.underlyingToken == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressToken();
-        if (config.owner == SignalsConstants.ADDRESS_ZERO) revert ISignals.Signals_ZeroAddressOwner();
-        if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
-        if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
-        if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
-        if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
-        if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
-        }
-
-        version = config.version;
-        underlyingToken = config.underlyingToken;
-        acceptanceThreshold = config.acceptanceThreshold;
-        maxLockIntervals = config.maxLockIntervals;
-        proposalCap = config.proposalCap;
-        lockInterval = config.lockInterval;
-        decayCurveType = config.decayCurveType;
-        decayCurveParameters = config.decayCurveParameters;
-        proposerRequirements = config.proposerRequirements;
-        participantRequirements = config.participantRequirements;
-        releaseLockDuration = config.releaseLockDuration;
-        boardOpensAt = config.boardOpensAt;
-        _boardIncentives = config.boardIncentives;
-        boardState = BoardState.Open;
-
-        // Validate requirements
-        _validateProposerRequirements(config.proposerRequirements);
-        _validateParticipantRequirements(config.participantRequirements);
-
-        transferOwnership(config.owner);
-    }
-
-    /// @inheritdoc ISignals
-    function proposeInitiative(string memory _title, string memory _body)
-        external
-        isOpen
-        isEligibleProposer
-        hasValidInput(_title, _body)
-    {
-        _addInitiative(_title, _body);
-    }
-
-    /// @inheritdoc ISignals
-    function proposeInitiativeWithLock(
-        string memory _title,
-        string memory _body,
-        uint256 _amount,
-        uint256 _lockDuration
-    )
-        external
-        isOpen
-        isEligibleProposer
-        hasValidInput(_title, _body)
-        returns (uint256 tokenId)
-    {
-        uint256 id = _addInitiative(_title, _body);
-        tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
-    }
-
-    /// @inheritdoc ISignals
-    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
-        external
-        isOpen
-        meetsParticipantRequirements
-        exists(initiativeId)
-        returns (uint256 tokenId)
-    {
-        tokenId = _addLock(initiativeId, msg.sender, amount, lockDuration);
-    }
-
-    /**
-     * @notice Mark an initiative as accepted
-     * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
-     * @param initiativeId ID of the initiative to accept
-     */
-    function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
-        Initiative storage initiative = _initiatives[initiativeId];
-
-        // State transition: Proposed → Accepted
-        // Can only accept initiatives in Proposed state (not already Accepted, Cancelled, or Expired)
-        if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
-        }
-
-        // Update state and record acceptance timestamp for release timelock calculation
-        initiative.state = InitiativeState.Accepted;
-        initiative.acceptanceTimestamp = block.timestamp;
-
-        // Notify the Bounties contract to distribute bounty rewards if configured
-        // This is optional - bounties may not be set for all boards
-        // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
-            bounties.handleInitiativeAccepted(initiativeId);
-        }
-
-        // Calculate and allocate incentives for supporters (non-blocking)
-        // Uses try-catch to prevent incentive failures from blocking acceptance
-        if (address(incentivesPool) != SignalsConstants.ADDRESS_ZERO) {
-            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
-                // Incentives calculation failed, but don't block acceptance
-                // Silently continue - pool contract will emit events for monitoring
+    /// @notice Internal function to validate proposer requirements
+    function _validateProposerRequirements(ProposerRequirements memory reqs) internal pure {
+        // When eligibility type is None, threshold provides the only gate to proposing
+        if (reqs.eligibilityType == EligibilityType.None) {
+            if (reqs.threshold == 0) {
+                revert ISignals.Signals_ProposerZeroThreshold();
             }
         }
 
-        emit InitiativeAccepted(initiativeId, msg.sender);
-    }
-
-    /**
-     * @notice Mark an inactive initiative as expired
-     * @dev Only callable by owner after activityTimeout has passed. Notifies bounties if configured.
-     * @param initiativeId ID of the initiative to expire
-     */
-    function expireInitiative(uint256 initiativeId) external payable exists(initiativeId) onlyOwner {
-        Initiative storage initiative = _initiatives[initiativeId];
-
-        // State transition: Proposed → Expired
-        // Can only expire initiatives that are still in Proposed state
-        if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
-        }
-
-        // Verify initiative has been inactive for longer than activityTimeout
-        // This prevents expiring initiatives that still have recent activity
-        if (block.timestamp <= initiative.lastActivity + activityTimeout) {
-            revert ISignals.Signals_NotEligibleForExpiration();
-        }
-
-        // Update state to Expired - allows supporters to redeem their locked tokens
-        initiative.state = InitiativeState.Expired;
-
-        // Notify the Bounties contract to handle refunds if configured
-        // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(bounties) != SignalsConstants.ADDRESS_ZERO) {
-            bounties.handleInitiativeExpired(initiativeId);
-        }
-
-        emit InitiativeExpired(initiativeId, msg.sender);
-    }
-
-    /**
-     * @notice Redeem a lock position to retrieve underlying tokens
-     * @dev Burns the NFT, transfers underlying tokens, and auto-claims incentives if available
-     * @dev Only callable for Accepted or Expired initiatives. Respects releaseLockDuration for accepted initiatives.
-     * @param tokenId The NFT token ID representing the lock position
-     */
-    function redeem(uint256 tokenId) public nonReentrant {
-        // Validate lock hasn't already been redeemed
-        if (_locks[tokenId].withdrawn) revert ISignals.Signals_AlreadyRedeemed();
-
-        // Only the NFT owner can redeem (allows trading lock positions)
-        if (ownerOf(tokenId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
-
-        TokenLock storage lock = _locks[tokenId];
-        Initiative storage initiative = _initiatives[lock.initiativeId];
-
-        // State validation: Can only redeem from Accepted or Expired initiatives
-        // Proposed initiatives are still active - locks cannot be redeemed yet
-        if (!(initiative.state == InitiativeState.Accepted || initiative.state == InitiativeState.Expired)) {
-            revert ISignals.Signals_NotWithdrawableState();
-        }
-
-        // Release timelock: Accepted initiatives may have a cooldown period before redemption
-        // This prevents immediately dumping tokens after acceptance
-        // Timelock is bypassed if board is closed (emergency exit mechanism)
-        if (initiative.state == InitiativeState.Accepted && boardState != BoardState.Closed) {
-            if (releaseLockDuration > 0) {
-                uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration;
-                if (block.timestamp < releaseTime) {
-                    revert ISignals.Signals_StillTimelocked();
-                }
+        if (reqs.eligibilityType == EligibilityType.MinBalance) {
+            if (reqs.minBalance == 0) {
+                revert ISignals.Signals_ProposerZeroMinBalance();
             }
         }
 
-        // Mark as withdrawn and burn the NFT (prevents double-redemption)
-        uint256 amount = lock.tokenAmount;
-        lock.withdrawn = true;
-        _burn(tokenId);
+        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            if (reqs.minBalance == 0) {
+                revert ISignals.Signals_ProposerZeroMinBalance();
+            }
+            if (reqs.minHoldingDuration == 0) {
+                revert ISignals.Signals_ProposerZeroMinDuration();
+            }
+        }
+    }
 
-        // Transfer underlying tokens back to the supporter
-        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.Signals_TokenTransferFailed();
-
-        // Auto-claim any pending incentive rewards (convenience feature)
-        // Only applies to accepted initiatives with configured incentive pools
-        // Silently skips if no rewards to prevent revert
-        if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
-            uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
-            if (pendingRewards > 0) {
-                incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
+    /// @notice Internal function to validate participant requirements
+    function _validateParticipantRequirements(ParticipantRequirements memory reqs) internal pure {
+        if (reqs.eligibilityType == EligibilityType.MinBalance) {
+            if (reqs.minBalance == 0) {
+                revert ISignals.Signals_ParticipantZeroMinBalance();
             }
         }
 
-        emit Redeemed(tokenId, msg.sender, amount);
-    }
-
-    /// @inheritdoc ISignalsLock
-    function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
-        if (_locks[tokenId].initiativeId == 0) {
-            revert ISignals.Signals_InvalidTokenId();
+        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            if (reqs.minBalance == 0) {
+                revert ISignals.Signals_ParticipantZeroMinBalance();
+            }
+            if (reqs.minHoldingDuration == 0) {
+                revert ISignals.Signals_ParticipantZeroMinDuration();
+            }
         }
-
-        TokenLock memory lock = _locks[tokenId];
-
-        return ISignalsLock.LockData({
-            referenceId: lock.initiativeId,
-            nominalValue: lock.tokenAmount,
-            expires: lock.created + lock.lockDuration * lockInterval,
-            created: lock.created,
-            claimed: lock.withdrawn
-        });
     }
 
-    /// @inheritdoc ISignalsLock
-    function getUnderlyingToken() external view returns (address) {
-        return underlyingToken;
+    /**
+     * @notice Returns the ERC721 token name
+     * @dev Combines underlying token name with "Locked Support"
+     * @return Token name string
+     */
+    function name() public view override returns (string memory) {
+        return string(abi.encodePacked(IERC20Metadata(underlyingToken).name(), " Locked Support"));
+    }
+
+    /**
+     * @notice Returns the ERC721 token symbol
+     * @dev Prefixes underlying token symbol with "sx"
+     * @return Token symbol string
+     */
+    function symbol() public view override returns (string memory) {
+        return string(abi.encodePacked("sx", IERC20Metadata(underlyingToken).symbol()));
+    }
+
+    /**
+     * @notice Returns the token URI for metadata
+     * @dev Currently returns empty string - can be implemented for on-chain or off-chain metadata
+     * @return Empty string
+     */
+    function tokenURI(uint256) public pure override returns (string memory) {
+        return ""; // Return empty string for now
     }
 
     /// @inheritdoc ISignals
     function getTokenLock(uint256 tokenId) public view returns (TokenLock memory) {
         return _locks[tokenId];
-    }
-
-    /// @inheritdoc ISignals
-    function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
-        return _initiatives[initiativeId];
-    }
-
-    /// @inheritdoc ISignals
-    function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
-        return supporters[initiativeId];
-    }
-
-    /// @inheritdoc ISignals
-    function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
-        uint256 totalCurrentWeight = 0;
-        address[] memory _supporters = supporters[initiativeId];
-
-        for (uint256 i = 0; i < _supporters.length; i++) {
-            address supporter = _supporters[i];
-            uint256 lockCount = supporterLocks[supporter].length;
-            for (uint256 j = 0; j < lockCount; j++) {
-                uint256 currentWeight = _calculateLockWeightAt(_locks[supporterLocks[supporter][j]], block.timestamp);
-                totalCurrentWeight += currentWeight;
-            }
-        }
-
-        return totalCurrentWeight;
-    }
-
-    /// @inheritdoc ISignals
-    function getWeightAt(uint256 initiativeId, uint256 timestamp)
-        external
-        view
-        exists(initiativeId)
-        returns (uint256)
-    {
-        return _calculateWeightAt(initiativeId, timestamp);
-    }
-
-    /// @inheritdoc ISignals
-    function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
-        external
-        view
-        exists(initiativeId)
-        returns (uint256)
-    {
-        return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
-    }
-
-    /// @inheritdoc ISignals
-    function token() external view returns (address) {
-        return underlyingToken;
-    }
-
-    /// @inheritdoc ISignals
-    function totalInitiatives() external view returns (uint256) {
-        return initiativeCount;
-    }
-
-    /// @inheritdoc ISignals
-    function totalSupporters(uint256 initiativeId) external view returns (uint256) {
-        return supporters[initiativeId].length;
-    }
-
-    /// @inheritdoc ISignals
-    function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
-        activityTimeout = _newThreshold;
-    }
-
-    /// @inheritdoc ISignals
-    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external onlyOwner {
-        if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
-        }
-        if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
-            revert ISignals.Signals_InvalidDecayCurveType();
-        }
-
-        decayCurveType = _decayCurveType;
-        decayCurveParameters = _decayCurveParameters;
-        emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
-    }
-
-    /// @inheritdoc ISignals
-    function setBounties(address _bounties) external onlyOwner {
-        bounties = Bounties(_bounties);
-    }
-
-    /// @inheritdoc ISignals
-    function setIncentivesPool(address _incentivesPool) external onlyOwner {
-        if (block.timestamp >= boardOpensAt) {
-            revert ISignals.Signals_BoardAlreadyOpened();
-        }
-        incentivesPool = IIncentivesPool(_incentivesPool);
-    }
-
-    /// @inheritdoc ISignals
-    function closeBoard() external onlyOwner {
-        if (boardState == BoardState.Closed) {
-            revert ISignals.Signals_BoardClosed();
-        }
-        boardState = BoardState.Closed;
-        emit BoardClosed(msg.sender);
-    }
-
-    /// @inheritdoc ISignals
-    function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory) {
-        return initiativeLocks[initiativeId];
     }
 
     /**
@@ -816,20 +768,6 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
 
         return tokens;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                    PROPOSAL REQUIREMENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ISignals
-    function getProposerRequirements() external view returns (ProposerRequirements memory) {
-        return proposerRequirements;
-    }
-
-    /// @inheritdoc ISignals
-    function getParticipantRequirements() external view returns (ParticipantRequirements memory) {
-        return participantRequirements;
     }
 
     /// @inheritdoc ISignals
@@ -894,47 +832,111 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return false;
     }
 
-    /// @notice Internal function to validate proposer requirements
-    function _validateProposerRequirements(ProposerRequirements memory reqs) internal pure {
-        // When eligibility type is None, threshold provides the only gate to proposing
-        if (reqs.eligibilityType == EligibilityType.None) {
-            if (reqs.threshold == 0) {
-                revert ISignals.Signals_ProposerZeroThreshold();
-            }
+    /// @inheritdoc ISignalsLock
+    function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
+        if (_locks[tokenId].initiativeId == 0) {
+            revert ISignals.Signals_InvalidTokenId();
         }
 
-        if (reqs.eligibilityType == EligibilityType.MinBalance) {
-            if (reqs.minBalance == 0) {
-                revert ISignals.Signals_ProposerZeroMinBalance();
-            }
-        }
+        TokenLock memory lock = _locks[tokenId];
 
-        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
-            if (reqs.minBalance == 0) {
-                revert ISignals.Signals_ProposerZeroMinBalance();
-            }
-            if (reqs.minHoldingDuration == 0) {
-                revert ISignals.Signals_ProposerZeroMinDuration();
-            }
-        }
+        return ISignalsLock.LockData({
+            referenceId: lock.initiativeId,
+            nominalValue: lock.tokenAmount,
+            expires: lock.created + lock.lockDuration * lockInterval,
+            created: lock.created,
+            claimed: lock.withdrawn
+        });
     }
 
-    /// @notice Internal function to validate participant requirements
-    function _validateParticipantRequirements(ParticipantRequirements memory reqs) internal pure {
-        if (reqs.eligibilityType == EligibilityType.MinBalance) {
-            if (reqs.minBalance == 0) {
-                revert ISignals.Signals_ParticipantZeroMinBalance();
+    /// @inheritdoc ISignalsLock
+    function getUnderlyingToken() external view returns (address) {
+        return underlyingToken;
+    }
+
+    /// @inheritdoc ISignals
+    function getInitiative(uint256 initiativeId) external view exists(initiativeId) returns (Initiative memory) {
+        return _initiatives[initiativeId];
+    }
+
+    /// @inheritdoc ISignals
+    function getSupporters(uint256 initiativeId) external view exists(initiativeId) returns (address[] memory) {
+        return supporters[initiativeId];
+    }
+
+    /// @inheritdoc ISignals
+    function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
+        uint256 totalCurrentWeight = 0;
+        address[] memory _supporters = supporters[initiativeId];
+
+        for (uint256 i = 0; i < _supporters.length; i++) {
+            address supporter = _supporters[i];
+            uint256 lockCount = supporterLocks[supporter].length;
+            for (uint256 j = 0; j < lockCount; j++) {
+                uint256 currentWeight = _calculateLockWeightAt(_locks[supporterLocks[supporter][j]], block.timestamp);
+                totalCurrentWeight += currentWeight;
             }
         }
 
-        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
-            if (reqs.minBalance == 0) {
-                revert ISignals.Signals_ParticipantZeroMinBalance();
-            }
-            if (reqs.minHoldingDuration == 0) {
-                revert ISignals.Signals_ParticipantZeroMinDuration();
-            }
-        }
+        return totalCurrentWeight;
+    }
+
+    /// @inheritdoc ISignals
+    function getWeightAt(uint256 initiativeId, uint256 timestamp)
+        external
+        view
+        exists(initiativeId)
+        returns (uint256)
+    {
+        return _calculateWeightAt(initiativeId, timestamp);
+    }
+
+    /// @inheritdoc ISignals
+    function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
+        external
+        view
+        exists(initiativeId)
+        returns (uint256)
+    {
+        return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
+    }
+
+    /**
+     * @notice Get the current board title
+     * @return Current board title
+     */
+    function getTitle() external view returns (string memory) {
+        return title;
+    }
+
+    /// @inheritdoc ISignals
+    function token() external view returns (address) {
+        return underlyingToken;
+    }
+
+    /// @inheritdoc ISignals
+    function totalInitiatives() external view returns (uint256) {
+        return initiativeCount;
+    }
+
+    /// @inheritdoc ISignals
+    function totalSupporters(uint256 initiativeId) external view returns (uint256) {
+        return supporters[initiativeId].length;
+    }
+
+    /// @inheritdoc ISignals
+    function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory) {
+        return initiativeLocks[initiativeId];
+    }
+
+    /// @inheritdoc ISignals
+    function getProposerRequirements() external view returns (ProposerRequirements memory) {
+        return proposerRequirements;
+    }
+
+    /// @inheritdoc ISignals
+    function getParticipantRequirements() external view returns (ParticipantRequirements memory) {
+        return participantRequirements;
     }
 
     /// @inheritdoc ISignals

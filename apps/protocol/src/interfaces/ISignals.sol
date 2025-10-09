@@ -13,7 +13,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
      * @param version The version of the Signals contract
      * @param acceptanceThreshold Weight required for an initiative to be accepted
      * @param maxLockIntervals Maximum lock intervals allowed
-     * @param proposalCap The maximum active proposals a user can submit (TODO: Verify this, rename to activeProposalLimit)
+     * @param proposalCap The maximum active proposals a user can submit
+     * TODO(@arnold): [LOW] Verify proposalCap behavior and rename to activeProposalLimit
+     *                Field name should clearly indicate it limits concurrent active proposals
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
