@@ -38,7 +38,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
 
     /// @notice (initiativeId => bountyId[])
     mapping(uint256 => uint256[]) public bountiesByInitiative;
-    uint256 public version = SignalsConstants.INITIAL_VERSION;
+    uint256 public version;
 
     uint256 public bountyCount;
 
@@ -181,14 +181,14 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
             //                Consider gas implications of processing expired bounties in this function
         }
 
+        // Cache version-specific allocations and receivers outside the loop
+        uint256[3] memory _allocations = allocations[version];
+        address[3] memory _receivers = receivers[version];
+
         // Iterate through all the tokens for this initiative
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
             uint256 amount = amounts[i];
-
-            // Update balances for the bounty based on the current splits to the receivers
-            uint256[3] memory _allocations = allocations[version];
-            address[3] memory _receivers = receivers[version];
 
             uint256 protocolAmount = (amount * _allocations[0]) / SignalsConstants.BASIS_POINTS;
             uint256 voterAmount = (amount * _allocations[1]) / SignalsConstants.BASIS_POINTS;
@@ -220,7 +220,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         uint256 tokenCount = 0;
 
         for (uint256 i = 0; i < _bountyIds.length; i++) {
-            Bounty storage bounty = bounties[_bountyIds[i]];
+            Bounty memory bounty = bounties[_bountyIds[i]]; // Use memory for read-only access
 
             // If the bounty has expired, exclude it from the sum
             if (bounty.expiresAt != 0 && block.timestamp > bounty.expiresAt) {

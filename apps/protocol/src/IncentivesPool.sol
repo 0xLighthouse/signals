@@ -70,10 +70,10 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         external
         onlyOwner
     {
-        if (poolConfig.token != SignalsConstants.ADDRESS_ZERO) {
+        if (poolConfig.token != address(0)) {
             revert IIncentivesPool.IncentivesPool_AlreadyInitialized();
         }
-        if (token == SignalsConstants.ADDRESS_ZERO) {
+        if (token == address(0)) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
         if (amount == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
@@ -96,7 +96,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
     /// @inheritdoc IIncentivesPool
     function approveBoard(address board) external onlyOwner {
-        if (board == SignalsConstants.ADDRESS_ZERO) {
+        if (board == address(0)) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
         if (approvedBoards[board]) revert IIncentivesPool.IncentivesPool_BoardAlreadyApproved();
@@ -118,7 +118,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
     /// @inheritdoc IIncentivesPool
     function setMaxRewardPerInitiative(uint256 maxRewardPerInitiative) external onlyOwner {
-        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO) {
+        if (poolConfig.token == address(0)) {
             revert IIncentivesPool.IncentivesPool_NotInitialized();
         }
         if (maxRewardPerInitiative == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
@@ -132,7 +132,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
     /// @inheritdoc IIncentivesPool
     function addToPool(uint256 amount) external onlyOwner {
-        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO) {
+        if (poolConfig.token == address(0)) {
             revert IIncentivesPool.IncentivesPool_NotInitialized();
         }
         if (amount == 0) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
@@ -154,7 +154,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         address board = msg.sender;
 
         // If pool not initialized or disabled, return 0 (non-blocking)
-        if (poolConfig.token == SignalsConstants.ADDRESS_ZERO || !poolConfig.enabled) {
+        if (poolConfig.token == address(0) || !poolConfig.enabled) {
             return 0;
         }
 
@@ -195,10 +195,10 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
         // Calculate time-weighted rewards for each supporter
         uint256 totalWeight = 0;
-        mapping(address => uint256) storage rewards = supporterRewards[board][initiativeId];
 
-        // Get incentive curve parameter k (scaled by 1e18)
+        // Get incentive curve parameter k (scaled by 1e18) and cache board/initiative for storage pointer
         uint256 k = incentives.curveParameters.length > 0 ? incentives.curveParameters[0] : 0;
+        mapping(address => uint256) storage rewards = supporterRewards[board][initiativeId];
 
         // Calculate weights for each supporter
         for (uint256 i = 0; i < supporters.length; i++) {
@@ -222,12 +222,12 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         // Allocate proportional rewards to each supporter
         for (uint256 i = 0; i < supporters.length; i++) {
             address supporter = supporters[i];
-            uint256 supporterWeight = rewards[supporter];
+            uint256 supporterWeight = rewards[supporter]; // Single SLOAD
 
             if (supporterWeight > 0) {
                 // Calculate proportional share: (supporterWeight / totalWeight) * rewardAmount
                 uint256 supporterReward = (supporterWeight * rewardAmount) / totalWeight;
-                rewards[supporter] = supporterReward;
+                rewards[supporter] = supporterReward; // Single SSTORE
             }
         }
 
