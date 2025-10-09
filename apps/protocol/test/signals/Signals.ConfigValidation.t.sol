@@ -116,7 +116,8 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
-            releaseLockDuration: 0
+            releaseLockDuration: 0,
+            boardOpensAt: 0
         });
 
         signals.initialize(config);
@@ -147,7 +148,8 @@ contract SignalsConfigValidationTest is Test, SignalsHarness {
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
-            releaseLockDuration: 7 days
+            releaseLockDuration: 7 days,
+            boardOpensAt: 0
         });
 
         signals.initialize(config);

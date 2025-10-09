@@ -1,18 +1,8 @@
 {
   "mcpServers": {
-    "openzeppelin-solidity": {
-      "command": "pnpm",
-      "args": [
-        "dlx",
-        "@openzeppelin/mcp-server-solidity"
-      ]
-    },
-    "foundry": {
-      "command": "pnpm",
-      "args": [
-        "dlx",
-        "@modelcontextprotocol/server-foundry"
-      ]
+    "OpenZeppelinSolidityContracts": {
+      "type": "http",
+      "url": "https://mcp.openzeppelin.com/contracts/solidity/mcp"
     }
   }
 }

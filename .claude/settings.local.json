@@ -3,7 +3,6 @@
     "allow": [
       "Bash(forge test:*)",
       "Bash(forge lint:*)",
-      "Read(//Users/arnold/Development/lighthouse.cx/harbor/apps/protocol/test/**)",
       "Bash(forge build:*)"
     ],
     "deny": [],

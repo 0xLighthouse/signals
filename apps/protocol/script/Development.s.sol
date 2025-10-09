@@ -105,7 +105,8 @@ contract DevelopmentScript is Script {
                     minBalance: 0,
                     minHoldingDuration: 0
                 }),
-                releaseLockDuration: 0 // Immediate release on acceptance
+                releaseLockDuration: 0, // Immediate release on acceptance
+                boardOpensAt: 0 // Open immediately
             })
         );
 

@@ -71,6 +71,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Duration tokens remain locked after acceptance (0 = immediate release)
     uint256 public releaseLockDuration;
 
+    /// @notice Timestamp when board opens for participation (0 = open immediately)
+    uint256 public boardOpensAt;
+
     /// @notice Current state of the board (Open or Closed)
     BoardState public boardState;
 
@@ -111,6 +114,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     modifier isOpen() {
+        if (block.timestamp < boardOpensAt) revert ISignals.BoardNotYetOpen();
         if (boardState == BoardState.Closed) revert ISignals.BoardClosedError();
         _;
     }
@@ -376,6 +380,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         proposerRequirements = config.proposerRequirements;
         participantRequirements = config.participantRequirements;
         releaseLockDuration = config.releaseLockDuration;
+        boardOpensAt = config.boardOpensAt;
         boardState = BoardState.Open;
 
         // Validate requirements

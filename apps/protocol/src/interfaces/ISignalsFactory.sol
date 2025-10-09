@@ -16,6 +16,7 @@ interface ISignalsFactory {
         ISignals.ProposerRequirements proposerRequirements;
         ISignals.ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
+        uint256 boardOpensAt;
     }
 
     function create(ISignalsFactory.FactoryDeployment calldata config) external payable returns (address);
