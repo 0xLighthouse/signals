@@ -11,10 +11,10 @@ import "solmate/src/utils/ReentrancyGuard.sol";
 
 import "./Signals.sol";
 import "./interfaces/ISignals.sol";
-import "./interfaces/IIncentives.sol";
+import "./interfaces/IBounties.sol";
 import "./TokenRegistry.sol";
 
-contract Incentives is IIncentives, Ownable, ReentrancyGuard {
+contract Bounties is IBounties, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     ISignals public signalsContract;
@@ -24,23 +24,23 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
     mapping(uint256 => uint256[3]) public allocations;
     mapping(uint256 => address[3]) public receivers;
 
-    mapping(uint256 => Incentive) public incentives;
+    mapping(uint256 => Bounty) public bounties;
 
     /// (address => (token => amount))
     mapping(address => mapping(address => uint256)) public balances;
 
-    /// (initiativeId => incentiveId[])
-    mapping(uint256 => uint256[]) public incentivesByInitiative;
+    /// (initiativeId => bountyId[])
+    mapping(uint256 => uint256[]) public bountiesByInitiative;
     uint256 public version = 0;
 
-    uint256 public incentiveCount;
+    uint256 public bountyCount;
 
     function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
         require(_allocations[0] + _allocations[1] + _allocations[2] == 100, "Total distribution must be 100%");
         version++;
         allocations[version] = _allocations;
         receivers[version] = _receivers;
-        emit IncentivesUpdated(version);
+        emit BountiesUpdated(version);
     }
 
     constructor(
@@ -64,37 +64,37 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
     }
 
     /**
-     * Quick and dirty greedy function to get all the incentives for an initiative
+     * Quick and dirty greedy function to get all the bounties for an initiative
      * and sum them by token address. This is not efficient and should be replaced
      */
-    function getIncentives(uint256 _initiativeId)
+    function getBounties(uint256 _initiativeId)
         public
         view
         returns (address[] memory, uint256[] memory, uint256 expiredCount)
     {
-        uint256[] memory _incentiveIds = incentivesByInitiative[_initiativeId];
+        uint256[] memory _bountyIds = bountiesByInitiative[_initiativeId];
 
         // Using arrays to store tokens and their total amounts
-        address[] memory tokens = new address[](_incentiveIds.length);
-        uint256[] memory amounts = new uint256[](_incentiveIds.length);
+        address[] memory tokens = new address[](_bountyIds.length);
+        uint256[] memory amounts = new uint256[](_bountyIds.length);
         uint256 _expiredCount = 0;
         uint256 tokenCount = 0;
 
-        for (uint256 i = 0; i < _incentiveIds.length; i++) {
-            Incentive storage incentive = incentives[_incentiveIds[i]];
+        for (uint256 i = 0; i < _bountyIds.length; i++) {
+            Bounty storage bounty = bounties[_bountyIds[i]];
 
-            // If the incentive has expired, exclude it from the sum
-            if (incentive.expiresAt != 0 && block.timestamp > incentive.expiresAt) {
+            // If the bounty has expired, exclude it from the sum
+            if (bounty.expiresAt != 0 && block.timestamp > bounty.expiresAt) {
                 _expiredCount++;
                 continue;
             }
 
-            address tokenAddress = address(incentive.token);
+            address tokenAddress = address(bounty.token);
             bool found = false;
             for (uint256 j = 0; j < tokenCount; j++) {
                 if (tokens[j] == tokenAddress) {
                     // Token found, accumulate the amount
-                    amounts[j] += incentive.amount;
+                    amounts[j] += bounty.amount;
                     found = true;
                     break;
                 }
@@ -103,7 +103,7 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
             // If the token was not found, add it to the tokens array
             if (!found) {
                 tokens[tokenCount] = tokenAddress;
-                amounts[tokenCount] = incentive.amount;
+                amounts[tokenCount] = bounty.amount;
                 tokenCount++;
             }
         }
@@ -121,29 +121,29 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Add an incentive to the contract.
+     * @notice Add a bounty to the contract.
      *
-     * @param _initiativeId The ID of the initiative to which the incentive belongs.
-     * @param _token The address of the token to be used for the incentive.
-     * @param _amount The amount of the token to be used for the incentive.
-     * @param _expiresAt The timestamp at which the incentive expires.
-     * @param _terms The terms of the incentive.
+     * @param _initiativeId The ID of the initiative to which the bounty belongs.
+     * @param _token The address of the token to be used for the bounty.
+     * @param _amount The amount of the token to be used for the bounty.
+     * @param _expiresAt The timestamp at which the bounty expires.
+     * @param _terms The terms of the bounty.
      */
-    function addIncentive(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
+    function addBounty(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
         external
         payable
     {
-        _addIncentive(_initiativeId, _token, _amount, _expiresAt, _terms);
+        _addBounty(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
-    function _addIncentive(
+    function _addBounty(
         uint256 _initiativeId,
         address _token,
         uint256 _amount,
         uint256 _expiresAt,
         Conditions _terms
     ) internal {
-        require(registry.isAllowed(_token), "Token not registered for incentives");
+        require(registry.isAllowed(_token), "Token not registered for bounties");
         require(_initiativeId <= signalsContract.initiativeCount(), "Invalid initiative");
 
         IERC20 token = IERC20(_token);
@@ -152,7 +152,7 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
-        incentives[incentiveCount] = Incentive({
+        bounties[bountyCount] = Bounty({
             initiativeId: _initiativeId,
             token: token,
             amount: _amount,
@@ -163,24 +163,24 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
             terms: _terms
         });
 
-        // Store the incentive ID in the initiative's list of incentives
-        incentivesByInitiative[_initiativeId].push(incentiveCount);
+        // Store the bounty ID in the initiative's list of bounties
+        bountiesByInitiative[_initiativeId].push(bountyCount);
 
-        incentiveCount++;
+        bountyCount++;
 
-        emit IncentiveAdded(incentiveCount, _initiativeId, address(_token), _amount, _expiresAt, _terms);
+        emit BountyAdded(bountyCount, _initiativeId, address(_token), _amount, _expiresAt, _terms);
     }
 
-    function _refundIncentive(Incentive storage _incentive) internal {
-        _incentive.refunded = _incentive.amount;
-        balances[_incentive.contributor][address(_incentive.token)] += _incentive.amount;
+    function _refundBounty(Bounty storage _bounty) internal {
+        _bounty.refunded = _bounty.amount;
+        balances[_bounty.contributor][address(_bounty.token)] += _bounty.amount;
     }
 
-    function _distributeIncentives(uint256 _initiativeId) internal {
-        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getIncentives(_initiativeId);
+    function _distributeBounties(uint256 _initiativeId) internal {
+        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getBounties(_initiativeId);
 
         if (expiredCount > 0) {
-            // TODO: Refund expired incentives
+            // TODO: Refund expired bounties
         }
 
         // Iterate through all the tokens for this initiative
@@ -188,7 +188,7 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
             address token = tokens[i];
             uint256 amount = amounts[i];
 
-            // Update balances for the incentive based on the current splits to the receivers
+            // Update balances for the bounty based on the current splits to the receivers
             uint256[3] memory _allocations = allocations[version];
             address[3] memory _receivers = receivers[version];
 
@@ -211,9 +211,9 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
      * @return The voter rewards amount.
      */
     function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256) {
-        // Fetch incentives for this initiative
-        uint256[] memory incentiveIds = incentivesByInitiative[_initiativeId];
-        if (incentiveIds.length == 0) return 0;
+        // Fetch bounties for this initiative
+        uint256[] memory bountyIds = bountiesByInitiative[_initiativeId];
+        if (bountyIds.length == 0) return 0;
 
         // Get token metadata
         ISignals.TokenLock memory bond = signalsContract.getTokenLock(_tokenId);
@@ -228,7 +228,7 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
         uint256 totalRewards = 0;
 
         // FIXME: This is a bit sketchy as we are mixing various token denominations...
-        (, uint256[] memory _amounts,) = getIncentives(_initiativeId);
+        (, uint256[] memory _amounts,) = getBounties(_initiativeId);
         for (uint256 i = 0; i < _amounts.length; i++) {
             totalRewards += _amounts[i];
         }
@@ -250,13 +250,13 @@ contract Incentives is IIncentives, Ownable, ReentrancyGuard {
 
         console.log("Initiative accepted", _initiativeId);
         // Pay out relevant parties
-        _distributeIncentives(_initiativeId);
+        _distributeBounties(_initiativeId);
     }
 
     function handleInitiativeExpired(uint256 _initiativeId) external view {
         require(msg.sender == address(signalsContract), "Only Signals contract can call this function");
         // Additional logic if needed
-        // TODO: Flag any incentives for this initiative as ready to be refunded
+        // TODO: Flag any bounties for this initiative as ready to be refunded
         console.log("Initiative expired", _initiativeId);
     }
 }

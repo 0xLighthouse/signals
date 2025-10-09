@@ -10,10 +10,10 @@ import "solmate/src/utils/ReentrancyGuard.sol";
 
 import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
-import {IIncentives} from "./interfaces/IIncentives.sol";
+import {IBounties} from "./interfaces/IBounties.sol";
 
 import "./DecayCurves.sol";
-import "./Incentives.sol";
+import "./Bounties.sol";
 
 /**
  * @title Signals by Lighthouse Labs <https://lighthouse.cx>
@@ -203,9 +203,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice (Optional) Reference to the Incentives contract (can only be set once)
+    /// @notice (Optional) Reference to the Bounties contract (can only be set once)
     // TODO: Reconsider tradeoffs of this design pattern properly
-    IIncentives public incentives;
+    IBounties public bounties;
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
@@ -450,10 +450,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         initiative.state = InitiativeState.Accepted;
         initiative.acceptanceTimestamp = block.timestamp;
 
-        // Notify the Incentives contract
+        // Notify the Bounties contract
         // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(incentives) != address(0)) {
-            incentives.handleInitiativeAccepted(initiativeId);
+        if (address(bounties) != address(0)) {
+            bounties.handleInitiativeAccepted(initiativeId);
         }
 
         emit InitiativeAccepted(initiativeId, msg.sender);
@@ -470,10 +470,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
         initiative.state = InitiativeState.Expired;
 
-        // Notify the Incentives contract
+        // Notify the Bounties contract
         // TODO: Reconsider tradeoffs of this design pattern properly
-        if (address(incentives) != address(0)) {
-            incentives.handleInitiativeExpired(initiativeId);
+        if (address(bounties) != address(0)) {
+            bounties.handleInitiativeExpired(initiativeId);
         }
 
         emit InitiativeExpired(initiativeId, msg.sender);
@@ -654,9 +654,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
     }
 
-    /// @notice (Optional) Allows the owner to set the Incentives contract
-    function setIncentives(address _incentives) external onlyOwner {
-        incentives = Incentives(_incentives);
+    /// @notice (Optional) Allows the owner to set the Bounties contract
+    function setBounties(address _bounties) external onlyOwner {
+        bounties = Bounties(_bounties);
     }
 
     /**

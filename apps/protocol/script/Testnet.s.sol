@@ -10,7 +10,7 @@ import {ISignals} from "../src/interfaces/ISignals.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
-import {Incentives} from "../src/Incentives.sol";
+import {Bounties} from "../src/Bounties.sol";
 
 /**
  * This script is used to deploy the Signals contracts to testnet.
@@ -20,7 +20,7 @@ import {Incentives} from "../src/Incentives.sol";
  * - a SignalsFactory
  * - a Signals contract
  * - a TokenRegistry
- * - an Incentives contract
+ * - an Bounties contract
  *
  * @notice forge script script/Testnet.s.sol --fork-url $TESTNET_RPC --broadcast
  */
@@ -34,7 +34,7 @@ contract TestnetScript is Script {
 
     MockERC20 _token;
     SignalsFactory _factory;
-    Incentives _incentives;
+    Bounties _bounties;
 
     function run() external {
         // Load the private key from the environment
@@ -133,19 +133,19 @@ contract TestnetScript is Script {
         vm.broadcast(_deployer);
         registry.allow(address(usdc)); // Allow usdc rewards
 
-        // Create incentives
+        // Create bounties
         uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
         address[3] memory _receivers = [address(_alice), address(_bob), address(_charlie)];
 
         // TODO: Move this to the Factory deployment
         vm.broadcast(_deployer);
-        _incentives = new Incentives(address(protocolAddress), address(registry), _allocations, _receivers);
+        _bounties = new Bounties(address(protocolAddress), address(registry), _allocations, _receivers);
 
-        console.log("IncentivesContract", address(_incentives));
+        console.log("BountiesContract", address(_bounties));
 
-        // Set the Incentives contract in the Signals contract
+        // Set the Bounties contract in the Signals contract
         uint256 alicePrivateKey = vm.deriveKey(seedPhrase, 1);
         vm.broadcast(alicePrivateKey);
-        Signals(protocolAddress).setIncentives(address(_incentives));
+        Signals(protocolAddress).setBounties(address(_bounties));
     }
 }

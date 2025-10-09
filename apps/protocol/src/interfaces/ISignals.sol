@@ -205,7 +205,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function totalSupporters(uint256 initiativeId) external view returns (uint256);
     function setInactivityThreshold(uint256 _newThreshold) external;
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
-    function setIncentives(address _incentives) external;
+    function setBounties(address _bounties) external;
     function closeBoard() external;
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);
