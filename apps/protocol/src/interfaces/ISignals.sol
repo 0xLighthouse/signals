@@ -21,6 +21,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param participantRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
      * @param boardOpensAt Timestamp when board opens for participation (0 = open immediately)
+     * @param boardIncentives Configuration for board-wide incentive rewards
      */
     struct BoardConfig {
         string version;
@@ -36,6 +37,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
         uint256 boardOpensAt;
+        BoardIncentives boardIncentives;
     }
 
     /**
@@ -106,6 +108,20 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         uint256 minHoldingDuration;
     }
 
+    /**
+     * @notice Configuration for board-wide incentive rewards
+     * @dev Set enabled=false for boards without incentives
+     *
+     * @param enabled Whether incentives are active for this board
+     * @param curveType Type of incentive curve (0 = linear, 1 = exponential)
+     * @param curveParameters Parameters for the curve (e.g., [k] for linear decay)
+     */
+    struct BoardIncentives {
+        bool enabled;
+        uint256 curveType;
+        uint256[] curveParameters;
+    }
+
     // Enums
     enum InitiativeState {
         Proposed,
@@ -159,6 +175,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     error InvalidTokenId();
     error BoardClosedError();
     error BoardNotYetOpen();
+    error BoardAlreadyOpened();
 
     /// @notice Error when user doesn't meet proposer requirements
     error ProposerRequirementsNotMet(string reason);
@@ -184,6 +201,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function releaseLockDuration() external view returns (uint256);
     function boardState() external view returns (BoardState);
     function boardOpensAt() external view returns (uint256);
+    function boardIncentives() external view returns (BoardIncentives memory);
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
@@ -210,6 +228,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function setInactivityThreshold(uint256 _newThreshold) external;
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
     function setBounties(address _bounties) external;
+    function setIncentivesPool(address _incentivesPool) external;
     function closeBoard() external;
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);

@@ -6,16 +6,12 @@ import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
-import {Currency} from "v4-core/types/Currency.sol";
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
 
-contract SignalsHarness is Test, Deployers {
+contract SignalsHarness is Test {
     address _deployer = address(this);
     address _alice = address(0x1111);
     address _bob = address(0x2222);
@@ -33,23 +29,8 @@ contract SignalsHarness is Test, Deployers {
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
     MockERC20 internal _dai = new MockERC20("DAI", "DAI", 18);
 
-
     // --- Factory ---
     SignalsFactory internal factory = new SignalsFactory();
-
-    // tokens expressed as Currency
-    Currency tokenCurrency;
-    Currency usdcCurrency;
-    Currency daiCurrency;
-
-    // --- Pool Config ---
-    uint24 public constant POOL_FEE = 3000; // 0.3% fee
-
-    PoolKey _keyA; // USDC/GOV
-    bool _keyAIsGovZero;
-
-    PoolKey _keyB; // DAI/GOV
-    bool _keyBIsGovZero;
 
     ISignals.BoardConfig public defaultConfig = ISignals.BoardConfig({
         version: factory.version(),
@@ -73,7 +54,12 @@ contract SignalsHarness is Test, Deployers {
             minHoldingDuration: 0
         }),
         releaseLockDuration: 0,
-        boardOpensAt: 0 // Open immediately
+        boardOpensAt: 0, // Open immediately
+        boardIncentives: ISignals.BoardIncentives({
+            enabled: false,
+            curveType: 0,
+            curveParameters: new uint256[](0)
+        })
     });
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
@@ -169,29 +155,15 @@ contract SignalsHarness is Test, Deployers {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: 0 // Open immediately
+            boardOpensAt: 0, // Open immediately
+            boardIncentives: ISignals.BoardIncentives({
+                enabled: false,
+                curveType: 0,
+                curveParameters: new uint256[](0)
+            })
         });
     }
 
-
-    function _uniswapApprovals(MockERC20 token) internal returns (Currency currency) {
-        address[9] memory toApprove = [
-            address(swapRouter),
-            address(swapRouterNoChecks),
-            address(modifyLiquidityRouter),
-            address(modifyLiquidityNoChecks),
-            address(donateRouter),
-            address(takeRouter),
-            address(claimsRouter),
-            address(nestedActionRouter.executor()),
-            address(actionsRouter)
-        ];
-
-        for (uint256 i = 0; i < toApprove.length; i++) {
-            token.approve(toApprove[i], Constants.MAX_UINT256);
-        }
-        return Currency.wrap(address(token));
-    }
 
     function lockTokensAndIssueBond(Signals _signals, address _user, uint256 _amount, uint256 _duration)
         public
@@ -223,20 +195,6 @@ contract SignalsHarness is Test, Deployers {
     //     }
     // }
 
-    function printPoolInfo() public view {
-        console.log("Address and decimals: ");
-        console.log("GOV: ", address(_tokenERC20), _tokenERC20.decimals());
-        console.log("DAI: ", address(_dai), _dai.decimals());
-        console.log("USDC: ", address(_usdc), _usdc.decimals());
-        console.log("Pool currencies (0 and 1): ");
-        MockERC20 a0 = MockERC20(Currency.unwrap(_keyA.currency0));
-        MockERC20 a1 = MockERC20(Currency.unwrap(_keyA.currency1));
-        console.log("Pool A: ", a0.symbol(), a1.symbol());
-        MockERC20 b0 = MockERC20(Currency.unwrap(_keyB.currency0));
-        MockERC20 b1 = MockERC20(Currency.unwrap(_keyB.currency1));
-        console.log("Pool B: ", b0.symbol(), b1.symbol());
-    }
-
     function _toFactoryDeployment(ISignals.BoardConfig storage config)
         internal
         view
@@ -254,7 +212,8 @@ contract SignalsHarness is Test, Deployers {
             proposerRequirements: config.proposerRequirements,
             participantRequirements: config.participantRequirements,
             releaseLockDuration: config.releaseLockDuration,
-            boardOpensAt: config.boardOpensAt
+            boardOpensAt: config.boardOpensAt,
+            boardIncentives: config.boardIncentives
         });
     }
 

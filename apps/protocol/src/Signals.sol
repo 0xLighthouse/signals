@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import "solmate/src/utils/ReentrancyGuard.sol";
+import "solady/src/utils/ReentrancyGuard.sol";
 
 import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IBounties} from "./interfaces/IBounties.sol";
+import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 
 import "./DecayCurves.sol";
 import "./Bounties.sol";
@@ -73,6 +74,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     /// @notice Timestamp when board opens for participation (0 = open immediately)
     uint256 public boardOpensAt;
+
+    /// @notice Configuration for board-wide incentive rewards (internal storage)
+    BoardIncentives internal _boardIncentives;
 
     /// @notice Current state of the board (Open or Closed)
     BoardState public boardState;
@@ -210,6 +214,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice (Optional) Reference to the Bounties contract (can only be set once)
     // TODO: Reconsider tradeoffs of this design pattern properly
     IBounties public bounties;
+
+    /// @notice (Optional) Reference to the IncentivesPool contract (can be set before board opens)
+    IIncentivesPool public incentivesPool;
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
@@ -381,6 +388,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         participantRequirements = config.participantRequirements;
         releaseLockDuration = config.releaseLockDuration;
         boardOpensAt = config.boardOpensAt;
+        _boardIncentives = config.boardIncentives;
         boardState = BoardState.Open;
 
         // Validate requirements
@@ -461,6 +469,14 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             bounties.handleInitiativeAccepted(initiativeId);
         }
 
+        // Calculate incentives if pool is configured (non-blocking)
+        if (address(incentivesPool) != address(0)) {
+            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
+                // Incentives calculation failed, but don't block acceptance
+                // Silently continue - pool contract will emit events for monitoring
+            }
+        }
+
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
 
@@ -509,7 +525,17 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         lock.withdrawn = true;
         _burn(tokenId);
 
+        // Transfer underlying tokens
         if (!IERC20(underlyingToken).transfer(msg.sender, amount)) revert ISignals.TokenTransferFailed();
+
+        // Auto-claim incentives if pool is configured and initiative was accepted
+        // Only claim if there are rewards to prevent revert on already-claimed or zero rewards
+        if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
+            uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
+            if (pendingRewards > 0) {
+                incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
+            }
+        }
 
         emit Redeemed(tokenId, msg.sender, amount);
     }
@@ -662,6 +688,15 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice (Optional) Allows the owner to set the Bounties contract
     function setBounties(address _bounties) external onlyOwner {
         bounties = Bounties(_bounties);
+    }
+
+    /// @notice (Optional) Allows the owner to set the IncentivesPool contract
+    /// @dev Can only be set before board opens to ensure fair configuration
+    function setIncentivesPool(address _incentivesPool) external onlyOwner {
+        if (block.timestamp >= boardOpensAt) {
+            revert ISignals.BoardAlreadyOpened();
+        }
+        incentivesPool = IIncentivesPool(_incentivesPool);
     }
 
     /**
@@ -820,6 +855,12 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
                 revert ParticipantRequirementsNotMet("MinHoldingDuration must be greater than 0");
             }
         }
+    }
+
+    /// @notice Get board incentives configuration
+    /// @return Board incentives configuration
+    function boardIncentives() external view returns (BoardIncentives memory) {
+        return _boardIncentives;
     }
 }
 

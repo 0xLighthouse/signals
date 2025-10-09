@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "forge-std/StdUtils.sol";
 
-import "solmate/src/test/utils/mocks/MockERC20.sol";
+import "solady/test/utils/mocks/MockERC20.sol";
 
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
@@ -49,7 +49,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             proposerRequirements: defaultConfig.proposerRequirements,
             participantRequirements: defaultConfig.participantRequirements,
             releaseLockDuration: defaultConfig.releaseLockDuration,
-            boardOpensAt: defaultConfig.boardOpensAt
+            boardOpensAt: defaultConfig.boardOpensAt,
+            boardIncentives: defaultConfig.boardIncentives
         });
 
         // Check that the Signals contract was deployed
@@ -98,7 +99,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
                 proposerRequirements: defaultConfig.proposerRequirements,
                 participantRequirements: defaultConfig.participantRequirements,
                 releaseLockDuration: defaultConfig.releaseLockDuration,
-                boardOpensAt: defaultConfig.boardOpensAt
+                boardOpensAt: defaultConfig.boardOpensAt,
+                boardIncentives: defaultConfig.boardIncentives
             })
         );
     }
