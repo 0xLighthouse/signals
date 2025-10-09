@@ -10,7 +10,7 @@ import {ISignals} from "../src/interfaces/ISignals.sol";
 import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
-import {Incentives} from "../src/Incentives.sol";
+import {Bounties} from "../src/Bounties.sol";
 
 /**
  * @notice forge script script/Deploy.s.sol --fork-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
@@ -24,7 +24,7 @@ contract DevelopmentScript is Script {
 
     MockERC20 _token;
     SignalsFactory _factory;
-    Incentives _incentives;
+    Bounties _bounties;
 
     function run() external {
         // Load the private key from the environment
@@ -116,17 +116,17 @@ contract DevelopmentScript is Script {
         vm.broadcast(deployerPrivateKey);
         registry.allow(address(usdc)); // Allow usdc rewards
 
-        // Create incentives
+        // Create bounties
         uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
         address[3] memory _receivers = [address(_deployer), address(_owner), address(_owner)];
 
         vm.broadcast(deployerPrivateKey);
-        _incentives = new Incentives(address(protocolAddress), address(registry), _allocations, _receivers);
+        _bounties = new Bounties(address(protocolAddress), address(registry), _allocations, _receivers);
 
-        console.log("IncentivesContract", address(_incentives));
+        console.log("BountiesContract", address(_bounties));
 
-        // Set the Incentives contract in the Signals contract
+        // Set the Bounties contract in the Signals contract
         vm.broadcast(ownerPrivateKey);
-        Signals(protocolAddress).setIncentives(address(_incentives));
+        Signals(protocolAddress).setBounties(address(_bounties));
     }
 }
