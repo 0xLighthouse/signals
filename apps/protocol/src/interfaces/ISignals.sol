@@ -20,6 +20,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
      * @param proposerRequirements Requirements for who can propose (immutable)
      * @param participantRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
+     * @param boardOpensAt Timestamp when board opens for participation (0 = open immediately)
      */
     struct BoardConfig {
         string version;
@@ -34,6 +35,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
         ProposerRequirements proposerRequirements;
         ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
+        uint256 boardOpensAt;
     }
 
     /**
@@ -156,6 +158,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     error InitiativeNotFound();
     error InvalidTokenId();
     error BoardClosedError();
+    error BoardNotYetOpen();
 
     /// @notice Error when user doesn't meet proposer requirements
     error ProposerRequirementsNotMet(string reason);
@@ -180,6 +183,7 @@ interface ISignals is IERC721Enumerable, IBondIssuer {
     function initiativeCount() external view returns (uint256);
     function releaseLockDuration() external view returns (uint256);
     function boardState() external view returns (BoardState);
+    function boardOpensAt() external view returns (uint256);
 
     // Public functions
     function initialize(BoardConfig calldata config) external;

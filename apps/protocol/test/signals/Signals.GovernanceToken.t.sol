@@ -250,7 +250,8 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
-            releaseLockDuration: 0
+            releaseLockDuration: 0,
+            boardOpensAt: 0
         });
 
         address instance = factory.create(factoryConfig);

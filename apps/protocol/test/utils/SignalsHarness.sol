@@ -72,7 +72,8 @@ contract SignalsHarness is Test, Deployers {
             minBalance: 0,
             minHoldingDuration: 0
         }),
-        releaseLockDuration: 0
+        releaseLockDuration: 0,
+        boardOpensAt: 0 // Open immediately
     });
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
@@ -167,7 +168,8 @@ contract SignalsHarness is Test, Deployers {
                 minBalance: 0,
                 minHoldingDuration: 0
             }),
-            releaseLockDuration: 0
+            releaseLockDuration: 0,
+            boardOpensAt: 0 // Open immediately
         });
     }
 
@@ -251,7 +253,8 @@ contract SignalsHarness is Test, Deployers {
             decayCurveParameters: config.decayCurveParameters,
             proposerRequirements: config.proposerRequirements,
             participantRequirements: config.participantRequirements,
-            releaseLockDuration: config.releaseLockDuration
+            releaseLockDuration: config.releaseLockDuration,
+            boardOpensAt: config.boardOpensAt
         });
     }
 
