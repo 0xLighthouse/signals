@@ -5,13 +5,13 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
-import {IBondIssuer} from "../../src/interfaces/IBondIssuer.sol";
+import {ISignalsLock} from "../../src/interfaces/ISignalsLock.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 
 /**
  * @title SignalsBondIssuerTest
- * @notice Tests for IBondIssuer interface compliance
- * @dev Covers bond details retrieval, NFT queries, and interface compliance
+ * @notice Tests for ISignalsLock interface compliance
+ * @dev Covers lock details retrieval, NFT queries, and interface compliance
  */
 contract SignalsBondIssuerTest is Test, SignalsHarness {
     ISignals signals;
@@ -25,22 +25,22 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
                         BOND DETAILS TESTS
     //////////////////////////////////////////////////////////////*/
 
-    /// Test retrieving bond details through IBondIssuer interface
+    /// Test retrieving lock details through ISignalsLock interface
     function test_BondDetails_Retrieve() public {
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 * 1e18);
         signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
         vm.stopPrank();
 
-        // Test the signals contract as an IBondIssuer
-        IBondIssuer signalsIssuer = IBondIssuer(address(signals));
-        IBondIssuer.BondInfo memory bondInfo = signalsIssuer.getBondInfo(1);
+        // Test the signals contract as an ISignalsLock
+        ISignalsLock signalsIssuer = ISignalsLock(address(signals));
+        ISignalsLock.LockData memory lockData = signalsIssuer.getLockData(1);
 
-        assertEq(bondInfo.referenceId, 1);
-        assertEq(bondInfo.nominalValue, 100 * 1e18);
-        assertEq(bondInfo.expires, block.timestamp + 6 * 60 * 60 * 24);
-        assertEq(bondInfo.created, block.timestamp);
-        assertEq(bondInfo.claimed, false);
+        assertEq(lockData.referenceId, 1);
+        assertEq(lockData.nominalValue, 100 * 1e18);
+        assertEq(lockData.expires, block.timestamp + 6 * 60 * 60 * 24);
+        assertEq(lockData.created, block.timestamp);
+        assertEq(lockData.claimed, false);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -60,14 +60,14 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
     }
 
     /*//////////////////////////////////////////////////////////////
-                    TODO: BOND INFO ACCURACY TESTS
+                    TODO: LOCK DATA ACCURACY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO: Test bond info accuracy across different states
-    // function test_BondInfo_Accuracy() public {}
+    // TODO: Test lock data accuracy across different states
+    // function test_LockData_Accuracy() public {}
 
-    // TODO: Test bond info after redemption
-    // function test_BondInfo_AfterRedemption() public {}
+    // TODO: Test lock data after redemption
+    // function test_LockData_AfterRedemption() public {}
 
     /*//////////////////////////////////////////////////////////////
                     TODO: NFT TRANSFER TESTS
@@ -76,8 +76,8 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
     // TODO: Test transferring a locked NFT
     // function test_Transfer_LockedNFT() public {}
 
-    // TODO: Test bond info after NFT transfer
-    // function test_BondInfo_AfterTransfer() public {}
+    // TODO: Test lock data after NFT transfer
+    // function test_LockData_AfterTransfer() public {}
 
     /*//////////////////////////////////////////////////////////////
                     TODO: NFT METADATA TESTS

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "solady/src/utils/ReentrancyGuard.sol";
 
-import {IBondIssuer} from "./interfaces/IBondIssuer.sol";
+import {ISignalsLock} from "./interfaces/ISignalsLock.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IBounties} from "./interfaces/IBounties.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
@@ -540,14 +540,14 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit Redeemed(tokenId, msg.sender, amount);
     }
 
-    function getBondInfo(uint256 tokenId) external view returns (IBondIssuer.BondInfo memory) {
+    function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
         if (_locks[tokenId].initiativeId == 0) {
             revert ISignals.InvalidTokenId();
         }
 
         TokenLock memory lock = _locks[tokenId];
 
-        return IBondIssuer.BondInfo({
+        return ISignalsLock.LockData({
             referenceId: lock.initiativeId,
             nominalValue: lock.tokenAmount,
             expires: lock.created + lock.lockDuration * lockInterval,
