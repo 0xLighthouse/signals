@@ -28,9 +28,9 @@ export default defineConfig({
       items: nav.navItems('/features'),
     },
     {
-      text: 'Configuration',
+      text: 'Reference',
       collapsed: false,
-      items: nav.navItems('/configuration'),
+      items: nav.navItems('/reference'),
     },
     {
       text: 'Components',

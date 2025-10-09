@@ -1,25 +1,22 @@
 # Bounties
 
-**Bounties** are external rewards that sponsors can attach to specific initiatives to incentivize support and successful outcomes. Unlike Board Incentives (which are DAO-funded and board-wide), Bounties are contributed by individual sponsors and tied to specific initiatives.
+**Bounties** are external rewards that anyone can contribute towards a specific initiatives to incentivize support and successful outcomes.
 
-## Overview
+Please note: Bounties are NOT the same as Board Incentives. [more here](#TODO).
 
-Bounties provide a mechanism for external stakeholders to sponsor initiatives they care about, creating additional incentives for community participation beyond governance interests.
+## How a bounty work
 
-### Bounties vs. Incentives
+```sh
 
-| Feature | Bounties | Incentives |
-|---------|----------|------------|
-| **Funding Source** | External entities, sponsors | DAO treasury |
-| **Scope** | Specific initiatives | Board-wide (all accepted initiatives) |
-| **Token Support** | Multiple tokens per initiative | Single token per board |
-| **Purpose** | Sponsored bounties for initiatives | General participation rewards |
-| **Distribution** | Split: protocol/voters/treasury | 100% to supporters based on time |
-| **Management** | Anyone can add | Owner-controlled |
-| **Who Adds** | Sponsors, interested parties | Board owner (DAO) |
-| **When Added** | Anytime before acceptance | Set at board creation |
+- Any one can add an allowlisted token as a bounty
+- Based on the a ratio the bounty will be split towards (initative/supporters/protocol)
+- Bounties have a special feature where it can explire if the initiative does not happen within a nominted window
 
-## How Bounties Work
+eg. I will contributed 100k if this Initative is actioned in the next 24hrs.
+
+- If the initative is accepted the Bounty is sent based on the terms
+- If the terms elaspe (say its now 34 hrs and it not accepted the user who proposed the bounty can withdraw 100% of their funds)
+```
 
 ### 1. Adding a Bounty
 
@@ -51,6 +48,7 @@ bounties.addBounty(
 When a board owner accepts an initiative, the Bounties contract automatically distributes all non-expired bounties according to the configured splits:
 
 **Default Split:**
+
 - **Protocol Fee**: 10% → Protocol treasury
 - **Voter Rewards**: 70% → Supporters proportionally by lock amount
 - **Board Treasury**: 20% → Board owner's treasury
@@ -60,6 +58,7 @@ The split percentages and receiver addresses are configurable by the Bounties co
 ### 3. Claiming Rewards
 
 Supporters can:
+
 - **Preview rewards**: Check how much they'd receive from an initiative's bounties
 - **Claim via balances**: Rewards accumulate in the supporter's balance within the Bounties contract
 - **Withdraw**: Transfer accumulated rewards to their wallet
@@ -145,6 +144,7 @@ function addBounty(
 ```
 
 **Requirements:**
+
 - Initiative must exist
 - Token must be whitelisted in registry
 - Caller must have sufficient balance and allowance
@@ -192,6 +192,7 @@ function previewRewards(
 ```
 
 **Calculation:**
+
 ```
 voterShare = lockAmount / totalLocked
 voterRewards = totalBounties * voterAllocation% * voterShare
@@ -380,31 +381,12 @@ tokenRegistry.addToken(address(usdcToken));
 tokenRegistry.addToken(address(daiToken));
 ```
 
-## Security Considerations
-
-### Access Control
-
-- **Anyone can add bounties** (permissionless contribution)
-- **Only Signals contract** can trigger distributions
-- **Only owner** can update splits and whitelist tokens
-- **Only contributor** can reclaim expired bounties
-
-### Reentrancy Protection
-
-- `ReentrancyGuard` on distribution functions
-- Follows checks-effects-interactions pattern
-- State updated before external calls
-
-### Token Safety
-
-- Uses `SafeERC20` for all token transfers
-- Requires token whitelist to prevent malicious tokens
-- Immediate transfer on `addBounty()` prevents approval exploits
-
 ### Edge Cases
 
 #### Multiple Bounties Same Token
+
 Bounties in the same token are aggregated:
+
 ```solidity
 // Initiative #1
 addBounty(1, USDC, 1000, ...);  // Bounty A
@@ -413,19 +395,25 @@ addBounty(1, USDC, 2000, ...);  // Bounty B
 ```
 
 #### Expired Bounties
+
 Expired bounties are:
+
 - Excluded from `getBounties()` totals
 - Not distributed on acceptance
 - Flagged for refund to contributor
 
 #### Withdrawn Lock Positions
+
 Lock positions that have been redeemed:
+
 - Are excluded from reward calculations
 - Don't receive any bounty share
 - Verified via `bond.withdrawn` flag
 
 #### Empty Bounties
+
 Initiatives with no bounties:
+
 - Acceptance proceeds normally
 - No distribution attempted
 - Non-blocking design
@@ -440,43 +428,6 @@ treasuryAmount = (amount * allocation[2]) / 100;
 
 // Potential dust: (amount - protocolAmount - voterAmount - treasuryAmount)
 // Remains in contract, considered negligible
-```
-
-## Events
-
-```solidity
-// Bounty lifecycle
-event BountyAdded(
-    uint256 indexed bountyId,
-    uint256 indexed initiativeId,
-    address indexed token,
-    uint256 amount,
-    uint256 expiresAt,
-    Conditions terms
-);
-
-event BountyPaidOut(
-    uint256 indexed bountyId,
-    uint256 protocolAmount,
-    uint256 voterAmount,
-    uint256 treasuryAmount
-);
-
-event BountyRefunded(
-    uint256 indexed initiativeId,
-    address indexed contributor,
-    uint256 amount
-);
-
-// Configuration updates
-event BountiesUpdated(uint256 version);
-
-// Supporter rewards
-event RewardClaimed(
-    uint256 indexed initiativeId,
-    address indexed supporter,
-    uint256 amount
-);
 ```
 
 ## Best Practices
