@@ -1,11 +1,11 @@
 ---
-title: "Board Configuration"
+title: "ISignals.BoardConfig"
 weight: 1
 ---
 
 # Board Configuration
 
-Configure your Signals board parameters during initialization. All settings are immutable after deployment to ensure transparent, predictable governance.
+There are over 100 ways a Signals board can be configured to suit your orginsations needs.
 
 ## Overview
 
@@ -39,46 +39,6 @@ BoardConfig memory config = BoardConfig({
 signals.initialize(config);
 ```
 
-## Proposal Requirements
-
-Control who can create new initiatives based on token holdings.
-
-### Eligibility Types
-
-#### None
-
-No restrictions - anyone with sufficient tokens to meet the `threshold` can propose initiatives.
-
-**Use case:** Open, permissionless boards where you want maximum participation.
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.None,
-    minBalance: 0,
-    minHoldingDuration: 0,
-    threshold: 1_000 * 1e18  // Amount locked when proposing
-})
-```
-
-#### MinBalance
-
-Users must hold a minimum token balance to propose initiatives. The balance check happens at the time of proposal.
-
-**Use case:** Boards that want to ensure proposers have skin in the game.
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalance,
-    minBalance: 10_000 * 1e18,  // 10,000 tokens
-    minHoldingDuration: 0,
-    threshold: 1_000 * 1e18
-})
-```
-
-**Notes:**
-- Works with any ERC20 token
-- Balance check is separate from `threshold` (the amount locked)
-
 #### MinBalanceAndDuration
 
 Users must hold a minimum token balance for a minimum duration (measured in blocks) before they can propose.
@@ -95,6 +55,7 @@ ProposerRequirements({
 ```
 
 **Notes:**
+
 - **Requires ERC20Votes tokens** - Must implement the `IVotes` interface with checkpoint functionality
 - Standard ERC20 tokens will revert
 
@@ -133,6 +94,7 @@ releaseLockDuration: 30 days  // 30-day coordination window
 ```
 
 **Use cases:**
+
 - Cooling-off periods to prevent immediate sell pressure
 - Coordination windows for governance actions
 - Vesting-style token releases
@@ -223,36 +185,6 @@ When a board is closed:
 | `proposerRequirements` | `ProposerRequirements` | Who can propose initiatives and how much they must lock |
 | `participantRequirements` | `ParticipantRequirements` | Who can support initiatives |
 | `releaseLockDuration` | `uint256` | Token lock duration after acceptance (0 = immediate) |
-
-## Interface
-
-### Data Structures
-
-```solidity
-enum EligibilityType {
-    None,                    // No requirements
-    MinBalance,              // Requires minimum token balance
-    MinBalanceAndDuration    // Requires min balance held for min duration
-}
-
-struct ProposerRequirements {
-    EligibilityType eligibilityType;
-    uint256 minBalance;           // Minimum tokens required to be eligible
-    uint256 minHoldingDuration;   // Minimum blocks to hold tokens
-    uint256 threshold;            // Tokens locked when proposing
-}
-
-struct ParticipantRequirements {
-    EligibilityType eligibilityType;
-    uint256 minBalance;           // Minimum tokens required to be eligible
-    uint256 minHoldingDuration;   // Minimum blocks to hold tokens
-}
-
-enum BoardState {
-    Open,    // Board accepting proposals and support
-    Closed   // Board permanently closed, all locks withdrawable
-}
-```
 
 ### Functions
 
@@ -364,6 +296,7 @@ error ProposerRequirementsNotMet(string reason);
 ```
 
 **Possible reasons:**
+
 - `"Insufficient token balance for proposal"`
 - `"Tokens not held long enough"`
 - `"Token does not support holding duration checks"`
@@ -375,6 +308,7 @@ error ParticipantRequirementsNotMet(string reason);
 ```
 
 **Possible reasons:**
+
 - `"Insufficient token balance to participate"`
 - `"Tokens not held long enough"`
 - `"Token does not support holding duration checks"`
@@ -412,11 +346,13 @@ Thrown when attempting to propose or support initiatives on a closed board.
 ### Board Closure
 
 **Use for:**
+
 - Emergency situations
 - End of governance season
 - Contract migrations
 
 **Don't use for:**
+
 - Temporary issues
 - Single initiative disputes
 - Preventing specific withdrawals

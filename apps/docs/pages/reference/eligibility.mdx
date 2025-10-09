@@ -1,0 +1,36 @@
+### Eligibility Types
+
+#### None
+
+No restrictions - anyone with sufficient tokens to meet the `threshold` can propose initiatives.
+
+**Use case:** Open, permissionless boards where you want maximum participation.
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.None,
+    minBalance: 0,
+    minHoldingDuration: 0,
+    threshold: 1_000 * 1e18  // Amount locked when proposing
+})
+```
+
+#### MinBalance
+
+Users must hold a minimum token balance to propose initiatives. The balance check happens at the time of proposal.
+
+**Use case:** Boards that want to ensure proposers have skin in the game.
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalance,
+    minBalance: 10_000 * 1e18,  // 10,000 tokens
+    minHoldingDuration: 0,
+    threshold: 1_000 * 1e18
+})
+```
+
+**Notes:**
+
+* Works with any ERC20 token
+* Balance check is separate from `threshold` (the amount locked)
