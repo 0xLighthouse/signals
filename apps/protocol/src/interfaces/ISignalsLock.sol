@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-// TODO: We can own the wrapper; Maybe ISignalsLock
-interface IBondIssuer {
-    struct BondInfo {
+interface ISignalsLock {
+    struct LockData {
         uint256 referenceId;
         uint256 nominalValue;
         uint256 expires;
@@ -11,6 +10,6 @@ interface IBondIssuer {
         bool claimed;
     }
 
-    function getBondInfo(uint256 tokenId) external view returns (BondInfo memory);
+    function getLockData(uint256 tokenId) external view returns (LockData memory);
     function getUnderlyingToken() external view returns (address);
 }
