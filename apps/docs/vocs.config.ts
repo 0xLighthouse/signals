@@ -23,6 +23,11 @@ export default defineConfig({
       link: '/',
     },
     {
+      text: 'Features',
+      collapsed: false,
+      items: nav.navItems('/features'),
+    },
+    {
       text: 'Configuration',
       collapsed: false,
       items: nav.navItems('/configuration'),

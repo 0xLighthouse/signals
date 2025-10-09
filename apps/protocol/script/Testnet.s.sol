@@ -104,7 +104,12 @@ contract TestnetScript is Script {
                     minHoldingDuration: 0
                 }),
                 releaseLockDuration: 0, // Immediate release on acceptance
-                boardOpensAt: 0 // Open immediately
+                boardOpensAt: 0, // Open immediately
+                boardIncentives: ISignals.BoardIncentives({
+                    enabled: false,
+                    curveType: 0,
+                    curveParameters: new uint256[](0)
+                })
             })
         );
 

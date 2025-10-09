@@ -251,7 +251,12 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: 0
+            boardOpensAt: 0,
+            boardIncentives: ISignals.BoardIncentives({
+                enabled: false,
+                curveType: 0,
+                curveParameters: new uint256[](0)
+            })
         });
 
         address instance = factory.create(factoryConfig);

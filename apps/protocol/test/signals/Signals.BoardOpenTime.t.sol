@@ -7,7 +7,7 @@ import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {Signals} from "../../src/Signals.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 
 /**
  * @title SignalsBoardOpenTimeTest
@@ -219,7 +219,12 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: openTime
+            boardOpensAt: openTime,
+            boardIncentives: ISignals.BoardIncentives({
+                enabled: false,
+                curveType: 0,
+                curveParameters: new uint256[](0)
+            })
         });
 
         // Deploy and initialize

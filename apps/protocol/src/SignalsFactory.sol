@@ -56,7 +56,8 @@ contract SignalsFactory is ISignalsFactory {
             proposerRequirements: config.proposerRequirements,
             participantRequirements: config.participantRequirements,
             releaseLockDuration: config.releaseLockDuration,
-            boardOpensAt: config.boardOpensAt
+            boardOpensAt: config.boardOpensAt,
+            boardIncentives: config.boardIncentives
         });
 
         instance.initialize(mergedConfig);
