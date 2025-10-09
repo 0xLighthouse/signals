@@ -242,6 +242,22 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         return rewardAmount;
     }
 
+    /// @inheritdoc IIncentivesPool
+    function claimRewards(address board, uint256 initiativeId, address supporter) external nonReentrant {
+        if (!distributionsCalculated[board][initiativeId]) revert IIncentivesPool.IncentivesPool_NotCalculated();
+
+        uint256 reward = supporterRewards[board][initiativeId][supporter];
+        if (reward == 0) revert IIncentivesPool.IncentivesPool_NoRewards();
+
+        // Mark as claimed
+        supporterRewards[board][initiativeId][supporter] = 0;
+
+        // Transfer rewards
+        IERC20(poolConfig.token).safeTransfer(supporter, reward);
+
+        emit RewardsClaimed(board, initiativeId, supporter, reward);
+    }
+
     /**
      * @notice Calculate time-weighted support for a supporter
      * @dev Uses the board's incentive curve to calculate weight
@@ -324,22 +340,6 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
         }
 
         return totalWeight;
-    }
-
-    /// @inheritdoc IIncentivesPool
-    function claimRewards(address board, uint256 initiativeId, address supporter) external nonReentrant {
-        if (!distributionsCalculated[board][initiativeId]) revert IIncentivesPool.IncentivesPool_NotCalculated();
-
-        uint256 reward = supporterRewards[board][initiativeId][supporter];
-        if (reward == 0) revert IIncentivesPool.IncentivesPool_NoRewards();
-
-        // Mark as claimed
-        supporterRewards[board][initiativeId][supporter] = 0;
-
-        // Transfer rewards
-        IERC20(poolConfig.token).safeTransfer(supporter, reward);
-
-        emit RewardsClaimed(board, initiativeId, supporter, reward);
     }
 
     /// @inheritdoc IIncentivesPool
