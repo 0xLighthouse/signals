@@ -23,19 +23,24 @@ export default defineConfig({
       link: '/',
     },
     {
-      text: 'Features',
+      text: 'Signals Boards',
       collapsed: false,
-      items: nav.navItems('/features'),
+      items: nav.navItems('/signals-board'),
     },
     {
-      text: 'Reference',
+      text: 'Initiatives',
+      collapsed: false,
+      items: nav.navItems('/initiatives'),
+    },
+    {
+      text: 'Rewards and Incentives',
+      collapsed: false,
+      items: nav.navItems('/rewards-and-incentives'),
+    },
+    {
+      text: 'Developer Reference',
       collapsed: false,
       items: nav.navItems('/reference'),
-    },
-    {
-      text: 'Components',
-      collapsed: false,
-      items: nav.navItems('/components'),
-    },
+    }
   ],
 })

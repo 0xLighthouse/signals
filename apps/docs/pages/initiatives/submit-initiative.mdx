@@ -1,0 +1,277 @@
+---
+title: "Submit an Initiative"
+weight: 1
+---
+
+# Submit an Initiative
+
+Initiatives are proposals submitted to a Signals board that allow community members to signal support by locking tokens. Anyone who meets the board's proposer requirements can create an initiative.
+
+## Overview
+
+There are two ways to create an initiative:
+
+1. **Propose only** - Create the initiative without locking tokens
+2. **Propose with lock** - Create the initiative and immediately lock tokens to show support
+
+## Prerequisites
+
+Before submitting an initiative, ensure:
+
+- The board is open (current time ≥ `boardOpensAt`)
+- You meet the board's proposer requirements (see [Proposer Eligibility](#proposer-eligibility))
+- You have sufficient token balance and approval (if locking tokens)
+
+You can check if you're eligible to propose using the `canPropose(address)` view function.
+
+## Creating an Initiative (Basic)
+
+The simplest way to create an initiative is using `proposeInitiative`:
+
+```solidity
+function proposeInitiative(
+    string memory _title,
+    string memory _body
+) external
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `_title` | `string` | Title of the initiative (must not be empty) |
+| `_body` | `string` | Detailed description, markdown supported (must not be empty) |
+
+### Example
+
+```solidity
+signals.proposeInitiative(
+    "Add dark mode to interface",
+    "## Motivation\n\nMany users have requested a dark mode option...\n\n## Proposal\n\nImplement theme switching..."
+)
+```
+
+## Creating an Initiative with Token Lock
+
+To immediately show support for your initiative, use `proposeInitiativeWithLock`:
+
+```solidity
+function proposeInitiativeWithLock(
+    string memory _title,
+    string memory _body,
+    uint256 _amount,
+    uint256 _lockDuration
+) external returns (uint256 tokenId)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `_title` | `string` | Title of the initiative (must not be empty) |
+| `_body` | `string` | Detailed description, markdown supported (must not be empty) |
+| `_amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
+| `_lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
+
+### Returns
+
+- `tokenId` - An ERC721 NFT representing your lock position
+
+### Duration Calculation
+
+The `lockDuration` parameter is measured in **intervals**, not seconds:
+
+- **Intervals are defined per board** using the `lockInterval` parameter (typically 1 day)
+- Example: If `lockInterval = 1 day` and `lockDuration = 7`, tokens are locked for 7 days
+- Maximum duration is limited by the board's `maxLockIntervals` setting
+
+### Example
+
+```solidity
+// Lock 100,000 tokens for 30 days
+// Assumes lockInterval = 1 day
+signals.proposeInitiativeWithLock(
+    "Implement new governance features",
+    "## Overview\n\nThis initiative proposes...",
+    100_000 * 1e18,  // amount in wei
+    30               // 30 intervals (30 days if lockInterval = 1 day)
+)
+```
+
+## Proposer Eligibility
+
+Boards can configure three types of proposer requirements:
+
+### 1. None (Most Permissive)
+
+Anyone can propose if they have enough tokens to meet the threshold:
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.None,
+    minBalance: 0,
+    minHoldingDuration: 0,
+    threshold: 50_000 * 1e18
+})
+```
+
+**Requirements:**
+- Hold ≥ `threshold` tokens (which get locked when proposing)
+
+### 2. Minimum Balance
+
+Proposers must hold a minimum balance plus the threshold amount:
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalance,
+    minBalance: 75_000 * 1e18,
+    minHoldingDuration: 0,
+    threshold: 50_000 * 1e18
+})
+```
+
+**Requirements:**
+- Hold ≥ `minBalance` tokens at proposal time
+- **Plus** ≥ `threshold` tokens to lock
+
+### 3. Minimum Balance and Duration (Most Restrictive)
+
+Proposers must hold tokens for a minimum duration:
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalanceAndDuration,
+    minBalance: 40_000 * 1e18,
+    minHoldingDuration: 50400,  // blocks (~7 days at 12s/block)
+    threshold: 50_000 * 1e18
+})
+```
+
+**Requirements:**
+- Currently hold ≥ `minBalance` tokens
+- **AND** have held ≥ `minBalance` for ≥ `minHoldingDuration` blocks
+- **Plus** ≥ `threshold` tokens to lock
+- **Token must support ERC20Votes** (checkpoint functionality)
+
+## Token Approval
+
+When locking tokens (using `proposeInitiativeWithLock`), you must first approve the Signals contract:
+
+```solidity
+// Approve the Signals contract to spend your tokens
+token.approve(signalsContractAddress, amount)
+
+// Then propose with lock
+signals.proposeInitiativeWithLock(title, body, amount, duration)
+```
+
+## Initiative Structure
+
+Once created, your initiative has the following properties:
+
+```solidity
+struct Initiative {
+    string title;                    // Initiative title
+    string body;                     // Detailed description (markdown)
+    InitiativeState state;           // Current state (Proposed, Accepted, Cancelled, Expired)
+    address proposer;                // Your address
+    uint256 timestamp;               // Creation timestamp
+    uint256 lastActivity;            // Last activity timestamp
+    uint256 underlyingLocked;        // Total tokens locked in support
+    uint256 acceptanceTimestamp;     // When accepted (0 if not yet accepted)
+}
+```
+
+### Initiative States
+
+| State | Description |
+|-------|-------------|
+| `Proposed` | Initial state, can receive support from participants |
+| `Accepted` | Board owner accepted the initiative |
+| `Cancelled` | Initiative was cancelled (reserved for future use) |
+| `Expired` | No activity for > `activityTimeout` (default 60 days) |
+
+## Weight and Decay
+
+When tokens are locked in support of an initiative, they contribute **weight** that decays over time:
+
+- **Initial weight** = locked token amount
+- **Weight decays** based on the board's `decayCurveType`:
+  - **Linear (0)**: Steady decrease over time
+  - **Exponential (1)**: Accelerating decrease over time
+- Weight becomes 0 after `lockDuration` intervals pass
+- An initiative is accepted when its weight reaches the `acceptanceThreshold`
+
+## Board Configuration
+
+These board parameters affect initiative creation:
+
+| Parameter | Description |
+|-----------|-------------|
+| `proposalCap` | Maximum active proposals per user |
+| `acceptanceThreshold` | Weight needed for initiative acceptance |
+| `maxLockIntervals` | Maximum lock duration allowed |
+| `lockInterval` | Duration of one interval (e.g., 1 day) |
+| `proposerRequirements` | Eligibility criteria for proposers |
+| `boardOpensAt` | Timestamp when board opens for proposals |
+| `activityTimeout` | Inactivity period before expiration (default 60 days) |
+
+## Events
+
+Creating an initiative emits the following events:
+
+### InitiativeProposed
+
+```solidity
+event InitiativeProposed(
+    uint256 indexed initiativeId,
+    address indexed proposer,
+    string title,
+    string body
+)
+```
+
+### InitiativeSupported
+
+Emitted when using `proposeInitiativeWithLock`:
+
+```solidity
+event InitiativeSupported(
+    uint256 indexed initiativeId,
+    address indexed supporter,
+    uint256 tokenAmount,
+    uint256 lockDuration,
+    uint256 tokenId  // ERC721 NFT ID
+)
+```
+
+## Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Signals_EmptyTitle` | Title is empty | Provide a non-empty title |
+| `Signals_EmptyBody` | Body is empty | Provide a non-empty description |
+| `Signals_BoardNotYetOpen` | Current time < `boardOpensAt` | Wait for board to open |
+| `Signals_BoardClosed` | Board state is Closed | Cannot propose on closed boards |
+| `Signals_InsufficientTokens` | Balance < required amount | Acquire more tokens |
+| `Signals_ProposerInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
+| `Signals_ProposerInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
+| `Signals_ProposerNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
+| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration range |
+| `Signals_TokenTransferFailed` | Token transfer reverted | Check approval and balance |
+
+## Helper Functions
+
+Use these view functions to check eligibility before proposing:
+
+```solidity
+// Check if address can propose
+function canPropose(address proposer) external view returns (bool)
+
+// Get current proposer requirements
+function getProposerRequirements() external view returns (ProposerRequirements memory)
+
+// Get board configuration
+function getBoardConfig() external view returns (BoardConfig memory)
+```
