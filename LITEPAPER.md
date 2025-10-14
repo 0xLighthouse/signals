@@ -2,14 +2,14 @@
 
 A protocol for coordinated sensemaking
 
-_Signals transforms community sentiment into structured insight. By allowing participants to lock governance tokens for varying durations, it turns individual conviction into quantifiable support. Weighted by time and adjusted through decay, these commitments surface what matters most to a group; without coercion, hierarchy, or noise._
+_Signals transforms community sentiment into structured insight. It turns individual conviction into quantifiable support, based on how much value users are willing to part with, and for how long._
 
 __Signals does not replace governance. It clarifies it.__
 
 ## 1. The coordination gap
 
-Decentralised organisations promised participatory decision-making, but practice often falls short.
-Proposals land as fully-formed artifacts, discussed too late and decided too quickly. Token-based voting captures opinion, not intensity. Whales dominate. Delegates perform. Most people disengage.
+Decentralised organisations promise participatory decision-making, but in practice this ideal is often left unmet.
+Proposals land as rigid, binary decisions, discussed too late and decided too quickly. Token-based voting captures opinion, not intensity. Whales dominate. Delegates perform. Most people disengage.
 
 The result is a gap between what communities believe and what they can act upon.
 
@@ -19,15 +19,13 @@ Signals closes this gap by converting continuous feedback into a ranked map of s
 
 Signals replaces the “yes/no” vote with a continuous expression of support.
 
-Participants commit a sum of tokens behind _Initiatives_ and choose how long they wish to lock them. Longer commitments amplify weight, giving smaller holders the same influence as large ones who commit less.
+Participants temporarily commit an amount of tokens in support of _Initiatives_ and choose how long they wish to lock them. Longer commitments amplify weight, giving smaller holders the same influence as those who might commit a larger amount of tokens but for a shorter time. The amount of support provided by each lockup decays over time, ensuring that priorities remain current and that dormant ideas fade naturally.
 
-Over time, these commitments decay, ensuring that priorities remain current and that dormant ideas fade naturally. Each community defines its own parameters: epoch length, decay curve, acceptance threshold.
-
-What emerges is not a static vote, but a real-time ranking of what the community truly desires.
+Each community defines its own parameters: epoch length, decay curve, and requirements for participation. What emerges is not a static vote, but a real-time ranking of what the community truly desires.
 
 ## 3. From sentiment to structure
 
-Every commited lock is an opportunity cost. By turning this into a governance primitive, Signals filters out low-conviction behavior and rewards convition.
+Every commited lock represents opportunity cost. By turning this into a governance primitive, Signals filters out low-conviction behavior and rewards committment.
 
 The protocol introduces a simple language for structured participation:
  • Initiatives: statements of intent submitted by anyone with the required token balance.
@@ -35,11 +33,11 @@ The protocol introduces a simple language for structured participation:
  • Decay: a function that keeps the signal fresh and self-correcting.
  • Actioning: the point at which collective conviction surpasses the threshold for attention.
 
-When the threshold is reached, the initiative is closed, all locks are released, and the community is free to take action—off-chain or on.
+If the cumulative amount of support behind an initiative exceeds a preconfigured value, that initiative becomes avaialable to be _Actioned_ by the community, in which all locked up funds are immediately returned and the initiative is considered accepted as an accurate representation of community sentiment.
 
 ## 4. Incentivising meaningful participation
 
-We've learnt that participation in governance does not  scale by relying on altruism.
+We've learnt that participation in governance does not scale by relying on altruism.
 
 Signals uses incentive layers that align financial motivation with constructive behavior:
 
@@ -56,7 +54,7 @@ These mechanisms reinforce healthy game theory: conviction and timing matter mor
 
 Most governance mechanisms amplify existing power.
 
-Signals was designed to do the opposite. Let quieter voices set the agenda through commitment, not capital.
+Signals was designed to do the opposite. Let quieter voices participate in setting the agenda through commitment, not capital.
 
 A small token holder who locks for months can outweigh a large holder who commits for days. Over time, the system converges toward a fairer representation of shared intent: a conviction-weighted consensus.
 
@@ -70,8 +68,6 @@ It gives DAOs a continuous layer of feedback, enabling better timing, clearer pr
 
 By quantifying conviction without enforcing conformity, it keeps communities dynamic, plural, and self-correcting.
 
-It is not an ideology; it is an interface between human judgment and on-chain logic.
-
 ## 7. The future of coordination
 
 Signals is a building block for a new generation of governance tools that make participation intuitive, reputation meaningful, and shared attention measurable.
@@ -80,8 +76,4 @@ When communities can see what they care about most, they act with clarity.
 
 When conviction becomes visible, governance becomes coherent.
 
-Signals is not about control; it’s about alignment.
-
-A simple mechanism for complex communities.<br />
-A language for turning noise into direction.<br />
-A small protocol for large scale cooperation.
+Signals is not about voting; it’s about finding alignment.
