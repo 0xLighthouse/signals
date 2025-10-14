@@ -23,6 +23,10 @@ export default defineConfig({
       link: '/',
     },
     {
+      text: 'Use Cases',
+      link: '/use-cases',
+    },
+    {
       text: 'Signals Boards',
       collapsed: false,
       items: nav.navItems('/signals-board'),
