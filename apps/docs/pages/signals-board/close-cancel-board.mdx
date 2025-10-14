@@ -1,0 +1,74 @@
+---
+title: "Closing a Signals Board"
+weight: 2
+---
+
+# Closing a Signals Board
+
+Board closure is a **permanent, owner-only action** that immediately releases all locked tokens and prevents any future activity on the board.
+
+## To Do: Add "Cancel" and "Close" Function
+
+Closing a board should leave locks intact, cancelling the board should release everything immediately.
+
+
+## Board States
+
+Boards have only two possible states:
+
+```solidity
+enum BoardState {
+    Open,    // Board accepting proposals and support
+    Closed   // Board permanently closed, all locks withdrawable
+}
+```
+
+## Closing a Board
+
+### Function Signature
+
+```solidity
+function closeBoard() external onlyOwner
+```
+
+### Access Control
+
+**Only the board owner** can close a board. This function uses OpenZeppelin's `onlyOwner` modifier.
+
+### Event Emitted
+
+```solidity
+event BoardClosed(address indexed actor)
+```
+
+The `actor` parameter contains the address that called `closeBoard()` (for now, only the owner).
+
+## Current Effects of Closing a Board
+
+Board closure is PERMANENT and IRREVERSIBLE. 
+
+### 1. All Token Locks Become Immediately Withdrawable
+
+Closing a board **bypasses all withdrawal restrictions**, so all locks become immediately withdrawable.
+
+### 2. No New Proposals Allowed
+
+### 3. No New Support Allowed
+
+### 4. Existing Initiatives Remain Unchanged
+
+Closing the board **does not change initiative states**:
+
+- Proposed initiatives stay Proposed
+- Accepted initiatives stay Accepted
+- Expired initiatives stay Expired
+
+The closure only affects the ability to interact with the board and withdraw tokens.
+
+## Token Redemption After Closure
+
+Users redeem tokens using the standard `redeem()` function:
+
+```solidity
+function redeem(uint256 tokenId) public nonReentrant
+```
