@@ -1,0 +1,142 @@
+---
+title: "Locked Token NFT"
+weight: 10
+---
+
+# Lock Positions
+
+When tokens are locked in support of an initiative, the supporter receives an NFT representing their locked tokens.
+
+Lock positions are standard ERC721 tokens and can be:
+- Transferred between addresses
+- Traded on NFT marketplaces
+- Used as collateral in other protocols
+- Composed with other DeFi primitives
+
+**Note:** The voting weight remains associated with the lock position, not the original locker. Transferring a lock position transfers its voting weight to the new owner.
+
+## TokenLock Structure
+
+Each lock position contains the following information:
+
+```solidity
+struct TokenLock {
+    uint256 initiativeId;      // ID of the initiative being supported
+    uint256 tokenAmount;        // Amount of tokens locked
+    uint256 lockDuration;       // Total duration of the lock in intervals
+    uint256 created;            // Timestamp when lock was created
+    bool withdrawn;             // Whether tokens have been redeemed
+}
+```
+
+## Redemption
+
+After an initiative reaches a terminal state (Accepted or Expired), lock position holders can redeem their underlying tokens:
+
+```solidity
+signals.redeem(tokenId);
+```
+
+**Requirements:**
+- Initiative must be in Accepted or Expired state
+- Caller must own the token
+- Tokens have not already been withdrawn
+
+**Effects:**
+- Transfers underlying tokens to the caller
+- Burns the NFT
+- Marks position as withdrawn
+
+## Bond Interface
+
+Lock positions implement the `IBondIssuer` interface for compatibility with bond trading protocols:
+
+```solidity
+interface IBondIssuer {
+    struct BondInfo {
+        uint256 referenceId;      // Initiative ID
+        uint256 nominalValue;     // Token amount
+        uint256 expires;          // Expiration timestamp
+        uint256 created;          // Creation timestamp
+        bool claimed;             // Whether redeemed
+    }
+
+    function getBondInfo(uint256 tokenId)
+        external
+        view
+        returns (BondInfo memory);
+}
+```
+
+This allows lock positions to be traded on secondary markets as bonds representing future token value.
+
+## Querying Lock Positions
+
+### Get Lock Details
+```solidity
+TokenLock memory lock = signals.getTokenLock(tokenId);
+```
+
+### Get All Locks for Initiative
+```solidity
+uint256[] memory tokenIds = signals.getPositionsForInitiative(initiativeId);
+```
+
+### Get All Locks for Address
+```solidity
+uint256[] memory tokenIds = signals.getLocksForSupporter(supporter);
+```
+
+### Get Current Voting Weight
+```solidity
+// Weight for entire initiative
+uint256 weight = signals.getWeight(initiativeId);
+
+// Weight at specific timestamp
+uint256 historicalWeight = signals.getWeightAt(initiativeId, timestamp);
+
+// Weight for specific supporter
+uint256 supporterWeight = signals.getWeightForSupporterAt(
+    initiativeId,
+    supporter,
+    timestamp
+);
+```
+
+## NFT Metadata
+
+Lock positions are ERC721 tokens with:
+
+**Token Name:** `{UnderlyingToken} Locked Support`
+- Example: `"USDC Locked Support"`
+
+**Token Symbol:** `sx{UnderlyingSymbol}`
+- Example: `"sxUSDC"`
+
+**Token URI:** Currently returns empty string (metadata can be added via future upgrades)
+
+## Events
+
+### InitiativeSupported
+Emitted when tokens are locked in support of an initiative:
+
+```solidity
+event InitiativeSupported(
+    uint256 indexed initiativeId,
+    address indexed supporter,
+    uint256 tokenAmount,
+    uint256 lockDuration,
+    uint256 tokenId
+);
+```
+
+### Redeemed
+Emitted when a lock position is redeemed:
+
+```solidity
+event Redeemed(
+    uint256 indexed tokenId,
+    address indexed actor,
+    uint256 amount
+);
+```

@@ -10,58 +10,34 @@ Incentives are board-wide reward pools that incentivize early support across all
 ## Overview
 
 The incentives system:
-- ✅ Rewards early supporters with more tokens
-- ✅ Funded by DAO/board owner upfront
-- ✅ Distributed across all accepted initiatives
-- ✅ Auto-claimed when supporters redeem locks
-- ✅ Non-blocking (doesn't prevent acceptance if depleted)
+- Rewards early supporters with more tokens
+- Funded by DAO/board owner upfront
+- Distributed across all accepted initiatives
+- Auto-claimed when supporters redeem locks
+- Non-blocking (doesn't prevent acceptance if depleted)
 
 ## Prerequisites
 
 Before adding incentives:
 
-1. ✅ **Deploy your Signals board** via SignalsFactory
-2. ✅ **Have reward tokens** ready (typically DAO governance token)
-3. ✅ **Configure board with incentives enabled** during deployment
-4. ✅ **Set up BEFORE board opens** - cannot add after `boardOpensAt`
+1. **Deploy your Signals board** via SignalsFactory
+2. **Have reward tokens** ready (typically DAO governance token)
+3. **Configure board with incentives enabled** during deployment
+4. **Set up BEFORE board opens** - cannot add after `boardOpensAt`
 
-## Step-by-Step Setup
+## Setup Workflow
 
 ### Step 1: Enable Incentives During Board Creation
 
-When deploying your board, configure the `BoardIncentives` struct:
+When deploying your board through the SignalsFactory, configure the `BoardIncentives` struct with `enabled: true`. If you set this to false, you cannot add incentives later.
 
-```solidity
-// Configure incentives
-BoardIncentives memory incentives = BoardIncentives({
-    enabled: true,              // Enable incentives
-    curveType: 0,              // 0 = linear decay
-    curveParameters: [0.12e18] // 12% decay rate
-})
-
-// Include in board deployment
-ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeployment({
-    owner: daoMultisig,
-    underlyingToken: governanceToken,
-    acceptanceThreshold: 500_000 * 1e18,
-    // ... other parameters ...
-    boardIncentives: incentives  // Enable here
-})
-
-// Deploy board
-address boardAddress = factory.create(config)
-```
-
-**Important:** If `enabled: false`, you cannot add incentives later.
+Choose your incentive curve type and parameters:
+- **Curve Type 0:** Linear decay (currently the only implemented option)
+- **Curve Parameters:** Decay rate (e.g., `0.12e18` = 12% decay)
 
 ### Step 2: Deploy IncentivesPool Contract
 
-```solidity
-// Deploy new IncentivesPool
-IncentivesPool pool = new IncentivesPool()
-```
-
-The IncentivesPool contract manages:
+Deploy a new IncentivesPool contract. This contract manages:
 - Reward token storage
 - Distribution calculations
 - Board approvals
@@ -69,152 +45,44 @@ The IncentivesPool contract manages:
 
 ### Step 3: Initialize the Pool with Funds
 
-```solidity
-// Approve reward tokens
-IERC20 rewardToken = IERC20(daoTokenAddress)
-rewardToken.approve(address(pool), totalRewards)
+Initialize the pool with your reward token and funding parameters:
+- **Reward Token:** Typically your DAO's governance token
+- **Total Pool Amount:** Total tokens available for rewards (e.g., 1M tokens)
+- **Max Per Initiative:** Maximum tokens allocated per initiative (e.g., 10k tokens)
 
-// Initialize pool
-pool.initializePool(
-    address(rewardToken),    // DAO token address
-    1_000_000 * 1e18,       // Total pool: 1M tokens
-    10_000 * 1e18           // Max per initiative: 10k tokens
-)
-```
-
-#### Parameters Explained
-
-**`rewardToken`**
-- ERC20 token used for rewards
-- Typically your DAO's governance token
-- Must approve pool to spend tokens
-
-**`totalPoolAmount`**
-- Total tokens available for rewards
-- Transferred immediately to pool
-- Shared across all accepted initiatives on the board
-
-**`maxRewardPerInitiative`**
-- Maximum tokens allocated per initiative
-- Prevents single initiative from depleting pool
-- Example: 1M total / 10k max = up to 100 initiatives
+The total pool amount is transferred immediately to the pool and shared across all accepted initiatives on the board.
 
 ### Step 4: Approve the Board
 
-The pool must explicitly approve which boards can use it:
-
-```solidity
-// Approve your Signals board
-pool.approveBoard(address(signalsBoard))
-```
-
-**Security feature:** Prevents unauthorized boards from accessing the pool.
+The pool must explicitly approve which boards can use it. This is a security feature that prevents unauthorized boards from accessing the pool.
 
 ### Step 5: Link Pool to Board
 
-Finally, connect the pool to your board:
+Finally, connect the pool to your board using `setIncentivesPool()`.
 
-```solidity
-// Must be called BEFORE boardOpensAt
-signalsBoard.setIncentivesPool(address(pool))
-```
+**Critical timing:** This must be called before the `boardOpensAt` timestamp. Once the board opens, you cannot change the incentives pool.
 
-**Critical timing:** This must be called before `boardOpensAt` timestamp. Once the board opens, you cannot change the incentives pool.
-
-## Complete Deployment Example
-
-```solidity
-// 1. Deploy board with incentives enabled
-BoardIncentives memory incentives = BoardIncentives({
-    enabled: true,
-    curveType: 0,
-    curveParameters: [uint256(0.12e18)]
-})
-
-ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeployment({
-    owner: daoMultisig,
-    underlyingToken: governanceToken,
-    acceptanceThreshold: 500_000 * 1e18,
-    maxLockIntervals: 365,
-    proposalCap: 20,
-    lockInterval: 1 days,
-    decayCurveType: 0,
-    decayCurveParameters: [uint256(9e17)],
-    proposerRequirements: ProposerRequirements({
-        eligibilityType: EligibilityType.None,
-        minBalance: 0,
-        minHoldingDuration: 0,
-        threshold: 50_000 * 1e18
-    }),
-    participantRequirements: ParticipantRequirements({
-        eligibilityType: EligibilityType.None,
-        minBalance: 0,
-        minHoldingDuration: 0
-    }),
-    releaseLockDuration: 0,
-    boardOpensAt: block.timestamp + 1 days,  // Opens in 1 day
-    boardIncentives: incentives
-})
-
-address boardAddress = factory.create(config)
-Signals signalsBoard = Signals(boardAddress)
-
-// 2. Deploy IncentivesPool
-IncentivesPool pool = new IncentivesPool()
-
-// 3. Initialize pool with 1M tokens
-IERC20 daoToken = IERC20(daoTokenAddress)
-daoToken.approve(address(pool), 1_000_000 * 1e18)
-
-pool.initializePool(
-    address(daoToken),
-    1_000_000 * 1e18,    // 1M total
-    10_000 * 1e18        // 10k max per initiative
-)
-
-// 4. Approve board
-pool.approveBoard(address(signalsBoard))
-
-// 5. Link to board (before it opens!)
-signalsBoard.setIncentivesPool(address(pool))
-
-// Board opens in 1 day, incentives are ready!
-```
+For detailed code examples and function signatures, see the [Incentives Configuration Reference](/reference/incentives-configuration).
 
 ## Incentive Configuration
 
-### Decay Curve Types
+### Decay Curve: How Early Support is Rewarded
 
-The `curveType` determines how early supporter bonuses are calculated:
+The decay curve determines how early supporter bonuses are calculated. The `curveType` and `curveParameters` control this behavior.
 
 #### Linear Decay (Type 0)
 
-```solidity
-curveType: 0
-curveParameters: [k]  // e.g., [0.12e18] = 12% decay rate
-```
+Currently, only linear decay is implemented. With linear decay:
+- Early supporters (at board open) get maximum weight
+- Weight gradually decreases as time passes
+- Late supporters (near acceptance) get minimum weight
+- The decay parameter `k` controls how steep this decline is
 
-**Formula:**
-```
-weight = lockAmount * (1 - k * t)
+**Formula:** `weight = lockAmount * (1 - k * t)`
 
-where t = (lockTime - boardOpensAt) / (acceptanceTime - boardOpensAt)
-```
+Where `t` ranges from 0 (locked at board open) to 1 (locked at acceptance).
 
-**Example with k=0.12:**
-- Lock at board open (t=0): weight = 100 * (1 - 0.12 * 0) = 100.0
-- Lock at midpoint (t=0.5): weight = 100 * (1 - 0.12 * 0.5) = 94.0
-- Lock at acceptance (t=1): weight = 100 * (1 - 0.12 * 1) = 88.0
-
-**Use when:** You want gradual, predictable early supporter bonuses.
-
-#### Future: Exponential Decay (Type 1)
-
-Currently only linear decay is implemented. Exponential decay would provide:
-- Steeper early bonus
-- Rapidly diminishing returns for late supporters
-
-### Choosing Decay Rate
+#### Choosing Decay Rate
 
 The decay parameter `k` controls how much early supporters are rewarded:
 
@@ -238,143 +106,69 @@ Aggressive: 5-10% of circulating supply
 
 **Max Per Initiative:**
 ```
-Typical: totalPool / (expected initiatives * 2)
+Typical formula: totalPool / (expected initiatives * 2)
 Example: 1M total / (50 expected * 2) = 10k per initiative
 ```
 
-This allows ~50 initiatives with buffer for multiple acceptances.
+This allows approximately 50 initiatives with buffer for multiple acceptances.
 
 ## How Incentives Are Distributed
 
 ### Automatic Calculation on Acceptance
 
-When the board owner accepts an initiative:
-
-```solidity
-// Called automatically in acceptInitiative()
-if (address(incentivesPool) != address(0)) {
-    try incentivesPool.calculateIncentives(
-        initiativeId,
-        boardOpensAt,
-        block.timestamp
-    ) {} catch {
-        // Non-blocking: continues even if calculation fails
-    }
-}
-```
-
-The pool:
+When the board owner accepts an initiative, the IncentivesPool automatically:
 1. Fetches all supporters and their locks
-2. Calculates time-weighted weight for each
+2. Calculates time-weighted weight for each supporter
 3. Allocates rewards proportionally
-4. Caps at `maxRewardPerInitiative`
+4. Caps allocation at `maxRewardPerInitiative`
 5. Stores individual allocations
+
+If the pool runs out of funds or calculation fails, **initiative acceptance still succeeds**. The system is non-blocking by design.
 
 ### Time-Weighted Calculation
 
-For each supporter's lock:
+Each supporter's reward is based on:
+- **Lock amount:** How many tokens they locked
+- **Lock timing:** When they locked relative to board opening and acceptance
+- **Decay curve:** The configured decay rate
 
-```solidity
-// Calculate time factor
-timeFactor = (lockCreatedAt - boardOpensAt) / (acceptanceTime - boardOpensAt)
+Early supporters get higher weight for the same lock amount, resulting in more rewards.
 
-// Apply decay curve
-weight = lockAmount * (1 - decayRate * timeFactor)
-
-// Sum across all locks for supporter
-totalWeight = sum of all lock weights
-
-// Calculate reward share
-supporterReward = (supporterWeight / totalWeightAllSupporters) * poolAllocation
-```
+See the [Incentives Configuration Reference](/reference/incentives-configuration#time-weighted-calculation) for detailed formulas and examples.
 
 ### Automatic Claiming
 
-Rewards are automatically claimed when supporters redeem:
-
-```solidity
-// Supporter redeems lock
-signals.redeem(tokenId)
-
-// Inside redeem():
-if (address(incentivesPool) != address(0) &&
-    initiative.state == InitiativeState.Accepted) {
-    uint256 rewards = incentivesPool.getSupporterRewards(
-        address(this),
-        lock.initiativeId,
-        msg.sender
-    )
-
-    if (rewards > 0) {
-        incentivesPool.claimRewards(
-            address(this),
-            lock.initiativeId,
-            msg.sender
-        )
-        // Tokens transferred to supporter
-    }
-}
-```
-
-**Benefits:**
+Rewards are automatically claimed when supporters redeem their lock positions. Benefits:
 - No separate claim transaction needed
 - Gas efficient
 - Automatic for all supporters
-- Idempotent (multiple redeems safe)
+- Idempotent (safe to call multiple times)
 
 ## Pool Depletion Handling
 
 ### Non-Blocking Design
 
-If the pool runs out of funds:
-
-```solidity
-// Acceptance still succeeds
-try incentivesPool.calculateIncentives(...) {} catch {
-    // Silently continues
-}
-```
-
-**Initiative acceptance is NOT blocked** by pool depletion.
+If the pool runs out of funds, initiative acceptance is NOT blocked. The system continues to function normally, but later initiatives may receive reduced or no incentive rewards.
 
 ### Monitoring Pool Balance
 
-```solidity
-// Check remaining pool balance
-uint256 remaining = rewardToken.balanceOf(address(pool))
-
-// Check pool statistics
-(address token, uint256 total, uint256 maxPerInit) = pool.poolInfo()
-
-// Check if board is approved
-bool approved = pool.approvedBoards(address(signalsBoard))
-```
+Check the pool's remaining balance and configuration to track available rewards. This helps you understand how many more initiatives can be incentivized.
 
 ### Refilling Strategy
 
-If pool runs low:
+If your pool runs low, you have two options:
 
 **Option 1: Accept It**
-- Let pool deplete naturally
+- Let the pool deplete naturally
 - Later initiatives get fewer/no rewards
 - Maintains fair distribution to early participants
 
 **Option 2: Deploy New Board**
-- Create new board with fresh pool
+- Create a new board with a fresh pool
 - "Season 2" with new budget
 - Clean slate for participants
 
-**Cannot:** Add more funds to existing pool mid-season
-
-## Validation & Errors
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `IncentivesPool_PoolAlreadyInitialized` | Pool already initialized | Deploy new pool |
-| `IncentivesPool_BoardNotApproved` | Board not approved | Call `approveBoard()` |
-| `IncentivesPool_InsufficientBalance` | Not enough tokens approved | Approve more tokens |
-| `Signals_BoardAlreadyOpened` | Trying to set pool after opening | Must set before `boardOpensAt` |
-| `Signals_IncentivesNotEnabled` | Board created without incentives | Cannot add to existing board |
+**Note:** You cannot add more funds to an existing pool mid-season.
 
 ## Best Practices
 
@@ -399,7 +193,7 @@ If pool runs low:
 ### Decay Rate Selection
 
 **Conservative (5-8%):**
-- Small difference between early/late
+- Small difference between early/late supporters
 - Focus on participation over timing
 - Good for mature communities
 
@@ -410,14 +204,13 @@ If pool runs low:
 
 **Aggressive (20-30%):**
 - Strong early mover advantage
-- Creates urgency to evaluate
+- Creates urgency to evaluate proposals
 - Good for new boards needing momentum
 
 ### Testing Strategy
 
-```solidity
-// Test deployment on testnet
-1. Deploy with small pool (1,000 tokens)
+Before mainnet deployment:
+1. Deploy with small pool on testnet (e.g., 1,000 tokens)
 2. Test full lifecycle:
    - Create initiatives
    - Add support at different times
@@ -425,7 +218,6 @@ If pool runs low:
    - Redeem and verify rewards
 3. Verify calculations match expectations
 4. Test pool depletion scenarios
-```
 
 ### Communication
 
@@ -433,7 +225,7 @@ If pool runs low:
 - Announce total pool size
 - Explain decay mechanics
 - Set expectations for rewards
-- Provide examples of early vs. late
+- Provide examples of early vs. late support rewards
 
 **During Season:**
 - Show remaining pool balance
@@ -444,142 +236,36 @@ If pool runs low:
 **After Acceptance:**
 - Announce rewards distributed
 - Show individual allocations
-- Remind about auto-claiming
+- Remind about auto-claiming on redemption
 
-## Querying Pool Information
+## Combining with Bounties
 
-### Check Pool Status
+Incentives and bounties work together! Your board can have:
+- **Incentives:** Board-wide, time-weighted DAO token rewards
+- **Bounties:** Initiative-specific, externally funded multi-token rewards
 
-```solidity
-// Get pool configuration
-(address token, uint256 total, uint256 maxPerInit) = pool.poolInfo()
+When an initiative with both is accepted, supporters receive:
+1. Their locked tokens back
+2. Time-weighted incentive rewards (auto-claimed)
+3. Proportional bounty rewards (claimed separately)
 
-// Check remaining balance
-uint256 remaining = IERC20(token).balanceOf(address(pool))
+See [Bounties vs. Incentives](/rewards-and-incentives/bounties-vs-incentives) for a detailed comparison.
 
-// Calculate available initiatives
-uint256 remainingInitiatives = remaining / maxPerInit
-```
+## Validation & Common Issues
 
-### Check Board Approval
-
-```solidity
-// Verify board is approved
-bool isApproved = pool.approvedBoards(address(signalsBoard))
-```
-
-### Check Supporter Rewards
-
-```solidity
-// Preview rewards before claiming
-uint256 rewards = pool.getSupporterRewards(
-    address(signalsBoard),
-    initiativeId,
-    supporterAddress
-)
-
-// Check if already claimed
-uint256 claimed = pool.claimedRewards(
-    address(signalsBoard),
-    initiativeId,
-    supporterAddress
-)
-```
-
-### Check Initiative Allocation
-
-```solidity
-// Get total rewards allocated to initiative
-uint256 allocated = pool.getInitiativeRewardPool(
-    address(signalsBoard),
-    initiativeId
-)
-
-// Get total weight used for distribution
-uint256 totalWeight = pool.getInitiativeTotalWeight(
-    address(signalsBoard),
-    initiativeId
-)
-
-// Check if distribution calculated
-bool calculated = pool.isDistributionCalculated(
-    address(signalsBoard),
-    initiativeId
-)
-```
-
-## Frontend Integration Example
-
-```typescript
-// Check if board has incentives
-const poolAddress = await signalsBoard.read.incentivesPool()
-const hasIncentives = poolAddress !== '0x0000000000000000000000000000000000000000'
-
-if (hasIncentives) {
-  // Get pool info
-  const [token, total, maxPerInit] = await pool.read.poolInfo()
-  const remaining = await rewardToken.read.balanceOf([poolAddress])
-
-  // Show incentive info to users
-  console.log(`Reward Token: ${token}`)
-  console.log(`Total Pool: ${formatEther(total)}`)
-  console.log(`Max Per Initiative: ${formatEther(maxPerInit)}`)
-  console.log(`Remaining: ${formatEther(remaining)}`)
-
-  // For each initiative, show projected rewards
-  const supporters = await signalsBoard.read.getSupporters([initiativeId])
-
-  for (const supporter of supporters) {
-    const rewards = await pool.read.getSupporterRewards([
-      signalsBoard.address,
-      initiativeId,
-      supporter
-    ])
-
-    console.log(`${supporter}: ${formatEther(rewards)} rewards`)
-  }
-}
-```
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Cannot set pool | Board already opened | Must set before `boardOpensAt` |
+| Cannot enable incentives | Board created with `enabled: false` | Cannot add to existing board |
+| Pool not approved | Forgot to call `approveBoard()` | Approve the board in the pool |
+| Insufficient balance | Not enough tokens | Approve more tokens before initialization |
 
 ## Advanced: Multiple Boards, One Pool
 
-A single IncentivesPool can serve multiple boards:
-
-```solidity
-// Deploy one pool
-IncentivesPool sharedPool = new IncentivesPool()
-sharedPool.initializePool(token, 10_000_000e18, 10_000e18)
-
-// Approve multiple boards
-sharedPool.approveBoard(address(board1))
-sharedPool.approveBoard(address(board2))
-sharedPool.approveBoard(address(board3))
-
-// Each board uses same pool
-board1.setIncentivesPool(address(sharedPool))
-board2.setIncentivesPool(address(sharedPool))
-board3.setIncentivesPool(address(sharedPool))
-```
+A single IncentivesPool can serve multiple boards, allowing you to share a budget across multiple governance rounds or seasons. Each board must be individually approved by the pool.
 
 **Use case:** Multi-season governance with shared budget.
 
-## Summary Checklist
+---
 
-Before launching your board with incentives:
-
-- [ ] Board deployed with `boardIncentives.enabled = true`
-- [ ] IncentivesPool contract deployed
-- [ ] Reward tokens approved and pool initialized
-- [ ] Board approved in pool via `approveBoard()`
-- [ ] Pool linked to board via `setIncentivesPool()`
-- [ ] **All done BEFORE `boardOpensAt` timestamp**
-- [ ] Pool sizing appropriate for expected volume
-- [ ] Decay rate configured for desired incentive structure
-- [ ] Frontend shows pool info and projected rewards
-- [ ] Community informed about incentive mechanics
-
-Once complete, your board will:
-- ✅ Automatically calculate time-weighted rewards on acceptance
-- ✅ Auto-claim rewards when supporters redeem
-- ✅ Incentivize early evaluation and support
-- ✅ Drive momentum for quality initiatives
+For complete technical implementation details including function signatures, data structures, formulas, query functions, events, errors, and code examples, see the [Incentives Configuration Reference](/reference/incentives-configuration).
