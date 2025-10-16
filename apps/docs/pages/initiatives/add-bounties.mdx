@@ -20,334 +20,96 @@ The Bounties system enables:
 
 ## Adding a Bounty
 
-### Function Signature
+To add a bounty to an initiative, you need to:
 
-```solidity
-function addBounty(
-    uint256 _initiativeId,
-    address _token,
-    uint256 _amount,
-    uint256 _expiresAt,
-    Conditions _terms
-) external payable
-```
+1. **Ensure the token is whitelisted** in the TokenRegistry
+2. **Approve the Bounties contract** to spend your tokens
+3. **Call addBounty** with the initiative ID, token address, amount, expiration, and conditions
 
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `_initiativeId` | `uint256` | Initiative ID to attach bounty to |
-| `_token` | `address` | ERC20 token address (must be whitelisted) |
-| `_amount` | `uint256` | Amount of tokens to contribute |
-| `_expiresAt` | `uint256` | Unix timestamp when bounty expires (0 = never) |
-| `_terms` | `Conditions` | Distribution conditions (currently only `NONE` implemented) |
+For detailed function signatures and parameters, see the [Initiative Interactions Reference](/reference/initiative-interactions#adding-bounties).
 
 ### Requirements
 
-1. ✅ **Token must be whitelisted** in TokenRegistry
-2. ✅ **Initiative must exist**
-3. ✅ **Caller must have sufficient balance**
-4. ✅ **Caller must approve Bounties contract**
-5. ✅ **Tokens transferred immediately** upon adding
-
-### Example
-
-```solidity
-// 1. Approve tokens
-IERC20(usdcToken).approve(address(bounties), 10_000e6)
-
-// 2. Add bounty
-bounties.addBounty(
-    5,                              // initiativeId
-    address(usdcToken),             // token
-    10_000e6,                       // 10,000 USDC
-    block.timestamp + 30 days,      // expires in 30 days
-    IBounties.Conditions.NONE       // no special conditions
-)
-```
+- Token must be whitelisted in TokenRegistry
+- Initiative must exist
+- Caller must have sufficient balance
+- Caller must approve Bounties contract
+- Tokens are transferred immediately upon adding
 
 ## Token Whitelisting
 
-Only whitelisted tokens can be used for bounties.
+Only whitelisted tokens can be used for bounties. Board owners or token managers add tokens to the whitelist through the TokenRegistry contract. The registry validates that tokens are ERC20 compliant before adding them.
 
-### TokenRegistry Contract
-
-```solidity
-// Add token to whitelist (TOKEN_MANAGER_ROLE only)
-function allow(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
-
-// Remove token from whitelist
-function deny(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
-
-// Check if token is whitelisted
-function isAllowed(address _token) external view returns (bool)
-```
-
-**Validation:** Registry checks for ERC20 compliance (`totalSupply`, `decimals`, `balanceOf`).
+Check if a token is whitelisted before attempting to add a bounty.
 
 ## Distribution Mechanics
 
 ### When Bounties Are Distributed
 
-Automatically when the board owner accepts an initiative:
-
-```solidity
-// In Signals.acceptInitiative()
-if (address(bounties) != address(0)) {
-    bounties.handleInitiativeAccepted(initiativeId)
-}
-```
+Bounties are automatically distributed when the board owner accepts an initiative. The Signals contract notifies the Bounties contract, which calculates and allocates rewards according to the configured split percentages.
 
 ### Distribution Formula
 
-```solidity
-// For each token type:
-protocolAmount = (totalAmount * protocolAllocation) / 100
-voterAmount = (totalAmount * voterAllocation) / 100
-treasuryAmount = (totalAmount * treasuryAllocation) / 100
-```
+Each bounty token type is split into three portions:
+- Protocol fees (e.g., 5%)
+- Supporter rewards (e.g., 20%)
+- Treasury allocation (e.g., 75%)
 
-### Default Split Configuration
-
-```solidity
-// Example configuration
-uint256[3] memory allocations = [5, 20, 75]
-// 5% to protocol fees
-// 20% to voter/supporter rewards
-// 75% to treasury
-```
-
-**Note:** Basis is 100 (not 10,000), so values are direct percentages.
+**Note:** Percentages are configured per board and must sum to 100.
 
 ### Supporter Share Calculation
 
-Each supporter's share of the voter pool is proportional to their locked amount:
+Each supporter's share of the voter pool is proportional to their locked amount relative to the total locked in the initiative.
 
-```solidity
-supporterShare = (lockedAmount / totalLocked) * voterAmount
-```
+## Bounty Expiration
 
-## Bounty Data Structure
+Bounties can have an optional expiration timestamp. If set:
+- Expired bounties are excluded from distribution
+- They no longer count toward the initiative's total bounty pool
+- Future versions may include refund mechanisms for expired bounties
 
-```solidity
-struct Bounty {
-    uint256 initiativeId;
-    IERC20 token;
-    uint256 amount;
-    uint256 paid;              // Future use
-    uint256 refunded;          // Future use
-    uint256 expiresAt;         // 0 = never expires
-    address contributor;
-    Conditions terms;
-}
-```
-
-## Querying Bounties
-
-### Get Aggregated Bounties
-
-```solidity
-function getBounties(uint256 _initiativeId) external view
-    returns (
-        address[] memory tokens,
-        uint256[] memory amounts,
-        uint256 expiredCount
-    )
-```
-
-Returns aggregated bounties by token type, excluding expired bounties.
-
-### Preview Rewards
-
-```solidity
-function previewRewards(uint256 _initiativeId, uint256 _tokenId)
-    external view returns (uint256)
-```
-
-Estimates rewards for a specific lock position (NFT token).
-
-**⚠️ Known Limitation:** Mixes different token denominations into single number - only an approximation.
+Set `expiresAt` to 0 for bounties that never expire.
 
 ## Claiming Bounty Rewards
 
 ### Current Status
 
-**⚠️ Important:** Claim/withdrawal functions are **not yet implemented** in the contract.
+**Important:** Claim/withdrawal functions are **not yet implemented** in the contract.
 
 **Current behavior:**
-- ✅ Distribution happens automatically on acceptance
-- ✅ Balances tracked in contract: `balances[address][token]`
-- ❌ No withdrawal function to claim rewards yet
-- ❌ Funds accumulate but cannot be withdrawn
+- Distribution happens automatically on acceptance
+- Balances are tracked in the contract
+- No withdrawal function to claim rewards yet
+- Funds accumulate but cannot be withdrawn
 
-**Expected future implementation:**
-```solidity
-// Not yet implemented
-function claimRewards(address token) external {
-    uint256 amount = balances[msg.sender][token]
-    require(amount > 0, "No rewards")
-    balances[msg.sender][token] = 0
-    IERC20(token).safeTransfer(msg.sender, amount)
-}
-```
-
-## Expiring Bounties
-
-### How Expiration Works
-
-Bounties with `expiresAt > 0` are excluded from distribution if expired:
-
-```solidity
-// In getBounties()
-if (bounty.expiresAt != 0 && block.timestamp > bounty.expiresAt) {
-    _expiredCount++
-    continue  // Skip this bounty
-}
-```
-
-### Refund Mechanism
-
-**⚠️ Not Yet Implemented:** Expired bounties should be refundable to contributors, but this logic is marked as TODO in the code.
+Future implementations will allow supporters to claim their allocated bounty rewards after an initiative is accepted.
 
 ## Configuration & Versioning
 
-### Update Distribution Splits
+Board owners can update the distribution split percentages using the `updateSplits` function. When splits are updated:
+- A new configuration version is created
+- Existing bounties use their original version's splits
+- New bounties use the current version
+- This prevents retroactive changes to existing commitments
 
-```solidity
-function updateSplits(
-    uint256[3] memory _allocations,
-    address[3] memory _receivers
-) external onlyOwner
-```
-
-**Requirements:**
-- Only owner can call
-- Allocations must sum to 100
-- Creates new version (doesn't affect existing bounties)
-
-**Example:**
-```solidity
-bounties.updateSplits(
-    [uint256(10), uint256(60), uint256(30)],
-    [protocolAddr, votersAddr, treasuryAddr]
-)
-```
-
-### Why Versioning?
-
-The contract uses versioned configurations to prevent retroactive changes:
-
-```solidity
-uint256 public version  // Current version
-mapping(uint256 => uint256[3]) public allocations  // Historical
-mapping(uint256 => address[3]) public receivers    // Historical
-```
-
-## Events Emitted
-
-```solidity
-event BountyAdded(
-    uint256 indexed bountyId,
-    uint256 indexed initiativeId,
-    address indexed token,
-    uint256 amount,
-    uint256 expiresAt,
-    Conditions terms
-)
-
-event BountiesUpdated(uint256 version)
-```
-
-## Validation & Errors
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Bounties_TokenNotRegistered` | Token not whitelisted | Add token to TokenRegistry |
-| `Bounties_InvalidInitiative` | Initiative doesn't exist | Use valid initiative ID |
-| `Bounties_InsufficientBalance` | Not enough tokens | Acquire more tokens |
-| `Bounties_InsufficientAllowance` | Not approved | Approve Bounties contract |
-| `Bounties_InvalidAllocation` | Allocations don't sum to 100 | Fix split configuration |
-| `Bounties_NotAuthorized` | Caller not authorized | Must be Signals contract or owner |
-
-## Integration with Signals
-
-### Setting Bounties Contract
-
-```solidity
-// In Signals.sol (owner only)
-function setBounties(address _bounties) external onlyOwner
-```
-
-### Automatic Calls
-
-**On Acceptance:**
-```solidity
-bounties.handleInitiativeAccepted(initiativeId)
-```
-
-**On Expiration:**
-```solidity
-bounties.handleInitiativeExpired(initiativeId)  // Refund logic TODO
-```
+Allocations must always sum to 100 when updating splits.
 
 ## Complete Example Flow
 
-```solidity
-// 1. Deploy Bounties system
-TokenRegistry registry = new TokenRegistry()
-registry.allow(address(usdcToken))
+Here's the typical flow for adding and distributing bounties:
 
-uint256[3] memory allocations = [5, 20, 75]
-address[3] memory receivers = [protocolAddr, votersAddr, treasuryAddr]
-
-Bounties bounties = new Bounties(
-    address(signals),
-    address(registry),
-    allocations,
-    receivers
-)
-
-signals.setBounties(address(bounties))
-
-// 2. Contributor adds bounty
-usdcToken.approve(address(bounties), 10_000e6)
-bounties.addBounty(
-    initiativeId,
-    address(usdcToken),
-    10_000e6,
-    0,  // Never expires
-    IBounties.Conditions.NONE
-)
-
-// 3. Initiative gets accepted
-signals.acceptInitiative(initiativeId)
-// Bounties automatically distributed:
-// - Protocol: 500 USDC (5%)
-// - Voters: 2,000 USDC (20%)
-// - Treasury: 7,500 USDC (75%)
-
-// 4. Supporters would claim (when implemented)
-// bounties.claimRewards(address(usdcToken))
-```
-
-## Frontend Integration
-
-```typescript
-// Check if bounties exist
-const { tokens, amounts, expiredCount } = await bounties.read.getBounties([initiativeId])
-
-// Preview potential rewards for a lock position
-const estimated = await bounties.read.previewRewards([initiativeId, nftTokenId])
-
-// Check balance (after acceptance)
-const balance = await bounties.read.balances([userAddress, tokenAddress])
-```
+1. **Deploy Bounties system** - Owner deploys TokenRegistry and Bounties contracts with initial split configuration
+2. **Whitelist tokens** - Token manager adds approved ERC20 tokens to the registry
+3. **Contributor adds bounty** - External contributor approves tokens and calls addBounty
+4. **Initiative gets accepted** - Board owner accepts the initiative
+5. **Bounties distributed** - Protocol fees, supporter rewards, and treasury allocations are calculated and tracked
+6. **Supporters claim** - (Future) Supporters withdraw their allocated rewards
 
 ## Best Practices
 
 ### For Contributors
 
-1. **Whitelist token first** - Ensure token is in TokenRegistry
+1. **Whitelist token first** - Ensure token is in TokenRegistry before contributing
 2. **Set reasonable expiration** - Give initiative time to gain support
 3. **Diversify tokens** - Consider multiple token types for broad appeal
 4. **Monitor initiative** - Track progress toward acceptance
@@ -362,21 +124,25 @@ const balance = await bounties.read.balances([userAddress, tokenAddress])
 ### Security Considerations
 
 1. **Token whitelisting** prevents malicious tokens
-2. **Immediate transfer** on `addBounty()` secures funds
+2. **Immediate transfer** on addBounty secures funds
 3. **Versioned splits** prevent retroactive changes
 4. **ReentrancyGuard** protects distribution
 5. **SafeERC20** ensures safe token transfers
 
-## Limitations & TODOs
+## Limitations & Future Enhancements
 
 **Current Limitations:**
-1. ❌ **No claim/withdrawal function** - Rewards accumulate but can't be claimed
-2. ❌ **No refund mechanism** - Expired bounties can't be reclaimed by contributors
-3. ⚠️ **Mixed token denominations** - `previewRewards()` mixes different tokens into single estimate
-4. ⚠️ **No storage optimization** - Expired bounties remain in storage
+1. No claim/withdrawal function - Rewards accumulate but can't be claimed
+2. No refund mechanism - Expired bounties can't be reclaimed by contributors
+3. Mixed token denominations in preview - Estimates combine different tokens
+4. No storage optimization - Expired bounties remain in storage
 
-**Planned Features** (from code TODOs):
+**Planned Features:**
 - Implement reward claiming for supporters
 - Implement refund logic for expired bounties
-- Consider event-driven pattern for Signals integration
-- Optimize gas for large bounty lists
+- Event-driven pattern for Signals integration
+- Gas optimization for large bounty lists
+
+---
+
+For technical details including function signatures, data structures, events, and code examples, see the [Initiative Interactions Reference](/reference/initiative-interactions#adding-bounties).

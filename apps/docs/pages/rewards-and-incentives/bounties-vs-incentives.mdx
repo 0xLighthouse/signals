@@ -152,27 +152,6 @@ Incentives are DAO-funded reward pools that incentivize early support across all
 
 ### How Incentives Work
 
-#### Setting Up Incentives
-
-```solidity
-// 1. Deploy IncentivesPool
-IncentivesPool pool = new IncentivesPool()
-
-// 2. Initialize with DAO funds
-daoToken.approve(address(pool), 1_000_000e18)
-pool.initializePool(
-    address(daoToken),      // Reward token
-    1_000_000e18,           // Total pool
-    10_000e18               // Max per initiative
-)
-
-// 3. Approve board
-pool.approveBoard(address(signalsBoard))
-
-// 4. Link to board (BEFORE board opens)
-signalsBoard.setIncentivesPool(address(pool))
-```
-
 #### Time-Weighted Calculation
 
 ```solidity
@@ -228,11 +207,11 @@ signals.redeem(tokenId)
 ### Incentives Use Cases
 
 **Perfect for:**
-- ⚡ **Early signaling incentives** - Reward those who identify good proposals first
-- 🎯 **Board-wide participation** - Encourage activity across all initiatives
-- 🏃 **First-mover advantage** - Create urgency to support early
-- 💎 **Quality discovery** - Reward scouts who find good proposals
-- 🌊 **Momentum building** - Kickstart initiative support with rewards
+- **Early signaling incentives** - Reward those who identify good proposals first
+- **Board-wide participation** - Encourage activity across all initiatives
+- **First-mover advantage** - Create urgency to support early
+- **Quality discovery** - Reward scouts who find good proposals
+- **Momentum building** - Kickstart initiative support with rewards
 
 **Example scenarios:**
 - DAO wants active Season 1 → Fund 1M token incentives pool
@@ -241,26 +220,6 @@ signals.redeem(tokenId)
 - Bootstrap new board → Large pool attracts early participation
 
 ---
-
-## Detailed Comparison
-
-### Funding Model
-
-**Bounties:**
-```solidity
-// Distributed funding
-contributor1.addBounty(initiativeId, token1, amount1)  // Anyone can add
-contributor2.addBounty(initiativeId, token2, amount2)  // Different tokens
-contributor3.addBounty(initiativeId, token1, amount3)  // Same initiative
-```
-
-**Incentives:**
-```solidity
-// Centralized pool
-dao.approveTokens(1_000_000e18)           // DAO provides all
-pool.initializePool(token, amount, max)   // One-time funding
-// All initiatives share from this pool
-```
 
 ### Reward Calculation
 
@@ -290,18 +249,18 @@ supporterReward = (supporterWeight / totalWeight) * poolAllocation
 ### Token Management
 
 **Bounties:**
-- ✅ Multiple token types (USDC, DAI, custom tokens)
-- ✅ Whitelisting via TokenRegistry
-- ✅ Each contributor chooses token
-- ❌ Complex tracking (mixed denominations)
-- ❌ Separate claims per token
+- Multiple token types (USDC, DAI, custom tokens)
+- Whitelisting via TokenRegistry
+- Each contributor chooses token
+- Complex tracking (mixed denominations)
+- Separate claims per token
 
 **Incentives:**
-- ✅ Single reward token (typically DAO token)
-- ✅ Simple accounting
-- ✅ Auto-claimed on redemption
-- ✅ Gas efficient
-- ❌ No token flexibility
+- Single reward token (typically DAO token)
+- Simple accounting
+- Auto-claimed on redemption
+- Gas efficient
+- No token flexibility
 
 ### Distribution Control
 
@@ -330,16 +289,16 @@ boardIncentives = BoardIncentives({
 ### Timing Constraints
 
 **Bounties:**
-- ✅ Add anytime before acceptance
-- ✅ Optional expiration per bounty
-- ✅ Expired bounties excluded from distribution
-- ✅ Flexible contribution timing
+- Add anytime before acceptance
+- Optional expiration per bounty
+- Expired bounties excluded from distribution
+- Flexible contribution timing
 
 **Incentives:**
-- ⚠️ Must set up BEFORE board opens
-- ⚠️ Cannot add to pool after opening
-- ⚠️ Fixed pool size for board lifetime
-- ⚠️ Requires upfront commitment
+- Must set up BEFORE board opens
+- Cannot add to pool after opening
+- Fixed pool size for board lifetime
+- Requires upfront commitment
 
 ### Claiming Process
 
@@ -385,156 +344,8 @@ bounties.addBounty(initiativeId, usdcToken, amount, expiry, terms)
 // 3. Proportional bounty rewards (manual claim)
 ```
 
-### Combined Example
-
-```
-Initiative #5: "Implement Dark Mode"
-
-Incentives Pool: 100,000 DAO tokens (max 5,000 per initiative)
-Bounties:
-  - Contributor A: 2,000 USDC
-  - Contributor B: 1,000 DAI
-  - Contributor C: 500 CUSTOM
-
-Alice supports on Day 1 with 50k tokens
-Bob supports on Day 5 with 50k tokens
-
-Initiative accepted on Day 10
-
-Alice receives:
-  ✅ 50k locked tokens back
-  ✅ 2,650 DAO tokens (time-weighted, early bonus)
-  ✅ 50% of voter pool from bounties:
-     - 200 USDC
-     - 100 DAI
-     - 50 CUSTOM
-
-Bob receives:
-  ✅ 50k locked tokens back
-  ✅ 2,350 DAO tokens (time-weighted, less early bonus)
-  ✅ 50% of voter pool from bounties:
-     - 200 USDC
-     - 100 DAI
-     - 50 CUSTOM
-```
-
 ---
 
-## Implementation Status
-
-### Bounties
-
-**Current Status:**
-- ✅ Adding bounties works
-- ✅ Distribution calculation works
-- ✅ Balance tracking works
-- ❌ **Claim/withdrawal NOT implemented** (rewards accumulate but can't be claimed)
-- ❌ **Refund mechanism NOT implemented** (expired bounties can't be reclaimed)
-
-### Incentives
-
-**Current Status:**
-- ✅ Pool initialization works
-- ✅ Time-weighted calculation works
-- ✅ Auto-claiming on redemption works
-- ✅ Multiple initiatives from one pool works
-- ✅ Pool depletion handling works (non-blocking)
-
----
-
-## Decision Guide
-
-### Choose Bounties When:
-
-1. **External funding** - Non-DAO members want to incentivize
-2. **Specific initiatives** - Target particular proposals
-3. **Flexible tokens** - Need to support multiple token types
-4. **Ad-hoc rewards** - Adding rewards after board opens
-5. **Simple distribution** - All supporters treated equally
-6. **Sponsorship model** - Companies/individuals funding features
-
-### Choose Incentives When:
-
-1. **DAO-funded** - Using treasury funds
-2. **Board-wide** - Incentivize participation across all initiatives
-3. **Early discovery** - Reward scouts who identify good proposals first
-4. **Momentum building** - Create urgency to evaluate/support early
-5. **Single token** - DAO token rewards
-6. **Predictable budget** - Fixed pool size upfront
-
-### Use Both When:
-
-1. **Maximum incentivization** - Combine DAO and external funding
-2. **Mixed goals** - Board-wide discovery + specific feature bounties
-3. **Attract participation** - Broad incentives + targeted bounties
-4. **Hedge uncertainty** - DAO provides base, community adds targeted rewards
-
----
-
-## Technical Integration
-
-### For Board Creators
-
-```solidity
-// 1. Deploy board with incentives enabled
-BoardIncentives memory incentives = BoardIncentives({
-    enabled: true,
-    curveType: 0,
-    curveParameters: [0.12e18]
-})
-
-address boardAddress = factory.create(config)
-Signals board = Signals(boardAddress)
-
-// 2. Deploy and configure incentives pool
-IncentivesPool pool = new IncentivesPool()
-daoToken.approve(address(pool), 1_000_000e18)
-pool.initializePool(address(daoToken), 1_000_000e18, 10_000e18)
-pool.approveBoard(address(board))
-
-// 3. Link pool to board (before opening)
-board.setIncentivesPool(address(pool))
-
-// 4. Deploy and configure bounties (optional)
-Bounties bounties = new Bounties(
-    address(board),
-    address(tokenRegistry),
-    allocations,
-    receivers
-)
-board.setBounties(address(bounties))
-```
-
-### For Contributors
-
-```solidity
-// Add a bounty (anyone can do this)
-IERC20(token).approve(address(bounties), amount)
-bounties.addBounty(initiativeId, token, amount, expiry, terms)
-```
-
-### For Supporters
-
-```solidity
-// Support initiative
-signals.supportInitiative(initiativeId, amount, duration)
-
-// Later, after acceptance: redeem
-signals.redeem(tokenId)
-// → Gets locked tokens back
-// → Auto-claims incentive rewards
-// → Must manually claim bounty rewards (when implemented)
-```
-
----
-
-## Summary
-
-**Bounties** = Initiative-specific, externally funded, proportional distribution
-**Incentives** = Board-wide, DAO-funded, time-weighted distribution
-
-Both serve important but different roles:
-- **Bounties** enable targeted, grassroots funding of specific proposals
-- **Incentives** drive early evaluation and momentum across entire board
-
-Use Bounties for precision, Incentives for velocity, or both for maximum effect.
+For detailed technical implementation including function signatures, data structures, formulas, and code examples, see:
+- [Initiative Interactions Reference](/reference/initiative-interactions#adding-bounties) - Bounties technical details
+- [Incentives Configuration Reference](/reference/incentives-configuration) - Incentives technical details

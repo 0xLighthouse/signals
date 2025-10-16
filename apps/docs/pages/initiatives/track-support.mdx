@@ -7,341 +7,94 @@ weight: 3
 
 The Signals protocol provides comprehensive view functions to query initiative support data, including current weight, historical weight, supporters, and individual lock positions.
 
-## Querying Initiative Data
+## Overview
 
-### Get Initiative Details
+You can track initiative support through several types of queries:
 
-```solidity
-function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
-```
+1. **Initiative data** - Get basic information about the initiative
+2. **Weight tracking** - Query current and historical weight
+3. **Lock positions** - View individual lock details
+4. **Supporter lists** - See who is supporting an initiative
+5. **Position enumeration** - List NFT positions by owner
 
-Returns complete initiative information:
+## Key Concepts
 
-```solidity
-struct Initiative {
-    string title;
-    string body;
-    InitiativeState state;           // Proposed, Accepted, Expired
-    address proposer;
-    uint256 timestamp;               // Creation time
-    uint256 lastActivity;            // Last support timestamp
-    uint256 underlyingLocked;        // Total tokens locked
-    uint256 acceptanceTimestamp;     // When accepted (0 if not)
-}
-```
+### Weight vs. Token Amount
 
-### Get Total Initiatives
+- **Token Amount:** The raw number of tokens locked in an initiative
+- **Weight:** The voting power those tokens contribute, which decays over time based on lock duration and elapsed time
 
-```solidity
-function totalInitiatives() external view returns (uint256)
-```
+Weight determines when an initiative reaches the acceptance threshold.
 
-Returns the total number of initiatives created on the board.
+### Current vs. Historical Queries
 
-## Querying Weight
+Many query functions accept a timestamp parameter:
+- **Current:** Use `getWeight(initiativeId)` for weight at the current block
+- **Historical:** Use `getWeightAt(initiativeId, timestamp)` for weight at a specific time
 
-### Current Weight
+Historical queries are useful for creating charts and verifying past data.
 
-```solidity
-function getWeight(uint256 initiativeId) external view returns (uint256)
-```
+## Common Query Patterns
 
-Returns the initiative's current total weight (at `block.timestamp`), accounting for all active locks and decay.
+### Check Initiative Progress
 
-### Historical Weight
+To see how close an initiative is to acceptance:
+1. Get the current weight using `getWeight()`
+2. Get the acceptance threshold
+3. Calculate progress percentage
 
-```solidity
-function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256)
-```
+### View Your Positions
 
-Returns the initiative's weight at a specific timestamp. Useful for:
-- Creating weight charts over time
-- Verifying historical data
-- Calculating rewards
+To see all your lock positions:
+1. Use `listPositions(yourAddress)` to get all NFT token IDs you own
+2. For each token ID, use `getTokenLock(tokenId)` to get lock details
+3. Check which initiatives you're supporting
 
-### Supporter's Weight
+### Monitor Supporter Activity
 
-```solidity
-function getWeightForSupporterAt(
-    uint256 initiativeId,
-    address supporter,
-    uint256 timestamp
-) external view returns (uint256)
-```
+To track an initiative's support:
+1. Use `getSupporters(initiativeId)` to get all unique supporters
+2. Use `getPositionsForInitiative(initiativeId)` to get all lock positions
+3. Calculate aggregate statistics (total locked, average duration, etc.)
 
-Returns a specific supporter's weight contribution at a given timestamp.
+## Weight Decay
 
-## Querying Lock Positions
+Weight decays over time based on the board's configuration:
 
-### Get Lock Details
+- **Linear Decay:** Weight decreases steadily
+- **Exponential Decay:** Weight decreases at an accelerating rate
 
-```solidity
-function getTokenLock(uint256 tokenId) external view returns (TokenLock memory)
+Query functions automatically account for decay when calculating weight. The weight you see reflects the current voting power, not the original locked amount.
 
-struct TokenLock {
-    uint256 initiativeId;
-    uint256 tokenAmount;
-    uint256 lockDuration;      // In intervals
-    uint256 created;
-    bool withdrawn;
-}
-```
+## Events for Real-Time Tracking
 
-### Get Standardized Lock Data
+For real-time updates, monitor these events:
 
-```solidity
-function getLockData(uint256 tokenId) external view returns (LockData memory)
+- `InitiativeProposed` - New initiative created
+- `InitiativeSupported` - Someone locked tokens
+- `InitiativeAccepted` - Owner accepted the initiative
+- `InitiativeExpired` - Initiative expired due to inactivity
+- `Redeemed` - Someone redeemed their lock position
+- `Transfer` - NFT position was transferred
 
-struct LockData {
-    uint256 referenceId;      // Initiative ID
-    uint256 nominalValue;     // Token amount
-    uint256 expires;          // Expiry timestamp
-    uint256 created;
-    bool claimed;
-}
-```
+## Using the Indexer
 
-### Get All Supporter's Locks
-
-```solidity
-// Get all lock token IDs for a supporter
-function getLocksForSupporter(address supporter) external view returns (uint256[] memory)
-
-// Get count of locks
-function getLockCountForSupporter(address supporter) external view returns (uint256)
-```
-
-### Get Initiative's Lock Positions
-
-```solidity
-function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory)
-```
-
-Returns all NFT token IDs supporting a specific initiative.
-
-## Querying Supporters
-
-### Get All Supporters
-
-```solidity
-function getSupporters(uint256 initiativeId) external view returns (address[] memory)
-```
-
-Returns array of all unique supporter addresses.
-
-### Get Supporter Count
-
-```solidity
-function totalSupporters(uint256 initiativeId) external view returns (uint256)
-```
-
-### Check if Address is Supporter
-
-```solidity
-function isSupporter(uint256 initiativeId, address supporter) external view returns (bool)
-```
-
-## ERC721 Position Enumeration
-
-### List Owned Positions
-
-```solidity
-function listPositions(address owner) external view returns (uint256[] memory)
-```
-
-Returns all NFT token IDs owned by an address across all initiatives.
-
-### Standard ERC721 Functions
-
-```solidity
-// Get NFT count for owner
-function balanceOf(address owner) external view returns (uint256)
-
-// Get token ID by index
-function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)
-
-// Get total supply of NFTs
-function totalSupply() external view returns (uint256)
-```
-
-## Weight Decay Configuration
-
-### Query Decay Settings
-
-```solidity
-// Get decay curve type (0 = linear, 1 = exponential)
-function decayCurveType() external view returns (uint256)
-
-// Get decay parameter at index 0
-function decayCurveParameters(uint256 index) external view returns (uint256)
-
-// Get interval duration in seconds
-function lockInterval() external view returns (uint256)
-
-// Get maximum lock duration
-function maxLockIntervals() external view returns (uint256)
-```
-
-### Understanding Weight Decay
-
-**Linear Decay (Type 0):**
-```
-weight = lockAmount * lockDuration - (lockAmount * elapsedIntervals * decayRate)
-```
-
-**Exponential Decay (Type 1):**
-```
-weight = lockAmount * lockDuration * (decayMultiplier ^ elapsedIntervals)
-```
-
-Both curves have a floor at `lockAmount` (nominal value).
-
-## Checking Acceptance Threshold
-
-```solidity
-// Get threshold
-function acceptanceThreshold() external view returns (uint256)
-
-// Check if threshold reached
-uint256 currentWeight = signals.getWeight(initiativeId)
-bool meetsThreshold = currentWeight >= signals.acceptanceThreshold()
-```
-
-## Events for Off-Chain Tracking
-
-Monitor these events for real-time updates:
-
-```solidity
-event InitiativeProposed(
-    uint256 indexed initiativeId,
-    address indexed proposer,
-    string title,
-    string body
-)
-
-event InitiativeSupported(
-    uint256 indexed initiativeId,
-    address indexed supporter,
-    uint256 tokenAmount,
-    uint256 lockDuration,
-    uint256 tokenId
-)
-
-event InitiativeAccepted(
-    uint256 indexed initiativeId,
-    address indexed actor
-)
-
-event InitiativeExpired(
-    uint256 indexed initiativeId,
-    address indexed actor
-)
-
-event Redeemed(
-    uint256 indexed tokenId,
-    address indexed actor,
-    uint256 amount
-)
-
-event Transfer(
-    address indexed from,
-    address indexed to,
-    uint256 indexed tokenId
-)
-```
-
-## Frontend Integration Example
-
-```typescript
-// Fetch initiative with weight
-const initiative = await signalsContract.read.getInitiative([initiativeId])
-const currentWeight = await signalsContract.read.getWeight([initiativeId])
-const threshold = await signalsContract.read.acceptanceThreshold()
-
-const progress = (Number(currentWeight) / Number(threshold)) * 100
-
-// Get all supporters
-const supporters = await signalsContract.read.getSupporters([initiativeId])
-
-// Get locks for each supporter
-const locks = await Promise.all(
-  supporters.map(async (supporter) => {
-    const tokenIds = await signalsContract.read.getLocksForSupporter([supporter])
-    return Promise.all(
-      tokenIds.map(id => signalsContract.read.getTokenLock([id]))
-    )
-  })
-)
-
-// Calculate historical weight for chart
-const timestamps = generateTimestamps(start, end, interval)
-const weights = await Promise.all(
-  timestamps.map(ts =>
-    signalsContract.read.getWeightAt([initiativeId, ts])
-  )
-)
-```
-
-## Indexer API (Optional)
-
-For efficient querying, use the indexer API:
-
-```typescript
-// Get all initiatives
-const response = await fetch(`${INDEXER_URL}/initiatives/${chainId}/${boardAddress}`)
-const { initiatives } = await response.json()
-
-// Get locks for initiative
-const locks = await fetch(`${INDEXER_URL}/locks/${chainId}/${boardAddress}/${initiativeId}`)
-```
-
-The indexer provides:
+For efficient querying and historical data, consider using the indexer API (if available). The indexer provides:
 - Aggregated initiative data with weight/supporters
 - Historical weight snapshots
 - Lock position details
 - Event history
 
-## Complete Example: Dashboard
-
-```typescript
-async function getInitiativeDashboard(initiativeId: bigint) {
-  // Get basic info
-  const initiative = await signals.read.getInitiative([initiativeId])
-  const currentWeight = await signals.read.getWeight([initiativeId])
-  const threshold = await signals.read.acceptanceThreshold()
-
-  // Get supporters
-  const supporters = await signals.read.getSupporters([initiativeId])
-  const supporterCount = supporters.length
-
-  // Get all lock positions
-  const lockTokenIds = await signals.read.getPositionsForInitiative([initiativeId])
-  const locks = await Promise.all(
-    lockTokenIds.map(id => signals.read.getTokenLock([id]))
-  )
-
-  // Calculate statistics
-  const totalLocked = locks.reduce((sum, lock) => sum + lock.tokenAmount, 0n)
-  const avgLockDuration = locks.reduce((sum, lock) => sum + lock.lockDuration, 0n) / BigInt(locks.length)
-
-  return {
-    ...initiative,
-    currentWeight,
-    threshold,
-    progress: (Number(currentWeight) / Number(threshold)) * 100,
-    supporterCount,
-    lockCount: locks.length,
-    totalLocked,
-    avgLockDuration,
-    locks
-  }
-}
-```
+Querying the indexer is faster and more cost-effective than making multiple contract calls.
 
 ## Best Practices
 
 1. **Use historical queries for charts** - Call `getWeightAt()` with past timestamps
-2. **Cache static data** - Board configuration doesn't change
-3. **Index events off-chain** - Don't query events directly from contract
+2. **Cache static data** - Board configuration doesn't change frequently
+3. **Index events off-chain** - Don't query events directly from the contract
 4. **Batch read calls** - Use multicall for multiple queries
 5. **Use indexer when available** - Faster than direct contract queries
+
+---
+
+For technical details including all function signatures, data structures, query examples, and integration code, see the [Initiative Interactions Reference](/reference/initiative-interactions#tracking-support).

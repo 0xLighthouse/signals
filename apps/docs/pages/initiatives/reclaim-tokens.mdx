@@ -29,19 +29,7 @@ If the **board is closed** by the owner:
 - All locks become immediately redeemable regardless of initiative state
 - Release timelock is bypassed
 
-## Redemption Function
-
-```solidity
-function redeem(uint256 tokenId) public
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tokenId` | `uint256` | The ERC721 token ID representing your lock position |
-
-### What You Receive
+## What You Receive
 
 When you redeem, you get:
 
@@ -59,70 +47,30 @@ When you redeem, you get:
 
 ### Check Redemption Status
 
-```solidity
-// Get initiative details
-Initiative memory init = signals.getInitiative(initiativeId)
+Before attempting to redeem, check that:
+1. The initiative is in Accepted or Expired state
+2. For Accepted initiatives, the release timelock has passed
+3. Your lock position hasn't already been redeemed
+4. You own the NFT representing the lock position
 
-// Check if redeemable
-bool isRedeemable = (init.state == InitiativeState.Accepted ||
-                     init.state == InitiativeState.Expired)
-
-// For accepted initiatives, check if timelock has passed
-if (init.state == InitiativeState.Accepted) {
-    uint256 releaseTime = init.acceptanceTimestamp + releaseLockDuration
-    bool canRedeemNow = block.timestamp >= releaseTime
-}
-```
+You can use the `getTokenLock()` and `getInitiative()` functions to query this information.
 
 ### Redeem Your Position
 
-```solidity
-// Redeem using your NFT token ID
-signals.redeem(tokenId)
-```
+Call the `redeem()` function with your NFT token ID. The function will:
+1. Validate the lock hasn't been redeemed
+2. Verify you own the NFT
+3. Check the initiative state and timelock
+4. Mark the lock as withdrawn
+5. Burn the NFT
+6. Transfer your locked tokens back
+7. Auto-claim any incentive rewards
+
+See the [Initiative Interactions Reference](/reference/initiative-interactions#redeeming-locks) for detailed function signatures.
 
 ### Find Your Token IDs
 
-```solidity
-// Get all your lock positions
-uint256[] memory tokenIds = signals.listPositions(yourAddress)
-
-// Or get locks for specific supporter
-uint256[] memory tokenIds = signals.getLocksForSupporter(yourAddress)
-```
-
-## Example Redemption Flow
-
-```solidity
-// 1. Find your positions
-uint256[] memory myTokenIds = signals.listPositions(msg.sender)
-
-// 2. For each token, check if redeemable
-for (uint256 i = 0; i < myTokenIds.length; i++) {
-    uint256 tokenId = myTokenIds[i]
-
-    // Get lock details
-    TokenLock memory lock = signals.getTokenLock(tokenId)
-
-    // Skip if already withdrawn
-    if (lock.withdrawn) continue
-
-    // Get initiative
-    Initiative memory init = signals.getInitiative(lock.initiativeId)
-
-    // Check if redeemable
-    if (init.state == InitiativeState.Accepted) {
-        uint256 releaseTime = init.acceptanceTimestamp + signals.releaseLockDuration()
-        if (block.timestamp >= releaseTime) {
-            // Redeem
-            signals.redeem(tokenId)
-        }
-    } else if (init.state == InitiativeState.Expired) {
-        // Redeem immediately
-        signals.redeem(tokenId)
-    }
-}
-```
+Use `listPositions(address)` to get all your lock NFT token IDs, or `getLocksForSupporter(address)` to find locks you've created.
 
 ## Multiple Positions on Same Initiative
 
@@ -134,92 +82,48 @@ If you locked tokens multiple times on the same initiative:
 
 ## What Happens During Redemption
 
-The `redeem()` function:
-
-1. **Validates** the lock hasn't been redeemed
-2. **Verifies** you own the NFT
-3. **Checks** initiative state is Accepted or Expired
-4. **Validates** release timelock has passed (for Accepted)
-5. **Marks** lock as withdrawn
-6. **Burns** the NFT
-7. **Transfers** locked tokens back to you
-8. **Auto-claims** incentive rewards (for Accepted initiatives)
-
-## Common Errors
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Signals_AlreadyRedeemed` | Position already redeemed | Check `lock.withdrawn` status |
-| `Signals_NotTokenOwner` | You don't own the NFT | Verify NFT ownership |
-| `Signals_NotWithdrawableState` | Initiative still Proposed | Wait for acceptance or expiration |
-| `Signals_StillTimelocked` | Release timelock not passed | Wait until `acceptanceTimestamp + releaseLockDuration` |
-
-## Frontend Integration
-
-```typescript
-// Check if user can redeem
-async function canRedeem(tokenId: bigint) {
-  // Get lock details
-  const lock = await signals.read.getTokenLock([tokenId])
-
-  // Already withdrawn?
-  if (lock.withdrawn) return false
-
-  // Get initiative
-  const initiative = await signals.read.getInitiative([lock.initiativeId])
-
-  // Check state
-  if (initiative.state === 0) return false  // 0 = Proposed
-
-  if (initiative.state === 1) {  // 1 = Accepted
-    const releaseLockDuration = await signals.read.releaseLockDuration()
-    const releaseTime = initiative.acceptanceTimestamp + releaseLockDuration
-    return BigInt(Date.now() / 1000) >= releaseTime
-  }
-
-  if (initiative.state === 3) {  // 3 = Expired
-    return true  // Immediate redemption
-  }
-
-  return false
-}
-
-// Redeem position
-async function redeemPosition(tokenId: bigint) {
-  const tx = await signals.write.redeem([tokenId])
-  await tx.wait()
-  console.log(`Redeemed token ${tokenId}`)
-}
-```
+The redemption process:
+1. Validates the lock exists and hasn't been redeemed
+2. Verifies you own the NFT
+3. Checks the initiative is in a redeemable state (Accepted or Expired)
+4. Validates any release timelock has passed (for Accepted)
+5. Marks the lock as withdrawn
+6. Burns the NFT
+7. Transfers locked tokens back to you
+8. Auto-claims incentive rewards (for Accepted initiatives only)
 
 ## Claiming Bounty Rewards
 
-Incentive rewards are automatically claimed during redemption, but bounty rewards must be claimed separately from the Bounties contract:
-
-```solidity
-// After redeeming your locks, claim bounty rewards
-bounties.claimRewards(tokenAddress)  // Not yet implemented
-```
+Incentive rewards are automatically claimed during redemption, but bounty rewards must be claimed separately from the Bounties contract.
 
 **Note:** The bounty claiming function is defined but not yet implemented in the current version.
 
 ## Best Practices
 
 1. **Check before redeeming** - Verify the initiative is in a redeemable state
-2. **Wait for full timelock** - Don't attempt to redeem before `releaseTime`
-3. **Track your positions** - Use `listPositions()` to see all your locks
+2. **Wait for full timelock** - Don't attempt to redeem before release time
+3. **Track your positions** - Use query functions to see all your locks
 4. **Monitor initiative state** - Watch for acceptance or expiration events
-5. **Redeem promptly** - Claim rewards while pool still has funds (for incentives)
+5. **Redeem promptly** - Claim rewards while the incentive pool still has funds
 
-## Related Functions
+## Common Scenarios
 
-```solidity
-// Query functions
-function getTokenLock(uint256 tokenId) external view returns (TokenLock memory)
-function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
-function listPositions(address owner) external view returns (uint256[] memory)
-function releaseLockDuration() external view returns (uint256)
+### Scenario 1: Accepted Initiative with Timelock
+1. Initiative is accepted by board owner
+2. Wait for `releaseLockDuration` to pass
+3. Call `redeem()` to receive tokens + incentive rewards
+4. Claim bounty rewards separately (if configured)
 
-// Redemption
-function redeem(uint256 tokenId) public
-```
+### Scenario 2: Expired Initiative
+1. Initiative expires due to inactivity
+2. Call `redeem()` immediately (no waiting)
+3. Receive your original locked tokens only
+
+### Scenario 3: Board Closed
+1. Board owner closes the board
+2. All locks become immediately redeemable
+3. Call `redeem()` to receive tokens (+ rewards if accepted)
+
+---
+
+For technical details including function signatures, data structures, error codes, and code examples, see the [Initiative Interactions Reference](/reference/initiative-interactions#redeeming-locks).

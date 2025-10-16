@@ -13,7 +13,6 @@ Board owners have two key functions to manage initiative lifecycle: **accepting*
 enum InitiativeState {
     Proposed,    // Initial state when created
     Accepted,    // Owner approved the initiative
-    Cancelled,   // DEFINED BUT NEVER USED - no function implements this
     Expired      // Owner expired due to inactivity
 }
 ```
@@ -29,51 +28,32 @@ Proposed → Expired   (via expireInitiative)
 
 ### Invalid Transitions
 
-- ❌ Cannot expire an Accepted initiative
-- ❌ Cannot accept an Expired initiative
-- ❌ Cannot transition to Cancelled state (no function exists)
-- ❌ Cannot reverse Accepted or Expired back to Proposed
+- Cannot expire an Accepted initiative
+- Cannot accept an Expired initiative
+- Cannot transition to Cancelled state (no function exists)
+- Cannot reverse Accepted or Expired back to Proposed
 
 **All state transitions are ONE-WAY and PERMANENT.**
 
 ---
 
-# Accepting an Initiative
+# Actioning an Initiative
 
-Accepting an initiative means the board owner officially approves it, transitioning it from Proposed to Accepted state. This triggers bounty distribution, incentive calculation, and makes locked tokens redeemable.
-
-## Function Signature
-
-```solidity
-function acceptInitiative(uint256 initiativeId) external payable onlyOwner
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `initiativeId` | `uint256` | ID of the initiative to accept |
+Actioning an initiative means the board owner officially approves it, transitioning it from Proposed to Accepted state. This triggers bounty distribution, incentive calculation, and makes locked tokens redeemable.
 
 ### Access Control
 
-**Owner-only function** - Only the board owner can accept initiatives.
+**Owner-only function** - Only the board owner can action initiatives.
 
 ## Pre-conditions
 
-1. ✅ **Initiative must exist** - `initiativeId <= initiativeCount`
-2. ✅ **Initiative must be in Proposed state** - Cannot accept already Accepted or Expired initiatives
-3. ✅ **Caller must be owner** - Access restricted via `onlyOwner` modifier
+1. **Initiative must exist** - `initiativeId <= initiativeCount`
+2. **Initiative must be in Proposed state** - Cannot accept already Accepted or Expired initiatives
+3. **Caller must be owner** - Access restricted via `onlyOwner` modifier
 
 ### Important: No Automatic Threshold Check
 
 The function **does not enforce** that the initiative has reached `acceptanceThreshold`. The owner has full discretion to accept initiatives regardless of weight.
-
-**Check threshold manually:**
-```solidity
-uint256 currentWeight = signals.getWeight(initiativeId)
-uint256 threshold = signals.acceptanceThreshold()
-bool meetsThreshold = currentWeight >= threshold
-```
 
 ## What Happens When Accepting
 
@@ -89,100 +69,24 @@ When an initiative is accepted:
 
 #### Bounties Distribution
 
-If bounties are configured, they're automatically distributed:
-
-```solidity
-if (address(bounties) != address(0)) {
-    bounties.handleInitiativeAccepted(initiativeId)
-}
-```
-
-**Distribution splits** (configurable):
-- Protocol fee (e.g., 5%)
-- Supporter rewards (e.g., 20%)
-- Treasury (e.g., 75%)
-
-Supporters must claim their bounty rewards separately from the Bounties contract.
+If bounties are configured, they're automatically distributed. Supporters must claim their bounty rewards separately from the Bounties contract.
 
 #### Incentives Calculation
 
-If an incentives pool is configured, rewards are calculated:
+If an incentives pool is configured, rewards are calculated and paid out.
 
-```solidity
-if (address(incentivesPool) != address(0)) {
-    incentivesPool.calculateIncentives(
-        initiativeId,
-        boardOpensAt,
-        block.timestamp
-    )
-}
-```
-
-**Time-weighted rewards:**
-- Early supporters get more rewards
-- Based on linear decay from board open time
-- Automatically claimed when supporters redeem locks
-
-## Impact on Token Locks (Accepted)
+## Impact on Token Locks When Accepted
 
 ### Redemption Timeline
 
 Locked tokens become redeemable based on `releaseLockDuration`:
 
-**Immediate Release (`releaseLockDuration = 0`):**
-```solidity
-// Supporters can redeem immediately
-signals.redeem(tokenId)
-```
+**Immediate Release:** Supporters can redeem immediately
 
-**Timelocked Release (`releaseLockDuration > 0`):**
-```solidity
-// Must wait for timelock
-uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration
+**Timelocked Release:** Supporters must wait for timelock to pass before redeeming.
 
-// Example: 7 days
-if (block.timestamp < releaseTime) {
-    revert Signals_StillTimelocked() // Cannot redeem yet
-}
-```
-
-**Emergency Override:**
 If the board is closed via `closeBoard()`, the release timelock is bypassed and all locks become immediately redeemable.
 
-## Events Emitted (Accept)
-
-```solidity
-event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
-```
-
-## Validation & Errors (Accept)
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid ID (1 to initiativeCount) |
-| `Signals_NotProposedState` | Initiative not in Proposed state | Only accept Proposed initiatives |
-| `OwnableUnauthorizedAccount` | Caller is not owner | Must be board owner |
-
-## Example: Accepting an Initiative
-
-```solidity
-// 1. Check initiative exists and is proposed
-Initiative memory init = signals.getInitiative(initiativeId)
-require(init.state == InitiativeState.Proposed, "Not proposed")
-
-// 2. Verify weight meets threshold (optional - owner discretion)
-uint256 weight = signals.getWeight(initiativeId)
-uint256 threshold = signals.acceptanceThreshold()
-require(weight >= threshold, "Below threshold")
-
-// 3. Accept initiative (owner only)
-signals.acceptInitiative(initiativeId)
-
-// 4. Verify state change
-Initiative memory accepted = signals.getInitiative(initiativeId)
-assert(accepted.state == InitiativeState.Accepted)
-assert(accepted.acceptanceTimestamp == block.timestamp)
-```
 
 ---
 
