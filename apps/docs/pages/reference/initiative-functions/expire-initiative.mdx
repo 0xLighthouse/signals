@@ -1,0 +1,172 @@
+---
+title: 'expireInitiative Function'
+weight: 5
+---
+
+# Expiring an Initiative
+
+## Function Signature
+
+```solidity
+function expireInitiative(uint256 initiativeId) external payable onlyOwner
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | ID of the initiative to expire |
+
+### Access Control
+
+**Owner-only** - Uses `onlyOwner` modifier.
+
+## Pre-conditions
+
+1. ✅ **Initiative must exist**
+2. ✅ **Initiative must be in Proposed state** - Cannot expire Accepted initiatives
+3. ✅ **Initiative must be inactive** for ≥ `activityTimeout` (default 60 days)
+
+**Activity tracking:**
+- `lastActivity` updates when:
+  - Initiative is created
+  - Any supporter locks tokens
+- Default timeout: 60 days (configurable via `setInactivityThreshold`)
+
+### Validation
+
+```solidity
+// Must be in Proposed state
+if (initiative.state != InitiativeState.Proposed) {
+    revert Signals_NotProposedState()
+}
+
+// Must be inactive long enough
+if (block.timestamp <= initiative.lastActivity + activityTimeout) {
+    revert Signals_NotEligibleForExpiration()
+}
+```
+
+## What Happens When Expiring
+
+1. **State changes** to `Expired`
+2. **Notifies Bounties contract** (if configured): `bounties.handleInitiativeExpired(initiativeId)`
+3. **Emits** `InitiativeExpired` event
+
+**Note:** Bounty refund logic is not yet implemented (marked as TODO in code).
+
+## Impact on Token Locks
+
+### Redemption from Expired Initiatives
+
+Supporters can redeem **immediately** - no timelock:
+
+```solidity
+// No timelock for expired initiatives
+signals.redeem(tokenId)
+```
+
+**Redemption requirements:**
+```solidity
+// Must be Accepted OR Expired
+if (!(initiative.state == InitiativeState.Accepted ||
+      initiative.state == InitiativeState.Expired)) {
+    revert Signals_NotWithdrawableState()
+}
+```
+
+## Events Emitted
+
+```solidity
+event InitiativeExpired(uint256 indexed initiativeId, address indexed actor)
+```
+
+## Validation & Errors
+
+| Error | Condition | Solution |
+|-------|-----------|----------|
+| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid ID |
+| `Signals_NotProposedState` | Initiative not in Proposed state | Can only expire Proposed initiatives |
+| `Signals_NotEligibleForExpiration` | Not inactive long enough | Wait for `activityTimeout` to pass |
+| `OwnableUnauthorizedAccount` | Caller is not owner | Must be board owner |
+
+## Configuration: Inactivity Threshold
+
+```solidity
+function setInactivityThreshold(uint256 _newThreshold) external onlyOwner
+```
+
+**Default:** 60 days (5,184,000 seconds)
+
+**Example:**
+```solidity
+// Set to 30 days
+signals.setInactivityThreshold(30 days)
+```
+
+## Example: Expiring an Initiative
+
+```solidity
+// 1. Check if eligible for expiration
+Initiative memory init = signals.getInitiative(initiativeId)
+require(init.state == InitiativeState.Proposed, 'Not proposed')
+
+uint256 timeSinceActivity = block.timestamp - init.lastActivity
+uint256 timeout = signals.activityTimeout()
+require(timeSinceActivity >= timeout, 'Not inactive long enough')
+
+// 2. Expire initiative (owner only)
+signals.expireInitiative(initiativeId)
+
+// 3. Verify state change
+Initiative memory expired = signals.getInitiative(initiativeId)
+assert(expired.state == InitiativeState.Expired)
+
+// 4. Supporters can now redeem immediately
+signals.redeem(tokenId)  // No timelock
+```
+
+## Integration Example
+
+### Check and Expire Inactive Initiative
+
+```typescript
+// Check if initiative can be expired
+async function canExpire(initiativeId: bigint) {
+  const initiative = await signals.read.getInitiative([initiativeId])
+
+  // Must be proposed
+  if (initiative.state !== 0) return false
+
+  // Check inactivity
+  const timeout = await signals.read.activityTimeout()
+  const timeSinceActivity = BigInt(Date.now() / 1000) - initiative.lastActivity
+
+  return timeSinceActivity >= timeout
+}
+
+// Expire initiative
+async function expireInactive(initiativeId: bigint) {
+  if (!(await canExpire(initiativeId))) {
+    throw new Error('Not eligible for expiration')
+  }
+
+  const tx = await signals.write.expireInitiative([initiativeId])
+  await tx.wait()
+
+  console.log(`Initiative ${initiativeId} expired`)
+}
+```
+
+## Related Functions
+
+```solidity
+// Query functions
+function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
+function activityTimeout() external view returns (uint256)
+
+// Owner functions for managing initiatives
+function acceptInitiative(uint256 initiativeId) external onlyOwner
+function expireInitiative(uint256 initiativeId) external onlyOwner
+function setInactivityThreshold(uint256 _threshold) external onlyOwner
+```

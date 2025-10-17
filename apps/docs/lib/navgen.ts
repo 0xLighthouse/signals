@@ -33,6 +33,7 @@ export class navGenerator {
     const files = fs.readdirSync(directory)
     return files
       .filter((file) => ['.mdx', '.md'].includes(path.extname(file))) // Filter .mdx and .md files
+      .filter((file) => !file.startsWith('index')) // Filter out index file
       .map((file) => {
         const ext = path.extname(file)
         return {

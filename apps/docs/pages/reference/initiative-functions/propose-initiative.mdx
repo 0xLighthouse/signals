@@ -1,0 +1,200 @@
+---
+title: 'proposeInitiative Functions'
+weight: 1
+---
+
+# Proposing Initiatives
+
+## Function Signatures
+
+### Basic Proposal
+
+```solidity
+function proposeInitiative(
+    string memory _title,
+    string memory _body
+) external
+```
+
+### Proposal with Lock
+
+```solidity
+function proposeInitiativeWithLock(
+    string memory _title,
+    string memory _body,
+    uint256 _amount,
+    uint256 _lockDuration
+) external returns (uint256 tokenId)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `_title` | `string` | Title of the initiative (must not be empty) |
+| `_body` | `string` | Detailed description, markdown supported (must not be empty) |
+| `_amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
+| `_lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
+
+### Returns
+
+- `tokenId` - An ERC721 NFT representing the lock position (only for `proposeInitiativeWithLock`)
+
+## Examples
+
+### Basic Proposal
+
+```solidity
+signals.proposeInitiative(
+    'Add dark mode to interface',
+    '## Motivation\n\nMany users have requested a dark mode option...\n\n## Proposal\n\nImplement theme switching...'
+)
+```
+
+### Proposal with Lock
+
+```solidity
+// Lock 100,000 tokens for 30 days
+// Assumes lockInterval = 1 day
+signals.proposeInitiativeWithLock(
+    'Implement new governance features',
+    '## Overview\n\nThis initiative proposes...',
+    100_000 * 1e18,  // amount in wei
+    30               // 30 intervals (30 days if lockInterval = 1 day)
+)
+```
+
+## Initiative Data Structure
+
+```solidity
+struct Initiative {
+    string title;                    // Initiative title
+    string body;                     // Detailed description (markdown)
+    InitiativeState state;           // Current state (Proposed, Accepted, Cancelled, Expired)
+    address proposer;                // Proposer address
+    uint256 timestamp;               // Creation timestamp
+    uint256 lastActivity;            // Last activity timestamp
+    uint256 underlyingLocked;        // Total tokens locked in support
+    uint256 acceptanceTimestamp;     // When accepted (0 if not yet accepted)
+}
+```
+
+### Initiative States
+
+```solidity
+enum InitiativeState {
+    Proposed,    // Initial state, can receive support
+    Accepted,    // Board owner accepted the initiative
+    Cancelled,   // Reserved for future use
+    Expired      // No activity for > activityTimeout
+}
+```
+
+## Proposer Requirements
+
+```solidity
+struct ProposerRequirements {
+    EligibilityType eligibilityType;
+    uint256 minBalance;
+    uint256 minHoldingDuration;
+    uint256 threshold;
+}
+```
+
+### None Type Example
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.None,
+    minBalance: 0,
+    minHoldingDuration: 0,
+    threshold: 50_000 * 1e18
+})
+```
+
+### MinBalance Type Example
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalance,
+    minBalance: 75_000 * 1e18,
+    minHoldingDuration: 0,
+    threshold: 50_000 * 1e18
+})
+```
+
+### MinBalanceAndDuration Type Example
+
+```solidity
+ProposerRequirements({
+    eligibilityType: EligibilityType.MinBalanceAndDuration,
+    minBalance: 40_000 * 1e18,
+    minHoldingDuration: 50400,  // blocks (~7 days at 12s/block)
+    threshold: 50_000 * 1e18
+})
+```
+
+## Events Emitted
+
+### InitiativeProposed
+
+```solidity
+event InitiativeProposed(
+    uint256 indexed initiativeId,
+    address indexed proposer,
+    string title,
+    string body
+)
+```
+
+### InitiativeSupported
+
+Emitted when using `proposeInitiativeWithLock`:
+
+```solidity
+event InitiativeSupported(
+    uint256 indexed initiativeId,
+    address indexed supporter,
+    uint256 tokenAmount,
+    uint256 lockDuration,
+    uint256 tokenId  // ERC721 NFT ID
+)
+```
+
+## Validation & Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Signals_EmptyTitle` | Title is empty | Provide a non-empty title |
+| `Signals_EmptyBody` | Body is empty | Provide a non-empty description |
+| `Signals_BoardNotYetOpen` | Current time < `boardOpensAt` | Wait for board to open |
+| `Signals_BoardClosed` | Board state is Closed | Cannot propose on closed boards |
+| `Signals_InsufficientTokens` | Balance < required amount | Acquire more tokens |
+| `Signals_ProposerInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
+| `Signals_ProposerInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
+| `Signals_ProposerNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
+| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration range |
+| `Signals_TokenTransferFailed` | Token transfer reverted | Check approval and balance |
+
+## Helper Functions
+
+```solidity
+// Check if address can propose
+function canPropose(address proposer) external view returns (bool)
+
+// Get current proposer requirements
+function getProposerRequirements() external view returns (ProposerRequirements memory)
+
+// Get board configuration
+function getBoardConfig() external view returns (BoardConfig memory)
+```
+
+## Token Approval Example
+
+```solidity
+// Approve the Signals contract to spend your tokens
+token.approve(signalsContractAddress, amount)
+
+// Then propose with lock
+signals.proposeInitiativeWithLock(title, body, amount, duration)
+```

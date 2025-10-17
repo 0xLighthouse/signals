@@ -1,0 +1,14 @@
+---
+title: "setIncentivesPool Function"
+weight: 5
+---
+
+### Set Incentives Pool
+
+```solidity
+function setIncentivesPool(address _pool) external onlyOwner
+```
+
+**Requirements:**
+- Can only be called BEFORE `boardOpensAt`
+- Must be called if `boardIncentives.enabled == true`

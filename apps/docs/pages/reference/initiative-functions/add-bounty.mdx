@@ -1,0 +1,260 @@
+---
+title: 'addBounty Function'
+weight: 6
+---
+
+# Adding Bounties
+
+## Function Signature
+
+```solidity
+function addBounty(
+    uint256 _initiativeId,
+    address _token,
+    uint256 _amount,
+    uint256 _expiresAt,
+    Conditions _terms
+) external payable
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `_initiativeId` | `uint256` | Initiative ID to attach bounty to |
+| `_token` | `address` | ERC20 token address (must be whitelisted) |
+| `_amount` | `uint256` | Amount of tokens to contribute |
+| `_expiresAt` | `uint256` | Unix timestamp when bounty expires (0 = never) |
+| `_terms` | `Conditions` | Distribution conditions (currently only `NONE` implemented) |
+
+### Example
+
+```solidity
+// 1. Approve tokens
+IERC20(usdcToken).approve(address(bounties), 10_000e6)
+
+// 2. Add bounty
+bounties.addBounty(
+    5,                              // initiativeId
+    address(usdcToken),             // token
+    10_000e6,                       // 10,000 USDC
+    block.timestamp + 30 days,      // expires in 30 days
+    IBounties.Conditions.NONE       // no special conditions
+)
+```
+
+## TokenRegistry Functions
+
+```solidity
+// Add token to whitelist (TOKEN_MANAGER_ROLE only)
+function allow(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
+
+// Remove token from whitelist
+function deny(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
+
+// Check if token is whitelisted
+function isAllowed(address _token) external view returns (bool)
+```
+
+## Distribution Formula
+
+```solidity
+// For each token type:
+protocolAmount = (totalAmount * protocolAllocation) / 100
+voterAmount = (totalAmount * voterAllocation) / 100
+treasuryAmount = (totalAmount * treasuryAllocation) / 100
+```
+
+### Default Split Configuration
+
+```solidity
+// Example configuration
+uint256[3] memory allocations = [5, 20, 75]
+// 5% to protocol fees
+// 20% to voter/supporter rewards
+// 75% to treasury
+```
+
+**Note:** Basis is 100 (not 10,000), so values are direct percentages.
+
+### Supporter Share Calculation
+
+```solidity
+supporterShare = (lockedAmount / totalLocked) * voterAmount
+```
+
+## Bounty Data Structure
+
+```solidity
+struct Bounty {
+    uint256 initiativeId;
+    IERC20 token;
+    uint256 amount;
+    uint256 paid;              // Future use
+    uint256 refunded;          // Future use
+    uint256 expiresAt;         // 0 = never expires
+    address contributor;
+    Conditions terms;
+}
+```
+
+## Querying Bounties
+
+### Get Aggregated Bounties
+
+```solidity
+function getBounties(uint256 _initiativeId) external view
+    returns (
+        address[] memory tokens,
+        uint256[] memory amounts,
+        uint256 expiredCount
+    )
+```
+
+Returns aggregated bounties by token type, excluding expired bounties.
+
+### Preview Rewards
+
+```solidity
+function previewRewards(uint256 _initiativeId, uint256 _tokenId)
+    external view returns (uint256)
+```
+
+Estimates rewards for a specific lock position (NFT token).
+
+**⚠️ Known Limitation:** Mixes different token denominations into single number - only an approximation.
+
+## Configuration & Versioning
+
+### Update Distribution Splits
+
+```solidity
+function updateSplits(
+    uint256[3] memory _allocations,
+    address[3] memory _receivers
+) external onlyOwner
+```
+
+**Requirements:**
+- Only owner can call
+- Allocations must sum to 100
+- Creates new version (doesn't affect existing bounties)
+
+**Example:**
+```solidity
+bounties.updateSplits(
+    [uint256(10), uint256(60), uint256(30)],
+    [protocolAddr, votersAddr, treasuryAddr]
+)
+```
+
+### Versioning Structure
+
+```solidity
+uint256 public version  // Current version
+mapping(uint256 => uint256[3]) public allocations  // Historical
+mapping(uint256 => address[3]) public receivers    // Historical
+```
+
+## Events Emitted
+
+```solidity
+event BountyAdded(
+    uint256 indexed bountyId,
+    uint256 indexed initiativeId,
+    address indexed token,
+    uint256 amount,
+    uint256 expiresAt,
+    Conditions terms
+)
+
+event BountiesUpdated(uint256 version)
+```
+
+## Validation & Errors
+
+| Error | Condition | Solution |
+|-------|-----------|----------|
+| `Bounties_TokenNotRegistered` | Token not whitelisted | Add token to TokenRegistry |
+| `Bounties_InvalidInitiative` | Initiative doesn't exist | Use valid initiative ID |
+| `Bounties_InsufficientBalance` | Not enough tokens | Acquire more tokens |
+| `Bounties_InsufficientAllowance` | Not approved | Approve Bounties contract |
+| `Bounties_InvalidAllocation` | Allocations don't sum to 100 | Fix split configuration |
+| `Bounties_NotAuthorized` | Caller not authorized | Must be Signals contract or owner |
+
+## Integration with Signals
+
+### Setting Bounties Contract
+
+```solidity
+// In Signals.sol (owner only)
+function setBounties(address _bounties) external onlyOwner
+```
+
+### Automatic Calls
+
+**On Acceptance:**
+```solidity
+// In Signals.acceptInitiative()
+if (address(bounties) != address(0)) {
+    bounties.handleInitiativeAccepted(initiativeId)
+}
+```
+
+**On Expiration:**
+```solidity
+bounties.handleInitiativeExpired(initiativeId)  // Refund logic TODO
+```
+
+## Complete Example Flow
+
+```solidity
+// 1. Deploy Bounties system
+TokenRegistry registry = new TokenRegistry()
+registry.allow(address(usdcToken))
+
+uint256[3] memory allocations = [5, 20, 75]
+address[3] memory receivers = [protocolAddr, votersAddr, treasuryAddr]
+
+Bounties bounties = new Bounties(
+    address(signals),
+    address(registry),
+    allocations,
+    receivers
+)
+
+signals.setBounties(address(bounties))
+
+// 2. Contributor adds bounty
+usdcToken.approve(address(bounties), 10_000e6)
+bounties.addBounty(
+    initiativeId,
+    address(usdcToken),
+    10_000e6,
+    0,  // Never expires
+    IBounties.Conditions.NONE
+)
+
+// 3. Initiative gets accepted
+signals.acceptInitiative(initiativeId)
+// Bounties automatically distributed:
+// - Protocol: 500 USDC (5%)
+// - Voters: 2,000 USDC (20%)
+// - Treasury: 7,500 USDC (75%)
+
+// 4. Supporters would claim (when implemented)
+// bounties.claimRewards(address(usdcToken))
+```
+
+## Frontend Integration
+
+```typescript
+// Check if bounties exist
+const { tokens, amounts, expiredCount } = await bounties.read.getBounties([initiativeId])
+
+// Preview potential rewards for a lock position
+const estimated = await bounties.read.previewRewards([initiativeId, nftTokenId])
+
+// Check balance (after acceptance)
+const balance = await bounties.read.balances([userAddress, tokenAddress])
+```
