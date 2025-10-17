@@ -103,3 +103,28 @@
     gap: var(--card-gap-mobile);
   }
 }
+
+/* Make sidebar collapse arrows clickable */
+.vocs_Sidebar_Item[data-collapsible] button[data-toggle] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure the entire button area (including arrow) is interactive */
+.vocs_Sidebar_Item[data-collapsible] button[data-toggle] svg {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Make the collapse arrow wrapper clickable - fix for section headers */
+.vocs_Sidebar_sectionHeader > div[role="button"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure the icon and SVG inside are also clickable */
+.vocs_Sidebar_sectionCollapse,
+.vocs_Sidebar_sectionCollapse svg {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}

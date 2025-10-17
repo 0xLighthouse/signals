@@ -1,517 +1,153 @@
 ---
-title: "Initiative Interactions"
-weight: 1
+title: 'Initiative Interactions'
+weight: 2
 ---
 
-# Initiative Interactions
+# Initiative Interactions Reference
 
-# Accepting an Initiative
+This section provides comprehensive technical documentation for interacting with initiatives in the Signals protocol. Each function reference includes signatures, parameters, validation rules, events, errors, and integration examples.
 
-```solidity
-function acceptInitiative(uint256 initiativeId) external payable onlyOwner
-```
+## Function Categories
 
-### Parameters
+### Core Initiative Functions
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `initiativeId` | `uint256` | ID of the initiative to accept |
+**[Proposing Initiatives](/reference/initiative-functions/propose-initiative)**
+- `proposeInitiative()` - Create a new initiative
+- `proposeInitiativeWithLock()` - Create an initiative and immediately lock tokens
 
-## Events Emitted When Accepted
+**[Supporting Initiatives](/reference/initiative-functions/support-initiative)**
+- `supportInitiative()` - Lock tokens to signal support for an initiative
 
-```solidity
-event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
-```
+**[Redeeming Locks](/reference/initiative-functions/redeem)**
+- `redeem()` - Withdraw locked tokens after initiative acceptance or expiration
 
-## Validation & Errors (Accept)
+### Owner Functions
 
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid ID (1 to initiativeCount) |
-| `Signals_NotProposedState` | Initiative not in Proposed state | Only accept Proposed initiatives |
-| `OwnableUnauthorizedAccount` | Caller is not owner | Must be board owner |
+**[Accepting Initiatives](/reference/initiative-functions/accept-initiative)**
+- `acceptInitiative()` - Officially approve an initiative (owner only)
 
----
+**[Expiring Initiatives](/reference/initiative-functions/expire-initiative)**
+- `expireInitiative()` - Terminate inactive initiatives (owner only)
 
-# Adding Bounties
+### Bounties
 
-## Function Signature
+**[Adding Bounties](/reference/initiative-functions/add-bounty)**
+- `addBounty()` - Contribute external token rewards to initiatives
+- TokenRegistry functions for managing whitelisted tokens
+- Distribution configuration and versioning
 
-```solidity
-function addBounty(
-    uint256 _initiativeId,
-    address _token,
-    uint256 _amount,
-    uint256 _expiresAt,
-    Conditions _terms
-) external payable
-```
+### Tracking & Queries
 
-### Parameters
+**[Tracking Functions](/reference/initiative-functions/tracking-functions)**
+- Weight queries (current and historical)
+- Lock position queries
+- Supporter enumeration
+- ERC721 position management
+- Configuration queries
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `_initiativeId` | `uint256` | Initiative ID to attach bounty to |
-| `_token` | `address` | ERC20 token address (must be whitelisted) |
-| `_amount` | `uint256` | Amount of tokens to contribute |
-| `_expiresAt` | `uint256` | Unix timestamp when bounty expires (0 = never) |
-| `_terms` | `Conditions` | Distribution conditions (currently only `NONE` implemented) |
+## Quick Reference
 
-### Example
+### For Initiative Proposers
 
 ```solidity
-// 1. Approve tokens
-IERC20(usdcToken).approve(address(bounties), 10_000e6)
+// Check eligibility
+bool canPropose = signals.canPropose(msg.sender)
 
-// 2. Add bounty
-bounties.addBounty(
-    5,                              // initiativeId
-    address(usdcToken),             // token
-    10_000e6,                       // 10,000 USDC
-    block.timestamp + 30 days,      // expires in 30 days
-    IBounties.Conditions.NONE       // no special conditions
+// Create initiative
+signals.proposeInitiative(title, body)
+
+// Or create with initial support
+uint256 tokenId = signals.proposeInitiativeWithLock(
+    title,
+    body,
+    amount,
+    lockDuration
 )
 ```
 
-## TokenRegistry Functions
+### For Supporters
 
 ```solidity
-// Add token to whitelist (TOKEN_MANAGER_ROLE only)
-function allow(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
+// Check eligibility
+bool canParticipate = signals.canParticipate(msg.sender)
 
-// Remove token from whitelist
-function deny(address _token) external onlyRole(TOKEN_MANAGER_ROLE)
-
-// Check if token is whitelisted
-function isAllowed(address _token) external view returns (bool)
-```
-
-## Distribution Formula
-
-```solidity
-// For each token type:
-protocolAmount = (totalAmount * protocolAllocation) / 100
-voterAmount = (totalAmount * voterAllocation) / 100
-treasuryAmount = (totalAmount * treasuryAllocation) / 100
-```
-
-### Default Split Configuration
-
-```solidity
-// Example configuration
-uint256[3] memory allocations = [5, 20, 75]
-// 5% to protocol fees
-// 20% to voter/supporter rewards
-// 75% to treasury
-```
-
-**Note:** Basis is 100 (not 10,000), so values are direct percentages.
-
-### Supporter Share Calculation
-
-```solidity
-supporterShare = (lockedAmount / totalLocked) * voterAmount
-```
-
-## Bounty Data Structure
-
-```solidity
-struct Bounty {
-    uint256 initiativeId;
-    IERC20 token;
-    uint256 amount;
-    uint256 paid;              // Future use
-    uint256 refunded;          // Future use
-    uint256 expiresAt;         // 0 = never expires
-    address contributor;
-    Conditions terms;
-}
-```
-
-## Querying Bounties
-
-### Get Aggregated Bounties
-
-```solidity
-function getBounties(uint256 _initiativeId) external view
-    returns (
-        address[] memory tokens,
-        uint256[] memory amounts,
-        uint256 expiredCount
-    )
-```
-
-Returns aggregated bounties by token type, excluding expired bounties.
-
-### Preview Rewards
-
-```solidity
-function previewRewards(uint256 _initiativeId, uint256 _tokenId)
-    external view returns (uint256)
-```
-
-Estimates rewards for a specific lock position (NFT token).
-
-**⚠️ Known Limitation:** Mixes different token denominations into single number - only an approximation.
-
-## Configuration & Versioning
-
-### Update Distribution Splits
-
-```solidity
-function updateSplits(
-    uint256[3] memory _allocations,
-    address[3] memory _receivers
-) external onlyOwner
-```
-
-**Requirements:**
-- Only owner can call
-- Allocations must sum to 100
-- Creates new version (doesn't affect existing bounties)
-
-**Example:**
-```solidity
-bounties.updateSplits(
-    [uint256(10), uint256(60), uint256(30)],
-    [protocolAddr, votersAddr, treasuryAddr]
-)
-```
-
-### Versioning Structure
-
-```solidity
-uint256 public version  // Current version
-mapping(uint256 => uint256[3]) public allocations  // Historical
-mapping(uint256 => address[3]) public receivers    // Historical
-```
-
-## Events Emitted
-
-```solidity
-event BountyAdded(
-    uint256 indexed bountyId,
-    uint256 indexed initiativeId,
-    address indexed token,
-    uint256 amount,
-    uint256 expiresAt,
-    Conditions terms
+// Support an initiative
+uint256 tokenId = signals.supportInitiative(
+    initiativeId,
+    amount,
+    lockDuration
 )
 
-event BountiesUpdated(uint256 version)
+// Later: Redeem after acceptance/expiration
+signals.redeem(tokenId)
 ```
 
-## Validation & Errors
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Bounties_TokenNotRegistered` | Token not whitelisted | Add token to TokenRegistry |
-| `Bounties_InvalidInitiative` | Initiative doesn't exist | Use valid initiative ID |
-| `Bounties_InsufficientBalance` | Not enough tokens | Acquire more tokens |
-| `Bounties_InsufficientAllowance` | Not approved | Approve Bounties contract |
-| `Bounties_InvalidAllocation` | Allocations don't sum to 100 | Fix split configuration |
-| `Bounties_NotAuthorized` | Caller not authorized | Must be Signals contract or owner |
-
-## Integration with Signals
-
-### Setting Bounties Contract
+### For Board Owners
 
 ```solidity
-// In Signals.sol (owner only)
-function setBounties(address _bounties) external onlyOwner
+// Accept an initiative
+signals.acceptInitiative(initiativeId)
+
+// Or expire an inactive initiative
+signals.expireInitiative(initiativeId)
 ```
 
-### Automatic Calls
-
-**On Acceptance:**
-```solidity
-// In Signals.acceptInitiative()
-if (address(bounties) != address(0)) {
-    bounties.handleInitiativeAccepted(initiativeId)
-}
-```
-
-**On Expiration:**
-```solidity
-bounties.handleInitiativeExpired(initiativeId)  // Refund logic TODO
-```
-
-## Complete Example Flow
+### For Bounty Contributors
 
 ```solidity
-// 1. Deploy Bounties system
-TokenRegistry registry = new TokenRegistry()
-registry.allow(address(usdcToken))
-
-uint256[3] memory allocations = [5, 20, 75]
-address[3] memory receivers = [protocolAddr, votersAddr, treasuryAddr]
-
-Bounties bounties = new Bounties(
-    address(signals),
-    address(registry),
-    allocations,
-    receivers
-)
-
-signals.setBounties(address(bounties))
-
-// 2. Contributor adds bounty
-usdcToken.approve(address(bounties), 10_000e6)
+// Add a bounty to an initiative
+token.approve(address(bounties), amount)
 bounties.addBounty(
     initiativeId,
-    address(usdcToken),
-    10_000e6,
-    0,  // Never expires
+    address(token),
+    amount,
+    expiresAt,
     IBounties.Conditions.NONE
 )
-
-// 3. Initiative gets accepted
-signals.acceptInitiative(initiativeId)
-// Bounties automatically distributed:
-// - Protocol: 500 USDC (5%)
-// - Voters: 2,000 USDC (20%)
-// - Treasury: 7,500 USDC (75%)
-
-// 4. Supporters would claim (when implemented)
-// bounties.claimRewards(address(usdcToken))
 ```
 
-## Frontend Integration
-
-```typescript
-// Check if bounties exist
-const { tokens, amounts, expiredCount } = await bounties.read.getBounties([initiativeId])
-
-// Preview potential rewards for a lock position
-const estimated = await bounties.read.previewRewards([initiativeId, nftTokenId])
-
-// Check balance (after acceptance)
-const balance = await bounties.read.balances([userAddress, tokenAddress])
-```
-
----
-
-# Redeeming Locks
-
-## Function Signature
-
-```solidity
-function redeem(uint256 tokenId) public
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tokenId` | `uint256` | The ERC721 token ID representing your lock position |
-
-## TokenLock Data Structure
-
-```solidity
-struct TokenLock {
-    uint256 initiativeId;     // Which initiative this supports
-    uint256 tokenAmount;      // Underlying tokens locked
-    uint256 lockDuration;     // Duration in intervals
-    uint256 created;          // Block timestamp of creation
-    bool withdrawn;           // Redemption status
-}
-```
-
-## Checking Redemption Status
+### For Tracking Support
 
 ```solidity
 // Get initiative details
 Initiative memory init = signals.getInitiative(initiativeId)
 
-// Check if redeemable
-bool isRedeemable = (init.state == InitiativeState.Accepted ||
-                     init.state == InitiativeState.Expired)
+// Get current weight
+uint256 weight = signals.getWeight(initiativeId)
 
-// For accepted initiatives, check if timelock has passed
-if (init.state == InitiativeState.Accepted) {
-    uint256 releaseTime = init.acceptanceTimestamp + releaseLockDuration
-    bool canRedeemNow = block.timestamp >= releaseTime
-}
+// Get all supporters
+address[] memory supporters = signals.getSupporters(initiativeId)
+
+// Get your lock positions
+uint256[] memory myLocks = signals.listPositions(msg.sender)
 ```
 
-## Finding Your Token IDs
+## Common Data Structures
 
-```solidity
-// Get all your lock positions
-uint256[] memory tokenIds = signals.listPositions(yourAddress)
-
-// Or get locks for specific supporter
-uint256[] memory tokenIds = signals.getLocksForSupporter(yourAddress)
-```
-
-## Example Redemption Flow
-
-```solidity
-// 1. Find your positions
-uint256[] memory myTokenIds = signals.listPositions(msg.sender)
-
-// 2. For each token, check if redeemable
-for (uint256 i = 0; i < myTokenIds.length; i++) {
-    uint256 tokenId = myTokenIds[i]
-
-    // Get lock details
-    TokenLock memory lock = signals.getTokenLock(tokenId)
-
-    // Skip if already withdrawn
-    if (lock.withdrawn) continue
-
-    // Get initiative
-    Initiative memory init = signals.getInitiative(lock.initiativeId)
-
-    // Check if redeemable
-    if (init.state == InitiativeState.Accepted) {
-        uint256 releaseTime = init.acceptanceTimestamp + signals.releaseLockDuration()
-        if (block.timestamp >= releaseTime) {
-            // Redeem
-            signals.redeem(tokenId)
-        }
-    } else if (init.state == InitiativeState.Expired) {
-        // Redeem immediately
-        signals.redeem(tokenId)
-    }
-}
-```
-
-## Validation & Errors
-
-| Error | Condition | Solution |
-|-------|-----------|----------|
-| `Signals_AlreadyRedeemed` | Position already redeemed | Check `lock.withdrawn` status |
-| `Signals_NotTokenOwner` | You don't own the NFT | Verify NFT ownership |
-| `Signals_NotWithdrawableState` | Initiative still Proposed | Wait for acceptance or expiration |
-| `Signals_StillTimelocked` | Release timelock not passed | Wait until `acceptanceTimestamp + releaseLockDuration` |
-
-## Frontend Integration
-
-```typescript
-// Check if user can redeem
-async function canRedeem(tokenId: bigint) {
-  // Get lock details
-  const lock = await signals.read.getTokenLock([tokenId])
-
-  // Already withdrawn?
-  if (lock.withdrawn) return false
-
-  // Get initiative
-  const initiative = await signals.read.getInitiative([lock.initiativeId])
-
-  // Check state
-  if (initiative.state === 0) return false  // 0 = Proposed
-
-  if (initiative.state === 1) {  // 1 = Accepted
-    const releaseLockDuration = await signals.read.releaseLockDuration()
-    const releaseTime = initiative.acceptanceTimestamp + releaseLockDuration
-    return BigInt(Date.now() / 1000) >= releaseTime
-  }
-
-  if (initiative.state === 3) {  // 3 = Expired
-    return true  // Immediate redemption
-  }
-
-  return false
-}
-
-// Redeem position
-async function redeemPosition(tokenId: bigint) {
-  const tx = await signals.write.redeem([tokenId])
-  await tx.wait()
-  console.log(`Redeemed token ${tokenId}`)
-}
-```
-
-## Related Functions
-
-```solidity
-// Query functions
-function getTokenLock(uint256 tokenId) external view returns (TokenLock memory)
-function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
-function listPositions(address owner) external view returns (uint256[] memory)
-function releaseLockDuration() external view returns (uint256)
-
-// Redemption
-function redeem(uint256 tokenId) public
-```
-
----
-
-# Proposing Initiatives
-
-## Function Signatures
-
-### Basic Proposal
-
-```solidity
-function proposeInitiative(
-    string memory _title,
-    string memory _body
-) external
-```
-
-### Proposal with Lock
-
-```solidity
-function proposeInitiativeWithLock(
-    string memory _title,
-    string memory _body,
-    uint256 _amount,
-    uint256 _lockDuration
-) external returns (uint256 tokenId)
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `_title` | `string` | Title of the initiative (must not be empty) |
-| `_body` | `string` | Detailed description, markdown supported (must not be empty) |
-| `_amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
-| `_lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
-
-### Returns
-
-- `tokenId` - An ERC721 NFT representing the lock position (only for `proposeInitiativeWithLock`)
-
-## Examples
-
-### Basic Proposal
-
-```solidity
-signals.proposeInitiative(
-    "Add dark mode to interface",
-    "## Motivation\n\nMany users have requested a dark mode option...\n\n## Proposal\n\nImplement theme switching..."
-)
-```
-
-### Proposal with Lock
-
-```solidity
-// Lock 100,000 tokens for 30 days
-// Assumes lockInterval = 1 day
-signals.proposeInitiativeWithLock(
-    "Implement new governance features",
-    "## Overview\n\nThis initiative proposes...",
-    100_000 * 1e18,  // amount in wei
-    30               // 30 intervals (30 days if lockInterval = 1 day)
-)
-```
-
-## Initiative Data Structure
+### Initiative
 
 ```solidity
 struct Initiative {
-    string title;                    // Initiative title
-    string body;                     // Detailed description (markdown)
-    InitiativeState state;           // Current state (Proposed, Accepted, Cancelled, Expired)
-    address proposer;                // Proposer address
-    uint256 timestamp;               // Creation timestamp
-    uint256 lastActivity;            // Last activity timestamp
-    uint256 underlyingLocked;        // Total tokens locked in support
-    uint256 acceptanceTimestamp;     // When accepted (0 if not yet accepted)
+    string title;
+    string body;
+    InitiativeState state;
+    address proposer;
+    uint256 timestamp;
+    uint256 lastActivity;
+    uint256 underlyingLocked;
+    uint256 acceptanceTimestamp;
+}
+```
+
+### TokenLock
+
+```solidity
+struct TokenLock {
+    uint256 initiativeId;
+    uint256 tokenAmount;
+    uint256 lockDuration;
+    uint256 created;
+    bool withdrawn;
 }
 ```
 
@@ -526,698 +162,33 @@ enum InitiativeState {
 }
 ```
 
-## Proposer Requirements
+## Integration Patterns
 
-```solidity
-struct ProposerRequirements {
-    EligibilityType eligibilityType;
-    uint256 minBalance;
-    uint256 minHoldingDuration;
-    uint256 threshold;
-}
-```
+### Frontend Integration
 
-### None Type Example
+See individual function pages for detailed TypeScript examples. Common patterns include:
 
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.None,
-    minBalance: 0,
-    minHoldingDuration: 0,
-    threshold: 50_000 * 1e18
-})
-```
+- Checking eligibility before transactions
+- Querying weight and progress
+- Listing user positions
+- Calculating historical data for charts
+- Monitoring events for real-time updates
 
-### MinBalance Type Example
+### Contract Integration
 
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalance,
-    minBalance: 75_000 * 1e18,
-    minHoldingDuration: 0,
-    threshold: 50_000 * 1e18
-})
-```
+For contracts integrating with Signals:
 
-### MinBalanceAndDuration Type Example
+- Implement `ISignalsLock` interface for compatibility
+- Use weight queries for governance decisions
+- Subscribe to events for state changes
+- Query lock positions for reward calculations
 
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalanceAndDuration,
-    minBalance: 40_000 * 1e18,
-    minHoldingDuration: 50400,  // blocks (~7 days at 12s/block)
-    threshold: 50_000 * 1e18
-})
-```
+## Related Guides
 
-## Events Emitted
-
-### InitiativeProposed
-
-```solidity
-event InitiativeProposed(
-    uint256 indexed initiativeId,
-    address indexed proposer,
-    string title,
-    string body
-)
-```
-
-### InitiativeSupported
-
-Emitted when using `proposeInitiativeWithLock`:
-
-```solidity
-event InitiativeSupported(
-    uint256 indexed initiativeId,
-    address indexed supporter,
-    uint256 tokenAmount,
-    uint256 lockDuration,
-    uint256 tokenId  // ERC721 NFT ID
-)
-```
-
-## Validation & Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Signals_EmptyTitle` | Title is empty | Provide a non-empty title |
-| `Signals_EmptyBody` | Body is empty | Provide a non-empty description |
-| `Signals_BoardNotYetOpen` | Current time < `boardOpensAt` | Wait for board to open |
-| `Signals_BoardClosed` | Board state is Closed | Cannot propose on closed boards |
-| `Signals_InsufficientTokens` | Balance < required amount | Acquire more tokens |
-| `Signals_ProposerInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
-| `Signals_ProposerInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
-| `Signals_ProposerNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
-| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration range |
-| `Signals_TokenTransferFailed` | Token transfer reverted | Check approval and balance |
-
-## Helper Functions
-
-```solidity
-// Check if address can propose
-function canPropose(address proposer) external view returns (bool)
-
-// Get current proposer requirements
-function getProposerRequirements() external view returns (ProposerRequirements memory)
-
-// Get board configuration
-function getBoardConfig() external view returns (BoardConfig memory)
-```
-
-## Token Approval Example
-
-```solidity
-// Approve the Signals contract to spend your tokens
-token.approve(signalsContractAddress, amount)
-
-// Then propose with lock
-signals.proposeInitiativeWithLock(title, body, amount, duration)
-```
-
----
-
-# Supporting Initiatives
-
-## Function Signature
-
-```solidity
-function supportInitiative(
-    uint256 initiativeId,
-    uint256 amount,
-    uint256 lockDuration
-) external returns (uint256 tokenId)
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `initiativeId` | `uint256` | ID of the initiative to support (must exist and be in Proposed state) |
-| `amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
-| `lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
-
-### Returns
-
-- `tokenId` - An ERC721 NFT token ID representing your lock position
-
-### Example
-
-```solidity
-// Support initiative #5 with 100k tokens for 30 days
-// Assumes lockInterval = 1 day
-uint256 tokenId = signals.supportInitiative(
-    5,                  // initiativeId
-    100_000 * 1e18,    // 100k tokens
-    30                  // 30 intervals (30 days)
-)
-```
-
-## Token Approval
-
-```solidity
-// 1. Approve tokens
-IERC20(underlyingToken).approve(signalsContractAddress, amount)
-
-// 2. Support initiative
-signals.supportInitiative(initiativeId, amount, lockDuration)
-```
-
-## Participant Requirements
-
-```solidity
-struct ParticipantRequirements {
-    EligibilityType eligibilityType;
-    uint256 minBalance;
-    uint256 minHoldingDuration;
-}
-```
-
-### None Type Example
-
-```solidity
-ParticipantRequirements({
-    eligibilityType: EligibilityType.None,
-    minBalance: 0,
-    minHoldingDuration: 0
-})
-```
-
-### MinBalance Type Example
-
-```solidity
-ParticipantRequirements({
-    eligibilityType: EligibilityType.MinBalance,
-    minBalance: 75_000 * 1e18,
-    minHoldingDuration: 0
-})
-```
-
-### MinBalanceAndDuration Type Example
-
-```solidity
-ParticipantRequirements({
-    eligibilityType: EligibilityType.MinBalanceAndDuration,
-    minBalance: 40_000 * 1e18,
-    minHoldingDuration: 50400  // blocks (~7 days at 12s/block)
-})
-```
-
-## Weight Calculation
-
-### Initial Weight Formula
-
-```solidity
-initialWeight = amount * lockDuration
-```
-
-**Example:**
-- Lock 100 tokens for 10 intervals
-- Initial weight = 100 × 10 = **1,000**
-
-### Weight Decay
-
-#### Linear Decay (Type 0)
-
-```solidity
-weight = lockAmount * lockDuration - (lockAmount * elapsedIntervals * decayRate)
-// Floored at lockAmount minimum
-```
-
-**Example with decayRate = 1e18:**
-- Interval 0: 100 × 10 = 1,000
-- Interval 5: 1,000 - (100 × 5) = 500
-- Interval 10: Weight = 0 (expired)
-
-#### Exponential Decay (Type 1)
-
-```solidity
-weight = initialWeight * (decayMultiplier ^ elapsedIntervals)
-// Floored at lockAmount minimum
-```
-
-**Example with multiplier = 0.9:**
-- Interval 0: 1,000
-- Interval 1: 1,000 × 0.9 = 900
-- Interval 2: 900 × 0.9 = 810
-- Interval 3: 810 × 0.9 = 729
-
-### Weight Floor
-
-Weight never drops below the lock amount (nominal value) until the lock expires.
-
-## Lock Data Structures
-
-### TokenLock
-
-```solidity
-struct TokenLock {
-    uint256 initiativeId;     // Which initiative this supports
-    uint256 tokenAmount;      // Underlying tokens locked
-    uint256 lockDuration;     // Duration in intervals
-    uint256 created;          // Block timestamp of creation
-    bool withdrawn;           // Redemption status
-}
-```
-
-### LockData (ISignalsLock interface)
-
-```solidity
-struct LockData {
-    uint256 referenceId;      // Initiative ID
-    uint256 nominalValue;     // Token amount
-    uint256 expires;          // Expiry timestamp
-    uint256 created;
-    bool claimed;
-}
-```
-
-### Query Lock Data
-
-```solidity
-// Get detailed lock information
-TokenLock memory lock = signals.getTokenLock(tokenId)
-
-// Get standardized lock data (ISignalsLock interface)
-LockData memory data = signals.getLockData(tokenId)
-```
-
-## Events Emitted
-
-```solidity
-event InitiativeSupported(
-    uint256 indexed initiativeId,
-    address indexed supporter,
-    uint256 tokenAmount,
-    uint256 lockDuration,
-    uint256 tokenId
-)
-```
-
-**Event Data:**
-- `initiativeId`: Which initiative was supported
-- `supporter`: Your address (NFT recipient)
-- `tokenAmount`: Amount of tokens locked
-- `lockDuration`: Lock duration in intervals
-- `tokenId`: ERC721 token ID minted
-
-## State Updates
-
-When you support an initiative:
-
-```solidity
-// Initiative updates
-initiative.underlyingLocked += amount        // Track total locked
-initiative.lastActivity = block.timestamp    // Reset inactivity timer
-
-// Supporter tracking
-supporters[initiativeId].push(supporter)     // Add to supporters list
-isSupporter[initiativeId][supporter] = true  // Mark as supporter
-
-// Lock tracking
-initiativeLocks[initiativeId].push(tokenId)  // Track locks per initiative
-supporterLocks[supporter].push(tokenId)      // Track locks per supporter
-```
-
-## Validation & Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Signals_BoardNotYetOpen` | Current time < `boardOpensAt` | Wait for board to open |
-| `Signals_BoardClosed` | Board is closed | Cannot support on closed boards |
-| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid initiative ID |
-| `Signals_NotProposedState` | Initiative not in Proposed state | Only support Proposed initiatives |
-| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration |
-| `Signals_InsufficientTokens` | Balance < amount | Acquire more tokens |
-| `Signals_TokenTransferFailed` | Transfer failed | Check approval and balance |
-| `Signals_ParticipantInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
-| `Signals_ParticipantInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
-| `Signals_ParticipantNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
-
-## Complete Example Flow
-
-```solidity
-// Setup
-address supporter = 0x1111
-uint256 initiativeId = 5
-IERC20 token = IERC20(signals.underlyingToken())
-
-// 1. Check eligibility
-require(signals.canParticipate(supporter), "Not eligible")
-
-// 2. Check initiative state
-Initiative memory init = signals.getInitiative(initiativeId)
-require(init.state == InitiativeState.Proposed, "Not proposed")
-
-// 3. Approve tokens
-uint256 amount = 150 * 1e18
-token.approve(address(signals), amount)
-
-// 4. Support initiative
-uint256 lockDuration = 6  // 6 intervals
-uint256 tokenId = signals.supportInitiative(initiativeId, amount, lockDuration)
-
-// 5. Verify NFT received
-require(signals.ownerOf(tokenId) == supporter, "NFT not received")
-
-// 6. Check lock details
-TokenLock memory lock = signals.getTokenLock(tokenId)
-assert(lock.tokenAmount == amount)
-assert(lock.lockDuration == lockDuration)
-
-// 7. Check weight contribution
-uint256 myWeight = signals.getWeightForSupporterAt(
-    initiativeId,
-    supporter,
-    block.timestamp
-)
-// Initial: myWeight = 150 * 6 = 900 (decays over time)
-
-// 8. Check total initiative weight
-uint256 totalWeight = signals.getWeight(initiativeId)
-uint256 threshold = signals.acceptanceThreshold()
-bool meetsThreshold = totalWeight >= threshold
-
-// 9. Later: Redeem after acceptance/expiration
-// ... wait for acceptance/expiration ...
-signals.redeem(tokenId)  // Receive original tokens back + incentives
-```
-
-## Helper Functions
-
-```solidity
-// Check if you can participate
-function canParticipate(address participant) external view returns (bool)
-
-// Get participant requirements
-function getParticipantRequirements() external view returns (ParticipantRequirements memory)
-
-// Get all your lock positions
-function getLocksForSupporter(address supporter) external view returns (uint256[] memory)
-
-// Get lock count for supporter
-function getLockCountForSupporter(address supporter) external view returns (uint256)
-
-// List all NFT positions you own
-function listPositions(address owner) external view returns (uint256[] memory)
-```
-
-## Incentive Rewards
-
-```solidity
-// Preview rewards before acceptance (if IncentivesPool configured)
-uint256 rewards = incentivesPool.getSupporterRewards(
-    address(signals),
-    initiativeId,
-    supporter
-)
-```
-
----
-
-# Tracking Support
-
-## Querying Initiative Data
-
-### Get Initiative Details
-
-```solidity
-function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
-```
-
-Returns complete initiative information including state, proposer, timestamps, and total locked tokens.
-
-### Get Total Initiatives
-
-```solidity
-function totalInitiatives() external view returns (uint256)
-```
-
-Returns the total number of initiatives created on the board.
-
-## Querying Weight
-
-### Current Weight
-
-```solidity
-function getWeight(uint256 initiativeId) external view returns (uint256)
-```
-
-Returns the initiative's current total weight (at `block.timestamp`), accounting for all active locks and decay.
-
-### Historical Weight
-
-```solidity
-function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256)
-```
-
-Returns the initiative's weight at a specific timestamp. Useful for:
-- Creating weight charts over time
-- Verifying historical data
-- Calculating rewards
-
-### Supporter's Weight
-
-```solidity
-function getWeightForSupporterAt(
-    uint256 initiativeId,
-    address supporter,
-    uint256 timestamp
-) external view returns (uint256)
-```
-
-Returns a specific supporter's weight contribution at a given timestamp.
-
-## Querying Lock Positions
-
-### Get Lock Details
-
-```solidity
-function getTokenLock(uint256 tokenId) external view returns (TokenLock memory)
-```
-
-Returns detailed lock information for a specific NFT token ID.
-
-### Get Standardized Lock Data
-
-```solidity
-function getLockData(uint256 tokenId) external view returns (LockData memory)
-```
-
-Returns standardized lock data conforming to the ISignalsLock interface.
-
-### Get All Supporter's Locks
-
-```solidity
-// Get all lock token IDs for a supporter
-function getLocksForSupporter(address supporter) external view returns (uint256[] memory)
-
-// Get count of locks
-function getLockCountForSupporter(address supporter) external view returns (uint256)
-```
-
-### Get Initiative's Lock Positions
-
-```solidity
-function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory)
-```
-
-Returns all NFT token IDs supporting a specific initiative.
-
-## Querying Supporters
-
-### Get All Supporters
-
-```solidity
-function getSupporters(uint256 initiativeId) external view returns (address[] memory)
-```
-
-Returns array of all unique supporter addresses.
-
-### Get Supporter Count
-
-```solidity
-function totalSupporters(uint256 initiativeId) external view returns (uint256)
-```
-
-### Check if Address is Supporter
-
-```solidity
-function isSupporter(uint256 initiativeId, address supporter) external view returns (bool)
-```
-
-## ERC721 Position Enumeration
-
-### List Owned Positions
-
-```solidity
-function listPositions(address owner) external view returns (uint256[] memory)
-```
-
-Returns all NFT token IDs owned by an address across all initiatives.
-
-### Standard ERC721 Functions
-
-```solidity
-// Get NFT count for owner
-function balanceOf(address owner) external view returns (uint256)
-
-// Get token ID by index
-function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)
-
-// Get total supply of NFTs
-function totalSupply() external view returns (uint256)
-```
-
-## Weight Decay Configuration
-
-### Query Decay Settings
-
-```solidity
-// Get decay curve type (0 = linear, 1 = exponential)
-function decayCurveType() external view returns (uint256)
-
-// Get decay parameter at index 0
-function decayCurveParameters(uint256 index) external view returns (uint256)
-
-// Get interval duration in seconds
-function lockInterval() external view returns (uint256)
-
-// Get maximum lock duration
-function maxLockIntervals() external view returns (uint256)
-```
-
-### Understanding Weight Decay
-
-**Linear Decay (Type 0):**
-```
-weight = lockAmount * lockDuration - (lockAmount * elapsedIntervals * decayRate)
-```
-
-**Exponential Decay (Type 1):**
-```
-weight = lockAmount * lockDuration * (decayMultiplier ^ elapsedIntervals)
-```
-
-Both curves have a floor at `lockAmount` (nominal value).
-
-## Checking Acceptance Threshold
-
-```solidity
-// Get threshold
-function acceptanceThreshold() external view returns (uint256)
-
-// Check if threshold reached
-uint256 currentWeight = signals.getWeight(initiativeId)
-bool meetsThreshold = currentWeight >= signals.acceptanceThreshold()
-```
-
-## Events for Off-Chain Tracking
-
-```solidity
-event InitiativeProposed(
-    uint256 indexed initiativeId,
-    address indexed proposer,
-    string title,
-    string body
-)
-
-event InitiativeSupported(
-    uint256 indexed initiativeId,
-    address indexed supporter,
-    uint256 tokenAmount,
-    uint256 lockDuration,
-    uint256 tokenId
-)
-
-event InitiativeAccepted(
-    uint256 indexed initiativeId,
-    address indexed actor
-)
-
-event InitiativeExpired(
-    uint256 indexed initiativeId,
-    address indexed actor
-)
-
-event Redeemed(
-    uint256 indexed tokenId,
-    address indexed actor,
-    uint256 amount
-)
-
-event Transfer(
-    address indexed from,
-    address indexed to,
-    uint256 indexed tokenId
-)
-```
-
-## Frontend Integration Example
-
-```typescript
-// Fetch initiative with weight
-const initiative = await signalsContract.read.getInitiative([initiativeId])
-const currentWeight = await signalsContract.read.getWeight([initiativeId])
-const threshold = await signalsContract.read.acceptanceThreshold()
-
-const progress = (Number(currentWeight) / Number(threshold)) * 100
-
-// Get all supporters
-const supporters = await signalsContract.read.getSupporters([initiativeId])
-
-// Get locks for each supporter
-const locks = await Promise.all(
-  supporters.map(async (supporter) => {
-    const tokenIds = await signalsContract.read.getLocksForSupporter([supporter])
-    return Promise.all(
-      tokenIds.map(id => signalsContract.read.getTokenLock([id]))
-    )
-  })
-)
-
-// Calculate historical weight for chart
-const timestamps = generateTimestamps(start, end, interval)
-const weights = await Promise.all(
-  timestamps.map(ts =>
-    signalsContract.read.getWeightAt([initiativeId, ts])
-  )
-)
-```
-
-## Complete Dashboard Example
-
-```typescript
-async function getInitiativeDashboard(initiativeId: bigint) {
-  // Get basic info
-  const initiative = await signals.read.getInitiative([initiativeId])
-  const currentWeight = await signals.read.getWeight([initiativeId])
-  const threshold = await signals.read.acceptanceThreshold()
-
-  // Get supporters
-  const supporters = await signals.read.getSupporters([initiativeId])
-  const supporterCount = supporters.length
-
-  // Get all lock positions
-  const lockTokenIds = await signals.read.getPositionsForInitiative([initiativeId])
-  const locks = await Promise.all(
-    lockTokenIds.map(id => signals.read.getTokenLock([id]))
-  )
-
-  // Calculate statistics
-  const totalLocked = locks.reduce((sum, lock) => sum + lock.tokenAmount, 0n)
-  const avgLockDuration = locks.reduce((sum, lock) => sum + lock.lockDuration, 0n) / BigInt(locks.length)
-
-  return {
-    ...initiative,
-    currentWeight,
-    threshold,
-    progress: (Number(currentWeight) / Number(threshold)) * 100,
-    supporterCount,
-    lockCount: locks.length,
-    totalLocked,
-    avgLockDuration,
-    locks
-  }
-}
-```
+For conceptual understanding and best practices, see the Initiatives guides:
+- [Submit an Initiative](/initiatives/submit-initiative)
+- [Add Support to an Initiative](/initiatives/support-initiative)
+- [Reclaiming Locked Tokens](/initiatives/reclaim-tokens)
+- [Tracking Initiative Support](/initiatives/track-support)
+- [Actioning and Expiring Initiatives](/initiatives/action-expire-initiative)
+- [Adding Bounties to Initiatives](/initiatives/add-bounties)

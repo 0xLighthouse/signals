@@ -1,0 +1,291 @@
+---
+title: 'Tracking & Query Functions'
+weight: 7
+---
+
+# Tracking Support
+
+## Querying Initiative Data
+
+### Get Initiative Details
+
+```solidity
+function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
+```
+
+Returns complete initiative information including state, proposer, timestamps, and total locked tokens.
+
+### Get Total Initiatives
+
+```solidity
+function totalInitiatives() external view returns (uint256)
+```
+
+Returns the total number of initiatives created on the board.
+
+## Querying Weight
+
+### Current Weight
+
+```solidity
+function getWeight(uint256 initiativeId) external view returns (uint256)
+```
+
+Returns the initiative's current total weight (at `block.timestamp`), accounting for all active locks and decay.
+
+### Historical Weight
+
+```solidity
+function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256)
+```
+
+Returns the initiative's weight at a specific timestamp. Useful for:
+- Creating weight charts over time
+- Verifying historical data
+- Calculating rewards
+
+### Supporter's Weight
+
+```solidity
+function getWeightForSupporterAt(
+    uint256 initiativeId,
+    address supporter,
+    uint256 timestamp
+) external view returns (uint256)
+```
+
+Returns a specific supporter's weight contribution at a given timestamp.
+
+## Querying Lock Positions
+
+### Get Lock Details
+
+```solidity
+function getTokenLock(uint256 tokenId) external view returns (TokenLock memory)
+```
+
+Returns detailed lock information for a specific NFT token ID.
+
+### Get Standardized Lock Data
+
+```solidity
+function getLockData(uint256 tokenId) external view returns (LockData memory)
+```
+
+Returns standardized lock data conforming to the ISignalsLock interface.
+
+### Get All Supporter's Locks
+
+```solidity
+// Get all lock token IDs for a supporter
+function getLocksForSupporter(address supporter) external view returns (uint256[] memory)
+
+// Get count of locks
+function getLockCountForSupporter(address supporter) external view returns (uint256)
+```
+
+### Get Initiative's Lock Positions
+
+```solidity
+function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory)
+```
+
+Returns all NFT token IDs supporting a specific initiative.
+
+## Querying Supporters
+
+### Get All Supporters
+
+```solidity
+function getSupporters(uint256 initiativeId) external view returns (address[] memory)
+```
+
+Returns array of all unique supporter addresses.
+
+### Get Supporter Count
+
+```solidity
+function totalSupporters(uint256 initiativeId) external view returns (uint256)
+```
+
+### Check if Address is Supporter
+
+```solidity
+function isSupporter(uint256 initiativeId, address supporter) external view returns (bool)
+```
+
+## ERC721 Position Enumeration
+
+### List Owned Positions
+
+```solidity
+function listPositions(address owner) external view returns (uint256[] memory)
+```
+
+Returns all NFT token IDs owned by an address across all initiatives.
+
+### Standard ERC721 Functions
+
+```solidity
+// Get NFT count for owner
+function balanceOf(address owner) external view returns (uint256)
+
+// Get token ID by index
+function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)
+
+// Get total supply of NFTs
+function totalSupply() external view returns (uint256)
+```
+
+## Weight Decay Configuration
+
+### Query Decay Settings
+
+```solidity
+// Get decay curve type (0 = linear, 1 = exponential)
+function decayCurveType() external view returns (uint256)
+
+// Get decay parameter at index 0
+function decayCurveParameters(uint256 index) external view returns (uint256)
+
+// Get interval duration in seconds
+function lockInterval() external view returns (uint256)
+
+// Get maximum lock duration
+function maxLockIntervals() external view returns (uint256)
+```
+
+### Understanding Weight Decay
+
+**Linear Decay (Type 0):**
+```
+weight = lockAmount * lockDuration - (lockAmount * elapsedIntervals * decayRate)
+```
+
+**Exponential Decay (Type 1):**
+```
+weight = lockAmount * lockDuration * (decayMultiplier ^ elapsedIntervals)
+```
+
+Both curves have a floor at `lockAmount` (nominal value).
+
+## Checking Acceptance Threshold
+
+```solidity
+// Get threshold
+function acceptanceThreshold() external view returns (uint256)
+
+// Check if threshold reached
+uint256 currentWeight = signals.getWeight(initiativeId)
+bool meetsThreshold = currentWeight >= signals.acceptanceThreshold()
+```
+
+## Events for Off-Chain Tracking
+
+```solidity
+event InitiativeProposed(
+    uint256 indexed initiativeId,
+    address indexed proposer,
+    string title,
+    string body
+)
+
+event InitiativeSupported(
+    uint256 indexed initiativeId,
+    address indexed supporter,
+    uint256 tokenAmount,
+    uint256 lockDuration,
+    uint256 tokenId
+)
+
+event InitiativeAccepted(
+    uint256 indexed initiativeId,
+    address indexed actor
+)
+
+event InitiativeExpired(
+    uint256 indexed initiativeId,
+    address indexed actor
+)
+
+event Redeemed(
+    uint256 indexed tokenId,
+    address indexed actor,
+    uint256 amount
+)
+
+event Transfer(
+    address indexed from,
+    address indexed to,
+    uint256 indexed tokenId
+)
+```
+
+## Frontend Integration Example
+
+```typescript
+// Fetch initiative with weight
+const initiative = await signalsContract.read.getInitiative([initiativeId])
+const currentWeight = await signalsContract.read.getWeight([initiativeId])
+const threshold = await signalsContract.read.acceptanceThreshold()
+
+const progress = (Number(currentWeight) / Number(threshold)) * 100
+
+// Get all supporters
+const supporters = await signalsContract.read.getSupporters([initiativeId])
+
+// Get locks for each supporter
+const locks = await Promise.all(
+  supporters.map(async (supporter) => {
+    const tokenIds = await signalsContract.read.getLocksForSupporter([supporter])
+    return Promise.all(
+      tokenIds.map(id => signalsContract.read.getTokenLock([id]))
+    )
+  })
+)
+
+// Calculate historical weight for chart
+const timestamps = generateTimestamps(start, end, interval)
+const weights = await Promise.all(
+  timestamps.map(ts =>
+    signalsContract.read.getWeightAt([initiativeId, ts])
+  )
+)
+```
+
+## Complete Dashboard Example
+
+```typescript
+async function getInitiativeDashboard(initiativeId: bigint) {
+  // Get basic info
+  const initiative = await signals.read.getInitiative([initiativeId])
+  const currentWeight = await signals.read.getWeight([initiativeId])
+  const threshold = await signals.read.acceptanceThreshold()
+
+  // Get supporters
+  const supporters = await signals.read.getSupporters([initiativeId])
+  const supporterCount = supporters.length
+
+  // Get all lock positions
+  const lockTokenIds = await signals.read.getPositionsForInitiative([initiativeId])
+  const locks = await Promise.all(
+    lockTokenIds.map(id => signals.read.getTokenLock([id]))
+  )
+
+  // Calculate statistics
+  const totalLocked = locks.reduce((sum, lock) => sum + lock.tokenAmount, 0n)
+  const avgLockDuration = locks.reduce((sum, lock) => sum + lock.lockDuration, 0n) / BigInt(locks.length)
+
+  return {
+    ...initiative,
+    currentWeight,
+    threshold,
+    progress: (Number(currentWeight) / Number(threshold)) * 100,
+    supporterCount,
+    lockCount: locks.length,
+    totalLocked,
+    avgLockDuration,
+    locks
+  }
+}
+```

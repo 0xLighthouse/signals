@@ -1,0 +1,125 @@
+---
+title: 'acceptInitiative Function'
+weight: 4
+---
+
+# Accepting an Initiative
+
+## Function Signature
+
+```solidity
+function acceptInitiative(uint256 initiativeId) external payable onlyOwner
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | ID of the initiative to accept |
+
+## Access Control
+
+**Owner-only function** - Only the board owner can accept initiatives.
+
+## Pre-conditions
+
+1. **Initiative must exist** - `initiativeId <= initiativeCount`
+2. **Initiative must be in Proposed state** - Cannot accept already Accepted or Expired initiatives
+3. **Caller must be owner** - Access restricted via `onlyOwner` modifier
+
+### Important: No Automatic Threshold Check
+
+The function **does not enforce** that the initiative has reached `acceptanceThreshold`. The owner has full discretion to accept initiatives regardless of weight.
+
+## What Happens When Accepting
+
+When an initiative is accepted:
+
+1. **State changes** to `Accepted` (irreversible)
+2. **Acceptance timestamp** is recorded (`acceptanceTimestamp = block.timestamp`)
+3. **Bounties are automatically distributed** (if configured)
+4. **Incentive rewards are calculated** (if configured)
+5. **Supporters can redeem** their locked tokens (after release timelock)
+
+### Automatic Integrations
+
+#### Bounties Distribution
+
+If bounties are configured, they're automatically distributed. Supporters must claim their bounty rewards separately from the Bounties contract.
+
+#### Incentives Calculation
+
+If an incentives pool is configured, rewards are calculated and paid out.
+
+## Impact on Token Locks
+
+### Redemption Timeline
+
+Locked tokens become redeemable based on `releaseLockDuration`:
+
+**Immediate Release:** Supporters can redeem immediately
+
+**Timelocked Release:** Supporters must wait for timelock to pass before redeeming.
+
+If the board is closed via `closeBoard()`, the release timelock is bypassed and all locks become immediately redeemable.
+
+## Events Emitted
+
+```solidity
+event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
+```
+
+## Validation & Errors
+
+| Error | Condition | Solution |
+|-------|-----------|----------|
+| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid ID (1 to initiativeCount) |
+| `Signals_NotProposedState` | Initiative not in Proposed state | Only accept Proposed initiatives |
+| `OwnableUnauthorizedAccount` | Caller is not owner | Must be board owner |
+
+## Integration Examples
+
+### Check and Accept Initiative
+
+```typescript
+// Owner dashboard - check if initiative should be accepted
+async function shouldAccept(initiativeId: bigint) {
+  const initiative = await signals.read.getInitiative([initiativeId])
+
+  // Must be proposed
+  if (initiative.state !== 0) return false  // 0 = Proposed
+
+  // Check weight vs threshold
+  const weight = await signals.read.getWeight([initiativeId])
+  const threshold = await signals.read.acceptanceThreshold()
+
+  // Owner's discretion
+  return weight >= threshold
+}
+
+// Accept initiative
+async function accept(initiativeId: bigint) {
+  const tx = await signals.write.acceptInitiative([initiativeId])
+  await tx.wait()
+
+  console.log(`Initiative ${initiativeId} accepted`)
+  notifySupporters(initiativeId)
+}
+```
+
+## Related Functions
+
+```solidity
+// Query functions
+function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
+function getWeight(uint256 initiativeId) external view returns (uint256)
+function acceptanceThreshold() external view returns (uint256)
+function releaseLockDuration() external view returns (uint256)
+
+// Owner functions for managing initiatives
+function acceptInitiative(uint256 initiativeId) external onlyOwner
+function expireInitiative(uint256 initiativeId) external onlyOwner
+
+// Emergency action
+function closeBoard() external onlyOwner  // Bypasses all timelocks
+```

@@ -44,7 +44,26 @@ export default defineConfig({
     {
       text: 'Developer Reference',
       collapsed: false,
-      items: nav.navItems('/reference'),
+      items: [
+        {
+          text: 'Board Configuration',
+          collapsed: true,
+          items: [
+            ...nav.navItems('/reference/board-configuration'),
+            {
+              text: 'Post Deployment Configuration',
+              collapsed: true,
+              items: nav.navItems('/reference/board-configuration/post-deployment-configuration'),
+            },
+          ],
+        },
+        {
+          text: 'Initiative Interactions',
+          link: '/reference/initiative-interactions',
+          collapsed: true,
+          items: nav.navItems('/reference/initiative-functions'),
+        },
+      ],
     }
   ],
 })
