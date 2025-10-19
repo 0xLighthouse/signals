@@ -54,9 +54,6 @@ importers:
       lucide-react:
         specifier: ^0.263.1
         version: 0.263.1(react@19.2.0)
-      playwright:
-        specifier: ^1.40.0
-        version: 1.56.0
       react:
         specifier: ^19.2.0
         version: 19.2.0

@@ -24,7 +24,6 @@
     "@types/react": "^19.2.2",
     "front-matter": "^4.0.2",
     "lucide-react": "^0.263.1",
-    "playwright": "^1.40.0",
     "react": "^19.2.0",
     "vocs": "^1.0.13"
   },

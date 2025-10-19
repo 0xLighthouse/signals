@@ -548,5 +548,5 @@ A: Only whitelisted tokens can be used, preventing malicious token contracts fro
 ## Related Documentation
 
 - [Board Incentives](./incentives.md) - DAO-funded board-wide participation rewards
-- [Lock Positions](./lock-positions.md) - How token locking works
-- [Initiative Lifecycle](./initiative-lifecycle.md) - From proposal to acceptance
+- [Lock Positions](../reference/locked-token-nfts.mdx) - How token locking works
+- [Initiative Lifecycle](#TODO) - From proposal to acceptance

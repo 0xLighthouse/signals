@@ -522,5 +522,5 @@ A: Check `signals.boardIncentives().enabled` and `signals.incentivesPool()` addr
 ## Related Documentation
 
 - [Bounties Feature](./bounties.md)
-- [Board Configuration](../configuration/board-config.md)
-- [Lock Positions](./lock-positions.md)
+- [Board Configuration](../reference/board-configuration/config-parameters.mdx)
+- [Lock Positions](../reference/locked-token-nfts.mdx)
