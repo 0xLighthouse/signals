@@ -172,9 +172,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         vm.stopPrank();
 
         // Attempt to expire the initiative before inactivity threshold
-        vm.expectRevert(
-            abi.encodeWithSignature("InvalidInitiativeState(string)", "Initiative not yet eligible for expiration")
-        );
+        vm.expectRevert(abi.encodeWithSignature("Signals_NotEligibleForExpiration()"));
         signals.expireInitiative(1);
     }
 

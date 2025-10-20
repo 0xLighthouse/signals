@@ -56,7 +56,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock("Initiative 2", "Description 2", 200 * 1e18, 6);
 
         // Attempt to withdraw tokens before acceptance
-        vm.expectRevert(abi.encodeWithSignature("InvalidInitiativeState(string)", "Initiative not withdrawable"));
+        vm.expectRevert(abi.encodeWithSignature("Signals_NotWithdrawableState()"));
         signals.redeem(1);
 
         vm.stopPrank();
@@ -110,11 +110,15 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         // Propose initiative with lock
         vm.startPrank(_bob);
         _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold);
-        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", defaultConfig.proposerRequirements.threshold, 6);
+        signals.proposeInitiativeWithLock(
+            "Initiative 1", "Description 1", defaultConfig.proposerRequirements.threshold, 6
+        );
 
         // Propose another initiative with lock
         _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold);
-        signals.proposeInitiativeWithLock("Initiative 2", "Description 2", defaultConfig.proposerRequirements.threshold, 6);
+        signals.proposeInitiativeWithLock(
+            "Initiative 2", "Description 2", defaultConfig.proposerRequirements.threshold, 6
+        );
 
         // Accept the first initiative
         vm.startPrank(_deployer);
@@ -134,7 +138,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
 
         // Attempt to withdraw the second lock...
         vm.startPrank(_bob);
-        vm.expectRevert(abi.encodeWithSignature("InvalidInitiativeState(string)", "Initiative not withdrawable"));
+        vm.expectRevert(abi.encodeWithSignature("Signals_NotWithdrawableState()"));
         signals.redeem(2); // veBond 2
 
         // Fast forward time beyond inactivity threshold
