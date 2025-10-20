@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "solady/src/utils/ReentrancyGuard.sol";
 
@@ -19,11 +20,8 @@ import {SignalsConstants} from "./utils/Constants.sol";
  *
  * @author Lighthouse Labs <https://lighthouse.cx>
  */
-contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
+contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
-    /// @notice The owner of this pool (typically the DAO)
-    address public owner;
 
     /// @notice Pool configuration
     PoolConfig public poolConfig;
@@ -46,12 +44,6 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
     /// @notice Mapping from board => initiativeId => total weight sum
     mapping(address => mapping(uint256 => uint256)) public initiativeTotalWeight;
 
-    /// @notice Modifier to check if caller is the owner
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert IIncentivesPool.IncentivesPool_NotAuthorized();
-        _;
-    }
-
     /// @notice Modifier to check if caller is an approved board
     modifier onlyApprovedBoard() {
         if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
@@ -61,15 +53,10 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
     /**
      * @notice Constructor
      */
-    constructor() {
-        owner = msg.sender;
-    }
+    constructor() Ownable(msg.sender) {}
 
     /// @inheritdoc IIncentivesPool
-    function initializePool(address token, uint256 amount, uint256 maxRewardPerInitiative)
-        external
-        onlyOwner
-    {
+    function initializePool(address token, uint256 amount, uint256 maxRewardPerInitiative) external onlyOwner {
         if (poolConfig.token != address(0)) {
             revert IIncentivesPool.IncentivesPool_AlreadyInitialized();
         }
@@ -166,9 +153,8 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
 
         // Calculate reward allocation for this initiative
         uint256 availableBalance = poolConfig.totalAmount - poolConfig.allocated;
-        rewardAmount = availableBalance < poolConfig.maxRewardPerInitiative
-            ? availableBalance
-            : poolConfig.maxRewardPerInitiative;
+        rewardAmount =
+            availableBalance < poolConfig.maxRewardPerInitiative ? availableBalance : poolConfig.maxRewardPerInitiative;
 
         // If no rewards available, return early (non-blocking)
         if (rewardAmount == 0) {
@@ -343,11 +329,7 @@ contract IncentivesPool is IIncentivesPool, ReentrancyGuard {
     }
 
     /// @inheritdoc IIncentivesPool
-    function previewRewards(address board, uint256 initiativeId, address supporter)
-        external
-        view
-        returns (uint256)
-    {
+    function previewRewards(address board, uint256 initiativeId, address supporter) external view returns (uint256) {
         return supporterRewards[board][initiativeId][supporter];
     }
 
