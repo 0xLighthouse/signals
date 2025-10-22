@@ -77,9 +77,6 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Timestamp when board opens for participation (0 = open immediately)
     uint256 public boardOpensAt;
 
-    /// @notice Configuration for board-wide incentive rewards (internal storage)
-    BoardIncentives internal _boardIncentives;
-
     /// @notice Current state of the board (Open or Closed)
     BoardState public boardState;
 
@@ -116,6 +113,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     /// @notice (Optional) Reference to the IncentivesPool contract (can be set before board opens)
     IIncentivesPool public incentivesPool;
+
+    /// @notice Configuration for board-wide incentive rewards (internal storage)
+    IncentivesConfig internal _incentivesConfig;
 
     /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
     modifier exists(uint256 initiativeId) {
@@ -176,8 +176,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
             // Then check historical balance using ERC20Votes checkpoints
             // This requires the underlying token to support getPastVotes (e.g., governance tokens)
-            try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration)
-                returns (uint256 pastBalance) {
+            try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration) returns (
+                uint256 pastBalance
+            ) {
                 // Verify they held the minimum balance for the required duration
                 if (pastBalance < reqs.minBalance) {
                     revert ISignals.Signals_ProposerInsufficientDuration();
@@ -222,8 +223,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
             // Then check historical balance using ERC20Votes checkpoints
             // This requires the underlying token to support getPastVotes (e.g., governance tokens)
-            try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration)
-                returns (uint256 pastBalance) {
+            try IVotes(underlyingToken).getPastVotes(msg.sender, block.number - reqs.minHoldingDuration) returns (
+                uint256 pastBalance
+            ) {
                 // Verify they held the minimum balance for the required duration
                 if (pastBalance < reqs.minBalance) {
                     revert ISignals.Signals_ParticipantInsufficientDuration();
@@ -264,8 +266,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         participantRequirements = config.participantRequirements;
         releaseLockDuration = config.releaseLockDuration;
         boardOpensAt = config.boardOpensAt;
-        _boardIncentives = config.boardIncentives;
         boardState = BoardState.Open;
+        _boardIncentives = config.boardIncentives;
 
         // Validate requirements
         _validateProposerRequirements(config.proposerRequirements);
@@ -290,13 +292,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         string memory _body,
         uint256 _amount,
         uint256 _lockDuration
-    )
-        external
-        isOpen
-        isEligibleProposer
-        hasValidInput(_title, _body)
-        returns (uint256 tokenId)
-    {
+    ) external isOpen isEligibleProposer hasValidInput(_title, _body) returns (uint256 tokenId) {
         uint256 id = _addInitiative(_title, _body);
         tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
     }
@@ -342,7 +338,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         // Calculate and allocate incentives for supporters (non-blocking)
         // Uses try-catch to prevent incentive failures from blocking acceptance
         if (address(incentivesPool) != address(0)) {
-            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {} catch {
+            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {}
+            catch {
                 // Incentives calculation failed, but don't block acceptance
                 // Silently continue - pool contract will emit events for monitoring
             }
@@ -418,11 +415,21 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc ISignals
-    function setIncentivesPool(address _incentivesPool) external onlyOwner {
+    function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
+        external
+        onlyOwner
+    {
+        if (incentivesPool != address(0)) {
+            revert ISignals.Signals_IncentivesPoolAlreadySet();
+        }
         if (block.timestamp >= boardOpensAt) {
             revert ISignals.Signals_BoardAlreadyOpened();
         }
+        if (!IIncentivesPool(_incentivesPool).isBoardApproved(address(this))) {
+            revert ISignals.Signals_IncentivesPoolNotApproved();
+        }
         incentivesPool = IIncentivesPool(_incentivesPool);
+        _incentivesConfig = incentivesConfig;
     }
 
     /// @inheritdoc ISignals
@@ -610,7 +617,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
             // Unchecked increment: loop counter cannot realistically overflow uint256
             // Saves ~30-40 gas per iteration by skipping overflow checks
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         return weight;
@@ -650,7 +659,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
             // Unchecked increment: loop counter cannot realistically overflow uint256
             // Saves ~30-40 gas per iteration by skipping overflow checks
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         return weight;
@@ -791,7 +802,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
             // Unchecked increment: loop counter cannot overflow uint256
             // Saves ~30-40 gas per iteration
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         return tokens;
@@ -817,8 +830,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             }
 
             // Try to check past balance (requires ERC20Votes)
-            try IVotes(underlyingToken).getPastVotes(proposer, block.number - reqs.minHoldingDuration)
-                returns (uint256 pastBalance) {
+            try IVotes(underlyingToken).getPastVotes(proposer, block.number - reqs.minHoldingDuration) returns (
+                uint256 pastBalance
+            ) {
                 return pastBalance >= reqs.minBalance;
             } catch {
                 return false; // Token doesn't support checkpoints
@@ -848,8 +862,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             }
 
             // Try to check past balance (requires ERC20Votes)
-            try IVotes(underlyingToken).getPastVotes(participant, block.number - reqs.minHoldingDuration)
-                returns (uint256 pastBalance) {
+            try IVotes(underlyingToken).getPastVotes(participant, block.number - reqs.minHoldingDuration) returns (
+                uint256 pastBalance
+            ) {
                 return pastBalance >= reqs.minBalance;
             } catch {
                 return false; // Token doesn't support checkpoints

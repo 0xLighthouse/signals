@@ -39,7 +39,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
         ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
         uint256 boardOpensAt;
-        BoardIncentives boardIncentives;
     }
 
     /**
@@ -112,14 +111,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
 
     /**
      * @notice Configuration for board-wide incentive rewards
-     * @dev Set enabled=false for boards without incentives
      *
-     * @param enabled Whether incentives are active for this board
      * @param curveType Type of incentive curve (0 = linear, 1 = exponential)
      * @param curveParameters Parameters for the curve (e.g., [k] for linear decay)
      */
-    struct BoardIncentives {
-        bool enabled;
+    struct IncentivesConfig {
         uint256 curveType;
         uint256[] curveParameters;
     }
@@ -139,9 +135,10 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
 
     /// @notice Types of eligibility requirements for proposers and participants
     enum EligibilityType {
-        None,                    // No requirements
-        MinBalance,              // Requires minimum token balance
-        MinBalanceAndDuration    // Requires min balance held for min duration
+        None, // No requirements
+        MinBalance, // Requires minimum token balance
+        MinBalanceAndDuration // Requires min balance held for min duration
+
     }
 
     /**
@@ -276,6 +273,12 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
 
     /// @notice Thrown when initiative not eligible for expiration (still active)
     error Signals_NotEligibleForExpiration();
+
+    /// @notice Thrown when attempting to set incentives pool when one is already set
+    error Signals_IncentivesPoolAlreadySet();
+
+    /// @notice Thrown when incentives pool is not approved for this board
+    error Signals_IncentivesPoolNotApproved();
 
     // Public state variables
     function acceptanceThreshold() external view returns (uint256);
