@@ -35,6 +35,26 @@ Signals helps communities listen to themselves — revealing which directions ha
 
 ---
 
+## Contributor Guide
+
+Review the [Repository Guidelines](AGENTS.md) before proposing changes.
+
+---
+
+### Edge City Claim (optional)
+
+To enable the Edge City residency claim flow in the interface:
+
+- `NEXT_PUBLIC_EDGE_CITY=true`
+- `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (token supporting `faucet` or `claim`)
+- `NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION=faucet` (or `claim` when paired with `NEXT_PUBLIC_EDGE_CITY_CLAIM_AMOUNT`)
+- `NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS=2,7` (optional list of qualifying popup IDs)
+- `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
+
+These variables must be defined in the interface environment before starting the dev server.
+
+---
+
 ## ⚙️ How It Works
 
 1. **Deploy a Board**
