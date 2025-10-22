@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import "solady/src/utils/ReentrancyGuard.sol";
 
@@ -29,21 +30,15 @@ import {SignalsConstants} from "./utils/Constants.sol";
  * @author 1a35e1.eth <https://x.com/1a35e1>
  * @author jkm.eth <james@lighthouse.cx>
  */
-contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
-    /// @notice Weight required for an initiative to be accepted
-    uint256 public acceptanceThreshold;
-
-    /// @notice Maximum time we can lock tokens for denominated in intervals
-    uint256 public maxLockIntervals;
-
-    /// @notice Maximum number of proposals allowed
-    uint256 public proposalCap;
+contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard, Initializable {
+    /// @notice The version of the Signals contract
+    string public version;
 
     /// @notice Vanity title for the Board. eg. "Season 1: The Great Reset"
     string public title;
 
-    /// @notice The version of the Signals contract
-    string public version;
+    /// @notice Address of the underlying token (ERC20)
+    address public underlyingToken;
 
     /**
      * @notice Interval used for lockup duration and calculating the decay curve
@@ -53,14 +48,20 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     uint256 public lockInterval;
 
+    /// @notice Maximum time we can lock tokens for denominated in intervals
+    uint256 public maxLockIntervals;
+
+    /// @notice Weight required for an initiative to be accepted
+    uint256 public acceptanceThreshold;
+
+    /// @notice Maximum number of proposals allowed
+    uint256 public proposalCap;
+
     /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
     uint256 public decayCurveType;
 
     /// @notice Parameters for the decay curve (the requirements of which depend on which curve is chosen)
     uint256[] public decayCurveParameters;
-
-    /// @notice Address of the underlying token (ERC20)
-    address public underlyingToken;
 
     /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
     uint256 public activityTimeout = SignalsConstants.DEFAULT_ACTIVITY_TIMEOUT;
@@ -74,11 +75,11 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Duration tokens remain locked after acceptance (0 = immediate release)
     uint256 public releaseLockDuration;
 
-    /// @notice Timestamp when board opens for participation (0 = open immediately)
-    uint256 public boardOpensAt;
+    /// @notice Timestamp when board opens for participation
+    uint256 public boardOpenAt;
 
-    /// @notice Current state of the board (Open or Closed)
-    BoardState public boardState;
+    /// @notice Timestamp when board closed or will close for participation
+    uint256 public boardClosedAt;
 
     /// @notice (initiativeId => Initiative)
     mapping(uint256 => Initiative) internal _initiatives;
@@ -99,8 +100,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     // Shows which initiatives a supporter has pending withdrawals for
     mapping(uint256 => mapping(address => bool)) public isSupporter;
 
-    /// @notice Track locked tokens with NFTs
-    uint256 public nextTokenId = 1;
+    /// @notice Number of lock positions created as NFTs
+    uint256 public lockCount;
 
     /// @notice Initiative counter
     uint256 public initiativeCount;
@@ -123,14 +124,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         _;
     }
 
-    modifier isNotInitialized() {
-        if (acceptanceThreshold != 0) revert ISignals.Signals_AlreadyInitialized();
-        _;
-    }
-
     modifier isOpen() {
-        if (block.timestamp < boardOpensAt) revert ISignals.Signals_BoardNotYetOpen();
-        if (boardState == BoardState.Closed) revert ISignals.Signals_BoardClosed();
+        if (!isBoardOpen()) revert ISignals.Signals_BoardNotOpen();
         _;
     }
 
@@ -242,7 +237,7 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
     /// @inheritdoc ISignals
-    function initialize(ISignals.BoardConfig calldata config) external isNotInitialized {
+    function initialize(ISignals.BoardConfig calldata config) external initializer {
         // Validate configuration parameters
         if (config.underlyingToken == address(0)) revert ISignals.Signals_ZeroAddressToken();
         if (config.owner == address(0)) revert ISignals.Signals_ZeroAddressOwner();
@@ -252,6 +247,22 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
         if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
             revert ISignals.Signals_InvalidDecayCurveType();
+        }
+
+        if (config.boardOpenAt == 0) {
+            boardOpenAt = type(uint256).max;
+        } else if (config.boardOpenAt < block.timestamp) {
+            revert ISignals.Signals_InvalidBoardOpenTime();
+        } else {
+            boardOpenAt = config.boardOpenAt;
+        }
+
+        if (config.boardClosedAt == 0) {
+            boardClosedAt = type(uint256).max;
+        } else if (config.boardClosedAt < config.boardOpenAt) {
+            revert ISignals.Signals_InvalidBoardClosedTime();
+        } else {
+            boardClosedAt = config.boardClosedAt;
         }
 
         version = config.version;
@@ -265,9 +276,6 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         proposerRequirements = config.proposerRequirements;
         participantRequirements = config.participantRequirements;
         releaseLockDuration = config.releaseLockDuration;
-        boardOpensAt = config.boardOpensAt;
-        boardState = BoardState.Open;
-        _boardIncentives = config.boardIncentives;
 
         // Validate requirements
         _validateProposerRequirements(config.proposerRequirements);
@@ -433,11 +441,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc ISignals
-    function closeBoard() external onlyOwner {
-        if (boardState == BoardState.Closed) {
-            revert ISignals.Signals_BoardClosed();
-        }
-        boardState = BoardState.Closed;
+    function closeBoard() external isOpen onlyOwner {
+        boardClosedAt = block.timestamp;
         emit BoardClosed(msg.sender);
     }
 
@@ -465,13 +470,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
 
         // Release timelock: Accepted initiatives may have a cooldown period before redemption
         // This prevents immediately dumping tokens after acceptance
-        // Timelock is bypassed if board is closed (emergency exit mechanism)
-        if (initiative.state == InitiativeState.Accepted && boardState != BoardState.Closed) {
-            if (releaseLockDuration > 0) {
-                uint256 releaseTime = initiative.acceptanceTimestamp + releaseLockDuration;
-                if (block.timestamp < releaseTime) {
-                    revert ISignals.Signals_StillTimelocked();
-                }
+        // Timelock is bypassed if board is closed
+        if (initiative.state == InitiativeState.Accepted && !isBoardClosed()) {
+            if (block.timestamp < initiative.acceptanceTimestamp + releaseLockDuration) {
+                revert ISignals.Signals_StillTimelocked();
             }
         }
 
@@ -555,11 +557,11 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             revert ISignals.Signals_TokenTransferFailed();
         }
 
-        tokenId = nextTokenId++;
+        lockCount++;
 
-        _safeMint(supporter, tokenId);
+        _safeMint(supporter, lockCount);
 
-        _locks[tokenId] = TokenLock({
+        _locks[lockCount] = TokenLock({
             initiativeId: initiativeId,
             tokenAmount: amount,
             lockDuration: lockDuration,
@@ -567,8 +569,8 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             withdrawn: false
         });
 
-        initiativeLocks[initiativeId].push(tokenId);
-        supporterLocks[supporter].push(tokenId);
+        initiativeLocks[initiativeId].push(lockCount);
+        supporterLocks[supporter].push(lockCount);
 
         // Update the initiative's underlying locked amount
         initiative.underlyingLocked += amount;
@@ -582,9 +584,9 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
             isSupporter[initiativeId][supporter] = true;
         }
 
-        emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, tokenId);
+        emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, lockCount);
 
-        return tokenId;
+        return lockCount;
     }
 
     /**
@@ -969,9 +971,12 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard {
         return participantRequirements;
     }
 
-    /// @inheritdoc ISignals
-    function boardIncentives() external view returns (BoardIncentives memory) {
-        return _boardIncentives;
+    function isBoardOpen() public view returns (bool) {
+        return block.timestamp >= boardOpenAt && block.timestamp < boardClosedAt;
+    }
+
+    function isBoardClosed() public view returns (bool) {
+        return block.timestamp > boardClosedAt;
     }
 }
 

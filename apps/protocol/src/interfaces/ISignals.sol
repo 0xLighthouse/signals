@@ -22,8 +22,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
      * @param proposerRequirements Requirements for who can propose (immutable)
      * @param participantRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
-     * @param boardOpensAt Timestamp when board opens for participation (0 = open immediately)
-     * @param boardIncentives Configuration for board-wide incentive rewards
+     * @param boardOpenAt Timestamp when board opens for participation (0 = open immediately)
+     * @param boardClosedAt Timestamp when board closes for participation (0 = never closes)
      */
     struct BoardConfig {
         string version;
@@ -38,7 +38,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
         ProposerRequirements proposerRequirements;
         ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
-        uint256 boardOpensAt;
+        uint256 boardOpenAt;
+        uint256 boardClosedAt;
     }
 
     /**
@@ -128,11 +129,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
         Expired
     }
 
-    enum BoardState {
-        Open,
-        Closed
-    }
-
     /// @notice Types of eligibility requirements for proposers and participants
     enum EligibilityType {
         None, // No requirements
@@ -206,7 +202,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     error Signals_BoardClosed();
 
     /// @notice Thrown when attempting to interact before board opens
-    error Signals_BoardNotYetOpen();
+    error Signals_BoardNotOpen();
 
     /// @notice Thrown when attempting to set incentives pool after board has opened
     error Signals_BoardAlreadyOpened();
@@ -280,6 +276,12 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     /// @notice Thrown when incentives pool is not approved for this board
     error Signals_IncentivesPoolNotApproved();
 
+    /// @notice Thrown when board open timestamp is invalid (in the past)
+    error Signals_InvalidBoardOpenTime();
+
+    /// @notice Thrown when board closed timestamp is invalid (before open time)
+    error Signals_InvalidBoardClosedTime();
+
     // Public state variables
     function acceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
@@ -293,12 +295,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     function supporterLocks(address, uint256) external view returns (uint256);
     function supporters(uint256, uint256) external view returns (address);
     function isSupporter(uint256, address) external view returns (bool);
-    function nextTokenId() external view returns (uint256);
+    function lockCount() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
     function releaseLockDuration() external view returns (uint256);
-    function boardState() external view returns (BoardState);
-    function boardOpensAt() external view returns (uint256);
-    function boardIncentives() external view returns (BoardIncentives memory);
+    function boardOpenAt() external view returns (uint256);
+    function boardClosedAt() external view returns (uint256);
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
@@ -325,7 +326,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     function setInactivityThreshold(uint256 _newThreshold) external;
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
     function setBounties(address _bounties) external;
-    function setIncentivesPool(address _incentivesPool) external;
+    function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig) external;
     function closeBoard() external;
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);
