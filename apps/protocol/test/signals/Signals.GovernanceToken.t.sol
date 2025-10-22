@@ -64,12 +64,8 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
         vm.startPrank(_bob);
         _tokenERC20Votes.approve(address(signals), 100_000 * 1e18);
 
-        uint256 tokenId = signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Test with governance token",
-            50_000 * 1e18,
-            6
-        );
+        uint256 tokenId =
+            signals.proposeInitiativeWithLock("Initiative 1", "Test with governance token", 50_000 * 1e18, 6);
 
         assertEq(tokenId, 1);
         assertEq(signals.ownerOf(1), _bob);
@@ -185,12 +181,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
         // 1. Alice proposes with lock
         vm.startPrank(_alice);
         _tokenERC20Votes.approve(address(signals), 40_000 * 1e18);
-        uint256 tokenId1 = signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Full lifecycle test",
-            40_000 * 1e18,
-            12
-        );
+        uint256 tokenId1 = signals.proposeInitiativeWithLock("Initiative 1", "Full lifecycle test", 40_000 * 1e18, 12);
         vm.stopPrank();
 
         // 2. Bob supports
@@ -251,12 +242,8 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: 0,
-            boardIncentives: ISignals.BoardIncentives({
-                enabled: false,
-                curveType: 0,
-                curveParameters: new uint256[](0)
-            })
+            boardOpenAt: 0,
+            boardClosedAt: 0
         });
 
         address instance = factory.create(factoryConfig);
@@ -296,12 +283,7 @@ contract SignalsGovernanceTokenTest is Test, SignalsHarness {
         // Alice locks tokens
         vm.startPrank(_alice);
         _tokenERC20Votes.approve(address(signals), 30_000 * 1e18);
-        uint256 tokenId = signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description",
-            30_000 * 1e18,
-            6
-        );
+        uint256 tokenId = signals.proposeInitiativeWithLock("Initiative 1", "Description", 30_000 * 1e18, 6);
         vm.stopPrank();
 
         // Alice transfers remaining balance to someone else

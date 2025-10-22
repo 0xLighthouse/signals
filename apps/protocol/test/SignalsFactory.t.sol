@@ -49,8 +49,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             proposerRequirements: defaultConfig.proposerRequirements,
             participantRequirements: defaultConfig.participantRequirements,
             releaseLockDuration: defaultConfig.releaseLockDuration,
-            boardOpensAt: defaultConfig.boardOpensAt,
-            boardIncentives: defaultConfig.boardIncentives
+            boardOpenAt: defaultConfig.boardOpenAt,
+            boardClosedAt: defaultConfig.boardClosedAt
         });
 
         // Check that the Signals contract was deployed
@@ -99,8 +99,8 @@ contract SignalsFactoryTest is Test, SignalsHarness {
                 proposerRequirements: defaultConfig.proposerRequirements,
                 participantRequirements: defaultConfig.participantRequirements,
                 releaseLockDuration: defaultConfig.releaseLockDuration,
-                boardOpensAt: defaultConfig.boardOpensAt,
-                boardIncentives: defaultConfig.boardIncentives
+                boardOpenAt: defaultConfig.boardOpenAt,
+                boardClosedAt: defaultConfig.boardClosedAt
             })
         );
     }

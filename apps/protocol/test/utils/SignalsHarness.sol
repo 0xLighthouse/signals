@@ -54,12 +54,8 @@ contract SignalsHarness is Test {
             minHoldingDuration: 0
         }),
         releaseLockDuration: 0,
-        boardOpensAt: 0, // Open immediately
-        boardIncentives: ISignals.BoardIncentives({
-            enabled: false,
-            curveType: 0,
-            curveParameters: new uint256[](0)
-        })
+        boardOpenAt: 0, // Open immediately
+        boardClosedAt: 0 // Never closes
     });
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
@@ -155,12 +151,8 @@ contract SignalsHarness is Test {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: 0, // Open immediately
-            boardIncentives: ISignals.BoardIncentives({
-                enabled: false,
-                curveType: 0,
-                curveParameters: new uint256[](0)
-            })
+            boardOpenAt: 0, // Open immediately
+            boardClosedAt: 0 // Never closes
         });
     }
 
@@ -212,8 +204,8 @@ contract SignalsHarness is Test {
             proposerRequirements: config.proposerRequirements,
             participantRequirements: config.participantRequirements,
             releaseLockDuration: config.releaseLockDuration,
-            boardOpensAt: config.boardOpensAt,
-            boardIncentives: config.boardIncentives
+            boardOpenAt: config.boardOpenAt,
+            boardClosedAt: config.boardClosedAt
         });
     }
 

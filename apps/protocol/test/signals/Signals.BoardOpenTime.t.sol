@@ -52,7 +52,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         token.approve(address(signals), 100 * 1e18);
 
-        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
         signals.proposeInitiative("Early Initiative", "Should fail");
         vm.stopPrank();
     }
@@ -78,7 +78,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_bob);
         token.approve(address(newSignals), 150 * 1e18);
 
-        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
         newSignals.proposeInitiative("Should fail", "Board not open yet");
         vm.stopPrank();
     }
@@ -141,7 +141,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         token.approve(address(signals), 200 * 1e18);
 
-        vm.expectRevert(ISignals.Signals_BoardNotYetOpen.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
         signals.proposeInitiativeWithLock("Early Initiative", "Should fail", 100 * 1e18, 10);
         vm.stopPrank();
     }
@@ -175,7 +175,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         uint256 futureOpenTime = block.timestamp + 2 hours;
         signals = deploySignalsWithBoardOpenTime(futureOpenTime);
 
-        uint256 actualOpenTime = signals.boardOpensAt();
+        uint256 actualOpenTime = signals.boardOpenAt();
         assertEq(actualOpenTime, futureOpenTime);
     }
 
@@ -219,12 +219,8 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
                 minHoldingDuration: 0
             }),
             releaseLockDuration: 0,
-            boardOpensAt: openTime,
-            boardIncentives: ISignals.BoardIncentives({
-                enabled: false,
-                curveType: 0,
-                curveParameters: new uint256[](0)
-            })
+            boardOpenAt: openTime,
+            boardClosedAt: 0
         });
 
         // Deploy and initialize

@@ -24,8 +24,8 @@ interface ISignalsFactory {
      * @param proposerRequirements Requirements for who can propose
      * @param participantRequirements Requirements for who can support initiatives
      * @param releaseLockDuration Duration tokens remain locked after acceptance
-     * @param boardOpensAt Timestamp when board opens for participation
-     * @param boardIncentives Configuration for board-wide incentive rewards
+     * @param boardOpenAt Timestamp when board opens for participation (0 for infinity/on hold)
+     * @param boardClosedAt Timestamp when board closes for participation (0 for infinity/never closes)
      */
     struct FactoryDeployment {
         address owner;
@@ -39,8 +39,8 @@ interface ISignalsFactory {
         ISignals.ProposerRequirements proposerRequirements;
         ISignals.ParticipantRequirements participantRequirements;
         uint256 releaseLockDuration;
-        uint256 boardOpensAt;
-        ISignals.BoardIncentives boardIncentives;
+        uint256 boardOpenAt;
+        uint256 boardClosedAt;
     }
 
     /**

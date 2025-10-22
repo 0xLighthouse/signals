@@ -66,9 +66,7 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
 
         // Should revert before timelock expires
         vm.prank(_bob);
-        vm.expectRevert(
-            abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector));
         signalsWithTimelock.redeem(tokenId);
     }
 
@@ -156,12 +154,14 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
     }
 
     function test_CloseBoard_UpdatesState() public {
-        assertEq(uint256(signals.boardState()), uint256(ISignals.BoardState.Open));
+        assertEq(signals.isBoardOpen(), true);
+        assertEq(signals.isBoardClosed(), false);
 
         vm.prank(_deployer);
         signals.closeBoard();
 
-        assertEq(uint256(signals.boardState()), uint256(ISignals.BoardState.Closed));
+        assertEq(signals.isBoardClosed(), true);
+        assertEq(signals.isBoardOpen(), false);
     }
 
     /*//////////////////////////////////////////////////////////////

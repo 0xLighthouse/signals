@@ -54,9 +54,10 @@ interface IIncentivesPool {
      * @dev Can only be called by owner
      *
      * @param board Address of the Signals board to approve
+     * @param boardMaxBudget_ Maximum total budget allocated for this board
      * @param maxRewardPerInitiative_ Maximum reward per initiative for this board
      */
-    function approveBoard(address board, uint256 maxRewardPerInitiative_) external;
+    function approveBoard(address board, uint256 boardMaxBudget_, uint256 maxRewardPerInitiative_) external;
 
     /**
      * @notice Remove approval for a board

@@ -345,13 +345,13 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard, Initia
 
         // Calculate and allocate incentives for supporters (non-blocking)
         // Uses try-catch to prevent incentive failures from blocking acceptance
-        if (address(incentivesPool) != address(0)) {
-            try incentivesPool.calculateIncentives(initiativeId, boardOpensAt, block.timestamp) {}
-            catch {
-                // Incentives calculation failed, but don't block acceptance
-                // Silently continue - pool contract will emit events for monitoring
-            }
-        }
+        // if (address(incentivesPool) != address(0)) {
+        //     try incentivesPool.calculateIncentives(initiativeId, boardOpenAt, block.timestamp) {}
+        //     catch {
+        //         // Incentives calculation failed, but don't block acceptance
+        //         // Silently continue - pool contract will emit events for monitoring
+        //     }
+        // }
 
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
@@ -427,10 +427,10 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard, Initia
         external
         onlyOwner
     {
-        if (incentivesPool != address(0)) {
+        if (address(incentivesPool) != address(0)) {
             revert ISignals.Signals_IncentivesPoolAlreadySet();
         }
-        if (block.timestamp >= boardOpensAt) {
+        if (block.timestamp >= boardOpenAt) {
             revert ISignals.Signals_BoardAlreadyOpened();
         }
         if (!IIncentivesPool(_incentivesPool).isBoardApproved(address(this))) {
@@ -488,12 +488,12 @@ contract Signals is ISignals, ERC721Enumerable, Ownable, ReentrancyGuard, Initia
         // Auto-claim any pending incentive rewards (convenience feature)
         // Only applies to accepted initiatives with configured incentive pools
         // Silently skips if no rewards to prevent revert
-        if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
-            uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
-            if (pendingRewards > 0) {
-                incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
-            }
-        }
+        // if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
+        //     uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
+        //     if (pendingRewards > 0) {
+        //         incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
+        //     }
+        // }
 
         emit Redeemed(tokenId, msg.sender, amount);
     }

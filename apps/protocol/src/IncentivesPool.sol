@@ -24,7 +24,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The which ERC20 token is used as the reward
-    address public constant rewardToken;
+    address public immutable rewardToken;
 
     /// @notice The total amount of rewards in the pool
     uint256 public availableRewards;
@@ -79,7 +79,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
 
     /// @inheritdoc IIncentivesPool
     function updateAvailableRewards(uint256 newBalance) external onlyOwner {
-        if (newBalance <= availableRewards || newBalance > rewardToken.balanceOf(address(this))) {
+        if (newBalance <= availableRewards || newBalance > IERC20(rewardToken).balanceOf(address(this))) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
 

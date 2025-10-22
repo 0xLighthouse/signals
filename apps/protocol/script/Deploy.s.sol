@@ -87,12 +87,8 @@ contract DevelopmentScript is Script {
                     minHoldingDuration: 0
                 }),
                 releaseLockDuration: 0, // Immediate release on acceptance
-                boardOpensAt: 0, // Open immediately
-                boardIncentives: ISignals.BoardIncentives({
-                    enabled: false,
-                    curveType: 0,
-                    curveParameters: new uint256[](0)
-                })
+                boardOpenAt: 0, // Open immediately
+                boardClosedAt: 0 // Never closes
             })
         );
 
