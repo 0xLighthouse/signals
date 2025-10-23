@@ -6,6 +6,7 @@ import {console2} from "forge-std/console2.sol";
 import {ExperimentTokenFactory, ExperimentToken} from "../src/ExperimentTokenFactory.sol";
 
 contract DeployTokenFactoryScript is Script {
+
     function run() public {
         vm.startBroadcast();
 
@@ -14,8 +15,8 @@ contract DeployTokenFactoryScript is Script {
         // Replace the Merkle root with a real allowlist root before broadcasting.
         ExperimentToken token = ExperimentToken(
             factory.deployToken({
-                name: "Signal Token",
-                symbol: "SIG",
+                name: "Experiment Token",
+                symbol: "EXP",
                 initialSupply: 0,
                 owner: address(0),
                 merkleRoot: bytes32(0),
