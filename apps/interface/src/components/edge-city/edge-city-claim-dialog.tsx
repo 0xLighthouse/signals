@@ -21,17 +21,46 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 
 type ClaimStep = 'email' | 'code' | 'review' | 'completed'
 
-const initialState = {
+type ClaimState = {
+  email: string
+  code: string
+  profile: EdgeCityProfile | null
+  step: ClaimStep
+  isRequestingCode: boolean
+  isVerifyingCode: boolean
+  isClaiming: boolean
+  proof: `0x${string}`[]
+  allowlistError: string | null
+}
+
+const initialState: ClaimState = {
   email: '',
   code: '',
-  profile: null as EdgeCityProfile | null,
-  step: 'email' as ClaimStep,
+  profile: null,
+  step: 'email',
   isRequestingCode: false,
   isVerifyingCode: false,
   isClaiming: false,
+  proof: [],
+  allowlistError: null,
 }
 
-const evaluateEligibility = (profile: EdgeCityProfile) => {
+const evaluateEligibility = (
+  profile: EdgeCityProfile,
+  proof: readonly `0x${string}`[],
+  allowlistError: string | null,
+) => {
+  if (allowlistError) {
+    return { eligible: false, reason: allowlistError }
+  }
+
+  if (edgeCityConfig.claimFunction === 'claim' && proof.length === 0) {
+    return {
+      eligible: false,
+      reason: 'No claim allocation found for this Edge City participant',
+    }
+  }
+
   if (!profile.email_validated) {
     return { eligible: false, reason: 'Primary email is not validated' }
   }
@@ -53,12 +82,16 @@ const evaluateEligibility = (profile: EdgeCityProfile) => {
   return { eligible: true, reason: '' }
 }
 
-const buildClaimArgs = (address: `0x${string}`) => {
-  if (edgeCityConfig.claimFunction === 'claim' && edgeCityConfig.claimAmount) {
-    return [address, edgeCityConfig.claimAmount]
+const buildClaimArgs = (
+  address: `0x${string}`,
+  participantId: bigint,
+  proof: readonly `0x${string}`[],
+) => {
+  if (edgeCityConfig.claimFunction === 'claim') {
+    return [address, participantId, proof] as const
   }
 
-  return [address]
+  return [address] as const
 }
 
 export const EdgeCityClaimDialog = () => {
@@ -67,14 +100,15 @@ export const EdgeCityClaimDialog = () => {
   const { walletClient } = useWeb3()
 
   const [open, setOpen] = useState(false)
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState<ClaimState>(initialState)
 
-  const { email, code, profile, step, isRequestingCode, isVerifyingCode, isClaiming } = state
+  const { email, code, profile, step, isRequestingCode, isVerifyingCode, isClaiming, proof, allowlistError } =
+    state
 
   const eligibility = useMemo(() => {
     if (!profile) return { eligible: false, reason: '' }
-    return evaluateEligibility(profile)
-  }, [profile])
+    return evaluateEligibility(profile, proof, allowlistError)
+  }, [profile, proof, allowlistError])
 
   useEffect(() => {
     if (!open) {
@@ -84,9 +118,7 @@ export const EdgeCityClaimDialog = () => {
 
   useEffect(() => {
     if (edgeCityConfig.enabled && !edgeCityConfig.token) {
-      console.warn(
-        'Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured',
-      )
+      console.warn('Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured')
     }
   }, [])
 
@@ -125,6 +157,59 @@ export const EdgeCityClaimDialog = () => {
     }
   }
 
+  const fetchProofForParticipant = async (participantId: number) => {
+    if (edgeCityConfig.claimFunction !== 'claim') {
+      return { proof: [] as `0x${string}`[], allowlistError: null as string | null }
+    }
+
+    try {
+      const response = await fetch('/api/edge-city/proof', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ participantId }),
+      })
+
+      if (response.status === 404) {
+        return {
+          proof: [] as `0x${string}`[],
+          allowlistError: 'No claim allocation found for this Edge City participant',
+        }
+      }
+
+      if (!response.ok) {
+        const { error } = await response.json()
+        throw new Error(error ?? 'Unexpected response fetching allowlist proof')
+      }
+
+      const payload = (await response.json()) as {
+        proof: `0x${string}`[]
+        merkleRoot?: `0x${string}`
+      }
+
+      if (
+        payload.merkleRoot &&
+        edgeCityConfig.merkleRoot &&
+        payload.merkleRoot.toLowerCase() !== edgeCityConfig.merkleRoot.toLowerCase()
+      ) {
+        console.warn('Edge City merkle root mismatch between config and allowlist data')
+      }
+
+      return {
+        proof: payload.proof ?? [],
+        allowlistError: null as string | null,
+      }
+    } catch (error) {
+      console.error(error)
+      toast(error instanceof Error ? error.message : 'Failed to load allowlist proof')
+      return {
+        proof: [] as `0x${string}`[],
+        allowlistError: 'Unable to load allowlist data',
+      }
+    }
+  }
+
   const handleVerifyCode = async () => {
     if (!email || !code) {
       toast('Enter your email and verification code')
@@ -148,9 +233,14 @@ export const EdgeCityClaimDialog = () => {
 
       const payload = (await response.json()) as { profile: EdgeCityProfile }
 
+      const participantId = payload.profile.id
+      const { proof: participantProof, allowlistError: proofError } = await fetchProofForParticipant(participantId)
+
       setState((prev) => ({
         ...prev,
         profile: payload.profile,
+        proof: participantProof,
+        allowlistError: proofError,
         step: 'review',
       }))
     } catch (error) {
@@ -182,15 +272,23 @@ export const EdgeCityClaimDialog = () => {
       return
     }
 
+    if (edgeCityConfig.claimFunction === 'claim' && proof.length === 0) {
+      toast('No allowlist proof available for this participant')
+      return
+    }
+
     setState((prev) => ({ ...prev, isClaiming: true }))
     try {
+      const participantId = BigInt(profile.id)
+      const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, proof)
+
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
         account: address,
         address: edgeCityConfig.token,
         abi: edgeCityConfig.abi,
         functionName: edgeCityConfig.claimFunction,
-        args: buildClaimArgs(address as `0x${string}`),
+        args: claimArgs as unknown as readonly unknown[],
       })
 
       toast(`Claim transaction submitted: ${txHash}`)
@@ -202,6 +300,14 @@ export const EdgeCityClaimDialog = () => {
       console.error(error)
       if (error instanceof Error && error.message.includes('User rejected')) {
         toast('Transaction rejected')
+      } else if (error instanceof Error && error.message.includes('ParticipantAlreadyClaimed')) {
+        toast('Edge City participant has already claimed their allocation')
+      } else if (error instanceof Error && error.message.includes('InvalidParticipantProof')) {
+        toast('Allowlist proof invalid. Contact support to verify residency')
+      } else if (error instanceof Error && error.message.includes('InvalidRecipient')) {
+        toast('Recipient wallet is invalid')
+      } else if (error instanceof Error && error.message.includes('ClaimAmountZero')) {
+        toast('Claim configuration is zero; contact an admin')
       } else {
         toast(error instanceof Error ? error.message : 'Failed to submit claim')
       }
@@ -281,8 +387,15 @@ export const EdgeCityClaimDialog = () => {
               <p className="text-sm text-muted-foreground">{profile?.primary_email}</p>
               {profile?.popups?.length ? (
                 <div className="text-sm">
-                  <p className="font-medium">Edge City residencies ({profile.popups.length})</p>
-                  <p className="text-muted-foreground">{profile.popups.length}</p>
+                  <p className="font-medium">Residencies</p>
+                  <ul className="list-disc list-inside text-muted-foreground">
+                    {profile.popups.map((popup) => (
+                      <li key={popup.id}>
+                        {popup.popup_name}
+                        {popup.total_days ? ` • ${popup.total_days} days` : ''}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
             </div>
@@ -293,12 +406,7 @@ export const EdgeCityClaimDialog = () => {
                 Wallet {address?.slice(0, 6)}…{address?.slice(-4)} is eligible to claim tokens.
               </p>
             )}
-            <Button
-              className="w-full"
-              onClick={handleClaim}
-              disabled={!eligibility.eligible}
-              isLoading={isClaiming}
-            >
+            <Button className="w-full" onClick={handleClaim} disabled={!eligibility.eligible} isLoading={isClaiming}>
               Claim tokens
             </Button>
           </div>
@@ -326,10 +434,9 @@ export const EdgeCityClaimDialog = () => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Signals Experiment Claim</DialogTitle>
+          <DialogTitle>Edge City Residency Claim</DialogTitle>
           <DialogDescription>
-            Authenticate with your Edge City account to claim tokens to participate in the Signals
-            Experiment.
+            Authenticate your residency to unlock token rewards from the Edge City program.
           </DialogDescription>
         </DialogHeader>
         {renderContent()}

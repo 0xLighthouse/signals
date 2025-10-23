@@ -47,11 +47,13 @@ To enable the Edge City residency claim flow in the interface:
 
 - `NEXT_PUBLIC_EDGE_CITY=true`
 - `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (token supporting `faucet` or `claim`)
-- `NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION=faucet` (or `claim` when paired with `NEXT_PUBLIC_EDGE_CITY_CLAIM_AMOUNT`)
+- `NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION=claim` (set to `faucet` only when interacting with legacy faucet tokens)
+- `NEXT_PUBLIC_EDGE_CITY_MERKLE_ROOT=0x...` (must match the deployed `ExperimentToken` allowlist)
 - `NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS=2,7` (optional list of qualifying popup IDs)
 - `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
+- `EDGE_CITY_ALLOWLIST_PATH=apps/signals-token-factory/allowlists/edge-city.json` (or `EDGE_CITY_ALLOWLIST_JSON='{"root":"0x..","proofs":{...}}'`)
 
-These variables must be defined in the interface environment before starting the dev server.
+Allowlist files must expose a Merkle root plus `proofs` mapping `{ "5461": ["0xabc…"] }` hashed with `keccak256(abi.encodePacked(participantId))`. Define these variables before starting the dev server so authentication, proof retrieval, and claims succeed. Each participant ID may claim exactly once; admins can additionally distribute custom airdrops with the `ExperimentToken.batchMint` function and a descriptive `reason`.
 
 ---
 
