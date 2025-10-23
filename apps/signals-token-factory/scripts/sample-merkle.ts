@@ -15,16 +15,11 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { keccak256, encodePacked } from 'viem'
+import { buildMerkleTree, type ParticipantRecord, type AllowlistOutput } from '../../../packages/shared'
 
 type ParticipantInput = {
   label: string
   weight: number
-}
-
-type ParticipantNode = ParticipantInput & {
-  participantId: bigint
-  participantIdHex: `0x${string}`
-  leaf: `0x${string}`
 }
 
 const participants: ParticipantInput[] = [
@@ -33,109 +28,76 @@ const participants: ParticipantInput[] = [
   { label: 'some-hash-c', weight: 2 },
 ]
 
-const toUint256Hex = (value: bigint): `0x${string}` => {
-  return `0x${value.toString(16).padStart(64, '0')}`
-}
-
-const hashIdentifier = (label: string): bigint => {
+/**
+ * Hash a string identifier to derive a deterministic participant ID.
+ * This matches the convention used in the sample data.
+ */
+const hashIdentifier = (label: string): number => {
   const idHex = keccak256(encodePacked(['string'], [label]))
-  return BigInt(idHex)
-}
-
-const hashLeaf = (participantId: bigint): `0x${string}` => {
-  return keccak256(encodePacked(['uint256'], [participantId]))
-}
-
-const hashPair = (a: `0x${string}`, b: `0x${string}`): `0x${string}` => {
-  if (a === b) return a
-  const [left, right] = a.toLowerCase() < b.toLowerCase() ? [a, b] : [b, a]
-  return keccak256(encodePacked(['bytes32', 'bytes32'], [left, right]))
-}
-
-const buildMerkleTree = (leaves: `0x${string}`[]): `0x${string}`[][] => {
-  if (leaves.length === 0) {
-    throw new Error('Cannot build a Merkle tree with zero leaves')
-  }
-
-  const tree: `0x${string}`[][] = [leaves]
-  let current = leaves
-
-  while (current.length > 1) {
-    const nextLayer: `0x${string}`[] = []
-
-    for (let i = 0; i < current.length; i += 2) {
-      const left = current[i]
-      const right = current[i + 1]
-
-      if (right === undefined) {
-        nextLayer.push(left)
-      } else {
-        nextLayer.push(hashPair(left, right))
-      }
-    }
-
-    tree.push(nextLayer)
-    current = nextLayer
-  }
-
-  return tree
-}
-
-const getProof = (tree: `0x${string}`[][], leafIndex: number): `0x${string}`[] => {
-  const proof: `0x${string}`[] = []
-  let index = leafIndex
-
-  for (let level = 0; level < tree.length - 1; level++) {
-    const layer = tree[level]
-    const pairIndex = index ^ 1
-
-    if (pairIndex < layer.length) {
-      proof.push(layer[pairIndex])
-    }
-
-    index = Math.floor(index / 2)
-  }
-
-  return proof
-}
-
-const verifyProof = (leaf: `0x${string}`, proof: `0x${string}`[], root: `0x${string}`) => {
-  let computed = leaf
-  for (const sibling of proof) {
-    computed = hashPair(computed, sibling)
-  }
-  return computed.toLowerCase() === root.toLowerCase()
+  // Convert to number - in production, you'd use actual Edge City participant IDs
+  return Number(BigInt(idHex) % BigInt(1000000))
 }
 
 async function main() {
-  const nodes: ParticipantNode[] = participants.map((entry) => {
-    const participantId = hashIdentifier(entry.label)
-    return {
-      ...entry,
-      participantId,
-      participantIdHex: toUint256Hex(participantId),
-      leaf: hashLeaf(participantId),
-    }
-  })
+  // Convert participant inputs to records with derived IDs
+  const records: ParticipantRecord[] = participants.map((entry) => ({
+    participantId: hashIdentifier(entry.label),
+    weight: entry.weight,
+    label: entry.label,
+  }))
 
-  const leaves = nodes.map((node) => node.leaf)
-  const tree = buildMerkleTree(leaves)
-  const root = tree.at(-1)?.[0]
+  console.log('Building Merkle tree for participants:')
+  console.table(records.map(r => ({
+    label: r.label,
+    participantId: r.participantId,
+    weight: r.weight
+  })))
 
-  if (!root) throw new Error('Failed to compute Merkle root')
+  // Build tree using shared utilities
+  const tree = buildMerkleTree(records)
+  const root = tree.root
 
+  console.log('\nMerkle root:', root)
+
+  // Generate and verify all proofs
   const proofs: Record<string, `0x${string}`[]> = {}
+  let allValid = true
 
-  nodes.forEach((node, index) => {
-    const proof = getProof(tree, index)
-    const isValid = verifyProof(node.leaf, proof, root)
+  for (const record of records) {
+    const participantIdStr = String(record.participantId)
 
-    if (!isValid) {
-      throw new Error(`Invalid proof generated for ${node.label}`)
+    try {
+      const proof = tree.getProof(record.participantId)
+      const isValid = tree.verify(record.participantId, proof)
+
+      if (!isValid) {
+        console.error(`❌ Invalid proof generated for ${record.label} (ID: ${record.participantId})`)
+        allValid = false
+      } else {
+        console.log(`✓ Valid proof for ${record.label} (ID: ${record.participantId}, depth: ${proof.length})`)
+      }
+
+      proofs[participantIdStr] = proof
+    } catch (error) {
+      console.error(`❌ Failed to generate proof for ${record.label}:`, error)
+      allValid = false
     }
+  }
 
-    proofs[node.participantIdHex] = proof
-  })
+  if (!allValid) {
+    throw new Error('Some proofs failed verification')
+  }
+
+  // Prepare output with metadata
+  const output: AllowlistOutput = {
+    root,
+    proofs,
+    meta: records.map(r => ({
+      participantId: String(r.participantId),
+      label: r.label,
+      weight: r.weight,
+    })),
+  }
 
   const outputPath = path.join(
     process.cwd(),
@@ -145,31 +107,21 @@ async function main() {
     'sample-edge-city.json',
   )
 
-  const output = {
-    root,
-    proofs,
-    meta: nodes.map(({ label, weight, participantIdHex }) => ({
-      label,
-      weight,
-      participantId: participantIdHex,
-    })),
-  }
-
   await fs.writeFile(outputPath, JSON.stringify(output, null, 2))
 
-  console.log('Sample Merkle root:', root)
-  console.log('Proofs written to:', path.relative(process.cwd(), outputPath))
+  console.log('\n✓ Allowlist written to:', path.relative(process.cwd(), outputPath))
+  console.log('\nProof summary:')
   console.table(
-    nodes.map(({ label, weight, participantIdHex }) => ({
-      label,
-      weight,
-      participantId: participantIdHex,
-      proofDepth: proofs[participantIdHex].length,
+    records.map(r => ({
+      label: r.label,
+      participantId: r.participantId,
+      weight: r.weight,
+      proofDepth: proofs[String(r.participantId)].length,
     })),
   )
 }
 
 main().catch((error) => {
-  console.error(error)
+  console.error('❌ Generation failed:', error)
   process.exit(1)
 })
