@@ -18,6 +18,11 @@ abstract contract SignalsAuthorizer is IAuthorizer {
 
     /// @notice Modifier to check if caller is eligible to propose
     modifier senderCanPropose(uint256 lockAmount) {
+        _senderCanPropose(lockAmount);
+        _;
+    }
+
+    function _senderCanPropose(uint256 lockAmount) internal view {
         EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, proposerRequirements);
         if (result == EligibilityResult.InsufficientLockAmount) {
             revert ISignals.Signals_ParticipantInsufficientLockAmount();
@@ -29,11 +34,15 @@ abstract contract SignalsAuthorizer is IAuthorizer {
             revert ISignals.Signals_ParticipantInsufficientDuration();
         }
         if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
-        _;
     }
 
     /// @notice Modifier to check participant requirements
     modifier senderCanSupport(uint256 lockAmount) {
+        _senderCanSupport(lockAmount);
+        _;
+    }
+
+    function _senderCanSupport(uint256 lockAmount) internal view {
         EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, supporterRequirements);
         if (result == EligibilityResult.InsufficientLockAmount) {
             revert ISignals.Signals_ParticipantInsufficientLockAmount();
@@ -45,7 +54,6 @@ abstract contract SignalsAuthorizer is IAuthorizer {
             revert ISignals.Signals_ParticipantInsufficientDuration();
         }
         if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
-        _;
     }
 
     function _accountCanParticipate(address account, uint256 lockAmount, ParticipantRequirements memory reqs)

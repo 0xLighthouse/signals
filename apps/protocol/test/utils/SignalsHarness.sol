@@ -9,8 +9,6 @@ import {SignalsFactory} from "../../src/SignalsFactory.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
-import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 import {BoardConfigs} from "./BoardConfigs.sol";
 
 contract SignalsHarness is Test {

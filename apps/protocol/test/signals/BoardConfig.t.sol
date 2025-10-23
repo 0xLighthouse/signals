@@ -5,10 +5,8 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {Signals} from "../../src/Signals.sol";
-import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 
 /**
  * @title BoardConfigTest

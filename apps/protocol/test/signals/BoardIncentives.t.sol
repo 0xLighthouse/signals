@@ -6,11 +6,9 @@ import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
 import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {IIncentivesPool} from "../../src/interfaces/IIncentivesPool.sol";
 import {Signals} from "../../src/Signals.sol";
 import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
-import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 /**
  * @title SignalsBoardIncentivesTest
  * @notice Tests for the board incentives feature
@@ -123,7 +121,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         incentivesPool.approveBoard(address(signals), 1_000_000 * 1e18, 10_000 * 1e18);
         vm.stopPrank();
 
-        assertEq(incentivesPool.rewardToken(), address(rewardToken));
+        assertEq(incentivesPool.REWARD_TOKEN(), address(rewardToken));
         assertEq(incentivesPool.availableRewards(), 1_000_000 * 1e18);
         assertEq(incentivesPool.maxRewardPerInitiative(address(signals)), 10_000 * 1e18);
         assertTrue(incentivesPool.approvedBoards(address(signals)));

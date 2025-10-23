@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {ISignals} from "./ISignals.sol";
-import {IAuthorizer} from "./IAuthorizer.sol";
 
 /**
  * @title ISignalsFactory

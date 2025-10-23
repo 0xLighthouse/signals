@@ -4,10 +4,6 @@ pragma solidity ^0.8.26;
 import "forge-std/Test.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
-import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
-import {Signals} from "../../src/Signals.sol";
-
 /**
  * @title SignalsProposerRequirementsTest
  * @notice Tests for proposal requirements configuration

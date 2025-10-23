@@ -13,7 +13,6 @@ import {Signals} from "../src/Signals.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
-import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
 
 contract SignalsFactoryTest is Test, SignalsHarness {
     SignalsFactory _factory;

@@ -7,10 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "solady/src/utils/ReentrancyGuard.sol";
 
-import {ISignals} from "./interfaces/ISignals.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
-
-import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
  * @title IncentivesPool
@@ -24,7 +21,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The which ERC20 token is used as the reward
-    address public immutable rewardToken;
+    address public immutable REWARD_TOKEN;
 
     /// @notice The total amount of rewards in the pool
     uint256 public availableRewards;
@@ -46,23 +43,27 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
 
     /// @notice Modifier to check if caller is an approved board
     modifier onlyApprovedBoard() {
-        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
+        _onlyApprovedBoard();
         _;
+    }
+
+    function _onlyApprovedBoard() internal view {
+        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
     }
 
     /**
      * @notice Constructor
      */
-    constructor(address rewardToken_) Ownable(msg.sender) {
+    constructor(address REWARD_TOKEN_) Ownable(msg.sender) {
         // Validate reward token address
-        if (rewardToken_ == address(0)) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
+        if (REWARD_TOKEN_ == address(0)) revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
 
         // Verify token implements ERC20 interface by attempting a basic call
-        try IERC20(rewardToken_).totalSupply() returns (uint256) {}
+        try IERC20(REWARD_TOKEN_).totalSupply() returns (uint256) {}
         catch {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
-        rewardToken = rewardToken_;
+        REWARD_TOKEN = REWARD_TOKEN_;
     }
 
     /// @inheritdoc IIncentivesPool
@@ -72,14 +73,14 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         availableRewards += amount;
 
         // Transfer tokens from owner to this contract
-        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(REWARD_TOKEN).safeTransferFrom(msg.sender, address(this), amount);
 
         emit FundsAddedToPool(amount);
     }
 
     /// @inheritdoc IIncentivesPool
     function updateAvailableRewards(uint256 newBalance) external onlyOwner {
-        if (newBalance <= availableRewards || newBalance > IERC20(rewardToken).balanceOf(address(this))) {
+        if (newBalance <= availableRewards || newBalance > IERC20(REWARD_TOKEN).balanceOf(address(this))) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
 
@@ -233,7 +234,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         distributedRewards += amount;
 
         // Transfer rewards
-        IERC20(rewardToken).safeTransfer(payee, amount);
+        IERC20(REWARD_TOKEN).safeTransfer(payee, amount);
 
         emit RewardsClaimed(msg.sender, initiativeId, payee, amount);
     }

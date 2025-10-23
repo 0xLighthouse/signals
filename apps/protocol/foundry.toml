@@ -8,7 +8,7 @@ optimizer_runs = 1
 via_ir = true
 ffi = false
 
-[profile.formatter]
+[fmt]
 line_length = 100
 
 [lint]

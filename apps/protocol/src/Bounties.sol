@@ -24,8 +24,8 @@ import {SignalsConstants} from "./utils/Constants.sol";
 contract Bounties is IBounties, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    ISignals public immutable signalsContract;
-    TokenRegistry public immutable registry;
+    ISignals public immutable SIGNALS_CONTRACT;
+    TokenRegistry public immutable REGISTRY;
 
     /// @notice [0]: protocolFee, [1]: voterRewards, [2]: treasuryShare
     mapping(uint256 => uint256[3]) public allocations;
@@ -44,21 +44,26 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
 
     /**
      * @notice Initialize the Bounties contract
-     * @param _signalsContract Address of the Signals contract
+     * @param _SIGNALS_CONTRACT Address of the Signals contract
      * @param _tokenRegistry Address of the TokenRegistry contract
      * @param _allocations Initial split allocations
      * @param _receivers Initial receiver addresses
      */
     constructor(
-        address _signalsContract,
+        address _SIGNALS_CONTRACT,
         address _tokenRegistry,
         uint256[3] memory _allocations,
         address[3] memory _receivers
     ) Ownable(msg.sender) {
-        signalsContract = Signals(_signalsContract);
-        registry = TokenRegistry(_tokenRegistry);
+        SIGNALS_CONTRACT = Signals(_SIGNALS_CONTRACT);
+        REGISTRY = TokenRegistry(_tokenRegistry);
 
         _updateShares(_allocations, _receivers);
+    }
+
+    /// @inheritdoc IBounties
+    function signalsContract() external view returns (ISignals) {
+        return SIGNALS_CONTRACT;
     }
 
     /// @inheritdoc IBounties
@@ -76,7 +81,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
 
     /// @inheritdoc IBounties
     function handleInitiativeAccepted(uint256 _initiativeId) external nonReentrant {
-        if (msg.sender != address(signalsContract)) {
+        if (msg.sender != address(SIGNALS_CONTRACT)) {
             revert IBounties.Bounties_NotAuthorized();
         }
 
@@ -87,7 +92,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
 
     /// @inheritdoc IBounties
     function handleInitiativeExpired(uint256 _initiativeId) external view {
-        if (msg.sender != address(signalsContract)) {
+        if (msg.sender != address(SIGNALS_CONTRACT)) {
             revert IBounties.Bounties_NotAuthorized();
         }
         // Additional logic if needed
@@ -129,8 +134,8 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         uint256 _expiresAt,
         Conditions _terms
     ) internal {
-        if (!registry.isAllowed(_token)) revert IBounties.Bounties_TokenNotRegistered();
-        if (_initiativeId > signalsContract.initiativeCount()) revert IBounties.Bounties_InvalidInitiative();
+        if (!REGISTRY.isAllowed(_token)) revert IBounties.Bounties_TokenNotRegistered();
+        if (_initiativeId > SIGNALS_CONTRACT.initiativeCount()) revert IBounties.Bounties_InvalidInitiative();
 
         IERC20 token = IERC20(_token);
         if (token.balanceOf(msg.sender) < _amount) revert IBounties.Bounties_InsufficientBalance();
@@ -266,7 +271,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         if (bountyIds.length == 0) return 0;
 
         // Get token metadata
-        ISignals.TokenLock memory bond = signalsContract.getTokenLock(_tokenId);
+        ISignals.TokenLock memory bond = SIGNALS_CONTRACT.getTokenLock(_tokenId);
 
         // Verify this token is for the specified initiative
         if (bond.initiativeId != _initiativeId) return 0;
@@ -284,7 +289,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         }
 
         // Calculate voter rewards
-        uint256 underlyingLocked = signalsContract.getInitiative(_initiativeId).underlyingLocked;
+        uint256 underlyingLocked = SIGNALS_CONTRACT.getInitiative(_initiativeId).underlyingLocked;
         uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
         uint256 voterRewards = (totalRewards * allocations[version][1]) / SignalsConstants.BASIS_POINTS;
         uint256 tokenRewards = (voterRewards * shareOfPool);

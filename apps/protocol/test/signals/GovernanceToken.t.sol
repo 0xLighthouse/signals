@@ -5,8 +5,6 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
-import {ISignals} from "../../src/interfaces/ISignals.sol";
-import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
 import {Signals} from "../../src/Signals.sol";
 
 /**

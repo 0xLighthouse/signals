@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -32,6 +33,7 @@ import {SignalsConstants} from "./utils/Constants.sol";
  * @author jkm.eth <james@lighthouse.cx>
  */
 contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, ReentrancyGuard, Initializable {
+    using SafeERC20 for IERC20;
     /// @notice The version of the Signals contract
     string public version;
 
@@ -115,19 +117,31 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
 
     /// @notice Check to make sure the initiative exists
     modifier exists(uint256 initiativeId) {
-        if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
+        _exists(initiativeId);
         _;
+    }
+
+    function _exists(uint256 initiativeId) internal view {
+        if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
     }
 
     modifier isOpen() {
-        if (!isBoardOpen()) revert ISignals.Signals_BoardNotOpen();
+        _isOpen();
         _;
     }
 
+    function _isOpen() internal view {
+        if (!isBoardOpen()) revert ISignals.Signals_BoardNotOpen();
+    }
+
     modifier hasValidInput(string memory _title, string memory _body) {
+        _hasValidInput(_title, _body);
+        _;
+    }
+
+    function _hasValidInput(string memory _title, string memory _body) internal pure {
         if (bytes(_title).length == 0) revert ISignals.Signals_EmptyTitle();
         if (bytes(_body).length == 0) revert ISignals.Signals_EmptyBody();
-        _;
     }
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
@@ -251,7 +265,7 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
         }
 
         uint256 beforeBalance = IERC20(underlyingToken).balanceOf(address(this));
-        IERC20(underlyingToken).transferFrom(msg.sender, address(this), amount);
+        IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
         uint256 afterBalance = IERC20(underlyingToken).balanceOf(address(this));
 
         if (afterBalance - beforeBalance != amount) {

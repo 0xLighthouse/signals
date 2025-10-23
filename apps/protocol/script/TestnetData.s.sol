@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import {MockERC20} from "../test/mocks/MockERC20.m.sol";
-import {Signals} from "../src/Signals.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+// import {MockERC20} from "../test/mocks/MockERC20.m.sol";
+// import {Signals} from "../src/Signals.sol";
+// import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * Seeds three initiatives with a lock of 12 months from Alice, Bob and Charlie
