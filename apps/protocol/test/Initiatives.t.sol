@@ -15,13 +15,11 @@ import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 
 contract InitiativesTest is Test, SignalsHarness {
-    // SignalsFactory factory;
     Signals signals;
 
     function setUp() public {
-        // Deploy SignalsFactory with the Signals implementation
-        bool dealTokens = true;
-        (, signals) = deploySignalsWithFactory(dealTokens);
+        signals = deploySignals(defaultConfig);
+        dealMockTokens();
     }
 
     function testRevertProposeInitiativeWithInsufficientTokens() public {
@@ -35,7 +33,7 @@ contract InitiativesTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 40_000);
 
         // Charlie has InsufficientTokens, so this should revert
-        vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
+        vm.expectRevert(ISignals.Signals_ParticipantInsufficientBalance.selector);
         signals.proposeInitiative(title, body);
     }
 

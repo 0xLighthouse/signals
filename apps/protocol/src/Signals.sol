@@ -64,8 +64,8 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
     /// @notice Parameters for the decay curve (the requirements of which depend on which curve is chosen)
     uint256[] public decayCurveParameters;
 
-    /// @notice Inactivity threshold after which an initiative can be expired (in seconds)
-    uint256 public activityTimeout = SignalsConstants.DEFAULT_ACTIVITY_TIMEOUT;
+    /// @notice Inactivity timeout after which an initiative can be expired (in seconds)
+    uint256 public inactivityTimeout;
 
     /// @notice Duration tokens remain locked after acceptance (0 = immediate release)
     uint256 public releaseLockDuration;
@@ -113,7 +113,7 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
     /// @notice Configuration for board-wide incentive rewards (internal storage)
     IncentivesConfig internal _incentivesConfig;
 
-    /// @notice Do we event need this? It would revert if the initiativeId is out of bounds
+    /// @notice Check to make sure the initiative exists
     modifier exists(uint256 initiativeId) {
         if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
         _;
@@ -355,9 +355,9 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
             revert ISignals.Signals_NotProposedState();
         }
 
-        // Verify initiative has been inactive for longer than activityTimeout
+        // Verify initiative has been inactive for longer than inactivityTimeout
         // This prevents expiring initiatives that still have recent activity
-        if (block.timestamp <= initiative.lastActivity + activityTimeout) {
+        if (block.timestamp <= initiative.lastActivity + inactivityTimeout) {
             revert ISignals.Signals_NotEligibleForExpiration();
         }
 
@@ -381,11 +381,6 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
      */
     function setTitle(string memory _title) external onlyOwner {
         title = _title;
-    }
-
-    /// @inheritdoc ISignals
-    function setInactivityThreshold(uint256 _newThreshold) external onlyOwner {
-        activityTimeout = _newThreshold;
     }
 
     /// @inheritdoc ISignals
@@ -423,6 +418,14 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
         }
         incentivesPool = IIncentivesPool(_incentivesPool);
         _incentivesConfig = incentivesConfig;
+    }
+
+    /// @inheritdoc ISignals
+    function setBoardOpenAt(uint256 _boardOpenAt) external onlyOwner {
+        if (_boardOpenAt < block.timestamp) {
+            revert ISignals.Signals_InvalidBoardOpenTime();
+        }
+        boardOpenAt = _boardOpenAt;
     }
 
     /// @inheritdoc ISignals
@@ -753,6 +756,6 @@ contract Signals is ISignals, SignalsAuthorizer, ERC721Enumerable, Ownable, Reen
     }
 
     function isBoardClosed() public view returns (bool) {
-        return block.timestamp > boardClosedAt;
+        return block.timestamp >= boardClosedAt;
     }
 }

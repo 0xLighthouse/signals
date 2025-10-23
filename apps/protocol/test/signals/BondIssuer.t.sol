@@ -17,8 +17,8 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
     ISignals signals;
 
     function setUp() public {
-        bool dealTokens = true;
-        (, signals) = deploySignalsWithFactory(dealTokens);
+        signals = deploySignals(defaultConfig);
+        dealMockTokens();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -28,8 +28,8 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
     /// Test retrieving lock details through ISignalsLock interface
     function test_BondDetails_Retrieve() public {
         vm.startPrank(_alice);
-        _tokenERC20.approve(address(signals), 100 * 1e18);
-        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
+        _tokenERC20.approve(address(signals), 100 ether);
+        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 ether, 6);
         vm.stopPrank();
 
         // Test the signals contract as an ISignalsLock
@@ -37,7 +37,7 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         ISignalsLock.LockData memory lockData = signalsIssuer.getLockData(1);
 
         assertEq(lockData.referenceId, 1);
-        assertEq(lockData.nominalValue, 100 * 1e18);
+        assertEq(lockData.nominalValue, 100 ether);
         assertEq(lockData.expires, block.timestamp + 6 * 60 * 60 * 24);
         assertEq(lockData.created, block.timestamp);
         assertEq(lockData.claimed, false);
@@ -49,8 +49,8 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
 
     function test_ListPositions_ByOwner() public {
         vm.startPrank(_alice);
-        _tokenERC20.approve(address(signals), 100 * 1e18);
-        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 6);
+        _tokenERC20.approve(address(signals), 100 ether);
+        signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 ether, 6);
         vm.stopPrank();
 
         vm.startPrank(_alice);
@@ -58,34 +58,4 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         assertEq(nfts.length, 1);
         assertEq(nfts[0], 1);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                    TODO: LOCK DATA ACCURACY TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    // TODO: Test lock data accuracy across different states
-    // function test_LockData_Accuracy() public {}
-
-    // TODO: Test lock data after redemption
-    // function test_LockData_AfterRedemption() public {}
-
-    /*//////////////////////////////////////////////////////////////
-                    TODO: NFT TRANSFER TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    // TODO: Test transferring a locked NFT
-    // function test_Transfer_LockedNFT() public {}
-
-    // TODO: Test lock data after NFT transfer
-    // function test_LockData_AfterTransfer() public {}
-
-    /*//////////////////////////////////////////////////////////////
-                    TODO: NFT METADATA TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    // TODO: Test NFT metadata (if implemented)
-    // function test_NFT_Metadata() public {}
-
-    // TODO: Test tokenURI (if implemented)
-    // function test_NFT_TokenURI() public {}
 }

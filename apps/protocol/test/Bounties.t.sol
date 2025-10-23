@@ -26,9 +26,7 @@ contract BountiesTest is Test, SignalsHarness {
     // Parameters
 
     function setUp() public {
-        // Deploy SignalsFactory with the Signals implementation
-        bool dealTokens = true;
-        signals = deploySignals(dealTokens);
+        signals = deploySignals(defaultConfig);
         dealMockTokens();
 
         _registry = new TokenRegistry();
@@ -91,8 +89,7 @@ contract BountiesTest is Test, SignalsHarness {
             _bounties.addBounty(initiativeId, rewardToken, amount, expiresAt, conditions);
         }
 
-        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) =
-            _bounties.getBounties(initiativeId);
+        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = _bounties.getBounties(initiativeId);
 
         // Ensure the bounties are summed up correctly
         assertEq(tokens.length, 1);

@@ -20,6 +20,7 @@ library BoardConfigs {
             lockInterval: 1 days, // 1 day
             decayCurveType: 0, // Linear
             decayCurveParameters: new uint256[](1),
+            inactivityTimeout: 60 days, // 60 days
             proposerRequirements: IAuthorizer.ParticipantRequirements({
                 eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                 minBalance: 50_000 ether, // 50k tokens to propose,

@@ -43,18 +43,15 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         // Load the Signals contract instance
         Signals _instance = Signals(instanceAddress);
 
-        console.log("[signals:instance]", instanceAddress);
-        console.log("[signals:owner]", _instance.owner());
-
         // Verify the parameters were initialized correctly
-        assertEq(_instance.owner(), _alice);
-        assertEq(_instance.underlyingToken(), address(_tokenERC20));
+        assertEq(_instance.owner(), defaultConfig.owner);
+        assertEq(_instance.underlyingToken(), defaultConfig.underlyingToken);
         assertEq(_instance.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
         assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
         assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
         assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
         assertEq(_instance.decayCurveType(), defaultConfig.decayCurveType);
-        assertEq(_instance.version(), _factory.version());
+        assertEq(_instance.version(), defaultConfig.version);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -20,12 +20,16 @@ contract SignalsHarness is Test {
     address _charlie = address(0x3333);
     address _liquidityProvider = address(0x4444);
 
+    uint256 public constant STANDARD_BALANCE = 200_000;
+    uint256 public constant LOW_BALANCE = 40_000;
+    uint256 public constant LIQUIDITY_PROVIDER_BALANCE = 100_000_000;
+
     // --- Tokens ---
     // Standard ERC20 token (no checkpoints)
     MockERC20 internal _tokenERC20 = new MockERC20("StandardToken", "STD", 18);
 
     // ERC20Votes token (with checkpoints for governance)
-    MockERC20Votes internal _tokenERC20Votes = new MockERC20Votes();
+    MockERC20Votes internal _tokenERC20Votes = new MockERC20Votes("GovernanceToken", "GOV");
 
     // Incentive tokens
     MockERC20 internal _usdc = new MockERC20("USDC", "USDC", 6);
@@ -39,22 +43,10 @@ contract SignalsHarness is Test {
     ISignals.BoardConfig public erc20VotesConfig =
         BoardConfigs.defaultConfig(_deployer, address(_tokenERC20Votes), block.timestamp);
 
-    function deploySignals(bool _dealTokens) public returns (Signals) {
-        Signals signals = new Signals();
-        signals.initialize(defaultConfig);
-        if (_dealTokens) {
-            _dealDefaultTokens();
-        }
+    function deploySignals(ISignals.BoardConfig memory config) public returns (Signals) {
+        address boardAddress = factory.create(config);
+        Signals signals = Signals(boardAddress);
         return signals;
-    }
-
-    function deploySignalsWithFactory(bool _dealTokens) public returns (SignalsFactory _factory, Signals signals) {
-        _factory = new SignalsFactory();
-        address _instance = _factory.create(defaultConfig);
-        signals = Signals(_instance);
-        if (_dealTokens) {
-            _dealDefaultTokens();
-        }
     }
 
     function dealMockTokens() public {
@@ -64,22 +56,10 @@ contract SignalsHarness is Test {
     }
 
     function _dealToken(MockERC20 token) public {
-        deal(address(token), _alice, 200_000 * 10 ** token.decimals());
-        deal(address(token), _bob, 200_000 * 10 ** token.decimals());
-        deal(address(token), _charlie, 40_000 * 10 ** token.decimals());
-        deal(address(token), _liquidityProvider, 100_000_000 * 10 ** token.decimals());
-    }
-
-    function _dealDefaultTokens() public {
-        // --- Issue standard ERC20 tokens to participants ---
-        // Alice has 50k
-        deal(address(_tokenERC20), _alice, defaultConfig.proposerRequirements.minBalance);
-        // Bob has 100k
-        deal(address(_tokenERC20), _bob, defaultConfig.acceptanceThreshold);
-        // Charlie has 25k
-        deal(address(_tokenERC20), _charlie, defaultConfig.proposerRequirements.minBalance / 2);
-        // Liquidity provider has 1M
-        deal(address(_tokenERC20), _liquidityProvider, 100_000_000 * 1e18);
+        deal(address(token), _alice, STANDARD_BALANCE * 10 ** token.decimals());
+        deal(address(token), _bob, STANDARD_BALANCE * 10 ** token.decimals());
+        deal(address(token), _charlie, LOW_BALANCE * 10 ** token.decimals());
+        deal(address(token), _liquidityProvider, LIQUIDITY_PROVIDER_BALANCE * 10 ** token.decimals());
     }
 
     /**
@@ -87,53 +67,25 @@ contract SignalsHarness is Test {
      * @dev Mints tokens and delegates to self to activate checkpoints
      */
     function _dealAndDelegateERC20Votes() public {
+        uint256 decimals = _tokenERC20Votes.decimals();
+
         // Mint and delegate to activate checkpoints
-        _tokenERC20Votes.mint(_alice, defaultConfig.proposerRequirements.minBalance);
+        _tokenERC20Votes.mint(_alice, STANDARD_BALANCE * 10 ** decimals);
         vm.prank(_alice);
         _tokenERC20Votes.delegate(_alice);
 
-        _tokenERC20Votes.mint(_bob, defaultConfig.acceptanceThreshold);
+        _tokenERC20Votes.mint(_bob, STANDARD_BALANCE * 10 ** decimals);
         vm.prank(_bob);
         _tokenERC20Votes.delegate(_bob);
 
-        _tokenERC20Votes.mint(_charlie, defaultConfig.proposerRequirements.minBalance / 2);
+        _tokenERC20Votes.mint(_charlie, LOW_BALANCE * 10 ** decimals);
         vm.prank(_charlie);
         _tokenERC20Votes.delegate(_charlie);
 
-        _tokenERC20Votes.mint(_liquidityProvider, 100_000_000 * 1e18);
+        _tokenERC20Votes.mint(_liquidityProvider, LIQUIDITY_PROVIDER_BALANCE * 10 ** decimals);
         vm.prank(_liquidityProvider);
         _tokenERC20Votes.delegate(_liquidityProvider);
     }
-
-    function lockTokensAndIssueBond(Signals _signals, address _user, uint256 _amount, uint256 _duration)
-        public
-        returns (uint256 tokenId)
-    {
-        vm.startPrank(_user);
-        _tokenERC20.approve(address(_signals), _amount);
-        (tokenId) = _signals.proposeInitiativeWithLock("Some Initiative", "Some Description", _amount, _duration);
-        vm.stopPrank();
-    }
-
-    // function deployAllowedTokens() public returns (TokenRegistry registry, MockERC20 _mToken, MockStable _mUSDC) {
-    //     // Create some tokens
-
-    //     address[] memory _tokens = new address[](2);
-    //     _tokens[0] = address(_mToken);
-    //     _tokens[1] = address(_mUSDC);
-
-    //     // Configure the registry
-    //     registry = _configureRegistry(_tokens);
-
-    //     return (registry, _mToken, _mUSDC);
-    // }
-
-    // function _configureRegistry(address[] memory _tokens) public returns (TokenRegistry registry) {
-    //     registry = new TokenRegistry();
-    //     for (uint256 i = 0; i < _tokens.length; i++) {
-    //         registry.allow(_tokens[i]);
-    //     }
-    // }
 
     /*//////////////////////////////////////////////////////////////
                     TEST HELPER FUNCTIONS

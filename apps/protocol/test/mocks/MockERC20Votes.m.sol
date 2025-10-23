@@ -11,7 +11,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
  * @dev Implements ERC20 with voting capabilities and permit functionality
  */
 contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
-    constructor() ERC20("Governance Token", "vGOV") ERC20Permit("Governance Token") {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) ERC20Permit(name) {}
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);

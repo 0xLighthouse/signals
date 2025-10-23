@@ -23,7 +23,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
      * @param proposerRequirements Requirements for who can propose (immutable)
      * @param participantRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
-     * @param boardOpenAt Timestamp when board opens for participation (0 = open immediately)
+     * @param boardOpenAt Timestamp when board opens for participation (0 = doesn't open until updated)
      * @param boardClosedAt Timestamp when board closes for participation (0 = never closes)
      */
     struct BoardConfig {
@@ -36,6 +36,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
+        uint256 inactivityTimeout;
         IAuthorizer.ParticipantRequirements proposerRequirements;
         IAuthorizer.ParticipantRequirements supporterRequirements;
         uint256 releaseLockDuration;
@@ -163,9 +164,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     /// @notice Thrown when token ID does not exist
     error Signals_InvalidTokenId();
 
-    /// @notice Thrown when board is closed
-    error Signals_BoardClosed();
-
     /// @notice Thrown when attempting to interact before board opens
     error Signals_BoardNotOpen();
 
@@ -240,7 +238,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     function decayCurveType() external view returns (uint256);
     function decayCurveParameters(uint256) external view returns (uint256);
     function underlyingToken() external view returns (address);
-    function activityTimeout() external view returns (uint256);
+    function inactivityTimeout() external view returns (uint256);
     function initiativeLocks(uint256, uint256) external view returns (uint256);
     function supporterLocks(address, uint256) external view returns (uint256);
     function supporters(uint256, uint256) external view returns (address);
@@ -273,13 +271,15 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     function token() external view returns (address);
     function totalInitiatives() external view returns (uint256);
     function totalSupporters(uint256 initiativeId) external view returns (uint256);
-    function setInactivityThreshold(uint256 _newThreshold) external;
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
     function setBounties(address _bounties) external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig) external;
+    function setBoardOpenAt(uint256 _boardOpenAt) external;
     function closeBoard() external;
     function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
     function listPositions(address owner) external view returns (uint256[] memory);
+    function isBoardOpen() external view returns (bool);
+    function isBoardClosed() external view returns (bool);
 }
