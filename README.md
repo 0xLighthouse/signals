@@ -53,7 +53,19 @@ To enable the Edge City residency claim flow in the interface:
 - `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
 - `EDGE_CITY_ALLOWLIST_PATH=apps/signals-token-factory/allowlists/edge-city.json` (or `EDGE_CITY_ALLOWLIST_JSON='{"root":"0x..","proofs":{...}}'`)
 
-Allowlist files must expose a Merkle root plus `proofs` mapping `{ "5461": ["0xabc…"] }` hashed with `keccak256(abi.encodePacked(participantId))`. Define these variables before starting the dev server so authentication, proof retrieval, and claims succeed. Each participant ID may claim exactly once; admins can additionally distribute custom airdrops with the `ExperimentToken.batchMint` function and a descriptive `reason`.
+Allowlist files must expose a Merkle root plus `proofs` mapping participant IDs (as **decimal strings**, e.g. `{ "5461": ["0xabc…"] }`) to proof arrays. Leaves are hashed as `keccak256(abi.encodePacked(uint256(participantId)))` to match on-chain verification.
+
+The allowlist generation now uses battle-tested utilities from `packages/shared/merkle` powered by OpenZeppelin's StandardMerkleTree. Generate sample allowlists with:
+```bash
+pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
+```
+
+Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
+```bash
+pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
+```
+
+Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
 
 ---
 
