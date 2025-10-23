@@ -4,10 +4,10 @@ import { ERC20WithFaucetABI } from './web3'
 const EDGE_CITY_ENV = process.env.NEXT_PUBLIC_EDGE_CITY?.toLowerCase() === 'true'
 
 const EDGE_CITY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS
-const EDGE_CITY_CLAIM_FUNCTION = process.env.NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION ?? 'faucet'
-const EDGE_CITY_CLAIM_AMOUNT = process.env.NEXT_PUBLIC_EDGE_CITY_CLAIM_AMOUNT
+const EDGE_CITY_CLAIM_FUNCTION = process.env.NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION ?? 'claim'
 const EDGE_CITY_REQUIRED_POPUPS =
   process.env.NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS?.split(',').map((id) => id.trim()).filter(Boolean) ?? []
+const EDGE_CITY_MERKLE_ROOT = process.env.NEXT_PUBLIC_EDGE_CITY_MERKLE_ROOT
 
 const EDGE_CITY_CUSTOM_ABI =
   EDGE_CITY_CLAIM_FUNCTION === 'claim'
@@ -16,9 +16,28 @@ const EDGE_CITY_CUSTOM_ABI =
         {
           inputs: [
             { internalType: 'address', name: 'to', type: 'address' },
-            { internalType: 'uint256', name: 'amount', type: 'uint256' },
+            { internalType: 'uint256', name: 'participantId', type: 'uint256' },
+            { internalType: 'bytes32[]', name: 'proof', type: 'bytes32[]' },
           ],
           name: 'claim',
+          outputs: [],
+          stateMutability: 'nonpayable',
+          type: 'function',
+        },
+        {
+          inputs: [
+            {
+              components: [
+                { internalType: 'address', name: 'to', type: 'address' },
+                { internalType: 'uint256', name: 'amount', type: 'uint256' },
+              ],
+              internalType: 'struct ExperimentToken.BatchMintRequest[]',
+              name: 'mints',
+              type: 'tuple[]',
+            },
+            { internalType: 'string', name: 'reason', type: 'string' },
+          ],
+          name: 'batchMint',
           outputs: [],
           stateMutability: 'nonpayable',
           type: 'function',
@@ -30,9 +49,9 @@ export const edgeCityConfig = {
   enabled: EDGE_CITY_ENV,
   token: EDGE_CITY_TOKEN_ADDRESS as `0x${string}` | undefined,
   claimFunction: EDGE_CITY_CLAIM_FUNCTION,
-  claimAmount: EDGE_CITY_CLAIM_AMOUNT ? BigInt(EDGE_CITY_CLAIM_AMOUNT) : undefined,
   requiredPopups: EDGE_CITY_REQUIRED_POPUPS,
   abi: EDGE_CITY_CUSTOM_ABI,
+  merkleRoot: EDGE_CITY_MERKLE_ROOT as `0x${string}` | undefined,
 } as const
 
 export type EdgeCityProfile = {
