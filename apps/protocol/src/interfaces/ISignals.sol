@@ -3,8 +3,9 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import {ISignalsLock} from "./ISignalsLock.sol";
+import {IAuthorizer} from "./IAuthorizer.sol";
 
-interface ISignals is IERC721Enumerable, ISignalsLock {
+interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     /**
      * @notice All configuration parameters for initializing the Signals contract
      *
@@ -35,8 +36,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
-        ProposerRequirements proposerRequirements;
-        ParticipantRequirements participantRequirements;
+        IAuthorizer.ParticipantRequirements proposerRequirements;
+        IAuthorizer.ParticipantRequirements supporterRequirements;
         uint256 releaseLockDuration;
         uint256 boardOpenAt;
         uint256 boardClosedAt;
@@ -83,34 +84,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     }
 
     /**
-     * @notice Requirements for who can propose initiatives
-     *
-     * @param eligibilityType Type of eligibility check (None, MinBalance, MinBalanceAndDuration)
-     * @param minBalance Minimum token balance required to be eligible
-     * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
-     * @param threshold Tokens proposer must lock when creating an initiative
-     */
-    struct ProposerRequirements {
-        EligibilityType eligibilityType;
-        uint256 minBalance;
-        uint256 minHoldingDuration;
-        uint256 threshold;
-    }
-
-    /**
-     * @notice Requirements for who can participate (support initiatives)
-     *
-     * @param eligibilityType Type of eligibility check (None, MinBalance, MinBalanceAndDuration)
-     * @param minBalance Minimum token balance required to be eligible
-     * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
-     */
-    struct ParticipantRequirements {
-        EligibilityType eligibilityType;
-        uint256 minBalance;
-        uint256 minHoldingDuration;
-    }
-
-    /**
      * @notice Configuration for board-wide incentive rewards
      *
      * @param curveType Type of incentive curve (0 = linear, 1 = exponential)
@@ -127,14 +100,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
         Accepted,
         Cancelled,
         Expired
-    }
-
-    /// @notice Types of eligibility requirements for proposers and participants
-    enum EligibilityType {
-        None, // No requirements
-        MinBalance, // Requires minimum token balance
-        MinBalanceAndDuration // Requires min balance held for min duration
-
     }
 
     /**
@@ -234,24 +199,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     /// @notice Thrown when decay curve type is invalid
     error Signals_InvalidDecayCurveType();
 
-    /// @notice Thrown when user has insufficient token balance for proposing
-    error Signals_ProposerInsufficientBalance();
-
-    /// @notice Thrown when user hasn't held tokens long enough to propose
-    error Signals_ProposerInsufficientDuration();
-
-    /// @notice Thrown when token doesn't support holding duration checks
-    error Signals_ProposerNoCheckpointSupport();
-
-    /// @notice Thrown when proposer threshold is zero with no eligibility requirements
-    error Signals_ProposerZeroThreshold();
-
-    /// @notice Thrown when proposer min balance is zero
-    error Signals_ProposerZeroMinBalance();
-
-    /// @notice Thrown when proposer min holding duration is zero
-    error Signals_ProposerZeroMinDuration();
-
     /// @notice Thrown when user has insufficient token balance for participating
     error Signals_ParticipantInsufficientBalance();
 
@@ -261,11 +208,14 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     /// @notice Thrown when token doesn't support holding duration checks
     error Signals_ParticipantNoCheckpointSupport();
 
+    /// @notice Thrown when user has insufficient lock amount for proposing
+    error Signals_ParticipantInsufficientLockAmount();
+
     /// @notice Thrown when participant min balance is zero
-    error Signals_ParticipantZeroMinBalance();
+    error Signals_ConfigErrorZeroMinBalance();
 
     /// @notice Thrown when participant min holding duration is zero
-    error Signals_ParticipantZeroMinDuration();
+    error Signals_ConfigErrorZeroMinDuration();
 
     /// @notice Thrown when initiative not eligible for expiration (still active)
     error Signals_NotEligibleForExpiration();
@@ -332,22 +282,4 @@ interface ISignals is IERC721Enumerable, ISignalsLock {
     function getLockCountForSupporter(address supporter) external view returns (uint256);
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
     function listPositions(address owner) external view returns (uint256[] memory);
-
-    /// @notice Get current proposer requirements (immutable)
-    /// @return Current proposer requirements configuration
-    function getProposerRequirements() external view returns (ProposerRequirements memory);
-
-    /// @notice Get current participant requirements (immutable)
-    /// @return Current participant requirements configuration
-    function getParticipantRequirements() external view returns (ParticipantRequirements memory);
-
-    /// @notice Check if an address meets proposer requirements
-    /// @param proposer Address to check
-    /// @return True if address can propose
-    function canPropose(address proposer) external view returns (bool);
-
-    /// @notice Check if an address meets participant requirements
-    /// @param participant Address to check
-    /// @return True if address can participate
-    function canParticipate(address participant) external view returns (bool);
 }

@@ -10,6 +10,8 @@ import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {ISignalsFactory} from "../../src/interfaces/ISignalsFactory.sol";
+import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
+import {BoardConfigs} from "./BoardConfigs.sol";
 
 contract SignalsHarness is Test {
     address _deployer = address(this);
@@ -32,31 +34,10 @@ contract SignalsHarness is Test {
     // --- Factory ---
     SignalsFactory internal factory = new SignalsFactory();
 
-    ISignals.BoardConfig public defaultConfig = ISignals.BoardConfig({
-        version: factory.version(),
-        owner: _deployer,
-        underlyingToken: address(_tokenERC20),
-        acceptanceThreshold: 100_000 * 1e18, // 100k
-        maxLockIntervals: 365 days, // 1 year
-        proposalCap: 100, // 100 proposals
-        lockInterval: 1 days, // 1 day
-        decayCurveType: 0, // Linear
-        decayCurveParameters: new uint256[](1),
-        proposerRequirements: ISignals.ProposerRequirements({
-            eligibilityType: ISignals.EligibilityType.None,
-            minBalance: 0,
-            minHoldingDuration: 0,
-            threshold: 50_000 * 1e18 // 50k tokens to propose
-        }),
-        participantRequirements: ISignals.ParticipantRequirements({
-            eligibilityType: ISignals.EligibilityType.None,
-            minBalance: 0,
-            minHoldingDuration: 0
-        }),
-        releaseLockDuration: 0,
-        boardOpenAt: 0, // Open immediately
-        boardClosedAt: 0 // Never closes
-    });
+    ISignals.BoardConfig public defaultConfig =
+        BoardConfigs.defaultConfig(_deployer, address(_tokenERC20), block.timestamp);
+    ISignals.BoardConfig public erc20VotesConfig =
+        BoardConfigs.defaultConfig(_deployer, address(_tokenERC20Votes), block.timestamp);
 
     function deploySignals(bool _dealTokens) public returns (Signals) {
         Signals signals = new Signals();
@@ -69,7 +50,7 @@ contract SignalsHarness is Test {
 
     function deploySignalsWithFactory(bool _dealTokens) public returns (SignalsFactory _factory, Signals signals) {
         _factory = new SignalsFactory();
-        address _instance = _factory.create(_toFactoryDeployment(defaultConfig));
+        address _instance = _factory.create(defaultConfig);
         signals = Signals(_instance);
         if (_dealTokens) {
             _dealDefaultTokens();
@@ -92,11 +73,11 @@ contract SignalsHarness is Test {
     function _dealDefaultTokens() public {
         // --- Issue standard ERC20 tokens to participants ---
         // Alice has 50k
-        deal(address(_tokenERC20), _alice, defaultConfig.proposerRequirements.threshold);
+        deal(address(_tokenERC20), _alice, defaultConfig.proposerRequirements.minBalance);
         // Bob has 100k
         deal(address(_tokenERC20), _bob, defaultConfig.acceptanceThreshold);
         // Charlie has 25k
-        deal(address(_tokenERC20), _charlie, defaultConfig.proposerRequirements.threshold / 2);
+        deal(address(_tokenERC20), _charlie, defaultConfig.proposerRequirements.minBalance / 2);
         // Liquidity provider has 1M
         deal(address(_tokenERC20), _liquidityProvider, 100_000_000 * 1e18);
     }
@@ -107,7 +88,7 @@ contract SignalsHarness is Test {
      */
     function _dealAndDelegateERC20Votes() public {
         // Mint and delegate to activate checkpoints
-        _tokenERC20Votes.mint(_alice, defaultConfig.proposerRequirements.threshold);
+        _tokenERC20Votes.mint(_alice, defaultConfig.proposerRequirements.minBalance);
         vm.prank(_alice);
         _tokenERC20Votes.delegate(_alice);
 
@@ -115,7 +96,7 @@ contract SignalsHarness is Test {
         vm.prank(_bob);
         _tokenERC20Votes.delegate(_bob);
 
-        _tokenERC20Votes.mint(_charlie, defaultConfig.proposerRequirements.threshold / 2);
+        _tokenERC20Votes.mint(_charlie, defaultConfig.proposerRequirements.minBalance / 2);
         vm.prank(_charlie);
         _tokenERC20Votes.delegate(_charlie);
 
@@ -123,39 +104,6 @@ contract SignalsHarness is Test {
         vm.prank(_liquidityProvider);
         _tokenERC20Votes.delegate(_liquidityProvider);
     }
-
-    /**
-     * @notice Create a Signals config using the ERC20Votes token
-     * @return Configuration using _tokenERC20Votes as underlying
-     */
-    function getERC20VotesConfig() public view returns (ISignals.BoardConfig memory) {
-        return ISignals.BoardConfig({
-            version: factory.version(),
-            owner: _deployer,
-            underlyingToken: address(_tokenERC20Votes),
-            acceptanceThreshold: 100_000 * 1e18,
-            maxLockIntervals: 365 days,
-            proposalCap: 100,
-            lockInterval: 1 days,
-            decayCurveType: 0,
-            decayCurveParameters: new uint256[](1),
-            proposerRequirements: ISignals.ProposerRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
-                minBalance: 0,
-                minHoldingDuration: 0,
-                threshold: 50_000 * 1e18
-            }),
-            participantRequirements: ISignals.ParticipantRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
-                minBalance: 0,
-                minHoldingDuration: 0
-            }),
-            releaseLockDuration: 0,
-            boardOpenAt: 0, // Open immediately
-            boardClosedAt: 0 // Never closes
-        });
-    }
-
 
     function lockTokensAndIssueBond(Signals _signals, address _user, uint256 _amount, uint256 _duration)
         public
@@ -186,28 +134,6 @@ contract SignalsHarness is Test {
     //         registry.allow(_tokens[i]);
     //     }
     // }
-
-    function _toFactoryDeployment(ISignals.BoardConfig storage config)
-        internal
-        view
-        returns (ISignalsFactory.FactoryDeployment memory)
-    {
-        return ISignalsFactory.FactoryDeployment({
-            owner: config.owner,
-            underlyingToken: config.underlyingToken,
-            acceptanceThreshold: config.acceptanceThreshold,
-            maxLockIntervals: config.maxLockIntervals,
-            proposalCap: config.proposalCap,
-            lockInterval: config.lockInterval,
-            decayCurveType: config.decayCurveType,
-            decayCurveParameters: config.decayCurveParameters,
-            proposerRequirements: config.proposerRequirements,
-            participantRequirements: config.participantRequirements,
-            releaseLockDuration: config.releaseLockDuration,
-            boardOpenAt: config.boardOpenAt,
-            boardClosedAt: config.boardClosedAt
-        });
-    }
 
     /*//////////////////////////////////////////////////////////////
                     TEST HELPER FUNCTIONS

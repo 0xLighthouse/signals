@@ -109,15 +109,15 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_PartialWithdrawal() public {
         // Propose initiative with lock
         vm.startPrank(_bob);
-        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
         signals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", defaultConfig.proposerRequirements.threshold, 6
+            "Initiative 1", "Description 1", defaultConfig.proposerRequirements.minBalance, 6
         );
 
         // Propose another initiative with lock
-        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.threshold);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
         signals.proposeInitiativeWithLock(
-            "Initiative 2", "Description 2", defaultConfig.proposerRequirements.threshold, 6
+            "Initiative 2", "Description 2", defaultConfig.proposerRequirements.minBalance, 6
         );
 
         // Accept the first initiative
@@ -134,7 +134,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         // Record the balance after first withdrawal
         uint256 balanceAfterFirstWithdraw = _tokenERC20.balanceOf(_bob);
         uint256 balanceDifference = balanceAfterFirstWithdraw - initialBalance;
-        assertEq(balanceDifference, defaultConfig.proposerRequirements.threshold);
+        assertEq(balanceDifference, defaultConfig.proposerRequirements.minBalance);
 
         // Attempt to withdraw the second lock...
         vm.startPrank(_bob);
@@ -155,7 +155,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         // Assert that the total balance difference equals the sum of both withdrawals
         uint256 finalBalance = _tokenERC20.balanceOf(_bob);
         uint256 totalBalanceDifference = finalBalance - initialBalance;
-        assertEq(totalBalanceDifference, defaultConfig.proposerRequirements.threshold * 2);
+        assertEq(totalBalanceDifference, defaultConfig.proposerRequirements.minBalance * 2);
     }
 
     /*//////////////////////////////////////////////////////////////

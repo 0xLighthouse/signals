@@ -197,36 +197,13 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         uint256[] memory params = new uint256[](1);
         params[0] = 9e17;
 
-        ISignals.BoardConfig memory config = ISignals.BoardConfig({
-            version: "1.0.0",
-            owner: _deployer,
-            underlyingToken: address(token),
-            acceptanceThreshold: 100_000 * 1e18,
-            maxLockIntervals: 365,
-            proposalCap: 100,
-            lockInterval: 1 days,
-            decayCurveType: 0,
-            decayCurveParameters: params,
-            proposerRequirements: ISignals.ProposerRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
-                minBalance: 0,
-                minHoldingDuration: 0,
-                threshold: 50_000 * 1e18
-            }),
-            participantRequirements: ISignals.ParticipantRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
-                minBalance: 0,
-                minHoldingDuration: 0
-            }),
-            releaseLockDuration: 0,
-            boardOpenAt: openTime,
-            boardClosedAt: 0
-        });
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.boardOpenAt = openTime;
+        config.boardClosedAt = 0;
 
-        // Deploy and initialize
+        // Deploy and initialize Signals
         Signals newSignals = new Signals();
         newSignals.initialize(config);
-
         return newSignals;
     }
 }

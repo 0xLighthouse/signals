@@ -73,7 +73,7 @@ contract TestDataScript is Script {
         address[3] memory proposers = [_alice, _bob, _charlie];
 
         // Get threshold
-        uint256 proposalThreshold = _instance.getProposerRequirements().threshold;
+        uint256 proposalThreshold = _instance.getProposerRequirements().minBalance;
         console.log("Proposal Threshold:", proposalThreshold);
 
         for (uint256 i = 0; i < proposers.length; i++) {

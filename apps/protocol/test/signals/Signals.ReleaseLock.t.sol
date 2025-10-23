@@ -115,7 +115,7 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
 
         vm.startPrank(_bob);
         _tokenERC20.approve(address(signals), 100_000 * 1e18);
-        vm.expectRevert(ISignals.Signals_BoardClosed.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
         signals.proposeInitiative("New", "Description");
         vm.stopPrank();
     }
@@ -131,7 +131,7 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
 
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 50_000 * 1e18);
-        vm.expectRevert(ISignals.Signals_BoardClosed.selector);
+        vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
         signals.supportInitiative(1, 50_000 * 1e18, 5);
         vm.stopPrank();
     }
@@ -141,7 +141,7 @@ contract SignalsReleaseLockTest is Test, SignalsHarness {
         signals.closeBoard();
 
         vm.prank(_deployer);
-        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_BoardClosed.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_BoardNotOpen.selector));
         signals.closeBoard();
     }
 

@@ -10,6 +10,7 @@ import "solady/test/utils/mocks/MockERC20.sol";
 
 import {SignalsFactory} from "../src/SignalsFactory.sol";
 import {Signals} from "../src/Signals.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
 
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
@@ -36,25 +37,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         uint256[] memory _decayCurveParameters = new uint256[](1);
         _decayCurveParameters[0] = 9e17;
 
-        // Deploy a new instance using the factory
-        ISignalsFactory.FactoryDeployment memory _defaultConfig = ISignalsFactory.FactoryDeployment({
-            owner: _alice,
-            underlyingToken: address(_tokenERC20),
-            acceptanceThreshold: defaultConfig.acceptanceThreshold,
-            maxLockIntervals: defaultConfig.maxLockIntervals,
-            proposalCap: defaultConfig.proposalCap,
-            lockInterval: defaultConfig.lockInterval,
-            decayCurveType: defaultConfig.decayCurveType,
-            decayCurveParameters: defaultConfig.decayCurveParameters,
-            proposerRequirements: defaultConfig.proposerRequirements,
-            participantRequirements: defaultConfig.participantRequirements,
-            releaseLockDuration: defaultConfig.releaseLockDuration,
-            boardOpenAt: defaultConfig.boardOpenAt,
-            boardClosedAt: defaultConfig.boardClosedAt
-        });
-
-        // Check that the Signals contract was deployed
-        address instanceAddress = _factory.create(_defaultConfig);
+        address instanceAddress = _factory.create(defaultConfig);
         assertTrue(instanceAddress != address(0));
 
         // Load the Signals contract instance
@@ -86,23 +69,10 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         uint256[] memory _decayCurveParameters = new uint256[](1); // 0.9
         _decayCurveParameters[0] = 9e17;
 
-        _factory.create(
-            ISignalsFactory.FactoryDeployment({
-                owner: address(0), // This is an invalid owner address
-                underlyingToken: address(_tokenERC20),
-                acceptanceThreshold: defaultConfig.acceptanceThreshold,
-                maxLockIntervals: defaultConfig.maxLockIntervals,
-                proposalCap: defaultConfig.proposalCap,
-                lockInterval: defaultConfig.lockInterval,
-                decayCurveType: defaultConfig.decayCurveType,
-                decayCurveParameters: defaultConfig.decayCurveParameters,
-                proposerRequirements: defaultConfig.proposerRequirements,
-                participantRequirements: defaultConfig.participantRequirements,
-                releaseLockDuration: defaultConfig.releaseLockDuration,
-                boardOpenAt: defaultConfig.boardOpenAt,
-                boardClosedAt: defaultConfig.boardClosedAt
-            })
-        );
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.owner = address(0);
+
+        _factory.create(config);
     }
 
     /*//////////////////////////////////////////////////////////////

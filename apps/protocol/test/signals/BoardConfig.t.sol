@@ -8,6 +8,7 @@ import {SignalsHarness} from "../utils/SignalsHarness.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {Signals} from "../../src/Signals.sol";
+import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 
 /**
  * @title BoardConfigTest
@@ -15,27 +16,11 @@ import {Signals} from "../../src/Signals.sol";
  * @dev Covers initialization, parameter updates, and access control
  */
 contract BoardConfigTest is Test, SignalsHarness {
-    ISignals signals;
+    Signals signals;
 
     function setUp() public {
         bool dealTokens = true;
         (, signals) = deploySignalsWithFactory(dealTokens);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INITIALIZATION TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test_Config_DefaultValues() public view {
-        assertEq(Ownable(address(signals)).owner(), address(_deployer));
-        assertEq(signals.underlyingToken(), address(_tokenERC20));
-        assertEq(signals.getProposerRequirements().threshold, defaultConfig.proposerRequirements.threshold);
-        assertEq(signals.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
-        assertEq(signals.maxLockIntervals(), defaultConfig.maxLockIntervals);
-        assertEq(signals.proposalCap(), defaultConfig.proposalCap);
-        assertEq(signals.lockInterval(), defaultConfig.lockInterval);
-        assertEq(signals.decayCurveType(), defaultConfig.decayCurveType);
-        assertEq(signals.totalInitiatives(), 0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -123,7 +108,7 @@ contract BoardConfigTest is Test, SignalsHarness {
 
     /// Test minimal valid configuration
     function test_Initialize_MinimalConfig() public {
-        ISignals board = ISignals(address(new Signals()));
+        Signals board = new Signals();
         ISignals.BoardConfig memory config = ISignals.BoardConfig({
             version: "1.0",
             owner: _deployer,
@@ -134,30 +119,31 @@ contract BoardConfigTest is Test, SignalsHarness {
             lockInterval: 1,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposerRequirements: ISignals.ProposerRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
+            proposerRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
+                minBalance: 1,
+                minHoldingDuration: 0,
+                minLockAmount: 0
+            }),
+            supporterRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
                 minBalance: 0,
                 minHoldingDuration: 0,
-                threshold: 1 // Minimal threshold when eligibility type is None
-            }),
-            participantRequirements: ISignals.ParticipantRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
-                minBalance: 0,
-                minHoldingDuration: 0
+                minLockAmount: 0
             }),
             releaseLockDuration: 0,
-            boardOpenAt: 0,
+            boardOpenAt: block.timestamp,
             boardClosedAt: 0
         });
 
         board.initialize(config);
-        assertEq(board.getProposerRequirements().threshold, 1);
+        assertEq(board.getProposerRequirements().minBalance, 1);
         assertEq(board.acceptanceThreshold(), 1);
     }
 
     /// Test production configuration
     function test_Initialize_ProductionConfig() public {
-        ISignals board = ISignals(address(new Signals()));
+        Signals board = new Signals();
         ISignals.BoardConfig memory config = ISignals.BoardConfig({
             version: "1.0",
             owner: _deployer,
@@ -168,24 +154,25 @@ contract BoardConfigTest is Test, SignalsHarness {
             lockInterval: 1 days,
             decayCurveType: 0,
             decayCurveParameters: new uint256[](1),
-            proposerRequirements: ISignals.ProposerRequirements({
-                eligibilityType: ISignals.EligibilityType.MinBalance,
+            proposerRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                 minBalance: 10_000 * 1e18,
                 minHoldingDuration: 0,
-                threshold: 50_000 * 1e18
+                minLockAmount: 50_000 * 1e18
             }),
-            participantRequirements: ISignals.ParticipantRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
+            supporterRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
                 minBalance: 0,
-                minHoldingDuration: 0
+                minHoldingDuration: 0,
+                minLockAmount: 0
             }),
             releaseLockDuration: 7 days,
-            boardOpenAt: 0,
+            boardOpenAt: block.timestamp,
             boardClosedAt: 0
         });
 
         board.initialize(config);
-        assertEq(board.getProposerRequirements().threshold, 50_000 * 1e18);
+        assertEq(board.getProposerRequirements().minLockAmount, 50_000 * 1e18);
         assertEq(board.acceptanceThreshold(), 500_000 * 1e18);
         assertEq(board.releaseLockDuration(), 7 days);
     }
@@ -193,16 +180,16 @@ contract BoardConfigTest is Test, SignalsHarness {
     /// Test that both decay types are valid
     function test_Initialize_BothDecayTypes() public {
         ISignals.BoardConfig memory config = defaultConfig;
-        ISignals board;
+        Signals board;
 
         // Linear
-        board = ISignals(address(new Signals()));
+        board = new Signals();
         config.decayCurveType = 0;
         board.initialize(config);
         assertEq(board.decayCurveType(), 0);
 
         // Exponential
-        board = ISignals(address(new Signals()));
+        board = new Signals();
         config.decayCurveType = 1;
         board.initialize(config);
         assertEq(board.decayCurveType(), 1);

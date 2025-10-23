@@ -10,12 +10,13 @@ import {IIncentivesPool} from "../../src/interfaces/IIncentivesPool.sol";
 import {Signals} from "../../src/Signals.sol";
 import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
-
+import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 /**
  * @title SignalsBoardIncentivesTest
  * @notice Tests for the board incentives feature
  * @dev Covers incentive pool setup, reward calculation, and claiming
  */
+
 contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     Signals signals;
     IncentivesPool incentivesPool;
@@ -89,16 +90,17 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
             lockInterval: 1 days,
             decayCurveType: 0,
             decayCurveParameters: decayParams,
-            proposerRequirements: ISignals.ProposerRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
+            proposerRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
                 minBalance: 0,
                 minHoldingDuration: 0,
-                threshold: 50_000 * 1e18
+                minLockAmount: 0
             }),
-            participantRequirements: ISignals.ParticipantRequirements({
-                eligibilityType: ISignals.EligibilityType.None,
+            supporterRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
                 minBalance: 0,
-                minHoldingDuration: 0
+                minHoldingDuration: 0,
+                minLockAmount: 0
             }),
             releaseLockDuration: 0,
             boardOpenAt: actualOpenTime,

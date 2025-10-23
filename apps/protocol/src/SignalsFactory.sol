@@ -39,7 +39,7 @@ contract SignalsFactory is ISignalsFactory {
     ///
     /// @return Address of the newly created Signals contract
     /// --------------------------------------------------------
-    function create(ISignalsFactory.FactoryDeployment calldata config) public payable returns (address) {
+    function create(ISignals.BoardConfig calldata config) public payable returns (address) {
         if (config.owner == address(0)) revert SignalsFactory_ZeroAddressOwner();
 
         // TODO(@arnold): [MEDIUM] Initialize IncentivesPool contract from factory
@@ -51,26 +51,7 @@ contract SignalsFactory is ISignalsFactory {
 
         // Initialize the new Signals contract
         Signals instance = new Signals();
-
-        // Merge the version into the config
-        ISignals.BoardConfig memory mergedConfig = ISignals.BoardConfig({
-            version: VERSION,
-            owner: config.owner,
-            underlyingToken: config.underlyingToken,
-            acceptanceThreshold: config.acceptanceThreshold,
-            maxLockIntervals: config.maxLockIntervals,
-            proposalCap: config.proposalCap,
-            lockInterval: config.lockInterval,
-            decayCurveType: config.decayCurveType,
-            decayCurveParameters: config.decayCurveParameters,
-            proposerRequirements: config.proposerRequirements,
-            participantRequirements: config.participantRequirements,
-            releaseLockDuration: config.releaseLockDuration,
-            boardOpenAt: config.boardOpenAt,
-            boardClosedAt: config.boardClosedAt
-        });
-
-        instance.initialize(mergedConfig);
+        instance.initialize(config);
 
         // Emit an event for the creation of the new contract
         emit BoardCreated(address(instance), config.owner);

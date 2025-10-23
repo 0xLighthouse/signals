@@ -11,6 +11,7 @@ import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 import {MockStable} from "../test/mocks/MockStable.m.sol";
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Bounties} from "../src/Bounties.sol";
+import {IAuthorizer} from "../src/interfaces/IAuthorizer.sol";
 
 /**
  * This script is used to deploy the Signals contracts on a local development network.
@@ -85,7 +86,8 @@ contract DevelopmentScript is Script {
         // Deploy a new Signals contract using the factory
         vm.broadcast(_deployer);
         address protocolAddress = _factory.create(
-            ISignalsFactory.FactoryDeployment({
+            ISignals.BoardConfig({
+                version: _factory.version(),
                 owner: _alice,
                 underlyingToken: address(_token),
                 acceptanceThreshold: 200_000 * 1e18, // 200k _acceptanceThreshold
@@ -94,16 +96,17 @@ contract DevelopmentScript is Script {
                 lockInterval: 1 hours, // decayInterval
                 decayCurveType: 0, // decayCurveType, linear
                 decayCurveParameters: params, // decayCurveParameters
-                proposerRequirements: ISignals.ProposerRequirements({
-                    eligibilityType: ISignals.EligibilityType.None,
+                proposerRequirements: IAuthorizer.ParticipantRequirements({
+                    eligibilityType: IAuthorizer.EligibilityType.None,
+                    minBalance: 50_000 * 1e18, // 50k proposalThreshold,
+                    minHoldingDuration: 0,
+                    minLockAmount: 0
+                }),
+                supporterRequirements: IAuthorizer.ParticipantRequirements({
+                    eligibilityType: IAuthorizer.EligibilityType.None,
                     minBalance: 0,
                     minHoldingDuration: 0,
-                    threshold: 50_000 * 1e18 // 50k proposalThreshold
-                }),
-                participantRequirements: ISignals.ParticipantRequirements({
-                    eligibilityType: ISignals.EligibilityType.None,
-                    minBalance: 0,
-                    minHoldingDuration: 0
+                    minLockAmount: 0
                 }),
                 releaseLockDuration: 0, // Immediate release on acceptance
                 boardOpenAt: 0, // Open immediately
@@ -115,7 +118,7 @@ contract DevelopmentScript is Script {
 
         console.log("SignalsContract", address(protocolAddress));
         console.log("Total proposals", protocol.totalInitiatives());
-        console.log("Proposal threshold", protocol.getProposerRequirements().threshold);
+        console.log("Proposal threshold", protocol.getProposerRequirements().minBalance);
         console.log("Acceptance threshold", protocol.acceptanceThreshold());
 
         vm.broadcast(_deployer);

@@ -1,0 +1,122 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+pragma solidity ^0.8.24;
+
+import {IAuthorizer} from "./interfaces/IAuthorizer.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ISignals} from "./interfaces/ISignals.sol";
+import {IVotes} from "./interfaces/IVotes.sol";
+
+abstract contract SignalsAuthorizer is IAuthorizer {
+    address public authorizationToken;
+
+    /// @notice Configuration for proposer requirements (immutable after initialization)
+    ParticipantRequirements public proposerRequirements;
+
+    /// @notice Configuration for participant requirements (immutable after initialization)
+    ParticipantRequirements public supporterRequirements;
+
+    /// @notice Modifier to check if caller is eligible to propose
+    modifier senderCanPropose(uint256 lockAmount) {
+        EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, proposerRequirements);
+        if (result == EligibilityResult.InsufficientLockAmount) {
+            revert ISignals.Signals_ParticipantInsufficientLockAmount();
+        }
+        if (result == EligibilityResult.InsufficientCurrentBalance) {
+            revert ISignals.Signals_ParticipantInsufficientBalance();
+        }
+        if (result == EligibilityResult.InsufficientHistoricalBalance) {
+            revert ISignals.Signals_ParticipantInsufficientDuration();
+        }
+        if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
+        _;
+    }
+
+    /// @notice Modifier to check participant requirements
+    modifier senderCanSupport(uint256 lockAmount) {
+        EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, supporterRequirements);
+        if (result == EligibilityResult.InsufficientLockAmount) {
+            revert ISignals.Signals_ParticipantInsufficientLockAmount();
+        }
+        if (result == EligibilityResult.InsufficientCurrentBalance) {
+            revert ISignals.Signals_ParticipantInsufficientBalance();
+        }
+        if (result == EligibilityResult.InsufficientHistoricalBalance) {
+            revert ISignals.Signals_ParticipantInsufficientDuration();
+        }
+        if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
+        _;
+    }
+
+    function _accountCanParticipate(address account, uint256 lockAmount, ParticipantRequirements memory reqs)
+        internal
+        view
+        returns (EligibilityResult result)
+    {
+        if (reqs.eligibilityType == EligibilityType.None) {
+            return EligibilityResult.Eligible;
+        }
+
+        if (lockAmount < reqs.minLockAmount) {
+            return EligibilityResult.InsufficientLockAmount;
+        }
+
+        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            // Check historical balance using ERC20Votes checkpoints
+            try IVotes(authorizationToken).getPastVotes(account, block.number - reqs.minHoldingDuration) returns (
+                uint256 pastBalance
+            ) {
+                // Verify they held the minimum balance for the required duration
+                if (pastBalance < reqs.minBalance) {
+                    return EligibilityResult.InsufficientHistoricalBalance;
+                }
+            } catch {
+                // Token doesn't support checkpoints - cannot verify holding duration
+                return EligibilityResult.TokenNotSupported;
+            }
+        }
+
+        // Check current balance
+        uint256 balance = IERC20(authorizationToken).balanceOf(account);
+        if (balance < reqs.minBalance) {
+            return EligibilityResult.InsufficientCurrentBalance;
+        }
+        return EligibilityResult.Eligible;
+    }
+
+    function accountCanPropose(address account, uint256 lockAmount) external view returns (bool result) {
+        return _accountCanParticipate(account, lockAmount, proposerRequirements) == EligibilityResult.Eligible;
+    }
+
+    function accountCanSupport(address account, uint256 lockAmount) external view returns (bool result) {
+        return _accountCanParticipate(account, lockAmount, supporterRequirements) == EligibilityResult.Eligible;
+    }
+
+    /// @notice Internal function to validate participant requirements
+    function _validateParticipantRequirements(ParticipantRequirements memory reqs) internal pure {
+        if (
+            reqs.eligibilityType == EligibilityType.MinBalance
+                || reqs.eligibilityType == EligibilityType.MinBalanceAndDuration
+        ) {
+            if (reqs.minBalance == 0) {
+                revert ISignals.Signals_ConfigErrorZeroMinBalance();
+            }
+        }
+
+        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+            if (reqs.minHoldingDuration == 0) {
+                revert ISignals.Signals_ConfigErrorZeroMinDuration();
+            }
+        }
+    }
+
+    /// @inheritdoc IAuthorizer
+    function getProposerRequirements() external view returns (ParticipantRequirements memory) {
+        return proposerRequirements;
+    }
+
+    /// @inheritdoc IAuthorizer
+    function getParticipantRequirements() external view returns (ParticipantRequirements memory) {
+        return supporterRequirements;
+    }
+}
