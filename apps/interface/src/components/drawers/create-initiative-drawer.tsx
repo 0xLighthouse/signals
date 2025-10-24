@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { CircleAlert, PlusIcon } from 'lucide-react'
+import { CircleAlert, PlusIcon, Trash2 } from 'lucide-react'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
+import { parseUnits } from 'viem'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -27,6 +28,14 @@ import { usePrivy } from '@privy-io/react-auth'
 import { context } from '@/config/web3'
 import { Typography } from '../ui/typography'
 
+type AttachmentDraft = {
+  uri: string
+  mimeType: string
+  description: string
+}
+
+const MAX_ATTACHMENTS = 5
+
 export function CreateInitiativeDrawer() {
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { address } = useAccount()
@@ -39,6 +48,7 @@ export function CreateInitiativeDrawer() {
   const [lockTokens, setLockTokens] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [attachments, setAttachments] = useState<AttachmentDraft[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -57,6 +67,7 @@ export function CreateInitiativeDrawer() {
     setLockTokens(false)
     setTitle('')
     setDescription('')
+    setAttachments([])
     setDuration(1)
     setIsSubmitting(false)
   }
@@ -79,11 +90,49 @@ export function CreateInitiativeDrawer() {
     setIsDrawerOpen(open)
   }
 
+  const handleAddAttachment = () => {
+    if (attachments.length >= MAX_ATTACHMENTS) {
+      toast(`You can add up to ${MAX_ATTACHMENTS} attachments`)
+      return
+    }
+
+    setAttachments((prev) => [...prev, { uri: '', mimeType: '', description: '' }])
+  }
+
+  const handleAttachmentChange = (index: number, field: keyof AttachmentDraft, value: string) => {
+    setAttachments((prev) =>
+      prev.map((attachment, idx) => (idx === index ? { ...attachment, [field]: value } : attachment)),
+    )
+  }
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
   const handleSubmit = async () => {
     if (!address) throw new Error('Address not available.')
     if (lockTokens && !amount) {
-      return toast('Please enter an amount to lock')
+      toast('Please enter an amount to lock')
+      return
     }
+
+    const trimmedAttachments = attachments.map((attachment) => ({
+      uri: attachment.uri.trim(),
+      mimeType: attachment.mimeType.trim(),
+      description: attachment.description.trim(),
+    }))
+
+    const hasInvalidAttachment = trimmedAttachments.some(
+      (attachment) =>
+        attachment.uri.length === 0 && (attachment.mimeType.length > 0 || attachment.description.length > 0),
+    )
+
+    if (hasInvalidAttachment) {
+      toast('Attachment URI is required when providing attachment details')
+      return
+    }
+
+    const preparedAttachments = trimmedAttachments.filter((attachment) => attachment.uri.length > 0)
 
     try {
       if (!walletClient) {
@@ -95,7 +144,15 @@ export function CreateInitiativeDrawer() {
       const nonce = await publicClient.getTransactionCount({ address })
 
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
-      const args = amount ? [title, description, amount * 1e18, duration] : [title, description]
+      const args = amount
+        ? [
+            title,
+            description,
+            parseUnits(String(amount), 18),
+            duration,
+            preparedAttachments,
+          ]
+        : [title, description, preparedAttachments]
 
       const { request } = await publicClient.simulateContract({
         account: address,
@@ -103,7 +160,6 @@ export function CreateInitiativeDrawer() {
         abi: context.contracts.SignalsProtocol.abi,
         functionName,
         nonce,
-        // @ts-ignore
         args,
       })
 
@@ -122,8 +178,7 @@ export function CreateInitiativeDrawer() {
       fetchContractMetadata()
     } catch (error) {
       console.error(error)
-      // @ts-ignore
-      if (error?.message?.includes('User rejected the request')) {
+      if ((error as Error)?.message?.includes('User rejected the request')) {
         toast('User rejected the request')
       } else {
         toast('Error submitting initiative :(')
@@ -207,6 +262,65 @@ export function CreateInitiativeDrawer() {
                     onChange={(e) => setDescription(e.target.value)}
                     style={{ resize: 'none', height: '200px' }}
                   />
+                </div>
+                <div className="my-4">
+                  <Label>Attachments</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Optional supporting links or files. Provide a URI along with an optional MIME type and description.
+                  </p>
+                  {attachments.map((attachment, index) => (
+                    <div key={`attachment-${index}`} className="mb-4 rounded-md border p-4">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-4">
+                        <div className="flex-1">
+                          <Label htmlFor={`attachment-uri-${index}`}>URI</Label>
+                          <Input
+                            id={`attachment-uri-${index}`}
+                            placeholder="https:// or ipfs://"
+                            value={attachment.uri}
+                            onChange={(e) => handleAttachmentChange(index, 'uri', e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-2 self-start text-muted-foreground hover:text-foreground"
+                          onClick={() => handleRemoveAttachment(index)}
+                          aria-label="Remove attachment"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                      <div className="mt-2 grid gap-2 md:grid-cols-2">
+                        <div>
+                          <Label htmlFor={`attachment-mime-${index}`}>MIME type</Label>
+                          <Input
+                            id={`attachment-mime-${index}`}
+                            placeholder="application/pdf"
+                            value={attachment.mimeType}
+                            onChange={(e) => handleAttachmentChange(index, 'mimeType', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`attachment-description-${index}`}>Description</Label>
+                          <Input
+                            id={`attachment-description-${index}`}
+                            placeholder="Short description"
+                            value={attachment.description}
+                            onChange={(e) => handleAttachmentChange(index, 'description', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddAttachment}
+                    disabled={attachments.length >= MAX_ATTACHMENTS}
+                  >
+                    Add attachment
+                  </Button>
                 </div>
                 <SwitchContainer>
                   <Switch

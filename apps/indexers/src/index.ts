@@ -13,6 +13,11 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
     proposer: event.args.proposer,
     title: event.args.title,
     body: event.args.body,
+    attachments: event.args.attachments?.map((attachment) => ({
+      uri: attachment.uri,
+      mimeType: attachment.mimeType,
+      description: attachment.description,
+    })) ?? [],
   })
 })
 

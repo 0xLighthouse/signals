@@ -1,5 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .envrc
+.repoprompt/*
 
 # dependencies
 node_modules
@@ -17,6 +18,8 @@ build
 # misc
 .DS_Store
 *.pem
+apps/signals-token-factory/cache/
+apps/signals-token-factory/lib/
 
 # debug
 npm-debug.log*

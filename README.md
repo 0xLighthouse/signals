@@ -35,6 +35,40 @@ Signals helps communities listen to themselves — revealing which directions ha
 
 ---
 
+## Contributor Guide
+
+Review the [Repository Guidelines](AGENTS.md) before proposing changes.
+
+---
+
+### Edge City Claim (optional)
+
+To enable the Edge City residency claim flow in the interface:
+
+- `NEXT_PUBLIC_EDGE_CITY=true`
+- `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (token supporting `faucet` or `claim`)
+- `NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION=claim` (set to `faucet` only when interacting with legacy faucet tokens)
+- `NEXT_PUBLIC_EDGE_CITY_MERKLE_ROOT=0x...` (must match the deployed `ExperimentToken` allowlist)
+- `NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS=2,7` (optional list of qualifying popup IDs)
+- `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
+- `EDGE_CITY_ALLOWLIST_PATH=apps/signals-token-factory/allowlists/edge-city.json` (or `EDGE_CITY_ALLOWLIST_JSON='{"root":"0x..","proofs":{...}}'`)
+
+Allowlist files must expose a Merkle root plus `proofs` mapping participant IDs (as **decimal strings**, e.g. `{ "5461": ["0xabc…"] }`) to proof arrays. Leaves are hashed as `keccak256(abi.encodePacked(uint256(participantId)))` to match on-chain verification.
+
+The allowlist generation now uses battle-tested utilities from `packages/shared/merkle` powered by OpenZeppelin's StandardMerkleTree. Generate sample allowlists with:
+```bash
+pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
+```
+
+Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
+```bash
+pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
+```
+
+Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
+
+---
+
 ## ⚙️ How It Works
 
 1. **Deploy a Board**

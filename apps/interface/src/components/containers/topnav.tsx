@@ -6,6 +6,7 @@ import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
 import { Lightbulb } from 'lucide-react'
 import { NavList } from './nav'
+import { EdgeCityClaimDialog } from '@/components/edge-city/edge-city-claim-dialog'
 
 export const TopNav = () => {
   return (
@@ -24,10 +25,12 @@ export const TopNav = () => {
         </div>
         <div className="flex lg:hidden items-center gap-4">
           <CreateInitiativeDrawer />
+          <EdgeCityClaimDialog />
           <SidebarTrigger />
         </div>
         <div className="hidden lg:flex items-center gap-4">
           <CreateInitiativeDrawer />
+          <EdgeCityClaimDialog />
           <ConnectButton />
           <ThemeToggle className="" />
         </div>

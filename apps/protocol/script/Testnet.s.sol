@@ -3,15 +3,15 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
 
-import {SignalsFactory} from "../src/SignalsFactory.sol";
-import {Signals} from "../src/Signals.sol";
-import {IAuthorizer} from "../src/interfaces/IAuthorizer.sol";
-import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
-import {ISignals} from "../src/interfaces/ISignals.sol";
-import {MockERC20} from "../test/mocks/MockERC20.m.sol";
-import {MockStable} from "../test/mocks/MockStable.m.sol";
-import {TokenRegistry} from "../src/TokenRegistry.sol";
-import {Bounties} from "../src/Bounties.sol";
+// import {SignalsFactory} from "../src/SignalsFactory.sol";
+// import {Signals} from "../src/Signals.sol";
+// import {IAuthorizer} from "../src/interfaces/IAuthorizer.sol";
+// import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
+// import {ISignals} from "../src/interfaces/ISignals.sol";
+// import {MockERC20} from "../test/mocks/MockERC20.m.sol";
+// import {MockStable} from "../test/mocks/MockStable.m.sol";
+// import {TokenRegistry} from "../src/TokenRegistry.sol";
+// import {Bounties} from "../src/Bounties.sol";
 
 /**
  * This script is used to deploy the Signals contracts to testnet.

@@ -28,16 +28,16 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 100 ether);
 
         vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
 
         vm.warp(block.timestamp + 720 days);
         vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         signals.setBoardOpenAt(block.timestamp);
         vm.prank(_alice);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), 100 ether);
 
         vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
-        signals.proposeInitiative("Early Initiative", "Should fail");
+        signals.proposeInitiative("Early Initiative", "Should fail", new ISignals.Attachment[](0));
         vm.stopPrank();
     }
 
@@ -70,7 +70,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
 
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 ether);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Support should also succeed
@@ -94,7 +94,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         // Alice proposes initiative (before close time)
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 200 ether);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Bob supports initiative (before close time)
@@ -110,7 +110,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 ether);
         vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
-        signals.proposeInitiative("Initiative 2", "Should fail");
+        signals.proposeInitiative("Initiative 2", "Should fail", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Charlie tries to support existing initiative (after close time) - should revert
@@ -130,7 +130,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         // Alice proposes initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 200 ether);
-        signals.proposeInitiative("Initiative 1", "Description 1");
+        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Bob supports initiative
@@ -147,7 +147,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 ether);
         vm.expectRevert(ISignals.Signals_BoardNotOpen.selector);
-        signals.proposeInitiative("Initiative 2", "Should fail");
+        signals.proposeInitiative("Initiative 2", "Should fail", new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Charlie tries to support existing initiative (after board closed) - should revert

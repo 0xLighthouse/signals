@@ -53,15 +53,18 @@ This section provides comprehensive technical documentation for interacting with
 // Check eligibility
 bool canPropose = signals.canPropose(msg.sender)
 
+ISignals.Attachment[] memory attachments = new ISignals.Attachment[](0);
+
 // Create initiative
-signals.proposeInitiative(title, body)
+signals.proposeInitiative(title, body, attachments)
 
 // Or create with initial support
 uint256 tokenId = signals.proposeInitiativeWithLock(
     title,
     body,
     amount,
-    lockDuration
+    lockDuration,
+    attachments
 )
 ```
 

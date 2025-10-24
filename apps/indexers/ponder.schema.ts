@@ -6,6 +6,12 @@ import { onchainTable, relations } from 'ponder'
  *  - https://ponder.sh/docs/schema#column-types
  */
 
+type InitiativeAttachment = {
+  uri: string
+  mimeType: string
+  description: string
+}
+
 // ===========================================================================
 //                                   ENTITIES
 // ===========================================================================
@@ -76,6 +82,10 @@ export const Initiative = onchainTable('initiatives', (t) => ({
   proposer: t.hex().notNull(),
   title: t.text().notNull(),
   body: t.text().notNull(),
+  attachments: t
+    .json()
+    .$type<InitiativeAttachment[]>()
+    .notNull(),
 }))
 
 export const InitiativeWeight = onchainTable('initiative_weights', (t) => ({

@@ -14,6 +14,7 @@ import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {Bounties} from "../src/Bounties.sol";
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
 import {IBounties} from "../src/interfaces/IBounties.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
 
 contract BountiesTest is Test, SignalsHarness {
     Bounties _bounties;
@@ -71,7 +72,7 @@ contract BountiesTest is Test, SignalsHarness {
     function test_AddBounty_Multiple() public {
         // Propose an initiative
         vm.startPrank(_alice);
-        signals.proposeInitiative("Initiative 1", "Test adding bounties");
+        signals.proposeInitiative("Initiative 1", "Test adding bounties", new ISignals.Attachment[](0));
 
         // Add a 500 USDC bounty (4 times)
         uint256 initiativeId = 1;
@@ -109,7 +110,13 @@ contract BountiesTest is Test, SignalsHarness {
         // Propose an initiative with a lock
         uint256 lockedAmount = 200 * 1e18;
         _tokenERC20.approve(address(signals), lockedAmount);
-        signals.proposeInitiativeWithLock("Initiative 1", "Test adding bounties", lockedAmount, 6);
+        signals.proposeInitiativeWithLock(
+            "Initiative 1",
+            "Test adding bounties",
+            lockedAmount,
+            6,
+            new ISignals.Attachment[](0)
+        );
 
         // Add a 500 USDC bounty (4 times)
         uint256 initiativeId = 1;

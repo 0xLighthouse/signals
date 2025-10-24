@@ -1,3 +1,1 @@
-export const example = () => {
-	return "example";
-};
+export * from './merkle';

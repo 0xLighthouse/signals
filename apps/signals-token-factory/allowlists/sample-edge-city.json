@@ -1,0 +1,33 @@
+{
+  "root": "0x1b8fb50bb3d47346a565a8a64173ad555c3a890ac71b6ff5d146745a5f6c18be",
+  "proofs": {
+    "0xb8d657c4e6f990aab0b0443828cb23c91ed93f295d03a5e8037a60dda2f1922a": [
+      "0x4ab699ac9fcf8a7b3e56777ff3d792f2c1e10f5a9098d2e2df52270074f66579",
+      "0x192ef9bbdf5abb7e02aea8d44db67c806915486c0438a3d0946e7dbfb370a3ad"
+    ],
+    "0xa625f394eeb7e33c719a4623af7d519954681c62ff043a7be57181067fe9e004": [
+      "0xba95722745ec25da955607ba988cc27ef8e2faedfce3c599ff649442be40e984",
+      "0x192ef9bbdf5abb7e02aea8d44db67c806915486c0438a3d0946e7dbfb370a3ad"
+    ],
+    "0x26196595d927684e26e0cb2bfa329534bd61a723131618536422906879285671": [
+      "0xa84c638ca5c18f76cb513765e8aa452d4366129ced121cbf3ad18587c17ce13c"
+    ]
+  },
+  "meta": [
+    {
+      "label": "some-hash-a",
+      "weight": 1,
+      "participantId": "0xb8d657c4e6f990aab0b0443828cb23c91ed93f295d03a5e8037a60dda2f1922a"
+    },
+    {
+      "label": "some-hash-b",
+      "weight": 1.5,
+      "participantId": "0xa625f394eeb7e33c719a4623af7d519954681c62ff043a7be57181067fe9e004"
+    },
+    {
+      "label": "some-hash-c",
+      "weight": 2,
+      "participantId": "0x26196595d927684e26e0cb2bfa329534bd61a723131618536422906879285671"
+    }
+  ]
+}
