@@ -1,6 +1,12 @@
 import schema from 'ponder:schema'
 
 type InitiativeEntity = typeof schema.Initiative.$inferSelect
+
+type InitiativeAttachment = {
+  uri: string
+  mimeType: string
+  description: string
+}
 type InitiativeWeightEntity = typeof schema.InitiativeWeight.$inferSelect
 type PoolEntity = typeof schema.Pool.$inferSelect
 
@@ -49,6 +55,7 @@ export type Initiative = {
   supporters: string[]
   createdAtTimestamp: number
   updatedAtTimestamp: number
+  attachments: InitiativeAttachment[]
   status: 'active' | 'accepted' | 'archived'
 } & InitiativeEntity
 

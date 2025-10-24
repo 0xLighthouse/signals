@@ -38,7 +38,7 @@ export const Submission = () => {
         address: context.contracts.SignalsProtocol.address,
         abi: context.contracts.SignalsProtocol.abi,
         functionName: 'proposeInitiative',
-        args: ['Initiative 1', 'Description 1'],
+        args: ['Initiative 1', 'Description 1', []],
         gas: 100_000n,
       })
 

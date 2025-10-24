@@ -7,6 +7,7 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
 import { AvatarGroup } from '@/components/ui/avatar-group'
+import { ExternalLink, Paperclip } from 'lucide-react'
 
 import type { Initiative } from 'indexers/src/api/types'
 
@@ -22,6 +23,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
     resolveName(initiative.proposer),
     shortAddress(initiative.proposer),
   )
+  const hasAttachments = initiative.attachments && initiative.attachments.length > 0
 
   return (
     <Card
@@ -46,6 +48,37 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
           </CardDescription>
           <div>
             <p className="text-body line-clamp-4 break-words">{initiative.description}</p>
+            {hasAttachments && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Attachments
+                </p>
+                <ul className="space-y-1">
+                  {initiative.attachments.map((attachment, index) => {
+                    const label = attachment.description || attachment.uri
+                    return (
+                      <li key={`${attachment.uri}-${index}`} className="text-xs">
+                        <a
+                          href={attachment.uri}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <Paperclip size={12} />
+                          <span className="truncate max-w-[180px] sm:max-w-[220px]">{label}</span>
+                          <ExternalLink size={12} />
+                        </a>
+                        {attachment.mimeType && (
+                          <span className="ml-5 text-[10px] uppercase text-muted-foreground">
+                            {attachment.mimeType}
+                          </span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         </CardHeader>
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">

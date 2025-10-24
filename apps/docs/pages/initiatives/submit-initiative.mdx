@@ -28,15 +28,24 @@ You can check if you're eligible to propose using the `canPropose(address)` view
 
 ### Basic Proposal
 
-The simplest way to create an initiative is using `proposeInitiative`. You provide a title and detailed description (markdown supported). This creates the initiative without locking any tokens.
+The simplest way to create an initiative is using `proposeInitiative`. You provide a title, detailed description (markdown supported), and optionally supply attachment metadata. This creates the initiative without locking any tokens.
 
 See the [Initiative Interactions Reference](/reference/initiative-interactions#proposing-initiatives) for function signatures and parameters.
 
 ### Proposal with Lock
 
-To immediately show support for your initiative, use `proposeInitiativeWithLock`. In addition to the title and description, you specify an amount of tokens to lock and a lock duration (measured in intervals).
+To immediately show support for your initiative, use `proposeInitiativeWithLock`. In addition to the title, description, and optional attachments, you specify an amount of tokens to lock and a lock duration (measured in intervals).
 
 This creates the initiative and your first lock position in a single transaction.
+
+## Attachments
+
+Attachments let you include supporting resources such as proposal documents, designs, or forum posts.
+
+- Add up to **5** attachments per initiative
+- Each attachment requires a non-empty URI (`https://`, `ipfs://`, or on-chain pointer)
+- MIME type and description fields are optional hints for clients
+- Pass an empty array if you do not need attachments
 
 ## Duration and Intervals
 

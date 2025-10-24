@@ -43,7 +43,26 @@ export const getInitiatives = async (c: Context) => {
         abi: SignalsABI,
         functionName: 'getInitiative',
         args: [BigInt(initiative.initiativeId)],
-      })
+      }) as {
+        state: number
+        attachments: { uri: string; mimeType: string; description: string }[]
+      }
+
+      const onchainAttachments = initiativeState.attachments ?? []
+      const attachments = onchainAttachments.length
+        ? onchainAttachments
+        : (initiative.attachments as { uri: string; mimeType: string; description: string }[])
+
+      const status = (() => {
+        switch (initiativeState.state) {
+          case 1:
+            return 'accepted' as const
+          case 0:
+            return 'active' as const
+          default:
+            return 'archived' as const
+        }
+      })()
 
       const weight = await publicClients['421614'].readContract({
         address: initiative.contractAddress,
@@ -79,7 +98,8 @@ export const getInitiatives = async (c: Context) => {
         supporters,
         createdAtTimestamp: Number(initiative.blockTimestamp),
         updatedAtTimestamp: Number(initiative.blockTimestamp),
-        status: initiativeState,
+        attachments,
+        status,
       }
     }),
   )
