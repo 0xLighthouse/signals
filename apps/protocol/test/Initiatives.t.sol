@@ -34,7 +34,7 @@ contract InitiativesTest is Test, SignalsHarness {
 
         // Charlie has InsufficientTokens, so this should revert
         vm.expectRevert(ISignals.Signals_ParticipantInsufficientBalance.selector);
-        signals.proposeInitiative(title, body);
+        signals.proposeInitiative(title, body, new ISignals.Attachment[](0));
     }
 
     /// @notice Test proposing an initiative with empty title or body
@@ -47,11 +47,11 @@ contract InitiativesTest is Test, SignalsHarness {
 
         // Attempt to propose with empty title
         vm.expectRevert(ISignals.Signals_EmptyTitle.selector);
-        signals.proposeInitiative("", "Some body");
+        signals.proposeInitiative("", "Some body", new ISignals.Attachment[](0));
 
         // Attempt to propose with empty body
         vm.expectRevert(ISignals.Signals_EmptyBody.selector);
-        signals.proposeInitiative("Some title", "");
+        signals.proposeInitiative("Some title", "", new ISignals.Attachment[](0));
     }
 
     /**
@@ -97,7 +97,7 @@ contract InitiativesTest is Test, SignalsHarness {
         // Approve the contract to spend the tokens
         vm.startPrank(_bob);
         _tokenERC20.approve(address(signals), amountToLock);
-        signals.proposeInitiativeWithLock(title, body, amountToLock, 1);
+        signals.proposeInitiativeWithLock(title, body, amountToLock, 1, new ISignals.Attachment[](0));
         vm.stopPrank();
 
         // Retrieve the initiative and check the details
@@ -110,5 +110,37 @@ contract InitiativesTest is Test, SignalsHarness {
         // The weight should be equal to the amount of tokens locked
         uint256 weight = signals.getWeightAt(1, block.timestamp);
         assertEq(weight, amountToLock);
+    }
+
+    function testProposeInitiativePersistsAttachments() public {
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
+
+        ISignals.Attachment[] memory attachments = new ISignals.Attachment[](2);
+        attachments[0] = ISignals.Attachment({
+            uri: "ipfs://proposal",
+            mimeType: "application/pdf",
+            description: "Full specification"
+        });
+        attachments[1] = ISignals.Attachment({
+            uri: "https://example.com/thread",
+            mimeType: "text/html",
+            description: "Community discussion"
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit ISignals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1", attachments);
+
+        signals.proposeInitiative("Initiative 1", "Description 1", attachments);
+        vm.stopPrank();
+
+        ISignals.Initiative memory initiative = signals.getInitiative(1);
+        assertEq(initiative.attachments.length, 2);
+        assertEq(initiative.attachments[0].uri, attachments[0].uri);
+        assertEq(initiative.attachments[0].mimeType, attachments[0].mimeType);
+        assertEq(initiative.attachments[0].description, attachments[0].description);
+        assertEq(initiative.attachments[1].uri, attachments[1].uri);
+        assertEq(initiative.attachments[1].mimeType, attachments[1].mimeType);
+        assertEq(initiative.attachments[1].description, attachments[1].description);
     }
 }

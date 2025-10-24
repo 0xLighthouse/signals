@@ -498,6 +498,16 @@ export const signalsAbi = [
           { name: 'title', internalType: 'string', type: 'string' },
           { name: 'body', internalType: 'string', type: 'string' },
           {
+            name: 'attachments',
+            internalType: 'struct ISignals.Attachment[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'uri', internalType: 'string', type: 'string' },
+              { name: 'mimeType', internalType: 'string', type: 'string' },
+              { name: 'description', internalType: 'string', type: 'string' },
+            ],
+          },
+          {
             name: 'state',
             internalType: 'enum ISignals.InitiativeState',
             type: 'uint8',
@@ -507,6 +517,11 @@ export const signalsAbi = [
           { name: 'lastActivity', internalType: 'uint256', type: 'uint256' },
           {
             name: 'underlyingLocked',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          {
+            name: 'acceptanceTimestamp',
             internalType: 'uint256',
             type: 'uint256',
           },
@@ -766,6 +781,16 @@ export const signalsAbi = [
     inputs: [
       { name: '_title', internalType: 'string', type: 'string' },
       { name: '_body', internalType: 'string', type: 'string' },
+      {
+        name: '_attachments',
+        internalType: 'struct ISignals.Attachment[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'uri', internalType: 'string', type: 'string' },
+          { name: 'mimeType', internalType: 'string', type: 'string' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
     ],
     name: 'proposeInitiative',
     outputs: [],
@@ -778,6 +803,16 @@ export const signalsAbi = [
       { name: '_body', internalType: 'string', type: 'string' },
       { name: '_amount', internalType: 'uint256', type: 'uint256' },
       { name: '_lockDuration', internalType: 'uint256', type: 'uint256' },
+      {
+        name: '_attachments',
+        internalType: 'struct ISignals.Attachment[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'uri', internalType: 'string', type: 'string' },
+          { name: 'mimeType', internalType: 'string', type: 'string' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
     ],
     name: 'proposeInitiativeWithLock',
     outputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
@@ -1125,6 +1160,16 @@ export const signalsAbi = [
       },
       { name: 'title', internalType: 'string', type: 'string', indexed: false },
       { name: 'body', internalType: 'string', type: 'string', indexed: false },
+      {
+        name: 'attachments',
+        internalType: 'struct ISignals.Attachment[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'uri', internalType: 'string', type: 'string' },
+          { name: 'mimeType', internalType: 'string', type: 'string' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
     ],
     name: 'InitiativeProposed',
   },

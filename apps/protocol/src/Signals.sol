@@ -88,6 +88,9 @@ contract Signals is
     /// @notice Timestamp when board closed or will close for participation
     uint256 public boardClosedAt;
 
+    /// @notice Maximum number of metadata attachments allowed per initiative
+    uint256 internal constant MAX_ATTACHMENTS = 5;
+
     /// @notice (initiativeId => Initiative)
     mapping(uint256 => Initiative) internal _initiatives;
 
@@ -198,20 +201,25 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function proposeInitiative(string memory _title, string memory _body)
+    function proposeInitiative(
+        string memory _title,
+        string memory _body,
+        ISignals.Attachment[] calldata _attachments
+    )
         external
         isOpen
         senderCanPropose(0)
         hasValidInput(_title, _body)
         returns (uint256 initiativeId)
     {
-        initiativeId = _addInitiative(_title, _body);
+        initiativeId = _addInitiative(_title, _body, _attachments);
     }
 
     /// @inheritdoc ISignals
     function proposeInitiativeWithLock(
-        string memory _title,
-        string memory _body,
+        string calldata _title,
+        string calldata _body,
+        ISignals.Attachment[] calldata _attachments,
         uint256 _amount,
         uint256 _lockDuration
     )
@@ -221,7 +229,7 @@ contract Signals is
         hasValidInput(_title, _body)
         returns (uint256 initiativeId, uint256 tokenId)
     {
-        initiativeId = _addInitiative(_title, _body);
+        initiativeId = _addInitiative(_title, _body, _attachments);
         tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
 
@@ -230,29 +238,77 @@ contract Signals is
      * @dev Validates proposer has sufficient tokens based on threshold
      * @param _title Title of the initiative
      * @param _body Body content of the initiative
+     * @param _attachments Optional metadata attachments to persist with the initiative
      * @return id The ID of the newly created initiative
      */
-    function _addInitiative(string memory _title, string memory _body)
-        internal
-        returns (uint256 id)
-    {
-        Initiative memory newInitiative = Initiative({
-            state: ISignals.InitiativeState.Proposed,
-            title: _title,
-            body: _body,
-            proposer: msg.sender,
-            timestamp: block.timestamp,
-            lastActivity: block.timestamp,
-            underlyingLocked: 0,
-            acceptanceTimestamp: 0
-        });
-
+    function _addInitiative(
+        string memory _title,
+        string memory _body,
+        ISignals.Attachment[] calldata _attachments
+    ) internal returns (uint256 id) {
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
-        _initiatives[initiativeCount] = newInitiative;
+        Initiative storage initiative = _initiatives[initiativeCount];
 
-        emit InitiativeProposed(initiativeCount, msg.sender, _title, _body);
+        initiative.state = ISignals.InitiativeState.Proposed;
+        initiative.title = _title;
+        initiative.body = _body;
+        initiative.proposer = msg.sender;
+        initiative.timestamp = block.timestamp;
+        initiative.lastActivity = block.timestamp;
+        initiative.underlyingLocked = 0;
+        initiative.acceptanceTimestamp = 0;
+
+        ISignals.Attachment[] memory attachmentsForEvent =
+            _storeAttachments(initiative, _attachments);
+
+        emit InitiativeProposed(initiativeCount, msg.sender, _title, _body, attachmentsForEvent);
         return initiativeCount;
+    }
+
+    /**
+     * @notice Persist attachments on-chain and prepare copies for event emission
+     * @param initiative Storage pointer to the initiative being populated
+     * @param attachments Attachments provided by the proposer
+     * @return attachmentsForEvent Copy of attachments suitable for event emission
+     */
+    function _storeAttachments(
+        Initiative storage initiative,
+        ISignals.Attachment[] calldata attachments
+    ) internal returns (ISignals.Attachment[] memory) {
+        if (attachments.length > MAX_ATTACHMENTS) {
+            revert ISignals.Signals_AttachmentLimitExceeded();
+        }
+
+        ISignals.Attachment[] memory attachmentsForEvent =
+            new ISignals.Attachment[](attachments.length);
+
+        for (uint256 i = 0; i < attachments.length;) {
+            ISignals.Attachment calldata attachment = attachments[i];
+            if (bytes(attachment.uri).length == 0) {
+                revert ISignals.Signals_AttachmentInvalidURI();
+            }
+
+            initiative.attachments.push(
+                ISignals.Attachment({
+                    uri: attachment.uri,
+                    mimeType: attachment.mimeType,
+                    description: attachment.description
+                })
+            );
+
+            attachmentsForEvent[i] = ISignals.Attachment({
+                uri: attachment.uri,
+                mimeType: attachment.mimeType,
+                description: attachment.description
+            });
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return attachmentsForEvent;
     }
 
     /**

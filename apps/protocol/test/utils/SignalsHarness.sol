@@ -94,6 +94,24 @@ contract SignalsHarness is Test {
                     TEST HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function _emptyAttachmentsArray()
+        internal
+        pure
+        returns (ISignals.Attachment[] memory attachments)
+    {
+        return new ISignals.Attachment[](0);
+    }
+
+    function _singleAttachment(string memory uri, string memory mimeType, string memory description)
+        internal
+        pure
+        returns (ISignals.Attachment[] memory attachments)
+    {
+        attachments = new ISignals.Attachment[](1);
+        attachments[0] =
+            ISignals.Attachment({uri: uri, mimeType: mimeType, description: description});
+    }
+
     /// @notice Helper to propose initiative with lock and accept it
     /// @return initiativeId The ID of the created initiative
     /// @return tokenId The ID of the lock NFT
@@ -106,7 +124,7 @@ contract SignalsHarness is Test {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
         (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", amount, lockDuration
+            "Test Initiative", "Description", amount, lockDuration, _emptyAttachmentsArray()
         );
         vm.stopPrank();
 
@@ -140,7 +158,7 @@ contract SignalsHarness is Test {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
         (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", amount, lockDuration
+            "Test Initiative", "Description", amount, lockDuration, _emptyAttachmentsArray()
         );
         vm.stopPrank();
 

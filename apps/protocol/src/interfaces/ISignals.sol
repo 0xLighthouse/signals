@@ -52,6 +52,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      *
      * @param title The title of the initiative
      * @param body The detailed body of the initiative in markdown format
+     * @param attachments Optional metadata attachments associated with the initiative
      * @param state The current state of the initiative
      * @param proposer The address of the account that proposed this initiative
      * @param timestamp The timestamp when the initiative was created
@@ -61,6 +62,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     struct Initiative {
         string title;
         string body;
+        Attachment[] attachments;
         InitiativeState state;
         address proposer;
         uint256 timestamp;
@@ -84,6 +86,15 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 lockDuration;
         uint256 created;
         bool withdrawn;
+    }
+
+    /**
+     * @notice Optional metadata attachment associated with an initiative
+     */
+    struct Attachment {
+        string uri;
+        string mimeType;
+        string description;
     }
 
     // Enums
@@ -111,7 +122,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 tokenId
     );
     event InitiativeProposed(
-        uint256 indexed initiativeId, address indexed proposer, string title, string body
+        uint256 indexed initiativeId,
+        address indexed proposer,
+        string title,
+        string body,
+        Attachment[] attachments
     );
     event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
@@ -224,6 +239,12 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when incentive parameters are invalid
     error Signals_InvalidIncentiveParameters();
 
+    /// @notice Thrown when attachment array exceeds supported bounds
+    error Signals_AttachmentLimitExceeded();
+
+    /// @notice Thrown when attachment URI is empty
+    error Signals_AttachmentInvalidURI();
+
     /// @notice Thrown when board open timestamp is invalid (in the past)
     error Signals_InvalidBoardOpenTime();
 
@@ -251,18 +272,20 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
-    function proposeInitiative(string memory title, string memory body)
-        external
-        returns (uint256 initiativeId);
+<<<<<<< HEAD
+    function proposeInitiative(
+        string memory title,
+        string memory body,
+        Attachment[] calldata attachments
+    ) external returns (uint256 initiativeId);
     function proposeInitiativeWithLock(
         string memory title,
         string memory body,
+        Attachment[] calldata attachments,
         uint256 amount,
         uint256 lockDuration
     ) external returns (uint256 initiativeId, uint256 lockId);
-    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
-        external
-        returns (uint256);
+    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;

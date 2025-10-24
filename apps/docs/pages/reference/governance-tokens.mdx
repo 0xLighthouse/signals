@@ -276,14 +276,14 @@ function test_ProposalRequirements() public {
     // Try immediately - should fail
     vm.prank(alice);
     vm.expectRevert("Tokens not held long enough");
-    signals.proposeInitiative("Test", "Description");
+    signals.proposeInitiative("Test", "Description", new ISignals.Attachment[](0));
 
     // Advance blocks
     vm.roll(block.number + minHoldingDuration);
 
     // Try again - should succeed
     vm.prank(alice);
-    signals.proposeInitiative("Test", "Description");
+    signals.proposeInitiative("Test", "Description", new ISignals.Attachment[](0));
 }
 ```
 
