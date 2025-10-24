@@ -272,7 +272,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
-<<<<<<< HEAD
     function proposeInitiative(
         string memory title,
         string memory body,
@@ -285,7 +284,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 amount,
         uint256 lockDuration
     ) external returns (uint256 initiativeId, uint256 lockId);
-    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external returns (uint256);
+    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
+        external
+        returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;
