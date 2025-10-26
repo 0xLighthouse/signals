@@ -12,7 +12,10 @@ interface IIncentivesPool {
     event BoardApproved(address indexed board);
     event BoardRevoked(address indexed board);
     event RewardsClaimed(
-        address indexed board, uint256 indexed initiativeId, address indexed supporter, uint256 amount
+        address indexed board,
+        uint256 indexed initiativeId,
+        address indexed supporter,
+        uint256 amount
     );
     event AvailableRewardsUpdated(uint256 newBalance);
 
@@ -57,7 +60,8 @@ interface IIncentivesPool {
      * @param boardMaxBudget_ Maximum total budget allocated for this board
      * @param maxRewardPerInitiative_ Maximum reward per initiative for this board
      */
-    function approveBoard(address board, uint256 boardMaxBudget_, uint256 maxRewardPerInitiative_) external;
+    function approveBoard(address board, uint256 boardMaxBudget_, uint256 maxRewardPerInitiative_)
+        external;
 
     /**
      * @notice Remove approval for a board
@@ -77,13 +81,6 @@ interface IIncentivesPool {
      * @param amount Amount of rewards to claim
      */
     function claimRewards(uint256 initiativeId, address payee, uint256 amount) external;
-
-    /**
-     * @notice Get all approved boards
-     *
-     * @return Array of approved board addresses
-     */
-    function getApprovedBoards() external view returns (address[] memory);
 
     /**
      * @notice Check if a board is approved
