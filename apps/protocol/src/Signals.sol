@@ -306,11 +306,18 @@ contract Signals is
         // Update the initiative's last activity timestamp
         initiative.lastActivity = block.timestamp;
 
-        // Inscribe the users support
+        // Record the user's support
         if (!isSupporter[initiativeId][supporter]) {
             supporters[initiativeId].push(supporter);
             isSupporter[initiativeId][supporter] = true;
         }
+
+        // Record this lock's contribution for incentives
+        // (Function will silently skip if we aren't using incentives)
+        // NOTE: For now we are basing credit on weight at lock time. If we want to do something else,
+        // this is where to change it.
+        uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
+        _addIncentivesCreditForLock(initiativeId, lockCount, uint128(weight));
 
         emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, lockCount);
 
