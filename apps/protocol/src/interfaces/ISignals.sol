@@ -3,9 +3,11 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import {ISignalsLock} from "./ISignalsLock.sol";
-import {IAuthorizer} from "./IAuthorizer.sol";
 
-interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
+import {IAuthorizer} from "./IAuthorizer.sol";
+import {IIncentivizer} from "./IIncentivizer.sol";
+
+interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivizer {
     /**
      * @notice All configuration parameters for initializing the Signals contract
      *
@@ -84,17 +86,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
         bool withdrawn;
     }
 
-    /**
-     * @notice Configuration for board-wide incentive rewards
-     *
-     * @param curveType Type of incentive curve (0 = linear, 1 = exponential)
-     * @param curveParameters Parameters for the curve (e.g., [k] for linear decay)
-     */
-    struct IncentivesConfig {
-        uint256 curveType;
-        uint256[] curveParameters;
-    }
-
     // Enums
     enum InitiativeState {
         Proposed,
@@ -119,7 +110,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
         uint256 lockDuration,
         uint256 tokenId
     );
-    event InitiativeProposed(uint256 indexed initiativeId, address indexed proposer, string title, string body);
+    event InitiativeProposed(
+        uint256 indexed initiativeId, address indexed proposer, string title, string body
+    );
     event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
     event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
@@ -181,6 +174,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
 
     /// @notice Thrown when owner address is zero
     error Signals_ZeroAddressOwner();
+
+    /// @notice Thrown when incentives pool address is zero
+    error Signals_ZeroAddressIncentivesPool();
 
     /// @notice Thrown when acceptance threshold is zero
     error Signals_ZeroAcceptanceThreshold();
@@ -252,10 +248,15 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     // Public functions
     function initialize(BoardConfig calldata config) external;
     function proposeInitiative(string memory title, string memory body) external;
-    function proposeInitiativeWithLock(string memory title, string memory body, uint256 amount, uint256 lockDuration)
+    function proposeInitiativeWithLock(
+        string memory title,
+        string memory body,
+        uint256 amount,
+        uint256 lockDuration
+    ) external returns (uint256);
+    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
         external
         returns (uint256);
-    function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration) external returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeem(uint256 tokenId) external;
@@ -271,12 +272,17 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer {
     function token() external view returns (address);
     function totalInitiatives() external view returns (uint256);
     function totalSupporters(uint256 initiativeId) external view returns (uint256);
-    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters) external;
+    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
+        external;
     function setBounties(address _bounties) external;
-    function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig) external;
+    function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
+        external;
     function setBoardOpenAt(uint256 _boardOpenAt) external;
     function closeBoard() external;
-    function getPositionsForInitiative(uint256 initiativeId) external view returns (uint256[] memory);
+    function getPositionsForInitiative(uint256 initiativeId)
+        external
+        view
+        returns (uint256[] memory);
     function getLockCountForSupporter(address supporter) external view returns (uint256);
     function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
     function listPositions(address owner) external view returns (uint256[] memory);

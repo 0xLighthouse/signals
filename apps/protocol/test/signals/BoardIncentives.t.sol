@@ -6,6 +6,7 @@ import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
 import {ISignals} from "../../src/interfaces/ISignals.sol";
+import {IIncentivizer} from "../../src/interfaces/IIncentivizer.sol";
 import {Signals} from "../../src/Signals.sol";
 import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
@@ -65,9 +66,9 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         uint256[] memory incentiveParams = new uint256[](1);
         incentiveParams[0] = k; // k parameter for linear curve
 
-        ISignals.IncentivesConfig memory incentivesConfig = ISignals.IncentivesConfig({
-            curveType: 0, // Linear
-            curveParameters: incentiveParams
+        IIncentivizer.IncentivesConfig memory incentivesConfig = IIncentivizer.IncentivesConfig({
+            incentiveType: IIncentivizer.IncentiveType.Linear,
+            incentiveParameters: incentiveParams
         });
 
         // Create decay curve params
