@@ -221,6 +221,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when incentives pool is not approved for this board
     error Signals_IncentivesPoolNotApproved();
 
+    /// @notice Thrown when incentive parameters are invalid
+    error Signals_InvalidIncentiveParameters();
+
     /// @notice Thrown when board open timestamp is invalid (in the past)
     error Signals_InvalidBoardOpenTime();
 

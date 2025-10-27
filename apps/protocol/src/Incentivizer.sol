@@ -57,6 +57,15 @@ abstract contract SignalsIncentivizer is IIncentivizer {
             revert ISignals.Signals_IncentivesPoolNotApproved();
         }
         incentivesPool = IIncentivesPool(incentivesPool_);
+
+        if (_incentivesConfig.incentiveType == IncentiveType.Linear) {
+            if (
+                _incentivesConfig.incentiveParameters.length < 2
+                    || _incentivesConfig.incentiveParameters.length > INCENTIVE_RESOLUTION
+            ) {
+                revert ISignals.Signals_InvalidIncentiveParameters();
+            }
+        }
         _incentivesConfig = incentivesConfig_;
     }
 
@@ -137,9 +146,28 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         }
     }
 
-    function _claimIncentivesForLocks(
-        uint256 initiativeId,
-        uint256[] calldata lockIds,
-        address payee
-    ) internal {}
+    function _claimIncentivesForLocks(uint256 initiativeId, uint256[] memory lockIds, address payee)
+        internal
+    {
+        // uint256 incentiveAmount = 0;
+        // for (uint256 i = 0; i < lockIds.length; i++) {
+        //     LockIncentiveCredit[] memory credits =
+        //         lockIncentiveCreditsByInitiative[initiativeId][lockId];
+        // }
+    }
+
+    function _getBucketMultipliers(uint256 numberOfBuckets) private returns (uint256[] memory) {
+        uint256[] memory config = _incentivesConfig.incentiveParameters;
+        uint256[] memory interpolated = new uint256[](numberOfBuckets);
+
+        // TODO: Interpolate the values in between the config values.
+        for (uint256 i = 0; i < config.length; i++) {
+            uint256 startIndex = i * ((interpolated.length) / (config.length));
+            uint256 endIndex = (i + 1) * ((interpolated.length) / (config.length));
+            for (uint256 j = startIndex; j < endIndex; j++) {
+                interpolated[j] = config[i];
+            }
+        }
+        return interpolated;
+    }
 }

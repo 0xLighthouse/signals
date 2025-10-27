@@ -464,6 +464,8 @@ contract Signals is
         if (!IERC20(underlyingToken).transfer(msg.sender, redeemAmount)) {
             revert ISignals.Signals_TokenTransferFailed();
         }
+
+        _claimIncentivesForLocks(initiativeId, lockIds, msg.sender);
     }
 
     /**

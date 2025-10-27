@@ -10,8 +10,10 @@ interface IIncentivizer {
     /**
      * @notice Configuration for board-wide incentive rewards
      *
-     * @param curveType Type of incentive curve (0 = linear, 1 = exponential)
-     * @param curveParameters Parameters for the curve (e.g., [k] for linear decay)
+     * @param incentiveType Type of incentive curve
+     * @param incentiveParameters Parameters for the curve
+     * @dev If the incentive type is Linear, at least 2 values (starting and ending values) are required.
+     * @dev Exponential type is not yet implemented.
      */
 
     struct IncentivesConfig {
