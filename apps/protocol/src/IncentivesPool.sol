@@ -134,6 +134,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         if (percentOfInitiativeRewards > 1e18) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
+
         // Calculate the amount of rewards to claim
         uint256 amount = (totalRewardPerInitiative[msg.sender] * percentOfInitiativeRewards) / 1e18;
 
@@ -142,15 +143,24 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
             amount = boardRemainingBudget[msg.sender];
         }
 
-        boardRemainingBudget[msg.sender] -= amount;
-        totalBoardBudgets -= amount;
-        availableRewards -= amount;
-        distributedRewards += amount;
+        emit RewardsPaidOut(
+            msg.sender,
+            initiativeId,
+            payee,
+            percentOfInitiativeRewards,
+            boardRemainingBudget[msg.sender],
+            amount
+        );
 
-        // Transfer rewards
-        IERC20(REWARD_TOKEN).safeTransfer(payee, amount);
+        if (amount > 0) {
+            boardRemainingBudget[msg.sender] -= amount;
+            totalBoardBudgets -= amount;
+            availableRewards -= amount;
+            distributedRewards += amount;
 
-        emit RewardsClaimed(msg.sender, initiativeId, payee, amount);
+            // Transfer rewards
+            IERC20(REWARD_TOKEN).safeTransfer(payee, amount);
+        }
     }
 
     /// @inheritdoc IIncentivesPool

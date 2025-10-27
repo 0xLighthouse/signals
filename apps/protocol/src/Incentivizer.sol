@@ -174,9 +174,12 @@ abstract contract SignalsIncentivizer is IIncentivizer {
                 credit.amount * 1e18 / buckets[bucketIndex].bucketTotalIncentiveCredits;
 
             // Multiply by the percentage of the whole the bucket represents
-            uint256 totalRewardPercentage = bucketPercentage * multipliers[bucketIndex] / 1e18;
+            uint256 percentageOfInitiativeRewards =
+                bucketPercentage * multipliers[bucketIndex] / 1e18;
 
-            totalPercentOfInitiativeRewards += totalRewardPercentage;
+            totalPercentOfInitiativeRewards += percentageOfInitiativeRewards;
+
+            emit RewardsClaimed(initiativeId, lockIds[i], payee, percentageOfInitiativeRewards);
         }
 
         // Tell the incentives pool to payout that percentage of the initiative rewards to the payee

@@ -6,9 +6,11 @@ import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
+import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
 import {ISignals} from "../../src/interfaces/ISignals.sol";
+import {IIncentivizer} from "../../src/interfaces/IIncentivizer.sol";
 import {BoardConfigs} from "./BoardConfigs.sol";
 
 contract SignalsHarness is Test {
@@ -17,6 +19,7 @@ contract SignalsHarness is Test {
     address _bob = address(0x2222);
     address _charlie = address(0x3333);
     address _liquidityProvider = address(0x4444);
+    address _poolOwner = address(0x9999);
 
     uint256 public constant STANDARD_BALANCE = 200_000;
     uint256 public constant LOW_BALANCE = 40_000;
@@ -136,5 +139,123 @@ contract SignalsHarness is Test {
         vm.warp(block.timestamp + 61 days); // Past activity timeout
         vm.prank(_deployer);
         signals.expireInitiative(initiativeId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    INCENTIVES POOL HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Deploy and fund an IncentivesPool with reward tokens
+    /// @param fundAmount Amount of reward tokens to add to the pool (default: 1M tokens with 18 decimals)
+    /// @return pool The deployed IncentivesPool contract
+    /// @return rewardToken The reward token used by the pool
+    /// @return poolOwner The address that owns the pool
+    function deployAndFundIncentivesPool(uint256 fundAmount)
+        internal
+        returns (IncentivesPool pool, MockERC20 rewardToken, address poolOwner)
+    {
+        // Create reward token
+        rewardToken = new MockERC20("RewardToken", "REWARD", 18);
+
+        // Deploy pool owned by _poolOwner
+        vm.prank(_poolOwner);
+        pool = new IncentivesPool(address(rewardToken));
+
+        // Mint and fund the pool
+        rewardToken.mint(_poolOwner, fundAmount);
+        vm.startPrank(_poolOwner);
+        rewardToken.approve(address(pool), fundAmount);
+        pool.addFundsToPool(fundAmount);
+        vm.stopPrank();
+
+        return (pool, rewardToken, _poolOwner);
+    }
+
+    /// @notice Deploy and fund an IncentivesPool with default 1M tokens
+    /// @return pool The deployed IncentivesPool contract
+    /// @return rewardToken The reward token used by the pool
+    /// @return poolOwner The address that owns the pool
+    function deployAndFundIncentivesPool()
+        internal
+        returns (IncentivesPool pool, MockERC20 rewardToken, address poolOwner)
+    {
+        return deployAndFundIncentivesPool(1_000_000 * 1e18);
+    }
+
+    /// @notice Attach an IncentivesPool to a Signals board
+    /// @dev MUST be called before the board opens (contract enforced)
+    /// @param signals The Signals board to attach the pool to
+    /// @param pool The IncentivesPool to attach
+    /// @param boardBudget Total budget allocated to this board from the pool
+    /// @param maxRewardPerInitiative Maximum reward that can be distributed per initiative
+    function attachIncentivesPoolToBoard(
+        ISignals signals,
+        IncentivesPool pool,
+        uint256 boardBudget,
+        uint256 maxRewardPerInitiative
+    ) internal {
+        // Approve the board on the pool (must be done by pool owner)
+        vm.startPrank(_poolOwner);
+        pool.approveBoard(address(signals), boardBudget, maxRewardPerInitiative);
+        vm.stopPrank();
+
+        // Create incentives config with linear curve parameters [3, 1, 2]
+        uint256[] memory incentiveParams = new uint256[](3);
+        incentiveParams[0] = 3;
+        incentiveParams[1] = 1;
+        incentiveParams[2] = 2;
+
+        IIncentivizer.IncentivesConfig memory incentivesConfig = IIncentivizer.IncentivesConfig({
+            incentiveType: IIncentivizer.IncentiveType.Linear,
+            incentiveParameters: incentiveParams
+        });
+
+        // Set the pool on the board (must be done by deployer before board opens)
+        vm.prank(_deployer);
+        signals.setIncentivesPool(address(pool), incentivesConfig);
+    }
+
+    /// @notice Attach an IncentivesPool with default parameters (100k budget, 10k max reward)
+    /// @param signals The Signals board to attach the pool to
+    /// @param pool The IncentivesPool to attach
+    function attachIncentivesPoolToBoard(ISignals signals, IncentivesPool pool) internal {
+        attachIncentivesPoolToBoard(signals, pool, 100_000 * 1e18, 10_000 * 1e18);
+    }
+
+    /// @notice Deploy a Signals board with IncentivesPool already attached
+    /// @dev Convenience wrapper that combines board deployment, pool deployment, and attachment
+    /// @param config The board configuration
+    /// @param boardBudget Total budget allocated to this board from the pool
+    /// @param maxRewardPerInitiative Maximum reward that can be distributed per initiative
+    /// @return signals The deployed Signals board
+    /// @return pool The deployed and attached IncentivesPool
+    /// @return rewardToken The reward token used by the pool
+    function deploySignalsWithIncentivesPool(
+        ISignals.BoardConfig memory config,
+        uint256 boardBudget,
+        uint256 maxRewardPerInitiative
+    ) internal returns (Signals signals, IncentivesPool pool, MockERC20 rewardToken) {
+        // Deploy board
+        signals = deploySignals(config);
+
+        // Deploy and fund pool
+        (pool, rewardToken,) = deployAndFundIncentivesPool();
+
+        // Attach pool to board
+        attachIncentivesPoolToBoard(ISignals(address(signals)), pool, boardBudget, maxRewardPerInitiative);
+
+        return (signals, pool, rewardToken);
+    }
+
+    /// @notice Deploy a Signals board with IncentivesPool using default parameters
+    /// @param config The board configuration
+    /// @return signals The deployed Signals board
+    /// @return pool The deployed and attached IncentivesPool
+    /// @return rewardToken The reward token used by the pool
+    function deploySignalsWithIncentivesPool(ISignals.BoardConfig memory config)
+        internal
+        returns (Signals signals, IncentivesPool pool, MockERC20 rewardToken)
+    {
+        return deploySignalsWithIncentivesPool(config, 100_000 * 1e18, 10_000 * 1e18);
     }
 }

@@ -30,23 +30,20 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Helper to deploy Signals with board incentives enabled
     /// @param openTimeDelay Seconds from now when board opens (0 = opens immediately after pool setup)
-    /// @param k Decay rate parameter for linear curve
     /// @param setupPool Whether to initialize and approve the pool
-    function deploySignalsWithIncentives(uint256 openTimeDelay, uint256 k, bool setupPool)
+    function deploySignalsWithIncentives(uint256 openTimeDelay, bool setupPool)
         internal
         returns (Signals, IncentivesPool, uint256)
     {
-        return deploySignalsWithIncentivesCustomReward(openTimeDelay, k, setupPool, 10_000 * 1e18);
+        return deploySignalsWithIncentivesCustomReward(openTimeDelay, setupPool, 10_000 * 1e18);
     }
 
     /// Helper to deploy Signals with board incentives enabled and custom max reward
     /// @param openTimeDelay Seconds from now when board opens (0 = opens immediately after pool setup)
-    /// @param k Decay rate parameter for linear curve
     /// @param setupPool Whether to initialize and approve the pool
     /// @param maxRewardPerInitiative_ Maximum reward per initiative
     function deploySignalsWithIncentivesCustomReward(
         uint256 openTimeDelay,
-        uint256 k,
         bool setupPool,
         uint256 maxRewardPerInitiative_
     ) internal returns (Signals, IncentivesPool, uint256) {
@@ -62,9 +59,11 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         // Mint reward tokens to pool owner
         rewardToken.mint(poolOwner, 10_000_000 * 1e18);
 
-        // Create board incentives config
-        uint256[] memory incentiveParams = new uint256[](1);
-        incentiveParams[0] = k; // k parameter for linear curve
+        // Create board incentives config with linear curve parameters [3, 1, 2]
+        uint256[] memory incentiveParams = new uint256[](3);
+        incentiveParams[0] = 3;
+        incentiveParams[1] = 1;
+        incentiveParams[2] = 2;
 
         IIncentivizer.IncentivesConfig memory incentivesConfig = IIncentivizer.IncentivesConfig({
             incentiveType: IIncentivizer.IncentiveType.Linear,
@@ -114,7 +113,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     /// Test pool initialization before board opens
     function test_IncentivesPool_InitializeBeforeOpen_Succeeds() public {
         uint256 futureOpenDelay = 1 hours;
-        (signals, incentivesPool,) = deploySignalsWithIncentives(futureOpenDelay, 0.12e18, false);
+        (signals, incentivesPool,) = deploySignalsWithIncentives(futureOpenDelay, false);
 
         vm.startPrank(poolOwner);
         rewardToken.approve(address(incentivesPool), 1_000_000 * 1e18);
@@ -130,7 +129,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test pool initialization can still happen after any board opens (1:M design)
     function test_IncentivesPool_InitializeAfterBoardOpens_Succeeds() public {
-        (signals, incentivesPool,) = deploySignalsWithIncentives(0, 0.12e18, false);
+        (signals, incentivesPool,) = deploySignalsWithIncentives(0, false);
 
         // Pool can be funded anytime now (no longer tied to board open time)
         vm.startPrank(poolOwner);
@@ -142,127 +141,25 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         assertTrue(incentivesPool.approvedBoards(address(signals)));
     }
 
-    /// Test setting incentives pool before board opens
-    function test_SetIncentivesPool_BeforeOpen_Succeeds() public {
-        // uint256 futureOpenDelay = 1 hours;
-        // (signals, incentivesPool,) = deploySignalsWithIncentives(futureOpenDelay, 0.12e18, false);
+    /// TODO: Test setting incentives pool before board opens
+    function test_SetIncentivesPool_BeforeOpen_Succeeds() public {}
 
-        // // Setup pool first
-        // vm.startPrank(poolOwner);
-        // rewardToken.approve(address(incentivesPool), 1_000_000 * 1e18);
-        // incentivesPool.addFundsToPool(1_000_000 * 1e18);
-        // incentivesPool.approveBoard(address(signals), 1_000_000 * 1e18, 10_000 * 1e18);
-        // vm.stopPrank();
-
-        // // Create incentives config
-        // uint256[] memory incentiveParams = new uint256[](1);
-        // incentiveParams[0] = 0.12e18;
-        // ISignals.IncentivesConfig memory incentivesConfig =
-        //     ISignals.IncentivesConfig({curveType: 0, curveParameters: incentiveParams});
-
-        // vm.prank(_deployer);
-        // signals.setIncentivesPool(address(incentivesPool), incentivesConfig);
-
-        // assertEq(address(signals.incentivesPool()), address(incentivesPool));
-    }
-
-    /// Test setting incentives pool after board opens reverts
-    function test_SetIncentivesPool_AfterOpen_Reverts() public {
-        // (signals, incentivesPool,) = deploySignalsWithIncentives(0, 0.12e18, true);
-
-        // // Warp past board open time so it's definitely open
-        // vm.warp(block.timestamp + 1);
-
-        // // Create incentives config
-        // uint256[] memory incentiveParams = new uint256[](1);
-        // incentiveParams[0] = 0.12e18;
-        // ISignals.IncentivesConfig memory incentivesConfig =
-        //     ISignals.IncentivesConfig({curveType: 0, curveParameters: incentiveParams});
-
-        // vm.prank(_deployer);
-        // vm.expectRevert(ISignals.Signals_BoardAlreadyOpened.selector);
-        // signals.setIncentivesPool(address(incentivesPool), incentivesConfig);
-    }
+    /// TODO: Test setting incentives pool after board opens, which should revert as it is not allowed
+    function test_SetIncentivesPool_AfterOpen_Reverts() public {}
 
     /*//////////////////////////////////////////////////////////////
                         REWARD CALCULATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    /// Test reward calculation with single supporter
-    function test_IncentivesPool_SingleSupporter() public {
-        // uint256 boardOpenTime;
-        // (signals, incentivesPool, boardOpenTime) = deploySignalsWithIncentives(0, 0.12e18, true);
-
-        // // Alice proposes and supports
-        // vm.startPrank(_alice);
-        // token.approve(address(signals), 100 * 1e18);
-        // signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 10);
-        // vm.stopPrank();
-
-        // // Accept initiative
-        // vm.prank(_deployer);
-        // signals.acceptInitiative(1);
-
-        // // Check rewards were calculated
-        // assertTrue(incentivesPool.isDistributionCalculated(address(signals), 1));
-
-        // // Alice should get all rewards
-        // uint256 aliceRewards = incentivesPool.getSupporterRewards(address(signals), 1, _alice);
-        // assertGt(aliceRewards, 0);
-        // assertEq(aliceRewards, 10_000 * 1e18); // Full maxRewardPerInitiative
-    }
+    /// TODO: Test: Deploy a board and attach it to a funded incentives pool. Alice creates an initiative but does not add any support to it. Bob adds enough support to it to accept it. Action the initiative, and have Bob claim his rewards. Confirm Bob gets rewards equal to the total reward per initiative.
+    function test_IncentivesPool_SingleSupporter() public {}
 
     /// Test reward calculation with multiple supporters at different times
-    function test_IncentivesPool_MultipleSupporter_LinearDecay() public {
-        // uint256 boardOpenTime;
-        // (signals, incentivesPool, boardOpenTime) =
-        //     deploySignalsWithIncentivesCustomReward(0, 0.12e18, true, 1_000 * 1e18);
-
-        // // Alice proposes immediately at board open (t=0)
-        // vm.startPrank(_alice);
-        // token.approve(address(signals), 100 * 1e18);
-        // signals.proposeInitiativeWithLock("Initiative 1", "Description 1", 100 * 1e18, 10);
-        // vm.stopPrank();
-
-        // // Bob supports at t=0.5 (halfway)
-        // vm.warp(block.timestamp + 5 days);
-        // vm.startPrank(_bob);
-        // token.approve(address(signals), 100 * 1e18);
-        // signals.supportInitiative(1, 100 * 1e18, 10);
-        // vm.stopPrank();
-
-        // // Charlie supports at t=0.9 (near acceptance)
-        // vm.warp(block.timestamp + 4 days);
-        // vm.startPrank(_charlie);
-        // token.approve(address(signals), 100 * 1e18);
-        // signals.supportInitiative(1, 100 * 1e18, 10);
-        // vm.stopPrank();
-
-        // // Accept initiative at day 10
-        // vm.warp(boardOpenTime + 10 days);
-        // vm.prank(_deployer);
-        // signals.acceptInitiative(1);
-
-        // // Check rewards
-        // uint256 aliceRewards = incentivesPool.getSupporterRewards(address(signals), 1, _alice);
-        // uint256 bobRewards = incentivesPool.getSupporterRewards(address(signals), 1, _bob);
-        // uint256 charlieRewards = incentivesPool.getSupporterRewards(address(signals), 1, _charlie);
-
-        // // Alice (t=0) should get most rewards
-        // // Bob (t=0.5) should get medium rewards
-        // // Charlie (t=0.9) should get least rewards
-        // assertGt(aliceRewards, bobRewards);
-        // assertGt(bobRewards, charlieRewards);
-
-        // // Total should be approximately maxRewardPerInitiative (within 1 token due to rounding)
-        // uint256 totalRewards = aliceRewards + bobRewards + charlieRewards;
-        // assertGe(totalRewards, 1_000 * 1e18 - 1); // At least 999.999...
-        // assertLe(totalRewards, 1_000 * 1e18); // At most 1000
-    }
+    function test_IncentivesPool_MultipleSupporter_LinearDecay() public {}
 
     /// Test immediate acceptance (duration = 0) gives equal weight
     function test_IncentivesPool_ImmediateAcceptance_EqualWeight() public {
-        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, 0.12e18, true, 1_000 * 1e18);
+        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, true, 1_000 * 1e18);
 
         // // Alice proposes
         // vm.startPrank(_alice);
@@ -294,7 +191,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test rewards are auto-claimed on redeem
     function test_IncentivesPool_AutoClaimOnRedeem() public {
-        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, 0.12e18, true, 1_000 * 1e18);
+        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, true, 1_000 * 1e18);
 
         // // Alice proposes and supports
         // vm.startPrank(_alice);
@@ -330,7 +227,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test manual claim still works if user prefers
     function test_IncentivesPool_ManualClaimStillWorks() public {
-        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, 0.12e18, true, 1_000 * 1e18);
+        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, true, 1_000 * 1e18);
 
         // // Alice proposes and supports
         // vm.startPrank(_alice);
@@ -358,7 +255,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test redeeming after manual claim doesn't fail
     function test_IncentivesPool_RedeemAfterManualClaim() public {
-        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, 0.12e18, true, 1_000 * 1e18);
+        // (signals, incentivesPool,) = deploySignalsWithIncentivesCustomReward(0, true, 1_000 * 1e18);
 
         // // Alice proposes and supports
         // vm.startPrank(_alice);
@@ -393,7 +290,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     /// Test pool depletion doesn't block acceptance
     function test_IncentivesPool_Depleted_NonBlocking() public {
         // uint256 boardOpenTime;
-        // (signals, incentivesPool, boardOpenTime) = deploySignalsWithIncentives(1 hours, 0.12e18, false);
+        // (signals, incentivesPool, boardOpenTime) = deploySignalsWithIncentives(1 hours, false);
 
         // // Setup pool with limited funds (will be fully depleted after first initiative)
         // vm.startPrank(poolOwner);
@@ -442,7 +339,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test acceptance works without incentives pool
     // function test_NoIncentivesPool_AcceptanceSucceeds() public {
-    //     (signals,,) = deploySignalsWithIncentives(0, 0.12e18, false);
+    //     (signals,,) = deploySignalsWithIncentives(0, false);
     //     // Don't set incentives pool
 
     //     // Alice proposes

@@ -11,11 +11,13 @@ interface IIncentivesPool {
     event FundsAddedToPool(uint256 amount);
     event BoardApproved(address indexed board);
     event BoardRevoked(address indexed board);
-    event RewardsClaimed(
+    event RewardsPaidOut(
         address indexed board,
         uint256 indexed initiativeId,
         address indexed supporter,
-        uint256 amount
+        uint256 percentOfInitiativeRewards,
+        uint256 remainingBoardBudget,
+        uint256 amountPaid
     );
     event AvailableRewardsUpdated(uint256 newBalance);
 
@@ -58,9 +60,9 @@ interface IIncentivesPool {
      *
      * @param board Address of the Signals board to approve
      * @param boardMaxBudget_ Maximum total budget allocated for this board
-     * @param maxRewardPerInitiative_ Maximum reward per initiative for this board
+     * @param totalRewardPerInitiative_ Total reward per initiative for this board
      */
-    function approveBoard(address board, uint256 boardMaxBudget_, uint256 maxRewardPerInitiative_)
+    function approveBoard(address board, uint256 boardMaxBudget_, uint256 totalRewardPerInitiative_)
         external;
 
     /**

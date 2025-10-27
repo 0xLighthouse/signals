@@ -20,4 +20,11 @@ interface IIncentivizer {
         IncentiveType incentiveType;
         uint256[] incentiveParameters;
     }
+
+    event RewardsClaimed(
+        uint256 indexed initiativeId,
+        uint256 indexed lockId,
+        address indexed claimant,
+        uint256 percentOfInitiativeRewards
+    );
 }
