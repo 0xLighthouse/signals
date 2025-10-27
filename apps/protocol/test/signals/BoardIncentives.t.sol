@@ -124,7 +124,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
         assertEq(incentivesPool.REWARD_TOKEN(), address(rewardToken));
         assertEq(incentivesPool.availableRewards(), 1_000_000 * 1e18);
-        assertEq(incentivesPool.maxRewardPerInitiative(address(signals)), 10_000 * 1e18);
+        assertEq(incentivesPool.totalRewardPerInitiative(address(signals)), 10_000 * 1e18);
         assertTrue(incentivesPool.approvedBoards(address(signals)));
     }
 

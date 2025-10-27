@@ -36,7 +36,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     mapping(address => bool) public approvedBoards;
 
     /// @notice Mapping of board addresses to the maximum reward one person can claim per initiative
-    mapping(address => uint256) public maxRewardPerInitiative;
+    mapping(address => uint256) public totalRewardPerInitiative;
 
     /// @notice Mapping of board addresses to the remaining budget for the board
     mapping(address => uint256) public boardRemainingBudget;
@@ -85,14 +85,14 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IIncentivesPool
-    function approveBoard(address board, uint256 boardBudget_, uint256 maxRewardPerInitiative_)
+    function approveBoard(address board, uint256 boardBudget_, uint256 totalRewardPerInitiative_)
         external
         onlyOwner
     {
         if (board == address(0)) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
-        if (maxRewardPerInitiative_ == 0) {
+        if (totalRewardPerInitiative_ == 0) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
         if (boardBudget_ == 0) {
@@ -105,7 +105,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         }
 
         approvedBoards[board] = true;
-        maxRewardPerInitiative[board] = maxRewardPerInitiative_;
+        totalRewardPerInitiative[board] = totalRewardPerInitiative_;
         boardRemainingBudget[board] = boardBudget_;
         totalBoardBudgets += boardBudget_;
 
@@ -117,7 +117,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         if (!approvedBoards[board]) revert IIncentivesPool.IncentivesPool_BoardNotApproved();
 
         approvedBoards[board] = false;
-        maxRewardPerInitiative[board] = 0;
+        totalRewardPerInitiative[board] = 0;
         totalBoardBudgets -= boardRemainingBudget[board];
         boardRemainingBudget[board] = 0;
 
@@ -125,21 +125,22 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IIncentivesPool
-    function claimRewards(uint256 initiativeId, address payee, uint256 amount)
+    function claimRewards(uint256 initiativeId, address payee, uint256 percentOfInitiativeRewards)
         external
         nonReentrant
     {
         if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
-        // If the rewards are too big, reduce to the max
-        if (amount > maxRewardPerInitiative[msg.sender]) {
-            amount = maxRewardPerInitiative[msg.sender];
+        // If the rewards are bigger than 100%, reject. Shouldn't happen.
+        if (percentOfInitiativeRewards > 1e18) {
+            revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
+        // Calculate the amount of rewards to claim
+        uint256 amount = (totalRewardPerInitiative[msg.sender] * percentOfInitiativeRewards) / 1e18;
+
+        // If the amount is bigger than the board's remaining budget, reduce to the budget
         if (amount > boardRemainingBudget[msg.sender]) {
             amount = boardRemainingBudget[msg.sender];
         }
-
-        // NOTE: This should never happen, but just in case
-        if (amount > availableRewards) revert IIncentivesPool.IncentivesPool_InsufficientFunds();
 
         boardRemainingBudget[msg.sender] -= amount;
         totalBoardBudgets -= amount;

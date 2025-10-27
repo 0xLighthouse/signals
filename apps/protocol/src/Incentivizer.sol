@@ -29,7 +29,7 @@ abstract contract SignalsIncentivizer is IIncentivizer {
     IncentivesConfig internal _incentivesConfig;
 
     /// @notice Mapping from initiative ID to mapping from lock id to its incentive credits
-    mapping(uint256 => mapping(uint256 => LockIncentiveCredit[])) public
+    mapping(uint256 => mapping(uint256 => LockIncentiveCredit)) public
         lockIncentiveCreditsByInitiative;
 
     /// @notice Mapping from initiative ID to the last used bucket
@@ -81,9 +81,8 @@ abstract contract SignalsIncentivizer is IIncentivizer {
             return;
         }
         // Add the lock to the list of supporters
-        lockIncentiveCreditsByInitiative[initiativeId][lockId].push(
-            LockIncentiveCredit({amount: amount, timestamp: uint128(block.timestamp)})
-        );
+        lockIncentiveCreditsByInitiative[initiativeId][lockId] =
+            LockIncentiveCredit({amount: amount, timestamp: uint128(block.timestamp)});
         // Add the amount to the incentive bucket
         _addToIncentiveBucket(initiativeId, amount);
         _totalIncentiveCreditByInitiative[initiativeId] += amount;
@@ -102,7 +101,7 @@ abstract contract SignalsIncentivizer is IIncentivizer {
 
         // Find correct bucket, starting where we left off
         // If we exhause all buckets, we will need to reduce and continue searching
-        for (uint256 i = lastUsedBucket; i == INCENTIVE_RESOLUTION; i++) {
+        for (uint256 i = lastUsedBucket; i <= INCENTIVE_RESOLUTION; i++) {
             if (i == INCENTIVE_RESOLUTION) {
                 // We are now at n + 1 buckets, so we need to reduce
                 _reduceIncentiveBuckets(buckets);
@@ -146,28 +145,76 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         }
     }
 
+    /// @notice Claim incentives for a set of locks. Can only be called by the Signals board, and we trust what it tells us.
+    /// @param initiativeId The ID of the initiative
+    /// @param lockIds The IDs of the locks
+    /// @param payee The address to pay the incentives to
+    /// @dev Note, the Signals board needs to keep track of whether or not these locks have already been claimed, and if they belong to the user.
     function _claimIncentivesForLocks(uint256 initiativeId, uint256[] memory lockIds, address payee)
         internal
     {
-        // uint256 incentiveAmount = 0;
-        // for (uint256 i = 0; i < lockIds.length; i++) {
-        //     LockIncentiveCredit[] memory credits =
-        //         lockIncentiveCreditsByInitiative[initiativeId][lockId];
-        // }
+        // get buckets
+        IncentiveBucket[INCENTIVE_RESOLUTION] memory buckets =
+            _incentiveBucketsByInitiative[initiativeId];
+        uint256 timeInterval = buckets[1].endTime - buckets[0].endTime;
+        uint256[] memory multipliers =
+            _getBucketMultipliers(_lastUsedBucketByInitiative[initiativeId] + 1);
+
+        uint256 totalPercentOfInitiativeRewards = 0;
+        // Sum the incentives for each lock
+        for (uint256 i = 0; i < lockIds.length; i++) {
+            LockIncentiveCredit memory credit =
+                lockIncentiveCreditsByInitiative[initiativeId][lockIds[i]];
+
+            // Find which bucket it fits in
+            uint256 bucketIndex = (credit.timestamp - buckets[0].endTime) / timeInterval;
+
+            // Find what percentage of the bucket we account for, normalized to 1e18
+            uint256 bucketPercentage =
+                credit.amount * 1e18 / buckets[bucketIndex].bucketTotalIncentiveCredits;
+
+            // Multiply by the percentage of the whole the bucket represents
+            uint256 totalRewardPercentage = bucketPercentage * multipliers[bucketIndex] / 1e18;
+
+            totalPercentOfInitiativeRewards += totalRewardPercentage;
+        }
+
+        // Tell the incentives pool to payout that percentage of the initiative rewards to the payee
+        incentivesPool.claimRewards(initiativeId, payee, totalPercentOfInitiativeRewards);
     }
 
-    function _getBucketMultipliers(uint256 numberOfBuckets) private returns (uint256[] memory) {
+    function _getBucketMultipliers(uint256 numberOfBuckets)
+        private
+        view
+        returns (uint256[] memory)
+    {
         uint256[] memory config = _incentivesConfig.incentiveParameters;
         uint256[] memory interpolated = new uint256[](numberOfBuckets);
 
-        // TODO: Interpolate the values in between the config values.
+        uint256 totalInterpolatedValues = 0;
+
         for (uint256 i = 0; i < config.length; i++) {
             uint256 startIndex = i * ((interpolated.length) / (config.length));
-            uint256 endIndex = (i + 1) * ((interpolated.length) / (config.length));
-            for (uint256 j = startIndex; j < endIndex; j++) {
-                interpolated[j] = config[i];
+            interpolated[startIndex] = config[i];
+
+            // Interpolate the values in between the config values.
+            if (i + 1 < config.length) {
+                uint256 endIndex = (i + 1) * ((interpolated.length) / (config.length));
+                uint256 totalDifference = config[i + 1] - config[i];
+                uint256 differencePerBucket = totalDifference / (endIndex - startIndex);
+                for (uint256 j = 0; j < endIndex - startIndex; j++) {
+                    uint256 bucketAmount = config[i] + differencePerBucket * j;
+                    totalInterpolatedValues += bucketAmount;
+                    interpolated[startIndex + j] = bucketAmount;
+                }
             }
         }
+
+        // Replace each value with its percentage of the whole, normalized to 1e18
+        for (uint256 i = 0; i < interpolated.length; i++) {
+            interpolated[i] = (interpolated[i] * 1e18) / totalInterpolatedValues;
+        }
+
         return interpolated;
     }
 }

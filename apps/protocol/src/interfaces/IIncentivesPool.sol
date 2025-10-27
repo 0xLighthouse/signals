@@ -78,9 +78,10 @@ interface IIncentivesPool {
      *
      * @param initiativeId ID of the initiative to claim rewards for
      * @param payee Address of the payee receiving rewards
-     * @param amount Amount of rewards to claim
+     * @param percentOfInitiativeRewards Percentage of the initiative rewards to claim, normalized to 1e18
      */
-    function claimRewards(uint256 initiativeId, address payee, uint256 amount) external;
+    function claimRewards(uint256 initiativeId, address payee, uint256 percentOfInitiativeRewards)
+        external;
 
     /**
      * @notice Check if a board is approved
