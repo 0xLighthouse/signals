@@ -203,8 +203,9 @@ contract Signals is
         isOpen
         senderCanPropose(0)
         hasValidInput(_title, _body)
+        returns (uint256 initiativeId)
     {
-        _addInitiative(_title, _body);
+        initiativeId = _addInitiative(_title, _body);
     }
 
     /// @inheritdoc ISignals
@@ -218,10 +219,10 @@ contract Signals is
         isOpen
         senderCanPropose(_amount)
         hasValidInput(_title, _body)
-        returns (uint256 tokenId)
+        returns (uint256 initiativeId, uint256 tokenId)
     {
-        uint256 id = _addInitiative(_title, _body);
-        tokenId = _addLock(id, msg.sender, _amount, _lockDuration);
+        initiativeId = _addInitiative(_title, _body);
+        tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
 
     /**

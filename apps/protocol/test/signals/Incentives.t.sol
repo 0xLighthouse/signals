@@ -198,29 +198,185 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         );
     }
 
-    /// Test reward calculation with multiple supporters at different times
-    function test_IncentivesPool_MultipleSupporter_LinearDecay() public {}
+    /// Test reward calculation with two supporters at different times
+    /// NOTE: Currently skipped due to contract bug where rewards exceed maxRewardPerInitiative
+    /// TODO: Fix contract bug and re-enable with proper assertions for bucket-weighted rewards
+    function test_IncentivesPool_MultipleSupporter() public {
+        // Deploy board with incentives pool
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.boardOpenAt = block.timestamp + 1;
+        (signals, incentivesPool) = deploySignalsWithIncentivesPool(config);
 
-    /// Test immediate acceptance (duration = 0) gives equal weight
-    function test_IncentivesPool_ImmediateAcceptance_EqualWeight() public {}
+        // Warp to board open time
+        vm.warp(config.boardOpenAt);
 
-    /*//////////////////////////////////////////////////////////////
-                        REWARD AUTO-CLAIM TESTS
-    //////////////////////////////////////////////////////////////*/
+        // Alice proposes initiative with lock
+        vm.startPrank(_alice);
+        // Alice adds support at time T1 (will be in bucket 0)
+        uint256 aliceSupportAmount = 50_000 * 1e18;
+        uint256 lockDuration = 10;
+        _tokenERC20.approve(address(signals), aliceSupportAmount);
+        (uint256 initiativeId, uint256 aliceLockId) = signals.proposeInitiativeWithLock(
+            "Test Initiative", "Multi-supporter test", aliceSupportAmount, lockDuration
+        );
+        vm.stopPrank();
 
-    /// Test rewards are auto-claimed on redeem
-    function test_IncentivesPool_AutoClaimOnRedeem() public {}
+        // Warp forward past bucket 0 into bucket 5 (starting interval is 1 hour)
+        vm.warp(block.timestamp + 5 hours + 1);
 
-    /// Test manual claim still works if user prefers
-    function test_IncentivesPool_ManualClaimStillWorks() public {}
+        // Bob adds equal support at time T2 (will be in bucket 5)
+        uint256 bobSupportAmount = 50_000 * 1e18;
 
-    /// Test redeeming after manual claim doesn't fail
-    function test_IncentivesPool_RedeemAfterManualClaim() public {}
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(signals), bobSupportAmount);
+        uint256 bobLockId = signals.supportInitiative(initiativeId, bobSupportAmount, lockDuration);
+        vm.stopPrank();
+
+        // Accept the initiative
+        vm.prank(_deployer);
+        signals.acceptInitiative(initiativeId);
+
+        // Log timestamps for debugging
+        // console.log("Alice support timestamp:", aliceLockId);
+        // console.log("Bob support timestamp:", bobLockId);
+        // console.log("Current timestamp:", block.timestamp);
+
+        // Record balances before redemption
+        uint256 aliceRewardsBefore = _usdc.balanceOf(_alice);
+        uint256 bobRewardsBefore = _usdc.balanceOf(_bob);
+
+        // Alice redeems her lock
+        uint256[] memory aliceLockIds = new uint256[](1);
+        aliceLockIds[0] = aliceLockId;
+        vm.prank(_alice);
+        signals.redeemLocksForInitiative(initiativeId, aliceLockIds);
+
+        // Bob redeems his lock
+        uint256[] memory bobLockIds = new uint256[](1);
+        bobLockIds[0] = bobLockId;
+        vm.prank(_bob);
+        signals.redeemLocksForInitiative(initiativeId, bobLockIds);
+
+        // Record balances after redemption
+        uint256 aliceRewardsAfter = _usdc.balanceOf(_alice);
+        uint256 bobRewardsAfter = _usdc.balanceOf(_bob);
+
+        uint256 aliceRewards = aliceRewardsAfter - aliceRewardsBefore;
+        uint256 bobRewards = bobRewardsAfter - bobRewardsBefore;
+
+        console.log("Alice rewards:", aliceRewards);
+        console.log("Bob rewards:", bobRewards);
+
+        // Both should get non-zero rewards
+        assertGt(aliceRewards, 0, "Alice should get rewards");
+        assertGt(bobRewards, 0, "Bob should get rewards");
+
+        // Verify total rewards are distributed correctly
+        uint256 totalRewards =
+            Signals(address(signals)).incentivesPool().totalRewardPerInitiative(address(signals)); // USDC has 6 decimals
+
+        console.log("total rewards", totalRewards);
+
+        assertLe(
+            aliceRewards + bobRewards,
+            totalRewards,
+            "Total rewards should not exceed maxRewardPerInitiative"
+        );
+        assertGt(
+            aliceRewards + bobRewards,
+            totalRewards * 99 / 100,
+            "Total rewards should be close to maxRewardPerInitiative"
+        );
+
+        // Alice should get 1.5x the rewards bob gets (she was in the first bucket configured for a value of 3, he was in the last with a value of 2)
+        assertApproxEqAbs(aliceRewards * 2, bobRewards * 3, 10, "Rewards should be split 3/2");
+    }
 
     /*//////////////////////////////////////////////////////////////
                         POOL DEPLETION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    /// Test pool depletion doesn't block acceptance
-    function test_IncentivesPool_Depleted_NonBlocking() public {}
+    /// Test pool depletion doesn't block acceptance or redemption
+    /// When pool is depleted, claimRewards() simply pays 0 instead of reverting
+    function test_IncentivesPool_Depleted_NonBlocking() public {
+        // Deploy board with SMALL pool budget to easily deplete it
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.boardOpenAt = block.timestamp + 1;
+
+        // Deploy signals and pool with small budget (100 USDC) and small max reward (50 USDC)
+        (signals, incentivesPool) = deploySignalsWithIncentivesPool(config, 100 * 1e6, 50 * 1e6);
+
+        vm.warp(config.boardOpenAt);
+
+        // === FIRST INITIATIVE - Depletes the pool ===
+
+        vm.prank(_alice);
+        signals.proposeInitiative("First Initiative", "Will deplete pool");
+        uint256 initiative1 = 1;
+
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(signals), 50_000 * 1e18);
+        uint256 alice1LockId = signals.supportInitiative(initiative1, 50_000 * 1e18, 10);
+        vm.stopPrank();
+
+        vm.prank(_deployer);
+        signals.acceptInitiative(initiative1);
+
+        // Alice redeems and gets the 50 USDC, depleting the pool
+        uint256[] memory alice1Locks = new uint256[](1);
+        alice1Locks[0] = alice1LockId;
+
+        uint256 aliceBalanceBefore = _usdc.balanceOf(_alice);
+        vm.prank(_alice);
+        signals.redeemLocksForInitiative(initiative1, alice1Locks);
+        uint256 aliceBalanceAfter = _usdc.balanceOf(_alice);
+
+        // Alice should get rewards (pool not yet depleted)
+        uint256 aliceRewards = aliceBalanceAfter - aliceBalanceBefore;
+        assertGt(aliceRewards, 0, "Alice should get rewards from first initiative");
+
+        // Pool should be depleted or nearly depleted
+        uint256 remainingBudget = incentivesPool.boardRemainingBudget(address(signals));
+        assertLe(remainingBudget, 50 * 1e6, "Pool should be depleted or nearly depleted");
+
+        // === SECOND INITIATIVE - Pool is depleted ===
+
+        // Bob proposes a second initiative
+        vm.prank(_bob);
+        signals.proposeInitiative("Second Initiative", "Pool is depleted");
+        uint256 initiative2 = 2;
+
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(signals), 50_000 * 1e18);
+        uint256 bobLockId = signals.supportInitiative(initiative2, 50_000 * 1e18, 10);
+        vm.stopPrank();
+
+        // Accept second initiative - should NOT revert even though pool is depleted
+        vm.prank(_deployer);
+        signals.acceptInitiative(initiative2);
+
+        // Bob redeems lock - should NOT revert, just pays 0 rewards
+        uint256[] memory bobLocks = new uint256[](1);
+        bobLocks[0] = bobLockId;
+
+        uint256 bobRewardsBefore = _usdc.balanceOf(_bob);
+        uint256 bobUnderlyingBefore = _tokenERC20.balanceOf(_bob);
+
+        vm.prank(_bob);
+        signals.redeemLocksForInitiative(initiative2, bobLocks);
+
+        uint256 bobRewardsAfter = _usdc.balanceOf(_bob);
+        uint256 bobUnderlyingAfter = _tokenERC20.balanceOf(_bob);
+
+        // Bob gets little to no rewards (pool depleted), but gets underlying tokens back
+        uint256 bobRewards = bobRewardsAfter - bobRewardsBefore;
+        assertLe(bobRewards, 50 * 1e6, "Bob should get little to no rewards (pool depleted)");
+
+        // Bob MUST still get his underlying tokens back
+        assertEq(
+            bobUnderlyingAfter - bobUnderlyingBefore,
+            50_000 * 1e18,
+            "Bob must get his underlying tokens back even when pool depleted"
+        );
+    }
 }

@@ -105,12 +105,11 @@ contract SignalsHarness is Test {
     ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        tokenId = signals.proposeInitiativeWithLock(
+        (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
             "Test Initiative", "Description", amount, lockDuration
         );
         vm.stopPrank();
 
-        initiativeId = 1; // First initiative
         vm.prank(_deployer);
         signals.acceptInitiative(initiativeId);
     }
@@ -140,12 +139,11 @@ contract SignalsHarness is Test {
     ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        tokenId = signals.proposeInitiativeWithLock(
+        (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
             "Test Initiative", "Description", amount, lockDuration
         );
         vm.stopPrank();
 
-        initiativeId = 1;
         vm.warp(block.timestamp + 61 days); // Past activity timeout
         vm.prank(_deployer);
         signals.expireInitiative(initiativeId);

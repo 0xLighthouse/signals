@@ -156,35 +156,38 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         IncentiveBucket[INCENTIVE_RESOLUTION] memory buckets =
             _incentiveBucketsByInitiative[initiativeId];
 
-        uint256 timeInterval = buckets[1].endTime - buckets[0].endTime;
-
         uint256[] memory multipliers =
             _getBucketMultipliers(_lastUsedBucketByInitiative[initiativeId] + 1);
 
-        // The percent of all rewards for this initiative that this payee is entitled to
-        uint256 totalPercentOfInitiativeRewards = 0;
+        // Total number of credits recorded for this initiative
+        uint256 totalCredits = 0;
+        for (uint256 i = 0; i < multipliers.length; i++) {
+            totalCredits += uint256(buckets[i].bucketTotalIncentiveCredits) * multipliers[i] / 1e18;
+        }
 
+        // Payee's percentage of the total rewards
+        uint256 totalPercentOfInitiativeRewards = 0;
         for (uint256 i = 0; i < lockIds.length; i++) {
             // Get each lock
             LockIncentiveCredit memory credit =
                 lockIncentiveCreditsByInitiative[initiativeId][lockIds[i]];
 
             // Find which bucket it fits in
-            uint256 bucketIndex = credit.timestamp < buckets[0].endTime
-                ? 0
-                : (credit.timestamp - buckets[0].endTime) / timeInterval;
+            uint256 bucketIndex = 0;
+            for (uint256 j = 0; j < buckets.length; j++) {
+                if (credit.timestamp < buckets[j].endTime) {
+                    bucketIndex = j;
+                    break;
+                }
+            }
 
-            // Find what percentage of the bucket we account for
-            // (cast to uint256 to avoid overflow)
-            uint256 percentOfBucket = uint256(credit.amount) * 1e18
-                / uint256(buckets[bucketIndex].bucketTotalIncentiveCredits);
-            // Multiply by what percent of all awards the bucket represents
-            uint256 percentOfInitiativeRewards = percentOfBucket * multipliers[bucketIndex] / 1e18;
-            totalPercentOfInitiativeRewards += percentOfInitiativeRewards;
+            uint256 lockPercentOfInitiativeRewards =
+                uint256(credit.amount) * multipliers[bucketIndex] / totalCredits;
 
-            emit RewardsClaimed(initiativeId, lockIds[i], payee, percentOfInitiativeRewards);
+            totalPercentOfInitiativeRewards += lockPercentOfInitiativeRewards;
+
+            emit RewardsClaimed(initiativeId, lockIds[i], payee, lockPercentOfInitiativeRewards);
         }
-
         // Tell the incentives pool to payout that percentage of the initiative rewards to the payee
         incentivesPool.claimRewards(initiativeId, payee, totalPercentOfInitiativeRewards);
     }

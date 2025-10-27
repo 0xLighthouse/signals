@@ -92,4 +92,12 @@ interface IIncentivesPool {
      * @return True if board is approved, false otherwise
      */
     function isBoardApproved(address board) external view returns (bool);
+
+    /**
+     * @notice Get the total reward per initiative for a board
+     *
+     * @param board Address of the board to get the total reward per initiative for
+     * @return Total reward per initiative for the board
+     */
+    function totalRewardPerInitiative(address board) external view returns (uint256);
 }

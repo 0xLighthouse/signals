@@ -251,13 +251,15 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
-    function proposeInitiative(string memory title, string memory body) external;
+    function proposeInitiative(string memory title, string memory body)
+        external
+        returns (uint256 initiativeId);
     function proposeInitiativeWithLock(
         string memory title,
         string memory body,
         uint256 amount,
         uint256 lockDuration
-    ) external returns (uint256);
+    ) external returns (uint256 initiativeId, uint256 lockId);
     function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
         external
         returns (uint256);

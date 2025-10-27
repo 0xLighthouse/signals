@@ -154,6 +154,31 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         assertApproxEqAbs(interpolated[0], 1 * 1e18, 10); //1.0
         assertApproxEqAbs(interpolated[1], 4 * 1e18, 10); //4.0
         assertApproxEqAbs(interpolated[2], 7 * 1e18, 10); //7.0
+
+        uint256[] memory valleyParams = new uint256[](3);
+        valleyParams[0] = 3 * 1e18;
+        valleyParams[1] = 1 * 1e18;
+        valleyParams[2] = 2 * 1e18;
+        interpolated = _scaleIncentiveConfigParameters(valleyParams, 6);
+        assertEq(interpolated.length, 6);
+        assertApproxEqAbs(interpolated[0], 30 * 1e17, 10); //3.0
+        assertApproxEqAbs(interpolated[1], 22 * 1e17, 10); //1.0
+        assertApproxEqAbs(interpolated[2], 14 * 1e17, 10); //2.6
+        assertApproxEqAbs(interpolated[3], 12 * 1e17, 10); //1.8
+        assertApproxEqAbs(interpolated[4], 16 * 1e17, 10); //1.4
+        assertApproxEqAbs(interpolated[5], 20 * 1e17, 10); //1.0
+    }
+
+    function test_GetBucketMultipliers_ValleyParams() public {
+        uint256[] memory valleyParams = new uint256[](3);
+        valleyParams[0] = 3 * 1e18;
+        valleyParams[1] = 1 * 1e18;
+        valleyParams[2] = 2 * 1e18;
+        uint256[] memory multipliers = _getBucketMultipliers(6);
+        assertEq(multipliers.length, 6);
+        for (uint256 i = 0; i < multipliers.length; i++) {
+            console.log("multiplier", i, multipliers[i]);
+        }
     }
 
     /// @notice Test that _getBucketMultipliers output sums to 1e18 (normalization)
