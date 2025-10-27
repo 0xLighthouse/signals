@@ -367,16 +367,6 @@ contract Signals is
             bounties.handleInitiativeAccepted(initiativeId);
         }
 
-        // Calculate and allocate incentives for supporters (non-blocking)
-        // Uses try-catch to prevent incentive failures from blocking acceptance
-        // if (address(incentivesPool) != address(0)) {
-        //     try incentivesPool.calculateIncentives(initiativeId, boardOpenAt, block.timestamp) {}
-        //     catch {
-        //         // Incentives calculation failed, but don't block acceptance
-        //         // Silently continue - pool contract will emit events for monitoring
-        //     }
-        // }
-
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
 
@@ -419,6 +409,63 @@ contract Signals is
         emit InitiativeExpired(initiativeId, msg.sender);
     }
 
+    function redeemLock(uint256 lockId) external nonReentrant {
+        ISignals.TokenLock memory lock = _locks[lockId];
+        uint256[] memory lockIds = new uint256[](1);
+        lockIds[0] = lockId;
+        redeemLocksForInitiative(lock.initiativeId, lockIds);
+    }
+
+    function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds)
+        public
+        nonReentrant
+    {
+        Initiative memory initiative = _initiatives[initiativeId];
+
+        // Can only redeem from Accepted or Expired initiatives
+        if (
+            initiative.state != InitiativeState.Accepted
+                && initiative.state != InitiativeState.Expired
+        ) {
+            revert ISignals.Signals_NotWithdrawableState();
+        }
+
+        // If board is not closed and the initiative was accepted, enforce the release timelock
+        if (initiative.state == InitiativeState.Accepted && !isBoardClosed()) {
+            if (block.timestamp < initiative.acceptanceTimestamp + releaseLockDuration) {
+                revert ISignals.Signals_StillTimelocked();
+            }
+        }
+
+        uint256 redeemAmount = 0;
+
+        for (uint256 i = 0; i < lockIds.length; i++) {
+            uint256 lockId = lockIds[i];
+            TokenLock storage lock = _locks[lockId];
+
+            if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
+
+            if (lock.initiativeId != initiativeId) {
+                revert ISignals.Signals_InvalidTokenId();
+            }
+
+            if (lock.withdrawn) {
+                revert ISignals.Signals_AlreadyRedeemed();
+            }
+
+            redeemAmount += lock.tokenAmount;
+            lock.withdrawn = true;
+            _burn(lockId);
+
+            emit Redeemed(initiativeId, lockId, msg.sender, lock.tokenAmount);
+        }
+
+        // Transfer underlying tokens back to the supporter
+        if (!IERC20(underlyingToken).transfer(msg.sender, redeemAmount)) {
+            revert ISignals.Signals_TokenTransferFailed();
+        }
+    }
+
     /**
      * @notice Set the board title
      * @param _title New title for the board
@@ -454,7 +501,7 @@ contract Signals is
         external
         onlyOwner
     {
-        if (block.timestamp >= boardOpenAt) revert ISignals.Signals_BoardAlreadyOpened();
+        if (isBoardOpen()) revert ISignals.Signals_BoardAlreadyOpened();
         _setIncentivesPool(incentivesPool_, incentivesConfig_);
     }
 
@@ -470,65 +517,6 @@ contract Signals is
     function closeBoard() external isOpen onlyOwner {
         boardClosedAt = block.timestamp;
         emit BoardClosed(msg.sender);
-    }
-
-    /**
-     * @notice Redeem a lock position to retrieve underlying tokens
-     * @dev Burns the NFT, transfers underlying tokens, and auto-claims incentives if available
-     * @dev Only callable for Accepted or Expired initiatives. Respects releaseLockDuration for accepted initiatives.
-     * @param tokenId The NFT token ID representing the lock position
-     */
-    function redeem(uint256 tokenId) public nonReentrant {
-        // Validate lock hasn't already been redeemed
-        if (_locks[tokenId].withdrawn) revert ISignals.Signals_AlreadyRedeemed();
-
-        // Only the NFT owner can redeem (allows trading lock positions)
-        if (ownerOf(tokenId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
-
-        TokenLock storage lock = _locks[tokenId];
-        Initiative storage initiative = _initiatives[lock.initiativeId];
-
-        // State validation: Can only redeem from Accepted or Expired initiatives
-        // Proposed initiatives are still active - locks cannot be redeemed yet
-        if (
-            !(
-                initiative.state == InitiativeState.Accepted
-                    || initiative.state == InitiativeState.Expired
-            )
-        ) {
-            revert ISignals.Signals_NotWithdrawableState();
-        }
-
-        // Release timelock: Accepted initiatives may have a cooldown period before redemption
-        // This prevents immediately dumping tokens after acceptance
-        // Timelock is bypassed if board is closed
-        if (initiative.state == InitiativeState.Accepted && !isBoardClosed()) {
-            if (block.timestamp < initiative.acceptanceTimestamp + releaseLockDuration) {
-                revert ISignals.Signals_StillTimelocked();
-            }
-        }
-
-        // Mark as withdrawn and burn the NFT (prevents double-redemption)
-        uint256 amount = lock.tokenAmount;
-        lock.withdrawn = true;
-        _burn(tokenId);
-
-        // Transfer underlying tokens back to the supporter
-        if (!IERC20(underlyingToken).transfer(msg.sender, amount)) {
-            revert ISignals.Signals_TokenTransferFailed();
-        }
-
-        // Auto-claim any pending incentive rewards (convenience feature)
-        // Only applies to accepted initiatives with configured incentive pools
-        // Silently skips if no rewards to prevent revert
-        // if (address(incentivesPool) != address(0) && initiative.state == InitiativeState.Accepted) {
-        //     uint256 pendingRewards = incentivesPool.getSupporterRewards(address(this), lock.initiativeId, msg.sender);
-        //     if (pendingRewards > 0) {
-        //         incentivesPool.claimRewards(address(this), lock.initiativeId, msg.sender);
-        //     }
-        // }
-
-        emit Redeemed(tokenId, msg.sender, amount);
     }
 
     /**

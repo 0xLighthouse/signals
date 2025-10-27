@@ -124,6 +124,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         emit BoardRevoked(board);
     }
 
+    /// @inheritdoc IIncentivesPool
     function claimRewards(uint256 initiativeId, address payee, uint256 amount)
         external
         nonReentrant

@@ -136,4 +136,10 @@ abstract contract SignalsIncentivizer is IIncentivizer {
             buckets[i].bucketTotalIncentiveCredits = 0;
         }
     }
+
+    function _claimIncentivesForLocks(
+        uint256 initiativeId,
+        uint256[] calldata lockIds,
+        address payee
+    ) internal {}
 }

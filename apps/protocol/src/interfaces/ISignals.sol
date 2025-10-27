@@ -115,7 +115,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     );
     event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
-    event Redeemed(uint256 indexed tokenId, address indexed actor, uint256 amount);
+    event Redeemed(
+        uint256 indexed initiativeId, uint256 indexed tokenId, address indexed payee, uint256 amount
+    );
     event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
     event BoardClosed(address indexed actor);
 
@@ -175,7 +177,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when owner address is zero
     error Signals_ZeroAddressOwner();
 
-    /// @notice Thrown when incentives pool address is zero
     error Signals_ZeroAddressIncentivesPool();
 
     /// @notice Thrown when acceptance threshold is zero
@@ -259,7 +260,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
-    function redeem(uint256 tokenId) external;
+    function redeemLock(uint256 lockId) external;
+    function redeemLocksForInitiative(uint256 initiativeId, uint256[] calldata lockIds) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
     function getSupporters(uint256 initiativeId) external view returns (address[] memory);
