@@ -11,20 +11,20 @@ interface IIncentivizer {
      * @notice Configuration for board-wide incentive rewards
      *
      * @param incentiveType Type of incentive curve
-     * @param incentiveParameters Parameters for the curve
+     * @param incentiveParametersWAD Parameters for the curve in WAD
      * @dev If the incentive type is Linear, at least 2 values (starting and ending values) are required.
      * @dev Exponential type is not yet implemented.
      */
 
     struct IncentivesConfig {
         IncentiveType incentiveType;
-        uint256[] incentiveParameters;
+        uint256[] incentiveParametersWAD;
     }
 
     event RewardsClaimed(
         uint256 indexed initiativeId,
         uint256 indexed lockId,
         address indexed claimant,
-        uint256 percentOfInitiativeRewards
+        uint256 percentOfInitiativeRewardsWAD
     );
 }

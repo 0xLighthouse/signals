@@ -60,7 +60,9 @@ contract SignalsHarness is Test {
         deal(address(token), _alice, STANDARD_BALANCE * 10 ** token.decimals());
         deal(address(token), _bob, STANDARD_BALANCE * 10 ** token.decimals());
         deal(address(token), _charlie, LOW_BALANCE * 10 ** token.decimals());
-        deal(address(token), _liquidityProvider, LIQUIDITY_PROVIDER_BALANCE * 10 ** token.decimals());
+        deal(
+            address(token), _liquidityProvider, LIQUIDITY_PROVIDER_BALANCE * 10 ** token.decimals()
+        );
     }
 
     /**
@@ -95,13 +97,17 @@ contract SignalsHarness is Test {
     /// @notice Helper to propose initiative with lock and accept it
     /// @return initiativeId The ID of the created initiative
     /// @return tokenId The ID of the lock NFT
-    function proposeAndAccept(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
-        internal
-        returns (uint256 initiativeId, uint256 tokenId)
-    {
+    function proposeAndAccept(
+        ISignals signals,
+        address proposer,
+        uint256 amount,
+        uint256 lockDuration
+    ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        tokenId = signals.proposeInitiativeWithLock(
+            "Test Initiative", "Description", amount, lockDuration
+        );
         vm.stopPrank();
 
         initiativeId = 1; // First initiative
@@ -126,13 +132,17 @@ contract SignalsHarness is Test {
     /// @notice Helper to propose initiative and expire it
     /// @return initiativeId The ID of the created initiative
     /// @return tokenId The ID of the lock NFT
-    function proposeAndExpire(ISignals signals, address proposer, uint256 amount, uint256 lockDuration)
-        internal
-        returns (uint256 initiativeId, uint256 tokenId)
-    {
+    function proposeAndExpire(
+        ISignals signals,
+        address proposer,
+        uint256 amount,
+        uint256 lockDuration
+    ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        tokenId = signals.proposeInitiativeWithLock("Test Initiative", "Description", amount, lockDuration);
+        tokenId = signals.proposeInitiativeWithLock(
+            "Test Initiative", "Description", amount, lockDuration
+        );
         vm.stopPrank();
 
         initiativeId = 1;
@@ -146,40 +156,36 @@ contract SignalsHarness is Test {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deploy and fund an IncentivesPool with reward tokens
-    /// @param fundAmount Amount of reward tokens to add to the pool (default: 1M tokens with 18 decimals)
+    /// @param fundAmount Amount of reward tokens to add to the pool (in USDC units - 6 decimals)
     /// @return pool The deployed IncentivesPool contract
-    /// @return rewardToken The reward token used by the pool
     /// @return poolOwner The address that owns the pool
     function deployAndFundIncentivesPool(uint256 fundAmount)
         internal
-        returns (IncentivesPool pool, MockERC20 rewardToken, address poolOwner)
+        returns (IncentivesPool pool, address poolOwner)
     {
-        // Create reward token
-        rewardToken = new MockERC20("RewardToken", "REWARD", 18);
-
+        // Use existing USDC token as reward token
         // Deploy pool owned by _poolOwner
         vm.prank(_poolOwner);
-        pool = new IncentivesPool(address(rewardToken));
+        pool = new IncentivesPool(address(_usdc));
 
         // Mint and fund the pool
-        rewardToken.mint(_poolOwner, fundAmount);
+        deal(address(_usdc), _poolOwner, fundAmount);
         vm.startPrank(_poolOwner);
-        rewardToken.approve(address(pool), fundAmount);
+        _usdc.approve(address(pool), fundAmount);
         pool.addFundsToPool(fundAmount);
         vm.stopPrank();
 
-        return (pool, rewardToken, _poolOwner);
+        return (pool, _poolOwner);
     }
 
-    /// @notice Deploy and fund an IncentivesPool with default 1M tokens
+    /// @notice Deploy and fund an IncentivesPool with default 1M USDC
     /// @return pool The deployed IncentivesPool contract
-    /// @return rewardToken The reward token used by the pool
     /// @return poolOwner The address that owns the pool
     function deployAndFundIncentivesPool()
         internal
-        returns (IncentivesPool pool, MockERC20 rewardToken, address poolOwner)
+        returns (IncentivesPool pool, address poolOwner)
     {
-        return deployAndFundIncentivesPool(1_000_000 * 1e18);
+        return deployAndFundIncentivesPool(1_000_000 * 1e6); // USDC has 6 decimals
     }
 
     /// @notice Attach an IncentivesPool to a Signals board
@@ -201,13 +207,13 @@ contract SignalsHarness is Test {
 
         // Create incentives config with linear curve parameters [3, 1, 2]
         uint256[] memory incentiveParams = new uint256[](3);
-        incentiveParams[0] = 3;
-        incentiveParams[1] = 1;
-        incentiveParams[2] = 2;
+        incentiveParams[0] = 3 * 1e18;
+        incentiveParams[1] = 1 * 1e18;
+        incentiveParams[2] = 2 * 1e18;
 
         IIncentivizer.IncentivesConfig memory incentivesConfig = IIncentivizer.IncentivesConfig({
             incentiveType: IIncentivizer.IncentiveType.Linear,
-            incentiveParameters: incentiveParams
+            incentiveParametersWAD: incentiveParams
         });
 
         // Set the pool on the board (must be done by deployer before board opens)
@@ -225,37 +231,37 @@ contract SignalsHarness is Test {
     /// @notice Deploy a Signals board with IncentivesPool already attached
     /// @dev Convenience wrapper that combines board deployment, pool deployment, and attachment
     /// @param config The board configuration
-    /// @param boardBudget Total budget allocated to this board from the pool
-    /// @param maxRewardPerInitiative Maximum reward that can be distributed per initiative
+    /// @param boardBudget Total budget allocated to this board from the pool (in USDC - 6 decimals)
+    /// @param maxRewardPerInitiative Maximum reward that can be distributed per initiative (in USDC - 6 decimals)
     /// @return signals The deployed Signals board
-    /// @return pool The deployed and attached IncentivesPool
-    /// @return rewardToken The reward token used by the pool
+    /// @return pool The deployed and attached IncentivesPool (using _usdc as reward token)
     function deploySignalsWithIncentivesPool(
         ISignals.BoardConfig memory config,
         uint256 boardBudget,
         uint256 maxRewardPerInitiative
-    ) internal returns (Signals signals, IncentivesPool pool, MockERC20 rewardToken) {
+    ) internal returns (Signals signals, IncentivesPool pool) {
         // Deploy board
         signals = deploySignals(config);
 
-        // Deploy and fund pool
-        (pool, rewardToken,) = deployAndFundIncentivesPool();
+        // Deploy and fund pool (uses _usdc internally)
+        (pool,) = deployAndFundIncentivesPool();
 
         // Attach pool to board
-        attachIncentivesPoolToBoard(ISignals(address(signals)), pool, boardBudget, maxRewardPerInitiative);
+        attachIncentivesPoolToBoard(
+            ISignals(address(signals)), pool, boardBudget, maxRewardPerInitiative
+        );
 
-        return (signals, pool, rewardToken);
+        return (signals, pool);
     }
 
     /// @notice Deploy a Signals board with IncentivesPool using default parameters
     /// @param config The board configuration
     /// @return signals The deployed Signals board
-    /// @return pool The deployed and attached IncentivesPool
-    /// @return rewardToken The reward token used by the pool
+    /// @return pool The deployed and attached IncentivesPool (using _usdc as reward token)
     function deploySignalsWithIncentivesPool(ISignals.BoardConfig memory config)
         internal
-        returns (Signals signals, IncentivesPool pool, MockERC20 rewardToken)
+        returns (Signals signals, IncentivesPool pool)
     {
-        return deploySignalsWithIncentivesPool(config, 100_000 * 1e18, 10_000 * 1e18);
+        return deploySignalsWithIncentivesPool(config, 100_000 * 1e6, 10_000 * 1e6); // USDC has 6 decimals
     }
 }

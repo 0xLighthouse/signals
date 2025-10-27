@@ -2,11 +2,14 @@
 
 pragma solidity ^0.8.24;
 
+import "forge-std/console.sol";
+
 import {IIncentivizer} from "./interfaces/IIncentivizer.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
 import {IVotes} from "./interfaces/IVotes.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract SignalsIncentivizer is IIncentivizer {
     uint256 constant INCENTIVE_RESOLUTION = 24;
@@ -58,10 +61,10 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         }
         incentivesPool = IIncentivesPool(incentivesPool_);
 
-        if (_incentivesConfig.incentiveType == IncentiveType.Linear) {
+        if (incentivesConfig_.incentiveType == IncentiveType.Linear) {
             if (
-                _incentivesConfig.incentiveParameters.length < 2
-                    || _incentivesConfig.incentiveParameters.length > INCENTIVE_RESOLUTION
+                incentivesConfig_.incentiveParametersWAD.length < 2
+                    || incentivesConfig_.incentiveParametersWAD.length > INCENTIVE_RESOLUTION
             ) {
                 revert ISignals.Signals_InvalidIncentiveParameters();
             }
@@ -80,6 +83,7 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         if (address(incentivesPool) == address(0)) {
             return;
         }
+
         // Add the lock to the list of supporters
         lockIncentiveCreditsByInitiative[initiativeId][lockId] =
             LockIncentiveCredit({amount: amount, timestamp: uint128(block.timestamp)});
@@ -95,7 +99,8 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         if (lastUsedBucket == 0 && buckets[0].endTime == 0) {
             // This is the first addition, so set the end times based on this
             for (uint256 i = 0; i < INCENTIVE_RESOLUTION; i++) {
-                buckets[i].endTime = uint128(block.timestamp + i * INCENTIVE_STARTING_INTERVAL);
+                buckets[i].endTime =
+                    uint128(block.timestamp + (i + 1) * INCENTIVE_STARTING_INTERVAL);
             }
         }
 
@@ -117,20 +122,10 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         }
     }
 
-    /// @notice Set the end times for the incentive buckets
-    /// @param buckets The buckets to set the end times for
-    /// @param firstEndTime The first end time
-    /// @param interval The interval between the end times
-    function _setBucketEndTimes(
-        IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets,
-        uint256 firstEndTime,
-        uint256 interval
-    ) private {}
-
     /// @notice Reduce the incentive buckets by half
     /// [ 0 ][ 1 ][ 2 ][ 3 ][ 4 ][ 5 ] => [ 0+1 ][ 2+3 ][ 4+5 ]
     function _reduceIncentiveBuckets(IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets)
-        private
+        internal
     {
         for (uint256 i = 0; i < INCENTIVE_RESOLUTION / 2; i++) {
             buckets[i].bucketTotalIncentiveCredits = buckets[i * 2].bucketTotalIncentiveCredits
@@ -153,33 +148,41 @@ abstract contract SignalsIncentivizer is IIncentivizer {
     function _claimIncentivesForLocks(uint256 initiativeId, uint256[] memory lockIds, address payee)
         internal
     {
-        // get buckets
+        // Silently skip if we aren't using incentives
+        if (address(incentivesPool) == address(0)) {
+            return;
+        }
+
         IncentiveBucket[INCENTIVE_RESOLUTION] memory buckets =
             _incentiveBucketsByInitiative[initiativeId];
+
         uint256 timeInterval = buckets[1].endTime - buckets[0].endTime;
+
         uint256[] memory multipliers =
             _getBucketMultipliers(_lastUsedBucketByInitiative[initiativeId] + 1);
 
+        // The percent of all rewards for this initiative that this payee is entitled to
         uint256 totalPercentOfInitiativeRewards = 0;
-        // Sum the incentives for each lock
+
         for (uint256 i = 0; i < lockIds.length; i++) {
+            // Get each lock
             LockIncentiveCredit memory credit =
                 lockIncentiveCreditsByInitiative[initiativeId][lockIds[i]];
 
             // Find which bucket it fits in
-            uint256 bucketIndex = (credit.timestamp - buckets[0].endTime) / timeInterval;
+            uint256 bucketIndex = credit.timestamp < buckets[0].endTime
+                ? 0
+                : (credit.timestamp - buckets[0].endTime) / timeInterval;
 
-            // Find what percentage of the bucket we account for, normalized to 1e18
-            uint256 bucketPercentage =
-                credit.amount * 1e18 / buckets[bucketIndex].bucketTotalIncentiveCredits;
+            // Find what percentage of the bucket we account for
+            // (cast to uint256 to avoid overflow)
+            uint256 percentOfBucket = uint256(credit.amount) * 1e18
+                / uint256(buckets[bucketIndex].bucketTotalIncentiveCredits);
+            // Multiply by what percent of all awards the bucket represents
+            uint256 percentOfInitiativeRewards = percentOfBucket * multipliers[bucketIndex] / 1e18;
+            totalPercentOfInitiativeRewards += percentOfInitiativeRewards;
 
-            // Multiply by the percentage of the whole the bucket represents
-            uint256 percentageOfInitiativeRewards =
-                bucketPercentage * multipliers[bucketIndex] / 1e18;
-
-            totalPercentOfInitiativeRewards += percentageOfInitiativeRewards;
-
-            emit RewardsClaimed(initiativeId, lockIds[i], payee, percentageOfInitiativeRewards);
+            emit RewardsClaimed(initiativeId, lockIds[i], payee, percentOfInitiativeRewards);
         }
 
         // Tell the incentives pool to payout that percentage of the initiative rewards to the payee
@@ -187,37 +190,98 @@ abstract contract SignalsIncentivizer is IIncentivizer {
     }
 
     function _getBucketMultipliers(uint256 numberOfBuckets)
-        private
+        internal
         view
         returns (uint256[] memory)
     {
-        uint256[] memory config = _incentivesConfig.incentiveParameters;
-        uint256[] memory interpolated = new uint256[](numberOfBuckets);
+        uint256[] memory config = _incentivesConfig.incentiveParametersWAD;
+
+        uint256[] memory interpolated = _scaleIncentiveConfigParameters(config, numberOfBuckets);
 
         uint256 totalInterpolatedValues = 0;
 
-        for (uint256 i = 0; i < config.length; i++) {
-            uint256 startIndex = i * ((interpolated.length) / (config.length));
-            interpolated[startIndex] = config[i];
-
-            // Interpolate the values in between the config values.
-            if (i + 1 < config.length) {
-                uint256 endIndex = (i + 1) * ((interpolated.length) / (config.length));
-                uint256 totalDifference = config[i + 1] - config[i];
-                uint256 differencePerBucket = totalDifference / (endIndex - startIndex);
-                for (uint256 j = 0; j < endIndex - startIndex; j++) {
-                    uint256 bucketAmount = config[i] + differencePerBucket * j;
-                    totalInterpolatedValues += bucketAmount;
-                    interpolated[startIndex + j] = bucketAmount;
-                }
-            }
+        //Sum all interpolated values
+        for (uint256 i = 0; i < interpolated.length; i++) {
+            totalInterpolatedValues += interpolated[i];
         }
 
-        // Replace each value with its percentage of the whole, normalized to 1e18
+        // Replace each value with its percentage of the whole
         for (uint256 i = 0; i < interpolated.length; i++) {
             interpolated[i] = (interpolated[i] * 1e18) / totalInterpolatedValues;
         }
 
+        // Return the percentage of the entire rewards each bucket is entitled to
         return interpolated;
+    }
+
+    function _scaleIncentiveConfigParameters(uint256[] memory config, uint256 numberOfBuckets)
+        internal
+        pure
+        returns (uint256[] memory)
+    {
+        uint256[] memory interpolated = new uint256[](numberOfBuckets);
+        // If there is only one bucket, we just use a value of 1e18
+        if (numberOfBuckets == 1) {
+            interpolated[0] = 1e18;
+            return interpolated;
+        }
+
+        if (numberOfBuckets == config.length) {
+            interpolated = config;
+        } else {
+            // The first and the last buckets don't change, so we can just set them to the first and last config values.
+            interpolated[0] = config[0];
+            interpolated[interpolated.length - 1] = config[config.length - 1];
+        }
+
+        if (numberOfBuckets > 2) {
+            // We will think of index/value as an X/Y coordinate. We can then convert the X coordinates to match the scale of the
+            // number of buckets, and use geometric interpolation to find Y values for each bucket..
+
+            // Convert indexes into WAD
+            uint256[] memory indexes = new uint256[](config.length);
+            for (uint256 i = 0; i < config.length; i++) {
+                indexes[i] = i * 1e18;
+            }
+
+            // Find the multiplier, based on the scale difference between the two (0-index). Multiplying the index of the last config by this number should give the index of the last bucket.
+            uint256 multiplier = ((numberOfBuckets - 1) * 1e18) / (config.length - 1);
+
+            // Scale the config indexes to match the number of buckets.
+            for (uint256 i = 0; i < indexes.length; i++) {
+                indexes[i] = indexes[i] * multiplier / 1e18;
+            }
+
+            // Thinking of it like XY cooridnates, use linear interpolation to find the Y coordinate (value) for the X coordinate (index) of each bucket.
+            // We can make the lookup efficient by keeping track of the last config index and using it to find the next config index (since we know the bucket index is always increasing).
+            uint256 lastConfigIndex = 0;
+
+            for (uint256 i = 1; i < numberOfBuckets - 1; i++) {
+                uint256 desiredX = i * 1e18;
+                while (indexes[lastConfigIndex + 1] < desiredX) lastConfigIndex++;
+
+                interpolated[i] = _geometricLinearInterpolation(
+                    desiredX,
+                    indexes[lastConfigIndex],
+                    config[lastConfigIndex],
+                    indexes[lastConfigIndex + 1],
+                    config[lastConfigIndex + 1]
+                );
+            }
+        }
+        return interpolated;
+    }
+
+    function _geometricLinearInterpolation(
+        uint256 x,
+        uint256 x1,
+        uint256 y1,
+        uint256 x2,
+        uint256 y2
+    ) private pure returns (uint256) {
+        return uint256(
+            int256(y1)
+                + ((int256(x) - int256(x1)) * (int256(y2) - int256(y1))) / (int256(x2) - int256(x1))
+        );
     }
 }
