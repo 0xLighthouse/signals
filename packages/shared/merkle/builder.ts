@@ -1,13 +1,13 @@
-import { StandardMerkleTree } from '@openzeppelin/merkle-tree';
-import { encodePacked, keccak256 } from 'viem';
-import type { ParticipantRecord, MerkleTreeResult } from './types';
+import { StandardMerkleTree } from '@openzeppelin/merkle-tree'
+import { encodePacked, keccak256 } from 'viem'
+import type { MerkleTreeResult, ParticipantRecord } from './types'
 
 /**
  * Hash a participant ID to match Solidity's keccak256(abi.encodePacked(uint256))
  */
 export function hashParticipantId(participantId: number | bigint): `0x${string}` {
-  const id = BigInt(participantId);
-  return keccak256(encodePacked(['uint256'], [id]));
+  const id = BigInt(participantId)
+  return keccak256(encodePacked(['uint256'], [id]))
 }
 
 /**
@@ -17,57 +17,64 @@ export function hashParticipantId(participantId: number | bigint): `0x${string}`
  */
 export function buildMerkleTree(participants: ParticipantRecord[]): MerkleTreeResult {
   if (participants.length === 0) {
-    throw new Error('Cannot build Merkle tree with zero participants');
+    throw new Error('Cannot build Merkle tree with zero participants')
   }
 
   // Build tree using participants' uint256 IDs. StandardMerkleTree hashes entries with Solidity ABI rules.
-  const entries = participants.map((p) => [BigInt(p.participantId)]);
-  const tree = StandardMerkleTree.of(entries, ['uint256']);
+  const toBigInt = (id: bigint | number): bigint => (typeof id === 'bigint' ? id : BigInt(id))
+  const entries = participants.map((participant) => [toBigInt(participant.participantId)])
+  const tree = StandardMerkleTree.of(entries, ['uint256'])
 
   // Lookup map for fast membership/proof generation
-  const participantMap = new Map(participants.map((p) => [p.participantId, true]));
+  const participantMap = new Map(
+    participants.map((participant) => [participant.participantId.toString(), true]),
+  )
 
   return {
     root: tree.root as `0x${string}`,
 
-    getProof: (participantId: number): `0x${string}`[] => {
-      if (!participantMap.get(participantId)) {
-        throw new Error(`Participant ID ${participantId} not found in tree`);
+    getProof: (participantId: number | bigint): `0x${string}`[] => {
+      const key = participantId.toString()
+      if (!participantMap.get(key)) {
+        throw new Error(`Participant ID ${participantId} not found in tree`)
       }
-      const entry = [BigInt(participantId)];
+      const entry = [toBigInt(participantId)]
       try {
-        const proof = tree.getProof(entry);
-        return proof as `0x${string}`[];
+        const proof = tree.getProof(entry)
+        return proof as `0x${string}`[]
       } catch (error) {
-        throw new Error(`Failed to generate proof for participant ${participantId}: ${error}`);
+        throw new Error(`Failed to generate proof for participant ${participantId}: ${error}`)
       }
     },
 
-    verify: (participantId: number, proof: `0x${string}`[]): boolean => {
-      if (!participantMap.get(participantId)) return false;
-      const entry = [BigInt(participantId)];
+    verify: (participantId: number | bigint, proof: `0x${string}`[]): boolean => {
+      const key = participantId.toString()
+      if (!participantMap.get(key)) return false
+      const entry = [toBigInt(participantId)]
       try {
-        return StandardMerkleTree.verify(tree.root, ['uint256'], entry, proof);
+        return StandardMerkleTree.verify(tree.root, ['uint256'], entry, proof)
       } catch {
-        return false;
+        return false
       }
     },
 
     getAllProofs: (): Record<string, `0x${string}`[]> => {
-      const proofs: Record<string, `0x${string}`[]> = {};
+      const proofs: Record<string, `0x${string}`[]> = {}
       for (const participant of participants) {
-        const participantIdStr = String(participant.participantId);
+        const participantIdStr = participant.participantId.toString()
         try {
-          proofs[participantIdStr] = tree.getProof([BigInt(participant.participantId)]) as `0x${string}`[];
+          proofs[participantIdStr] = tree.getProof([
+            toBigInt(participant.participantId),
+          ]) as `0x${string}`[]
         } catch (error) {
           // Non-fatal: continue collecting other proofs
           // eslint-disable-next-line no-console
-          console.error(`Failed to generate proof for participant ${participantIdStr}:`, error);
+          console.error(`Failed to generate proof for participant ${participantIdStr}:`, error)
         }
       }
-      return proofs;
+      return proofs
     },
-  };
+  }
 }
 
 /**
@@ -75,14 +82,14 @@ export function buildMerkleTree(participants: ParticipantRecord[]): MerkleTreeRe
  * Useful for validating loaded allowlist data.
  */
 export function verifyProof(
-  participantId: number,
+  participantId: number | bigint,
   proof: `0x${string}`[],
-  root: `0x${string}`
+  root: `0x${string}`,
 ): boolean {
-  const entry = [BigInt(participantId)];
+  const entry = [typeof participantId === 'bigint' ? participantId : BigInt(participantId)]
   try {
-    return StandardMerkleTree.verify(root, ['uint256'], entry, proof);
+    return StandardMerkleTree.verify(root, ['uint256'], entry, proof)
   } catch {
-    return false;
+    return false
   }
 }

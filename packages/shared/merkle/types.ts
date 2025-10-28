@@ -1,6 +1,5 @@
 export type ParticipantRecord = {
-  participantId: number
-  weight?: number
+  participantId: bigint | number
   label?: string
 }
 
@@ -16,7 +15,7 @@ export type AllowlistOutput = {
 
 export type MerkleTreeResult = {
   root: `0x${string}`
-  getProof: (participantId: number) => `0x${string}`[]
-  verify: (participantId: number, proof: `0x${string}`[]) => boolean
+  getProof: (participantId: number | bigint) => `0x${string}`[]
+  verify: (participantId: number | bigint, proof: `0x${string}`[]) => boolean
   getAllProofs: () => Record<string, `0x${string}`[]>
 }

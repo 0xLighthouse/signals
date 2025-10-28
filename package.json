@@ -1,5 +1,8 @@
 {
   "private": true,
+  "engines": {
+    "node": ">=25.0.0"
+  },
   "scripts": {
     "build": "turbo run build",
     "build:interface": "turbo run build --filter=interface",
@@ -20,5 +23,8 @@
     "turbo": "^2.4.4"
   },
   "name": "signals",
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.5"
+  }
 }
