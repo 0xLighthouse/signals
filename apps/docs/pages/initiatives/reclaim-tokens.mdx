@@ -57,7 +57,7 @@ You can use the `getTokenLock()` and `getInitiative()` functions to query this i
 
 ### Redeem Your Position
 
-Call the `redeem()` function with your NFT token ID. The function will:
+Call the `redeemLock()` function with your NFT token ID. For multiple positions on the same initiative, use `redeemLocksForInitiative()` to batch redeem. The function will:
 1. Validate the lock hasn't been redeemed
 2. Verify you own the NFT
 3. Check the initiative state and timelock
@@ -66,7 +66,7 @@ Call the `redeem()` function with your NFT token ID. The function will:
 6. Transfer your locked tokens back
 7. Auto-claim any incentive rewards
 
-See the [Initiative Interactions Reference](/reference/initiative-interactions#redeeming-locks) for detailed function signatures.
+See the [Initiative Functions Reference](/reference/initiative-functions/redeem) for detailed function signatures and batch redemption examples.
 
 ### Find Your Token IDs
 
@@ -76,9 +76,9 @@ Use `listPositions(address)` to get all your lock NFT token IDs, or `getLocksFor
 
 If you locked tokens multiple times on the same initiative:
 - Each lock has its own NFT token ID
-- Redeem each position separately
-- Incentive rewards (if any) are claimed on first redemption
-- Subsequent redemptions just return locked tokens
+- You can redeem each position separately with `redeemLock()`, or redeem all at once with `redeemLocksForInitiative()`
+- Each lock earns its own proportional share of incentive rewards based on when it was created
+- Batch redemption with `redeemLocksForInitiative()` is more gas efficient and claims rewards for all locks in one transaction
 
 ## What Happens During Redemption
 
@@ -111,18 +111,24 @@ Incentive rewards are automatically claimed during redemption, but bounty reward
 ### Scenario 1: Accepted Initiative with Timelock
 1. Initiative is accepted by board owner
 2. Wait for `releaseLockDuration` to pass
-3. Call `redeem()` to receive tokens + incentive rewards
+3. Call `redeemLock()` to receive tokens + incentive rewards
 4. Claim bounty rewards separately (if configured)
 
 ### Scenario 2: Expired Initiative
 1. Initiative expires due to inactivity
-2. Call `redeem()` immediately (no waiting)
+2. Call `redeemLock()` immediately (no waiting)
 3. Receive your original locked tokens only
 
 ### Scenario 3: Board Closed
 1. Board owner closes the board
 2. All locks become immediately redeemable
-3. Call `redeem()` to receive tokens (+ rewards if accepted)
+3. Call `redeemLock()` to receive tokens (+ rewards if accepted)
+
+### Scenario 4: Multiple Locks (Batch Redemption)
+1. You have multiple lock positions on the same initiative
+2. Initiative is accepted and timelock has passed
+3. Call `redeemLocksForInitiative()` with array of lock IDs
+4. All locks redeemed in single transaction (gas efficient)
 
 ---
 

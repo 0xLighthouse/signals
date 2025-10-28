@@ -209,7 +209,7 @@ supporterLocks[supporter].push(tokenId)      // Track locks per supporter
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `Signals_BoardNotYetOpen` | Current time < `boardOpensAt` | Wait for board to open |
+| `Signals_BoardNotYetOpen` | Current time < `boardOpenAt` | Wait for board to open |
 | `Signals_BoardClosed` | Board is closed | Cannot support on closed boards |
 | `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid initiative ID |
 | `Signals_NotProposedState` | Initiative not in Proposed state | Only support Proposed initiatives |
@@ -266,7 +266,7 @@ bool meetsThreshold = totalWeight >= threshold
 
 // 9. Later: Redeem after acceptance/expiration
 // ... wait for acceptance/expiration ...
-signals.redeem(tokenId)  // Receive original tokens back + incentives
+signals.redeemLock(tokenId)  // Receive original tokens back + incentives
 ```
 
 ## Helper Functions

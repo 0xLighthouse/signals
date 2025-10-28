@@ -417,6 +417,7 @@ contract Signals is
         redeemLocksForInitiative(lock.initiativeId, lockIds);
     }
 
+    // TODO: Check to make sure these lock IDs all belong to this initiative
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds)
         public
         nonReentrant

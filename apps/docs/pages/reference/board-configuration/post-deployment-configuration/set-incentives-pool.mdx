@@ -6,9 +6,12 @@ weight: 5
 ### Set Incentives Pool
 
 ```solidity
-function setIncentivesPool(address _pool) external onlyOwner
+function setIncentivesPool(
+    address incentivesPool_,
+    IncentivesConfig calldata incentivesConfig_
+) external onlyOwner
 ```
 
 **Requirements:**
-- Can only be called BEFORE `boardOpensAt`
-- Must be called if `boardIncentives.enabled == true`
+- Can only be called BEFORE `boardOpenAt`
+- Must provide `IncentivesConfig` with incentive curve parameters

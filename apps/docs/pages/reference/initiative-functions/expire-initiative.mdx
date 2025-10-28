@@ -63,7 +63,7 @@ Supporters can redeem **immediately** - no timelock:
 
 ```solidity
 // No timelock for expired initiatives
-signals.redeem(tokenId)
+signals.redeemLock(tokenId)
 ```
 
 **Redemption requirements:**
@@ -123,7 +123,7 @@ Initiative memory expired = signals.getInitiative(initiativeId)
 assert(expired.state == InitiativeState.Expired)
 
 // 4. Supporters can now redeem immediately
-signals.redeem(tokenId)  // No timelock
+signals.redeemLock(tokenId)  // No timelock
 ```
 
 ## Integration Example

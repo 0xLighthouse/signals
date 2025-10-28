@@ -47,7 +47,7 @@ struct FactoryDeployment {
     ProposerRequirements proposerRequirements;         // Who can propose
     ParticipantRequirements participantRequirements;   // Who can support
     uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 boardOpensAt;                             // Unix timestamp for opening
+    uint256 boardOpenAt;                              // Unix timestamp for opening
     BoardIncentives boardIncentives;                   // Reward configuration
 }
 ```
@@ -73,7 +73,7 @@ board.setTitle("Season 1: Community Initiatives")
 // 6. Optional: Set bounties contract
 board.setBounties(bountiesAddress)
 
-// 7. Optional: Set incentives pool (BEFORE boardOpensAt)
-board.setIncentivesPool(poolAddress)
+// 7. Optional: Set incentives pool (BEFORE boardOpenAt)
+board.setIncentivesPool(poolAddress, incentivesConfig)
 ```
 

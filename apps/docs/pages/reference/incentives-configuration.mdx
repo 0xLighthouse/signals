@@ -24,27 +24,34 @@ pool.initializePool(
 // 3. Approve board
 pool.approveBoard(address(signalsBoard))
 
-// 4. Link to board (BEFORE board opens)
-signalsBoard.setIncentivesPool(address(pool))
+// 4. Link to board (BEFORE board opens) with config
+IncentivesConfig memory config = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)] // 12% decay
+});
+signalsBoard.setIncentivesPool(address(pool), config)
 ```
 
-## BoardIncentives Structure
+## IncentivesConfig Structure
 
 ```solidity
-struct BoardIncentives {
-    bool enabled;               // Whether incentives are active
-    uint256 curveType;         // 0 = linear decay
-    uint256[] curveParameters; // Parameters for incentive curve
+struct IncentivesConfig {
+    IncentiveType incentiveType;        // Linear or Exponential
+    uint256[] incentiveParametersWAD;   // 2-24 parameters for curve
+}
+
+enum IncentiveType {
+    Linear,
+    Exponential
 }
 ```
 
 ### Configuration Example
 
 ```solidity
-BoardIncentives memory incentives = BoardIncentives({
-    enabled: true,              // Enable incentives
-    curveType: 0,              // 0 = linear decay
-    curveParameters: [0.12e18] // 12% decay rate
+IncentivesConfig memory incentives = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)] // Decay rate
 })
 ```
 
@@ -92,40 +99,54 @@ pool.initializePool(
 ### Approve Board
 
 ```solidity
-function approveBoard(address _board) external
+function approveBoard(
+    address board,
+    uint256 boardBudget_,
+    uint256 totalRewardPerInitiative_
+) external onlyOwner
 ```
 
-Whitelist a Signals board to use this pool.
+Whitelist a Signals board to use this pool with allocated budget.
+
+**Parameters:**
+- `board`: Board contract address
+- `boardBudget_`: Total budget allocated to this board
+- `totalRewardPerInitiative_`: Max reward per initiative for this board
 
 **Example:**
 ```solidity
-pool.approveBoard(address(signalsBoard))
+pool.approveBoard(
+    address(signalsBoard),
+    100_000 * 1e18,  // 100k total budget
+    10_000 * 1e18    // 10k max per initiative
+)
 ```
 
 ### Link Pool to Board
 
 ```solidity
 // In Signals.sol
-function setIncentivesPool(address _pool) external onlyOwner
+function setIncentivesPool(
+    address incentivesPool_,
+    IncentivesConfig calldata incentivesConfig_
+) external onlyOwner
 ```
 
-**Critical:** Must be called BEFORE `boardOpensAt` timestamp.
+**Critical:** Must be called BEFORE `boardOpenAt` timestamp.
 
 **Example:**
 ```solidity
-signalsBoard.setIncentivesPool(address(pool))
+IncentivesConfig memory config = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)]
+});
+signalsBoard.setIncentivesPool(address(pool), config)
 ```
 
 ## Complete Deployment Example
 
 ```solidity
-// 1. Deploy board with incentives enabled
-BoardIncentives memory incentives = BoardIncentives({
-    enabled: true,
-    curveType: 0,
-    curveParameters: [uint256(0.12e18)]
-})
-
+// 1. Deploy board
 ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeployment({
     owner: daoMultisig,
     underlyingToken: governanceToken,
@@ -147,8 +168,7 @@ ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeploym
         minHoldingDuration: 0
     }),
     releaseLockDuration: 0,
-    boardOpensAt: block.timestamp + 1 days,  // Opens in 1 day
-    boardIncentives: incentives
+    boardOpenAt: block.timestamp + 1 days  // Opens in 1 day
 })
 
 address boardAddress = factory.create(config)
@@ -167,11 +187,15 @@ pool.initializePool(
     10_000 * 1e18        // 10k max per initiative
 )
 
-// 4. Approve board
-pool.approveBoard(address(signalsBoard))
+// 4. Approve board with budget
+pool.approveBoard(address(signalsBoard), 100_000 * 1e18, 10_000 * 1e18)
 
 // 5. Link to board (before it opens!)
-signalsBoard.setIncentivesPool(address(pool))
+IncentivesConfig memory incentivesConfig = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)]
+});
+signalsBoard.setIncentivesPool(address(pool), incentivesConfig)
 ```
 
 ## Time-Weighted Calculation
@@ -180,7 +204,7 @@ signalsBoard.setIncentivesPool(address(pool))
 
 ```solidity
 // Calculate time factor
-t = (lockCreatedAt - boardOpensAt) / (acceptanceTime - boardOpensAt)
+t = (lockCreatedAt - boardOpenAt) / (acceptanceTime - boardOpenAt)
 
 // Apply linear decay curve
 weight = lockAmount * (1 - k * t)
@@ -245,38 +269,31 @@ supporterReward = (supporterWeight / totalWeightAllSupporters) * poolAllocation
 ```solidity
 // Called automatically in Signals.acceptInitiative()
 if (address(incentivesPool) != address(0)) {
-    try incentivesPool.calculateIncentives(
-        initiativeId,
-        boardOpensAt,
-        block.timestamp
-    ) {} catch {
-        // Non-blocking: continues even if calculation fails
-    }
+    // Rewards are tracked internally by the board using Incentivizer mixin
+    // Pool is notified when rewards are ready to be claimed
 }
 ```
 
-### Calculate Incentives Function
+### Claim Rewards Function
 
 ```solidity
-function calculateIncentives(
+function claimRewards(
     uint256 _initiativeId,
-    uint256 _boardOpensAt,
-    uint256 _acceptanceTimestamp
-) external
+    address _payee,
+    uint256 _percentOfInitiativeRewards
+) external onlyApprovedBoard
 ```
 
 **Requirements:**
 - Only callable by approved boards
-- Initiative must not already have distribution calculated
-- Board must have opened (`_boardOpensAt <= _acceptanceTimestamp`)
+- Board must have remaining budget
+- Percent must be valid (0-100% in WAD format)
 
 **Process:**
-1. Fetches all supporters and their locks from the Signals contract
-2. Calculates time-weighted weight for each supporter
-3. Sums total weight across all supporters
-4. Determines pool allocation (capped at `maxRewardPerInitiative`)
-5. Calculates individual rewards proportionally
-6. Stores allocations for later claiming
+1. Board calculates reward percentage using bucket-based system
+2. Board calls pool to transfer tokens
+3. Pool deducts from board's remaining budget
+4. Tokens transferred directly to supporter
 
 ### Automatic Claiming on Redemption
 
@@ -284,19 +301,12 @@ function calculateIncentives(
 // Inside Signals.redeem()
 if (address(incentivesPool) != address(0) &&
     initiative.state == InitiativeState.Accepted) {
-    uint256 rewards = incentivesPool.getSupporterRewards(
-        address(this),
-        lock.initiativeId,
-        msg.sender
-    )
+    // Board calculates supporter's reward percentage
+    uint256 rewardPercent = _calculateRewardPercentage(lock.initiativeId, msg.sender);
 
-    if (rewards > 0) {
-        incentivesPool.claimRewards(
-            address(this),
-            lock.initiativeId,
-            msg.sender
-        )
-        // Tokens transferred to supporter
+    if (rewardPercent > 0) {
+        // Board calls pool to pay rewards
+        _payIncentiveReward(lock.initiativeId, msg.sender, rewardPercent);
     }
 }
 ```
@@ -329,99 +339,45 @@ function approvedBoards(address _board) external view returns (bool)
 bool isApproved = pool.approvedBoards(address(signalsBoard))
 ```
 
-### Get Supporter Rewards
+### Get Board Budget Info
 
 ```solidity
-function getSupporterRewards(
-    address _board,
-    uint256 _initiativeId,
-    address _supporter
-) external view returns (uint256)
+function totalRewardPerInitiative(address board) external view returns (uint256)
+function boardRemainingBudget(address board) external view returns (uint256)
 ```
 
-Returns the total rewards allocated to a supporter for a specific initiative.
+Returns budget information for a specific board.
 
 **Example:**
 ```solidity
-uint256 rewards = pool.getSupporterRewards(
-    address(signalsBoard),
-    initiativeId,
-    supporterAddress
-)
+uint256 maxPerInit = pool.totalRewardPerInitiative(address(signalsBoard));
+uint256 remaining = pool.boardRemainingBudget(address(signalsBoard));
 ```
 
-### Check Claimed Rewards
+### Check Board Approval
 
 ```solidity
-function claimedRewards(
-    address _board,
-    uint256 _initiativeId,
-    address _supporter
-) external view returns (uint256)
+function approvedBoards(address board) external view returns (bool)
 ```
 
 **Example:**
 ```solidity
-uint256 claimed = pool.claimedRewards(
-    address(signalsBoard),
-    initiativeId,
-    supporterAddress
-)
+bool isApproved = pool.approvedBoards(address(signalsBoard));
 ```
 
-### Get Initiative Reward Pool
+### Get Pool Stats
 
 ```solidity
-function getInitiativeRewardPool(
-    address _board,
-    uint256 _initiativeId
-) external view returns (uint256)
-```
-
-Returns total rewards allocated to an initiative.
-
-**Example:**
-```solidity
-uint256 allocated = pool.getInitiativeRewardPool(
-    address(signalsBoard),
-    initiativeId
-)
-```
-
-### Get Initiative Total Weight
-
-```solidity
-function getInitiativeTotalWeight(
-    address _board,
-    uint256 _initiativeId
-) external view returns (uint256)
-```
-
-Returns total weight used for distribution calculation.
-
-**Example:**
-```solidity
-uint256 totalWeight = pool.getInitiativeTotalWeight(
-    address(signalsBoard),
-    initiativeId
-)
-```
-
-### Check Distribution Status
-
-```solidity
-function isDistributionCalculated(
-    address _board,
-    uint256 _initiativeId
-) external view returns (bool)
+function availableRewards() external view returns (uint256)
+function totalBoardBudgets() external view returns (uint256)
+function distributedRewards() external view returns (uint256)
 ```
 
 **Example:**
 ```solidity
-bool calculated = pool.isDistributionCalculated(
-    address(signalsBoard),
-    initiativeId
-)
+uint256 available = pool.availableRewards();
+uint256 totalBudgets = pool.totalBoardBudgets();
+uint256 distributed = pool.distributedRewards();
 ```
 
 ## Claiming Functions

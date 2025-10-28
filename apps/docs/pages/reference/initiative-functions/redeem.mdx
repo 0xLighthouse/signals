@@ -1,21 +1,34 @@
 ---
-title: 'redeem Function'
+title: 'redeemLock Functions'
 weight: 3
 ---
 
 # Redeeming Locks
 
-## Function Signature
+## Function Signatures
+
+### Redeem Single Lock
 
 ```solidity
-function redeem(uint256 tokenId) public
+function redeemLock(uint256 lockId) external
+```
+
+### Redeem Multiple Locks (Batch)
+
+```solidity
+function redeemLocksForInitiative(
+    uint256 initiativeId,
+    uint256[] calldata lockIds
+) external
 ```
 
 ### Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `tokenId` | `uint256` | The ERC721 token ID representing your lock position |
+| `lockId` | `uint256` | The ERC721 token ID representing your lock position |
+| `initiativeId` | `uint256` | The initiative ID (all locks must belong to this initiative) |
+| `lockIds` | `uint256[]` | Array of lock token IDs to redeem in batch |
 
 ## TokenLock Data Structure
 
@@ -58,16 +71,18 @@ uint256[] memory tokenIds = signals.getLocksForSupporter(yourAddress)
 
 ## Example Redemption Flow
 
+### Single Lock Redemption
+
 ```solidity
 // 1. Find your positions
 uint256[] memory myTokenIds = signals.listPositions(msg.sender)
 
 // 2. For each token, check if redeemable
 for (uint256 i = 0; i < myTokenIds.length; i++) {
-    uint256 tokenId = myTokenIds[i]
+    uint256 lockId = myTokenIds[i]
 
     // Get lock details
-    TokenLock memory lock = signals.getTokenLock(tokenId)
+    TokenLock memory lock = signals.getTokenLock(lockId)
 
     // Skip if already withdrawn
     if (lock.withdrawn) continue
@@ -79,13 +94,44 @@ for (uint256 i = 0; i < myTokenIds.length; i++) {
     if (init.state == InitiativeState.Accepted) {
         uint256 releaseTime = init.acceptanceTimestamp + signals.releaseLockDuration()
         if (block.timestamp >= releaseTime) {
-            // Redeem
-            signals.redeem(tokenId)
+            // Redeem single lock
+            signals.redeemLock(lockId)
         }
     } else if (init.state == InitiativeState.Expired) {
         // Redeem immediately
-        signals.redeem(tokenId)
+        signals.redeemLock(lockId)
     }
+}
+```
+
+### Batch Redemption for Initiative
+
+```solidity
+// 1. Get all your locks for a specific initiative
+uint256 initiativeId = 5;
+uint256[] memory myLocks = signals.getLocksForSupporter(msg.sender);
+
+// 2. Filter locks for this initiative
+uint256[] memory initiativeLocks = new uint256[](myLocks.length);
+uint256 count = 0;
+
+for (uint256 i = 0; i < myLocks.length; i++) {
+    TokenLock memory lock = signals.getTokenLock(myLocks[i]);
+    if (lock.initiativeId == initiativeId && !lock.withdrawn) {
+        initiativeLocks[count] = myLocks[i];
+        count++;
+    }
+}
+
+// 3. Resize array to actual count
+uint256[] memory locksToRedeem = new uint256[](count);
+for (uint256 i = 0; i < count; i++) {
+    locksToRedeem[i] = initiativeLocks[i];
+}
+
+// 4. Batch redeem all locks for this initiative
+if (locksToRedeem.length > 0) {
+    signals.redeemLocksForInitiative(initiativeId, locksToRedeem);
 }
 ```
 
@@ -128,11 +174,24 @@ async function canRedeem(tokenId: bigint) {
   return false
 }
 
-// Redeem position
-async function redeemPosition(tokenId: bigint) {
-  const tx = await signals.write.redeem([tokenId])
+// Redeem single position
+async function redeemPosition(lockId: bigint) {
+  const tx = await signals.write.redeemLock([lockId])
   await tx.wait()
-  console.log(`Redeemed token ${tokenId}`)
+  console.log(`Redeemed lock ${lockId}`)
+}
+
+// Redeem multiple positions for an initiative
+async function redeemMultiplePositions(
+  initiativeId: bigint,
+  lockIds: bigint[]
+) {
+  const tx = await signals.write.redeemLocksForInitiative([
+    initiativeId,
+    lockIds
+  ])
+  await tx.wait()
+  console.log(`Redeemed ${lockIds.length} locks for initiative ${initiativeId}`)
 }
 ```
 
@@ -146,5 +205,6 @@ function listPositions(address owner) external view returns (uint256[] memory)
 function releaseLockDuration() external view returns (uint256)
 
 // Redemption
-function redeem(uint256 tokenId) public
+function redeemLock(uint256 lockId) external
+function redeemLocksForInitiative(uint256 initiativeId, uint256[] calldata lockIds) external
 ```

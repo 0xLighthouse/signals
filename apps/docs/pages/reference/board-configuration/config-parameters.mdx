@@ -98,7 +98,7 @@ struct FactoryDeployment {
   - `7 days` (604800) - 1 week cooldown
   - `30 days` (2592000) - 1 month vesting
 
-### boardOpensAt
+### boardOpenAt
 
 - **Type:** `uint256` (Unix timestamp)
 - **Purpose:** Fair launch mechanism - board doesn't accept proposals until this time
@@ -125,4 +125,4 @@ struct FactoryDeployment {
 | `Signals_ParticipantZeroMinBalance` | Participant minBalance is 0 | Set minBalance > 0 |
 | `Signals_ParticipantZeroMinDuration` | Participant duration is 0 | Set minHoldingDuration > 0 |
 | `Signals_ParticipantNoCheckpointSupport` | Token lacks checkpoint support | Use ERC20Votes token |
-| `Signals_BoardAlreadyOpened` | setIncentivesPool after opening | Call before boardOpensAt |
+| `Signals_BoardAlreadyOpened` | setIncentivesPool after opening | Call before boardOpenAt |

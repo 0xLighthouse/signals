@@ -23,7 +23,7 @@ Before adding incentives:
 1. **Deploy your Signals board** via SignalsFactory
 2. **Have reward tokens** ready (typically DAO governance token)
 3. **Configure board with incentives enabled** during deployment
-4. **Set up BEFORE board opens** - cannot add after `boardOpensAt`
+4. **Set up BEFORE board opens** - cannot add after `boardOpenAt`
 
 ## Setup Workflow
 
@@ -60,7 +60,7 @@ The pool must explicitly approve which boards can use it. This is a security fea
 
 Finally, connect the pool to your board using `setIncentivesPool()`.
 
-**Critical timing:** This must be called before the `boardOpensAt` timestamp. Once the board opens, you cannot change the incentives pool.
+**Critical timing:** This must be called before the `boardOpenAt` timestamp. Once the board opens, you cannot change the incentives pool.
 
 For detailed code examples and function signatures, see the [Incentives Configuration Reference](/reference/incentives-configuration).
 
@@ -255,7 +255,7 @@ See [Bounties vs. Incentives](/rewards-and-incentives/bounties-vs-incentives) fo
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Cannot set pool | Board already opened | Must set before `boardOpensAt` |
+| Cannot set pool | Board already opened | Must set before `boardOpenAt` |
 | Cannot enable incentives | Board created with `enabled: false` | Cannot add to existing board |
 | Pool not approved | Forgot to call `approveBoard()` | Approve the board in the pool |
 | Insufficient balance | Not enough tokens | Approve more tokens before initialization |

@@ -67,8 +67,8 @@ The closure only affects the ability to interact with the board and withdraw tok
 
 ## Token Redemption After Closure
 
-Users redeem tokens using the standard `redeem()` function:
+Users redeem tokens using the `redeemLock()` function:
 
 ```solidity
-function redeem(uint256 tokenId) public nonReentrant
+function redeemLock(uint256 lockId) external nonReentrant
 ```

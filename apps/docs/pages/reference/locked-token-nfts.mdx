@@ -34,7 +34,7 @@ struct TokenLock {
 After an initiative reaches a terminal state (Accepted or Expired), lock position holders can redeem their underlying tokens:
 
 ```solidity
-signals.redeem(tokenId);
+signals.redeemLock(tokenId);
 ```
 
 **Requirements:**

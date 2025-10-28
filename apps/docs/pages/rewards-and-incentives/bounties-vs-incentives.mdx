@@ -159,7 +159,7 @@ Incentives are DAO-funded reward pools that incentivize early support across all
 weight(supporter) = lockAmount * (1 - k * t)
 
 // Where:
-// t = (lockCreationTime - boardOpensAt) / (acceptanceTime - boardOpensAt)
+// t = (lockCreationTime - boardOpenAt) / (acceptanceTime - boardOpenAt)
 // k = decay rate parameter (e.g., 0.12)
 // t ranges from 0 (locked at board open) to 1 (locked at acceptance)
 ```
@@ -192,15 +192,11 @@ If pool allocates 1,000 tokens to initiative:
 When initiative accepted:
 
 ```solidity
-// Automatic calculation
-incentivesPool.calculateIncentives(
-    initiativeId,
-    boardOpensAt,
-    acceptanceTimestamp
-)
+// Rewards tracked internally by board using bucket system
+// Pool is called when supporters redeem to pay rewards
 
 // Rewards auto-claimed when supporter redeems
-signals.redeem(tokenId)
+signals.redeemLock(tokenId)
 // → Automatically claims all incentive rewards
 ```
 
@@ -276,12 +272,13 @@ bounties.updateSplits(newAllocations, newReceivers)
 
 **Incentives:**
 ```solidity
-// Board configuration at creation time
-boardIncentives = BoardIncentives({
-    enabled: true,
-    curveType: 0,           // Linear decay
-    curveParameters: [0.12e18]  // 12% decay rate
-})
+// Configuration provided when setting pool (before board opens)
+IncentivesConfig memory config = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)]  // Decay rate
+});
+
+board.setIncentivesPool(poolAddress, config);
 
 // Cannot change after board opens
 ```
@@ -315,7 +312,7 @@ bounties.claimRewards(daiAddress)    // Claim DAI
 ```solidity
 // Auto-claimed on redemption
 // No separate transaction needed:
-signals.redeem(tokenId)
+signals.redeemLock(tokenId)
 // → Burns NFT
 // → Returns locked tokens
 // → Automatically claims ALL incentive rewards
@@ -329,11 +326,11 @@ signals.redeem(tokenId)
 
 ```solidity
 // Board configured with incentives
-BoardIncentives({
-    enabled: true,
-    curveType: 0,
-    curveParameters: [0.12e18]
-})
+IncentivesConfig memory config = IncentivesConfig({
+    incentiveType: IncentiveType.Linear,
+    incentiveParametersWAD: [uint256(0.12e18)]
+});
+board.setIncentivesPool(poolAddress, config);
 
 // Anyone can still add bounties
 bounties.addBounty(initiativeId, usdcToken, amount, expiry, terms)
