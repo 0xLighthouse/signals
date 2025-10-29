@@ -10,6 +10,7 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  * @notice Deploys a new ExperimentToken via an existing factory.
  *
  * Parameters passed as script arguments (in order):
+ *  - network: Network name (e.g. "anvil", "base-sepolia")
  *  - factoryAddress: Address of the ExperimentTokenFactory
  *  - name: Token name
  *  - symbol: Token symbol
@@ -23,8 +24,8 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  *  forge script script/DeployToken.s.sol:DeployToken \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address,string,string,bytes32,uint256,uint256,uint256,address)" \
+ *      -s "run(string,address,string,string,bytes32,uint256,uint256,uint256,address)" \
+ *      "base-sepolia" \
  *      "0xYourFactoryAddress" \
  *      "MyToken" \
  *      "MTK" \
@@ -36,6 +37,7 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  */
 contract DeployFactoryToken is ExperimentDeployerBase {
     function run(
+        string memory network,
         address factoryAddress,
         string memory name,
         string memory symbol,
@@ -49,7 +51,7 @@ contract DeployFactoryToken is ExperimentDeployerBase {
         require(bytes(name).length > 0, "Token name required");
         require(bytes(symbol).length > 0, "Token symbol required");
 
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
 
         // Use deployer as owner if address(0) is passed
         if (owner == address(0)) {

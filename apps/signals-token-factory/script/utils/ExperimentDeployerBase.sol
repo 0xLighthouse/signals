@@ -16,9 +16,35 @@ abstract contract ExperimentDeployerBase is Script {
         return false;
     }
 
-    function _loadDeployer() internal returns (uint256 privateKey, address deployer) {
-        privateKey = vm.envUint("TESTNET_DEPLOYER_PRIVATE_KEY");
+    function _loadDeployer(string memory network) internal returns (uint256 privateKey, address deployer) {
+        // Convert network name to env var format: "anvil" -> "ANVIL", "base-sepolia" -> "BASE_SEPOLIA"
+        string memory networkUpper = _toUpperWithUnderscore(network);
+        string memory envVarName = string.concat(networkUpper, "_DEPLOYER_PRIVATE_KEY");
+
+        privateKey = vm.envUint(envVarName);
         deployer = vm.addr(privateKey);
+    }
+
+    function _toUpperWithUnderscore(string memory str) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(strBytes.length);
+
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            bytes1 char = strBytes[i];
+            // Convert hyphen to underscore
+            if (char == 0x2d) { // '-'
+                result[i] = 0x5f; // '_'
+            }
+            // Convert lowercase to uppercase (a-z -> A-Z)
+            else if (char >= 0x61 && char <= 0x7a) {
+                result[i] = bytes1(uint8(char) - 32);
+            }
+            else {
+                result[i] = char;
+            }
+        }
+
+        return string(result);
     }
 
     function _optionalEnvAddress(string memory key, address fallbackValue) internal returns (address value) {

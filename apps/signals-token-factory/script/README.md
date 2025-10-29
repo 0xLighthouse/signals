@@ -9,9 +9,14 @@
 ```sh
 # Fund local wallet with ETH easily
 cast send <0xADDRESS> --value 10ether --rpc-url $LOCAL_RPC --private-key
+cast send 0x8DC791f24589F480fF31Fe654D09bD01B5c5c2E8 --value 10ether --rpc-url $LOCAL_RPC --private-key
 ```
 
-ExperimentFactoryDeployments:
+## Latest deplyment info
+
+```sh
+ExperimentFactoryAddress: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+```
 
 [base-sepolia]
 
@@ -25,9 +30,9 @@ ExperimentFactoryDeployments:
 
  # [anvil]
  forge script script/DeployFactory.s.sol:DeployFactory \
-     --rpc-url $LOCAL_RPC \
+     --rpc-url $ANVIL_RPC \
      --broadcast \
-     --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
+     --private-key $ANVIL_DEPLOYER_PRIVATE_KEY \
      -s "run(string)" \
      "anvil"
 ```
@@ -37,6 +42,7 @@ ExperimentFactoryDeployments:
 All parameters are passed as script arguments (no environment variables needed except private key).
 
 **Parameters (in order):**
+
 1. `factoryAddress` - Address of the deployed ExperimentTokenFactory
 2. `name` - Token name (e.g., "My Token")
 3. `symbol` - Token symbol (e.g., "MTK")

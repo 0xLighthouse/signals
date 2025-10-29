@@ -7,9 +7,35 @@ import "forge-std/console.sol";
 import {ExperimentToken} from "../src/ExperimentTokenFactory.sol";
 
 abstract contract ExperimentOwnerBase is Script {
-    function _loadDeployer() internal returns (uint256 privateKey, address deployer) {
-        privateKey = vm.envUint("TESTNET_DEPLOYER_PRIVATE_KEY");
+    function _loadDeployer(string memory network) internal returns (uint256 privateKey, address deployer) {
+        // Convert network name to env var format: "anvil" -> "ANVIL", "base-sepolia" -> "BASE_SEPOLIA"
+        string memory networkUpper = _toUpperWithUnderscore(network);
+        string memory envVarName = string.concat(networkUpper, "_DEPLOYER_PRIVATE_KEY");
+
+        privateKey = vm.envUint(envVarName);
         deployer = vm.addr(privateKey);
+    }
+
+    function _toUpperWithUnderscore(string memory str) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(strBytes.length);
+
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            bytes1 char = strBytes[i];
+            // Convert hyphen to underscore
+            if (char == 0x2d) { // '-'
+                result[i] = 0x5f; // '_'
+            }
+            // Convert lowercase to uppercase (a-z -> A-Z)
+            else if (char >= 0x61 && char <= 0x7a) {
+                result[i] = bytes1(uint8(char) - 32);
+            }
+            else {
+                result[i] = char;
+            }
+        }
+
+        return string(result);
     }
 
     function _readBatchMintConfig(string memory path)
@@ -41,14 +67,14 @@ abstract contract ExperimentOwnerBase is Script {
  *  forge script script/ExperimentOwner.s.sol:UpdateMerkleRoot \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address,bytes32)" \
+ *      -s "run(string,address,bytes32)" \
+ *      "base-sepolia" \
  *      "0xYourTokenAddress" \
  *      "0xYourNewRoot"
  */
 contract UpdateMerkleRoot is ExperimentOwnerBase {
-    function run(address tokenAddress, bytes32 newRoot) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+    function run(string memory network, address tokenAddress, bytes32 newRoot) external {
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Update Merkle Root ===");
@@ -77,14 +103,14 @@ contract UpdateMerkleRoot is ExperimentOwnerBase {
  *  forge script script/ExperimentOwner.s.sol:BatchMint \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address,string)" \
+ *      -s "run(string,address,string)" \
+ *      "base-sepolia" \
  *      "0xYourTokenAddress" \
  *      "./batch-mint.json"
  */
 contract BatchMint is ExperimentOwnerBase {
-    function run(address tokenAddress, string memory configPath) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+    function run(string memory network, address tokenAddress, string memory configPath) external {
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
         (ExperimentToken.BatchMintRequest[] memory mints, string memory reason) = _readBatchMintConfig(configPath);
 
@@ -118,15 +144,15 @@ contract BatchMint is ExperimentOwnerBase {
  *  forge script script/ExperimentOwner.s.sol:SetClaimParameters \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address,uint256,uint256)" \
+ *      -s "run(string,address,uint256,uint256)" \
+ *      "base-sepolia" \
  *      "0xYourTokenAddress" \
  *      "1000000000000000000000" \
  *      "100000000000000000000"
  */
 contract SetClaimParameters is ExperimentOwnerBase {
-    function run(address tokenAddress, uint256 baseClaimAmount, uint256 bonusPerClaim) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+    function run(string memory network, address tokenAddress, uint256 baseClaimAmount, uint256 bonusPerClaim) external {
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Update Claim Parameters ===");
@@ -150,13 +176,13 @@ contract SetClaimParameters is ExperimentOwnerBase {
  *  forge script script/ExperimentOwner.s.sol:PauseToken \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address)" \
+ *      -s "run(string,address)" \
+ *      "base-sepolia" \
  *      "0xYourTokenAddress"
  */
 contract PauseToken is ExperimentOwnerBase {
-    function run(address tokenAddress) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+    function run(string memory network, address tokenAddress) external {
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Pause Token ===");
@@ -178,13 +204,13 @@ contract PauseToken is ExperimentOwnerBase {
  *  forge script script/ExperimentOwner.s.sol:UnpauseToken \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
- *      -s "run(address)" \
+ *      -s "run(string,address)" \
+ *      "base-sepolia" \
  *      "0xYourTokenAddress"
  */
 contract UnpauseToken is ExperimentOwnerBase {
-    function run(address tokenAddress) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer();
+    function run(string memory network, address tokenAddress) external {
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Unpause Token ===");
