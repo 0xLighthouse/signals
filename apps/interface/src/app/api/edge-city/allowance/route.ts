@@ -6,7 +6,7 @@ import { edgeCityConfig, EdgeCityProfile } from '@/config/edge-city'
 import { readClient } from '@/config/web3'
 import { EdgeOSClient } from '@/lib/server/edgeos-client'
 
-const DEFAULT_TTL_SECONDS = 60 * 60 * 24 // 24h
+const DEFAULT_TTL_SECONDS = 60 * 60 // 1h
 
 const CLAIM_TYPES = {
   Claim: [
@@ -22,8 +22,8 @@ type AllowanceRequest = {
 }
 
 type AllowanceResponse = {
-  participantId: number
   to: `0x${string}`
+  participantId: number
   amount: string
   deadline: number
   signature: `0x${string}`
@@ -56,11 +56,12 @@ export async function POST(request: Request) {
 
     const defaultAmountEnv = process.env.EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI
     if (!defaultAmountEnv) {
+
       throw new Error('EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI is not configured')
     }
 
-    const perDayAmountEnv = process.env.EDGE_CITY_AMOUNT_PER_DAY_WEI
-    const ttlSeconds = Number.parseInt(process.env.EDGE_CITY_ALLOWANCE_TTL_SECONDS ?? '', 10)
+
+    const ttlSeconds = Number.parseInt(process.env.EDGE_CITY_ALLOWANCE_TTL_SECONDS ?? '', 60 * 60)
     const allowanceTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : DEFAULT_TTL_SECONDS
 
     const client = new EdgeOSClient()
@@ -82,13 +83,11 @@ export async function POST(request: Request) {
     }
 
     let amountWei = BigInt(defaultAmountEnv)
+    const perDayAmountEnv = process.env.EDGE_CITY_AMOUNT_PER_DAY_WEI
     if (perDayAmountEnv) {
       const perDay = BigInt(perDayAmountEnv)
       const totalDays = BigInt(profile.total_days ?? 0)
-      const calculated = perDay * totalDays
-      if (calculated > 0) {
-        amountWei = calculated
-      }
+      amountWei += perDay * totalDays
     }
 
     const deadline = Math.floor(Date.now() / 1000) + allowanceTtl
