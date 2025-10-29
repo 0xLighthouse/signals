@@ -1,68 +1,281 @@
-Business Source License 1.1
+# Ethereum General Public License (EGPL) v1.5
 
-License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
-"Business Source License" is a trademark of MariaDB Corporation Ab.
+License text copyright © 2025 [Lighthouse Labs](https://lighthouse.cx). All rights reserved.
 
------------------------------------------------------------------------------
+## Parameters
 
-Parameters
+**Licensor:** Lighthouse Labs
 
-Licensor:             Lighthouse Labs <https://lighthouse.cx>
+**Licensed Work:** Signals Protocol
+The Licensed Work is © 2025 Lighthouse Labs
 
-Licensed Work:        Signals Protocol
-                      The Licensed Work is (c) 2024 Lighthouse Labs <https://lighthouse.cx>
+**Additional Use Grant:** None
 
-Additional Use Grant: None
+**Transition Date:** the fourth anniversary of the first publicly available distribution of this version
 
-Change Date:          2029-01-01
+**Transition License:** GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)
 
-Change License:       MIT License
+**Ethereum Network:** Ethereum mainnet (Chain ID 1)
 
------------------------------------------------------------------------------
+**Ethereum-Aligned:** Any L2, rollup, or chain that settles to Ethereum mainnet and contributes ETH fees or security to the Ethereum Network
 
-Terms
+## Core Terms
 
-The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work. The Licensor may make an Additional Use Grant, above, permitting limited production use.
+The Licensor grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work for any purpose.
 
-Effective on the Change Date, or the fourth anniversary of the first publicly available distribution of a specific version of the Licensed Work under this License, whichever comes first, the Licensor hereby grants you rights under the terms of the Change License, and the rights granted in the paragraph above terminate.
+Before the Transition Date, production use is permitted only:
 
-If your use of the Licensed Work does not comply with the requirements currently in effect as described in this License, you must purchase a commercial license from the Licensor, its affiliated entities, or authorized resellers, or you must refrain from using the Licensed Work.
+- By the Licensor;
+- By parties explicitly authorized in writing by the Licensor;
+- As specified in the Additional Use Grant above; or
+- Under a separate commercial license from the Licensor.
 
-All copies of the original and modified Licensed Work, and derivative works of the Licensed Work, are subject to this License. This License applies separately for each version of the Licensed Work and the Change Date may vary for each version of the Licensed Work released by Licensor.
+On the Transition Date, the Licensed Work automatically becomes available under the Transition License. Additionally, production use on the Ethereum Network and Ethereum-Aligned Networks becomes freely permitted (subject to copyleft requirements in Section 3).
 
-You must conspicuously display this License on each original or modified copy of the Licensed Work. If you receive the Licensed Work in original or modified form from a third party, the terms and conditions set forth in this License apply to your use of that work.
+At all times (before and after the Transition Date), production use on Non-Aligned Networks (EVM chains that do not settle to or contribute fees to Ethereum) requires a separate commercial license from the Licensor.
 
-Any use of the Licensed Work in violation of this License will automatically terminate your rights under this License for the current and all other versions of the Licensed Work.
+All copies and derivative works must retain this License. If you deploy the Licensed Work where third parties can interact with it over a network, you must make the complete source code available under this License.
 
-This License does not grant you any right in any trademark or logo of Licensor or its affiliates (provided that you may use a trademark or logo of Licensor as expressly required by this License).
+Any use in violation of this License automatically terminates your rights for all versions of the Licensed Work.
 
-TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSED WORK IS PROVIDED ON AN "AS IS" BASIS. LICENSOR HEREBY DISCLAIMS ALL WARRANTIES AND CONDITIONS, EXPRESS OR IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND TITLE.
+This License does not grant rights to trademarks, logos, or tokens associated with the Licensor or Ethereum.
 
-MariaDB hereby grants you permission to use this License's text to license your works, and to refer to it using the trademark "Business Source License", as long as you comply with the Covenants of Licensor below.
+**TO THE EXTENT PERMITTED BY LAW, THE LICENSED WORK IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, AND THE LICENSOR SHALL NOT BE LIABLE FOR ANY DAMAGES ARISING FROM USE OF THE LICENSED WORK.**
 
------------------------------------------------------------------------------
+## Detailed Provisions
 
-Covenants of Licensor
+### 1. Definitions
 
-In consideration of the right to use this License's text and the "Business Source License" name and trademark, Licensor covenants to MariaDB, and to all other recipients of the licensed work to be provided by Licensor:
+**"Licensed Work"** means the software (source code and object code) and documentation specified in the Parameters section above, made available under this License.
 
-1. To specify as the Change License the GPL Version 2.0 or any later version,
-   or a license that is compatible with GPL Version 2.0 or a later version,
-   where "compatible" means that software provided under the Change License can
-   be included in a program with software provided under GPL Version 2.0 or a
-   later version. Licensor may specify additional Change Licenses without
-   limitation.
+**"Licensor"** means the copyright holder specified in the Parameters section.
 
-2. To either: (a) specify an additional grant of rights to use that does not
-   impose any additional restriction on the right granted in this License, as
-   the Additional Use Grant; or (b) insert the text "None".
+**"Ethereum Network"** means the public Ethereum mainnet blockchain specified in the Parameters section (typically Chain ID 1), which uses Ether (ETH) for gas fees and operates via proof-of-stake consensus.
 
-3. To specify a Change Date.
+**"Ethereum-Aligned Network"** means any layer-2 network, rollup, sidechain, or blockchain that regularly settles transactions or data to the Ethereum Network and thereby contributes fees or security to Ethereum. This includes optimistic rollups, zk-rollups, validiums, and other L2s that post data to Ethereum and pay ETH gas fees through calldata, blob space, or other mechanisms. It also includes chains that stake ETH or otherwise contribute to Ethereum's economic security.
 
-4. Not to modify this License in any other way.
+**"Non-Aligned Network"** means any blockchain or distributed ledger that is EVM-compatible with, derived from, or interoperable with Ethereum or the Licensed Work, but does not qualify as an Ethereum-Aligned Network because it does not settle to or contribute fees/security to the Ethereum Network. Examples include independent EVM chains, alternative L1s, and sidechains that do not post data to Ethereum mainnet.
 
------------------------------------------------------------------------------
+**"Production Use"** means any use of the Licensed Work to:
 
-Notice
+- Provide services to third parties
+- Validate or execute transactions on a public network
+- Operate publicly accessible infrastructure
+- Generate revenue or operate in a live commercial environment
+- Deploy smart contracts, validators, nodes, or applications that external parties interact with or rely upon
 
-The Business Source License (this document, or the "License") is not an Open Source license. However, the Licensed Work will eventually be made available under an Open Source License, as stated in this License.
+**Non-Production Use** includes internal testing, development, security auditing, academic research, or experimentation not made available to third parties and not used for revenue generation.
+
+**"Transition Date"** means the date specified in the Parameters section, or if none is specified, the fourth anniversary of the first publicly available distribution of this specific version of the Licensed Work. Each version may have its own Transition Date, which may be updated by the Licensor to an earlier date but not a later date beyond four years from initial release.
+
+**"Transition License"** means the license specified in the Parameters section (typically AGPL-3.0-or-later) that will govern the Licensed Work on and after the Transition Date.
+
+**"Additional Use Grant"** means any specific production uses explicitly permitted before the Transition Date, as defined in the Parameters section or in a separate document referenced therein.
+
+### 2. Grant of Rights
+
+#### 2.1 Non-Production Rights
+
+Subject to compliance with this License, the Licensor grants you a worldwide, royalty-free, non-exclusive license to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work in any environment or on any network.
+
+#### 2.2 Production Use Before Transition Date
+
+Before the Transition Date, Production Use of the Licensed Work is permitted only if you meet one of the following conditions:
+
+- You are the Licensor; or
+- You have written authorization from the Licensor explicitly granting you Production Use rights; or
+- Your use falls within the Additional Use Grant specified in the Parameters section; or
+- You have obtained a commercial license from the Licensor for such Production Use.
+
+Any Production Use not meeting these conditions before the Transition Date is prohibited and constitutes a material breach of this License.
+
+#### 2.3 Additional Use Grant Mechanism
+
+The Licensor may specify an Additional Use Grant in the Parameters section to permit certain limited production uses before the Transition Date without requiring individual authorization. Such grants might include:
+
+- Non-commercial production use on Ethereum mainnet or aligned networks
+- Production use by specified categories of users (e.g., researchers, non-profits)
+- Beta testing by approved testers
+- Use by ecosystem partners or grant recipients
+- Other uses defined at a URL, ENS name, or in a separate document
+
+If the Additional Use Grant field states "None," no additional production uses are permitted beyond those authorized directly by the Licensor.
+
+#### 2.4 Rights Upon Transition Date
+
+Effective on the Transition Date:
+
+- **Transition License Applies:** The Licensed Work becomes available under the Transition License specified in the Parameters section, and you may exercise all rights granted by that license.
+- **Ethereum-Aligned Production Use:** You may make Production Use of the Licensed Work on the Ethereum Network and Ethereum-Aligned Networks without restriction, royalty, or commercial license, subject to the copyleft requirements in Section 3.
+- **Prior Restrictions Lifted:** The early-stage production restrictions in Section 2.2 no longer apply, except as noted in Section 2.5.
+
+#### 2.5 Non-Aligned Network Restriction (Permanent)
+
+At all times, both before and after the Transition Date, Production Use on Non-Aligned Networks requires a separate commercial license from the Licensor.
+
+The Transition Date conversion does not grant rights to deploy the Licensed Work on Non-Aligned Networks. Such use requires explicit commercial licensing regardless of when it occurs.
+
+#### 2.6 Version-Specific Licensing
+
+This License applies separately to each version of the Licensed Work released by the Licensor. Different versions may have different Transition Dates, Additional Use Grants, or other terms as specified in their respective Parameters sections. The Transition Date for one version does not affect the license terms for other versions.
+
+### 3. Copyleft and Source Code Requirements
+
+#### 3.1 License Preservation
+
+All copies, modifications, and derivative works of the Licensed Work must be distributed under this License (before the Transition Date) or the Transition License (after the Transition Date). You must retain all copyright, license, and attribution notices present in the Licensed Work.
+
+#### 3.2 Network Use as Distribution
+
+Making the Licensed Work available for third parties to interact with over a network constitutes distribution under this License, even if no copy is directly transferred. This includes deploying smart contracts, operating blockchain nodes, running validators, or providing network services based on the Licensed Work.
+
+#### 3.3 Source Code Disclosure
+
+Whenever you distribute or deploy the Licensed Work (including through network deployment), you must make the complete corresponding source code available to all users/recipients under this License's terms. The source code must be:
+
+- **Complete:** Include all source files, build scripts, configuration, and dependencies needed to compile and run the software
+- **Accessible:** Published in a readily accessible location (e.g., public repository)
+- **Timely:** Available simultaneously with or before the deployment
+- **Unobfuscated:** Not protected by technical measures that prevent study or modification
+- **Under This License:** Available under EGPL terms (before Transition Date) or Transition License terms (after Transition Date)
+
+Failure to provide source code as required is a material breach resulting in immediate license termination.
+
+#### 3.4 Modifications and Derivative Works
+
+Any modifications or derivative works you create must also be licensed under this License (or the Transition License after the Transition Date). You may not distribute or deploy modified versions under proprietary or incompatible terms.
+
+You are encouraged (though not required before the Transition Date) to contribute improvements back to the original project or the Ethereum community.
+
+### 4. Transition Date and License Transition
+
+#### 4.1 Automatic Conversion
+
+On the Transition Date specified in the Parameters section, the Licensed Work automatically becomes available under the Transition License. From that date forward, the Transition License governs use of the Licensed Work, and the production restrictions in Section 2.2 cease to apply.
+
+The Non-Aligned Network restriction in Section 2.5 persists as a separate commercial licensing arrangement at the Licensor's discretion.
+
+#### 4.2 No Retroactive Effect
+
+Conversion to the Transition License does not retroactively excuse violations that occurred before the Transition Date. The Licensor retains all rights to pursue remedies for prior breaches.
+
+#### 4.3 Earlier Transition Date
+
+The Licensor may specify an earlier Transition Date at any time by updating the Parameters section or publishing a notice at a referenced URL/ENS name. The Licensor cannot extend the Transition Date beyond four years from initial release.
+
+### 5. Patent Grant
+
+#### 5.1 License Grant
+
+The Licensor grants you a worldwide, royalty-free, non-exclusive patent license under the Licensor's patent claims that are necessarily infringed by using or modifying the Licensed Work as permitted by this License.
+
+#### 5.2 Patent Retaliation
+
+If you initiate patent litigation against the Licensor, any contributor to the Licensed Work, or any user of the Licensed Work alleging that the Licensed Work infringes your patents, all patent licenses granted to you under this License immediately terminate.
+
+### 6. Termination
+
+#### 6.1 Automatic Termination
+
+Your rights under this License automatically terminate immediately if you:
+
+- Make Production Use before the Transition Date without authorization (Section 2.2)
+- Deploy on a Non-Aligned Network without a commercial license (Section 2.5)
+- Fail to provide source code as required (Section 3.3)
+- Violate any other material term of this License
+
+Termination applies to all versions of the Licensed Work licensed to you.
+
+#### 6.2 No Cure Period
+
+Terminated rights are not automatically restored. Restoration requires explicit written reinstatement from the Licensor. Ceasing the violation does not restore your rights.
+
+#### 6.3 Downstream Recipients
+
+Your termination does not affect rights of downstream recipients who are in compliance with the License, as they receive their license directly from the Licensor.
+
+### 7. Warranty Disclaimer
+
+THE LICENSED WORK IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND TITLE.
+
+You use the Licensed Work at your own risk and are solely responsible for determining its appropriateness for your purposes.
+
+### 8. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE FOR ANY DAMAGES (INCLUDING DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, OR EXEMPLARY DAMAGES) ARISING FROM THIS LICENSE OR USE OF THE LICENSED WORK, even if advised of possible damages.
+
+This includes but is not limited to: loss of profits, data, funds, tokens, or digital assets; business interruption; security vulnerabilities; or regulatory consequences.
+
+Some jurisdictions do not allow liability exclusions; in such cases, liability is limited to the fullest extent permitted by law.
+
+### 9. Indemnification
+
+You agree to indemnify and hold harmless the Licensor and contributors from all claims, damages, and expenses (including attorneys' fees) arising from:
+
+- Your use, modification, or distribution of the Licensed Work
+- Your violation of this License
+- Your violation of third-party rights
+
+### 10. Miscellaneous
+
+#### 10.1 No Trademark Rights
+
+This License does not grant rights to use trademarks, logos, or brand names of the Licensor or Ethereum Foundation. You may not imply endorsement by the Licensor or Ethereum community.
+
+This License does not grant rights to any tokens or cryptocurrencies associated with the Licensed Work or Ethereum.
+
+#### 10.2 No Sublicensing
+
+You may not sublicense the Licensed Work. Recipients receive their license directly from the Licensor under this License's terms.
+
+#### 10.3 Entire Agreement
+
+This License (together with any commercial license you obtain) constitutes the entire agreement regarding the Licensed Work.
+
+#### 10.4 Severability
+
+If any provision is unenforceable, it shall be reformed to the minimum extent necessary, and all other provisions remain in effect.
+
+#### 10.5 No Waiver
+
+Failure to enforce any provision does not waive future enforcement rights. Waivers must be in writing signed by the Licensor.
+
+#### 10.6 Governing Law
+
+This License is governed by the laws of [Jurisdiction] without regard to conflicts of law principles. Disputes shall be resolved in the courts of [Jurisdiction].
+
+#### 10.7 Export Compliance
+
+You are responsible for complying with all export laws and regulations. You represent that you are not in a jurisdiction where export is prohibited.
+
+#### 10.8 Conspicuous Display
+
+You must conspicuously display this License on each original or modified copy of the Licensed Work. If you receive the Licensed Work from a third party, this License applies to your use of that work.
+
+#### 10.9 License Text Reuse
+
+Others may use this License text for their own works, provided they:
+
+- Do not alter the substantive terms, Ethereum-alignment provisions, or copyleft requirements
+- Replace Parameters section placeholders with their own details
+- Specify an OSI-approved Transition License and a Transition Date within four years
+- Only call it "EGPL v1.4" if substantively identical to this text
+
+## Covenants of Licensor
+
+In consideration of the right to use the "Ethereum General Public License" name and this License text, Licensor covenants to all recipients of the Licensed Work:
+
+- To specify as the Transition License either AGPL-3.0-or-later or another OSI-approved license compatible with AGPL v3, where "compatible" means software under the Transition License can be combined with software under AGPL v3 or later versions.
+- To either: (a) specify an Additional Use Grant that does not impose restrictions beyond this License, or (b) specify "None" if no additional production uses are granted before the Transition Date.
+- To specify a Transition Date within four years of initial release.
+- Not to modify the substantive protections, requirements, or structure of this License in ways that would defeat its purpose of protecting Ethereum alignment while ensuring eventual open-source release.
+
+## Notice
+
+The Ethereum General Public License (this document, or the "License") is not an Open Source license as defined by the Open Source Initiative (OSI) during its initial term before the Transition Date. However, the Licensed Work will automatically become available under an Open Source license (the Transition License) on the Transition Date, as stated in this License.
+
+This License is designed to protect software development for the Ethereum ecosystem from parasitic use and commercial extraction by non-aligned chains, while ensuring the software eventually enters the open commons for all to use freely.
+
+---
+
+END OF LICENSE
