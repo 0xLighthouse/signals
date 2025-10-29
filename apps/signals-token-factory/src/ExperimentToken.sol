@@ -5,71 +5,51 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Pausable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /**
  * @title ExperimentToken
- * @notice ERC20 token that allows allowlisted Edge City participants to claim rewards.
- *         Claims are verified against a Merkle tree of participant IDs and only minted once per ID.
+ * @notice ERC20 token that allows Edge City participants to claim rewards backed by
+ *         an off-chain allowance signature. Each participant ID may only claim once.
  */
-contract ExperimentToken is ERC20Burnable, ERC20Pausable, Ownable {
+contract ExperimentToken is ERC20Burnable, ERC20Pausable, Ownable, EIP712 {
     /// @notice Details of a batch mint entry.
     struct BatchMintRequest {
         address to;
         uint256 amount;
     }
 
-    bytes32 public merkleRoot;
-    uint256 public baseClaimAmount;
-    uint256 public bonusPerClaim;
-
+    address public allowanceSigner;
     mapping(uint256 => bool) private _claimed;
+
+    bytes32 private constant CLAIM_TYPEHASH =
+        keccak256("Claim(address to,uint256 participantId,uint256 amount,uint256 deadline)");
 
     error InvalidRecipient();
     error ParticipantAlreadyClaimed(uint256 participantId);
-    error InvalidParticipantProof(uint256 participantId);
-    error ClaimAmountZero();
+    error InvalidSignature();
+    error SignatureExpired(uint256 deadline);
     error EmptyBatch();
     error ZeroAmount();
 
-    event MerkleRootUpdated(bytes32 indexed previousRoot, bytes32 indexed newRoot);
-    event ClaimParametersUpdated(uint256 baseClaimAmount, uint256 bonusPerClaim);
     event Claimed(address indexed account, uint256 indexed participantId, uint256 amountMinted);
     event BatchMinted(address indexed operator, address indexed to, uint256 amount, string reason);
+    event AllowanceSignerUpdated(address indexed previousSigner, address indexed newSigner);
 
     constructor(
         string memory name_,
         string memory symbol_,
         address initialOwner_,
         uint256 initialSupply_,
-        bytes32 merkleRoot_,
-        uint256 baseClaimAmount_,
-        uint256 bonusPerClaim_
-    ) ERC20(name_, symbol_) Ownable(initialOwner_) {
-        merkleRoot = merkleRoot_;
-        baseClaimAmount = baseClaimAmount_;
-        bonusPerClaim = bonusPerClaim_;
+        address allowanceSigner_
+    ) ERC20(name_, symbol_) Ownable(initialOwner_) EIP712("ExperimentToken", "1") {
+        address resolvedSigner = allowanceSigner_ == address(0) ? initialOwner_ : allowanceSigner_;
+        allowanceSigner = resolvedSigner;
 
         if (initialSupply_ > 0) {
             _mint(initialOwner_, initialSupply_);
         }
-    }
-
-    /**
-     * @notice Update the Merkle root used to validate participant IDs.
-     */
-    function setMerkleRoot(bytes32 newRoot) external onlyOwner {
-        emit MerkleRootUpdated(merkleRoot, newRoot);
-        merkleRoot = newRoot;
-    }
-
-    /**
-     * @notice Adjust the base claim amount and bonus per claim.
-     */
-    function setClaimParameters(uint256 baseAmount, uint256 bonusAmount) external onlyOwner {
-        baseClaimAmount = baseAmount;
-        bonusPerClaim = bonusAmount;
-        emit ClaimParametersUpdated(baseAmount, bonusAmount);
     }
 
     /**
@@ -80,26 +60,44 @@ contract ExperimentToken is ERC20Burnable, ERC20Pausable, Ownable {
     }
 
     /**
-     * @notice Claim tokens for an allowlisted participant.
-     * @param to Recipient wallet that will receive the minted tokens.
-     * @param participantId Edge City profile identifier proved in the Merkle tree.
-     * @param proof Merkle proof demonstrating `participantId` is in the current allowlist.
+     * @notice Update the signer allowed to issue claim allowances.
+     * @param newSigner Address of the new allowance signer (cannot be zero).
      */
-    function claim(address to, uint256 participantId, bytes32[] calldata proof) external {
+    function setAllowanceSigner(address newSigner) external onlyOwner {
+        if (newSigner == address(0)) revert InvalidRecipient();
+        emit AllowanceSignerUpdated(allowanceSigner, newSigner);
+        allowanceSigner = newSigner;
+    }
+
+    /**
+     * @notice Claim tokens using an off-chain allowance signature.
+     * @param to Recipient wallet that will receive the minted tokens.
+     * @param participantId Edge City profile identifier tied to the allowance.
+     * @param amount Amount of tokens authorized by the allowance.
+     * @param deadline Timestamp after which the allowance is invalid.
+     * @param signature EIP-712 signature from the allowance signer.
+     */
+    function claim(
+        address to,
+        uint256 participantId,
+        uint256 amount,
+        uint256 deadline,
+        bytes calldata signature
+    ) external {
         if (to == address(0)) revert InvalidRecipient();
         if (_claimed[participantId]) revert ParticipantAlreadyClaimed(participantId);
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
 
-        bytes32 leaf = keccak256(abi.encodePacked(participantId));
-        bool isValid = MerkleProof.verify(proof, merkleRoot, leaf);
-        if (!isValid) revert InvalidParticipantProof(participantId);
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(CLAIM_TYPEHASH, to, participantId, amount, deadline))
+        );
+        address recovered = ECDSA.recover(digest, signature);
+        if (recovered != allowanceSigner) revert InvalidSignature();
 
         _claimed[participantId] = true;
 
-        uint256 mintAmount = baseClaimAmount + bonusPerClaim;
-        if (mintAmount == 0) revert ClaimAmountZero();
-
-        _mint(to, mintAmount);
-        emit Claimed(to, participantId, mintAmount);
+        _mint(to, amount);
+        emit Claimed(to, participantId, amount);
     }
 
     /**

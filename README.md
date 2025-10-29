@@ -46,26 +46,30 @@ Review the [Repository Guidelines](AGENTS.md) before proposing changes.
 To enable the Edge City residency claim flow in the interface:
 
 - `NEXT_PUBLIC_EDGE_CITY=true`
-- `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (token supporting `faucet` or `claim`)
+- `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (newly deployed `ExperimentToken`)
 - `NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION=claim` (set to `faucet` only when interacting with legacy faucet tokens)
-- `NEXT_PUBLIC_EDGE_CITY_MERKLE_ROOT=0x...` (must match the deployed `ExperimentToken` allowlist)
 - `NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS=2,7` (optional list of qualifying popup IDs)
 - `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
-- `EDGE_CITY_ALLOWLIST_PATH=apps/signals-token-factory/allowlists/edge-city.json` (or `EDGE_CITY_ALLOWLIST_JSON='{"root":"0x..","proofs":{...}}'`)
+- `EDGE_CITY_SIGNER_PRIVATE_KEY=0x...` (server-side key used to sign claim allowances)
+- `EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI=1000000000000000000`
+- `EDGE_CITY_AMOUNT_PER_DAY_WEI=...` (optional; overrides default amount when residency days are present)
+- `EDGE_CITY_ALLOWANCE_TTL_SECONDS=86400` (optional; defaults to 24 hours)
 
-Allowlist files must expose a Merkle root plus `proofs` mapping participant IDs (as **decimal strings**, e.g. `{ "5461": ["0xabc…"] }`) to proof arrays. Leaves are hashed as `keccak256(abi.encodePacked(uint256(participantId)))` to match on-chain verification.
+Flow overview:
 
-The allowlist generation now uses battle-tested utilities from `packages/shared/merkle` powered by OpenZeppelin's StandardMerkleTree. Generate sample allowlists with:
-```bash
-pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
+1. The user authenticates with EdgeOS; the server validates residency (email verification plus popup/total-day rules).
+2. The server signs an EIP-712 allowance tying together the wallet, participant ID, amount, and expiry and returns it to the client.
+3. The UI submits `claim(address to, uint256 participantId, uint256 amount, uint256 deadline, bytes signature)` on the `ExperimentToken`.
+
+EIP-712 domain: `name = "ExperimentToken"`, `version = "1"`, `chainId`, `verifyingContract = token address`.
+Struct type:
+
+```
+Claim(address to,uint256 participantId,uint256 amount,uint256 deadline)
 ```
 
-Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
-```bash
-pnpm dlx tsx apps/signals-token-factory/scripts/sample-merkle.ts
-```
-
-Each participant ID may claim exactly once; admins can additionally distribute custom airdrops using the `ExperimentToken.batchMint` function with a descriptive `reason`.
+Keep the allowance signer key secure; rotate it by calling `setAllowanceSigner` on-chain and updating `EDGE_CITY_SIGNER_PRIVATE_KEY`.
+Short TTLs reduce the blast radius if an access token leaks.
 
 ---
 

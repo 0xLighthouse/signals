@@ -1,1 +1,1 @@
-export * from './merkle';
+export {};

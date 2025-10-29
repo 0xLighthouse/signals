@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { edgeCityConfig, EdgeCityProfile } from '@/config/edge-city'
+import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 
@@ -25,42 +25,29 @@ type ClaimState = {
   email: string
   code: string
   profile: EdgeCityProfile | null
+  accessToken: string | null
+  allowance: EdgeCityAllowance | null
   step: ClaimStep
   isRequestingCode: boolean
   isVerifyingCode: boolean
   isClaiming: boolean
-  proof: `0x${string}`[]
-  allowlistError: string | null
+  isLoadingAllowance: boolean
 }
 
 const initialState: ClaimState = {
   email: '',
   code: '',
   profile: null,
+  accessToken: null,
+  allowance: null,
   step: 'email',
   isRequestingCode: false,
   isVerifyingCode: false,
   isClaiming: false,
-  proof: [],
-  allowlistError: null,
+  isLoadingAllowance: false,
 }
 
-const evaluateEligibility = (
-  profile: EdgeCityProfile,
-  proof: readonly `0x${string}`[],
-  allowlistError: string | null,
-) => {
-  if (allowlistError) {
-    return { eligible: false, reason: allowlistError }
-  }
-
-  if (edgeCityConfig.claimFunction === 'claim' && proof.length === 0) {
-    return {
-      eligible: false,
-      reason: 'No claim allocation found for this Edge City participant',
-    }
-  }
-
+const evaluateEligibility = (profile: EdgeCityProfile) => {
   if (!profile.email_validated) {
     return { eligible: false, reason: 'Primary email is not validated' }
   }
@@ -85,10 +72,19 @@ const evaluateEligibility = (
 const buildClaimArgs = (
   address: `0x${string}`,
   participantId: bigint,
-  proof: readonly `0x${string}`[],
+  allowance?: EdgeCityAllowance,
 ) => {
   if (edgeCityConfig.claimFunction === 'claim') {
-    return [address, participantId, proof] as const
+    if (!allowance) {
+      throw new Error('Claim allowance missing')
+    }
+    return [
+      address,
+      participantId,
+      BigInt(allowance.amount),
+      BigInt(allowance.deadline),
+      allowance.signature,
+    ] as const
   }
 
   return [address] as const
@@ -102,13 +98,23 @@ export const EdgeCityClaimDialog = () => {
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<ClaimState>(initialState)
 
-  const { email, code, profile, step, isRequestingCode, isVerifyingCode, isClaiming, proof, allowlistError } =
-    state
+  const {
+    email,
+    code,
+    profile,
+    accessToken,
+    allowance,
+    step,
+    isRequestingCode,
+    isVerifyingCode,
+    isClaiming,
+    isLoadingAllowance,
+  } = state
 
   const eligibility = useMemo(() => {
     if (!profile) return { eligible: false, reason: '' }
-    return evaluateEligibility(profile, proof, allowlistError)
-  }, [profile, proof, allowlistError])
+    return evaluateEligibility(profile)
+  }, [profile])
 
   useEffect(() => {
     if (!open) {
@@ -157,59 +163,6 @@ export const EdgeCityClaimDialog = () => {
     }
   }
 
-  const fetchProofForParticipant = async (participantId: number) => {
-    if (edgeCityConfig.claimFunction !== 'claim') {
-      return { proof: [] as `0x${string}`[], allowlistError: null as string | null }
-    }
-
-    try {
-      const response = await fetch('/api/edge-city/proof', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ participantId }),
-      })
-
-      if (response.status === 404) {
-        return {
-          proof: [] as `0x${string}`[],
-          allowlistError: 'No claim allocation found for this Edge City participant',
-        }
-      }
-
-      if (!response.ok) {
-        const { error } = await response.json()
-        throw new Error(error ?? 'Unexpected response fetching allowlist proof')
-      }
-
-      const payload = (await response.json()) as {
-        proof: `0x${string}`[]
-        merkleRoot?: `0x${string}`
-      }
-
-      if (
-        payload.merkleRoot &&
-        edgeCityConfig.merkleRoot &&
-        payload.merkleRoot.toLowerCase() !== edgeCityConfig.merkleRoot.toLowerCase()
-      ) {
-        console.warn('Edge City merkle root mismatch between config and allowlist data')
-      }
-
-      return {
-        proof: payload.proof ?? [],
-        allowlistError: null as string | null,
-      }
-    } catch (error) {
-      console.error(error)
-      toast(error instanceof Error ? error.message : 'Failed to load allowlist proof')
-      return {
-        proof: [] as `0x${string}`[],
-        allowlistError: 'Unable to load allowlist data',
-      }
-    }
-  }
-
   const handleVerifyCode = async () => {
     if (!email || !code) {
       toast('Enter your email and verification code')
@@ -231,16 +184,13 @@ export const EdgeCityClaimDialog = () => {
         throw new Error(error ?? 'Unexpected response during verification')
       }
 
-      const payload = (await response.json()) as { profile: EdgeCityProfile }
-
-      const participantId = payload.profile.id
-      const { proof: participantProof, allowlistError: proofError } = await fetchProofForParticipant(participantId)
+      const payload = (await response.json()) as { accessToken: string; profile: EdgeCityProfile }
 
       setState((prev) => ({
         ...prev,
+        accessToken: payload.accessToken,
         profile: payload.profile,
-        proof: participantProof,
-        allowlistError: proofError,
+        allowance: null,
         step: 'review',
       }))
     } catch (error) {
@@ -272,15 +222,15 @@ export const EdgeCityClaimDialog = () => {
       return
     }
 
-    if (edgeCityConfig.claimFunction === 'claim' && proof.length === 0) {
-      toast('No allowlist proof available for this participant')
+    if (edgeCityConfig.claimFunction === 'claim' && !allowance) {
+      toast('No claim allowance available for this participant')
       return
     }
 
     setState((prev) => ({ ...prev, isClaiming: true }))
     try {
       const participantId = BigInt(profile.id)
-      const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, proof)
+      const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
@@ -302,12 +252,12 @@ export const EdgeCityClaimDialog = () => {
         toast('Transaction rejected')
       } else if (error instanceof Error && error.message.includes('ParticipantAlreadyClaimed')) {
         toast('Edge City participant has already claimed their allocation')
-      } else if (error instanceof Error && error.message.includes('InvalidParticipantProof')) {
-        toast('Allowlist proof invalid. Contact support to verify residency')
       } else if (error instanceof Error && error.message.includes('InvalidRecipient')) {
         toast('Recipient wallet is invalid')
-      } else if (error instanceof Error && error.message.includes('ClaimAmountZero')) {
-        toast('Claim configuration is zero; contact an admin')
+      } else if (error instanceof Error && error.message.includes('SignatureExpired')) {
+        toast('Allowance signature expired. Refresh and try again')
+      } else if (error instanceof Error && error.message.includes('InvalidSignature')) {
+        toast('Allowance signature invalid. Contact support if this persists')
       } else {
         toast(error instanceof Error ? error.message : 'Failed to submit claim')
       }
@@ -315,6 +265,53 @@ export const EdgeCityClaimDialog = () => {
       setState((prev) => ({ ...prev, isClaiming: false }))
     }
   }
+
+  const fetchAllowance = useCallback(
+    async (token: string, wallet: `0x${string}`) => {
+      setState((prev) => ({ ...prev, isLoadingAllowance: true }))
+      try {
+        const response = await fetch('/api/edge-city/allowance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ address: wallet }),
+        })
+
+        if (!response.ok) {
+          const { error } = (await response.json()) as { error?: string }
+          throw new Error(error ?? 'Unexpected response fetching allowance')
+        }
+
+        const payload = (await response.json()) as EdgeCityAllowance
+        setState((prev) => ({ ...prev, allowance: payload }))
+      } catch (error) {
+        console.error(error)
+        toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
+        setState((prev) => ({ ...prev, allowance: null }))
+      } finally {
+        setState((prev) => ({ ...prev, isLoadingAllowance: false }))
+      }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (step !== 'review') return
+    if (edgeCityConfig.claimFunction !== 'claim') return
+    if (!address || !accessToken) return
+    if (allowance && allowance.to.toLowerCase() === address.toLowerCase()) return
+    if (isLoadingAllowance) return
+
+    void fetchAllowance(accessToken, address as `0x${string}`)
+  }, [accessToken, address, allowance, fetchAllowance, isLoadingAllowance, step])
+
+  useEffect(() => {
+    if (!address) {
+      setState((prev) => ({ ...prev, allowance: null }))
+    }
+  }, [address])
 
   const renderContent = () => {
     if (!ready) {
@@ -406,7 +403,27 @@ export const EdgeCityClaimDialog = () => {
                 Wallet {address?.slice(0, 6)}…{address?.slice(-4)} is eligible to claim tokens.
               </p>
             )}
-            <Button className="w-full" onClick={handleClaim} disabled={!eligibility.eligible} isLoading={isClaiming}>
+            {edgeCityConfig.claimFunction === 'claim' ? (
+              allowance ? (
+                <p className="text-sm text-muted-foreground">
+                  Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
+                  {allowance.amount} wei, expires {new Date(allowance.deadline * 1000).toLocaleString()}.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isLoadingAllowance ? 'Loading claim allowance…' : 'Fetching claim allowance for this wallet'}
+                </p>
+              )
+            ) : null}
+            <Button
+              className="w-full"
+              onClick={handleClaim}
+              disabled={
+                !eligibility.eligible ||
+                (edgeCityConfig.claimFunction === 'claim' && (!allowance || isLoadingAllowance))
+              }
+              isLoading={isClaiming}
+            >
               Claim tokens
             </Button>
           </div>

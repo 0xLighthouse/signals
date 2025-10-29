@@ -8,152 +8,126 @@ import {ExperimentTokenFactory, ExperimentToken} from "../src/ExperimentTokenFac
 contract ExperimentTokenFactoryTest is Test {
     ExperimentTokenFactory private factory;
 
-    // Pre-computed participant identifiers
     uint256 private constant PARTICIPANT_A = 5461;
     uint256 private constant PARTICIPANT_B = 7021;
+    uint256 private constant SIGNER_PK = 0xA11CE;
+    address private immutable SIGNER = vm.addr(SIGNER_PK);
 
-    bytes32 private proofElementForA;
-    bytes32 private proofElementForB;
-    bytes32 private merkleRoot;
+    bytes32 private constant CLAIM_TYPEHASH =
+        keccak256("Claim(address to,uint256 participantId,uint256 amount,uint256 deadline)");
 
     function setUp() public {
         factory = new ExperimentTokenFactory();
-
-        bytes32 leafA = keccak256(abi.encodePacked(PARTICIPANT_A));
-        bytes32 leafB = keccak256(abi.encodePacked(PARTICIPANT_B));
-
-        proofElementForA = leafB;
-        proofElementForB = leafA;
-        merkleRoot = _hashPair(leafA, leafB);
     }
 
     function test_DeployInitialSupplyAndOwner() public {
         address owner = makeAddr("owner");
         uint256 supply = 1_000 ether;
 
-        address tokenAddress = factory.deployToken(
-            "Experiment Token",
-            "EDGE",
-            supply,
-            owner,
-            merkleRoot,
-            100 ether,
-            10 ether
+        ExperimentToken token = ExperimentToken(
+            factory.deployToken("Experiment Token", "EDGE", supply, owner, address(0))
         );
-        ExperimentToken token = ExperimentToken(tokenAddress);
 
         assertEq(token.name(), "Experiment Token");
         assertEq(token.symbol(), "EDGE");
         assertEq(token.totalSupply(), supply);
         assertEq(token.balanceOf(owner), supply);
         assertEq(token.owner(), owner);
-        assertEq(token.merkleRoot(), merkleRoot);
-        assertEq(token.baseClaimAmount(), 100 ether);
-        assertEq(token.bonusPerClaim(), 10 ether);
+        assertEq(token.allowanceSigner(), owner);
     }
 
-    function test_ClaimMintsTokensForAllowlistedParticipant() public {
-        address claimant = makeAddr("claimant");
-        uint256 baseAmount = 200 ether;
-        uint256 bonusAmount = 20 ether;
+    function test_DeployWithExplicitSigner() public {
+        address owner = makeAddr("owner");
+        address customSigner = makeAddr("signer");
 
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                baseAmount,
-                bonusAmount
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, owner, customSigner)
         );
 
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = proofElementForA;
+        assertEq(token.owner(), owner);
+        assertEq(token.allowanceSigner(), customSigner);
+    }
 
-        token.claim(claimant, PARTICIPANT_A, proof);
+    function test_ClaimMintsTokensWithValidSignature() public {
+        ExperimentToken token = ExperimentToken(
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
+        );
 
-        assertEq(token.balanceOf(claimant), baseAmount + bonusAmount);
+        address claimant = makeAddr("claimant");
+        uint256 amount = 200 ether;
+        uint256 deadline = block.timestamp + 1 days;
+
+        bytes memory signature = _sign(token, claimant, PARTICIPANT_A, amount, deadline);
+
+        token.claim(claimant, PARTICIPANT_A, amount, deadline, signature);
+
+        assertEq(token.balanceOf(claimant), amount);
         assertTrue(token.hasClaimed(PARTICIPANT_A));
     }
 
     function test_ClaimRevertsForDuplicateClaims() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = proofElementForA;
+        address claimant = makeAddr("claimant");
+        uint256 amount = 100 ether;
+        uint256 deadline = block.timestamp + 1 days;
+        bytes memory signature = _sign(token, claimant, PARTICIPANT_A, amount, deadline);
 
-        token.claim(address(this), PARTICIPANT_A, proof);
+        token.claim(claimant, PARTICIPANT_A, amount, deadline, signature);
 
         vm.expectRevert(abi.encodeWithSelector(ExperimentToken.ParticipantAlreadyClaimed.selector, PARTICIPANT_A));
-        token.claim(address(this), PARTICIPANT_A, proof);
+        token.claim(claimant, PARTICIPANT_A, amount, deadline, signature);
     }
 
-    function test_ClaimRevertsForInvalidProof() public {
+    function test_ClaimRevertsForInvalidSignature() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
-        bytes32[] memory badProof = new bytes32[](1);
-        badProof[0] = bytes32(uint256(123));
+        address claimant = makeAddr("claimant");
+        uint256 amount = 100 ether;
+        uint256 deadline = block.timestamp + 1 days;
+        bytes memory signature = _signWithKey(token, claimant, PARTICIPANT_A, amount, deadline, 0xBEEF);
 
-        vm.expectRevert(abi.encodeWithSelector(ExperimentToken.InvalidParticipantProof.selector, PARTICIPANT_B));
-        token.claim(address(this), PARTICIPANT_B, badProof);
+        vm.expectRevert(ExperimentToken.InvalidSignature.selector);
+        token.claim(claimant, PARTICIPANT_A, amount, deadline, signature);
+    }
+
+    function test_ClaimRevertsWhenExpired() public {
+        ExperimentToken token = ExperimentToken(
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
+        );
+
+        address claimant = makeAddr("claimant");
+        uint256 amount = 100 ether;
+        uint256 deadline = block.timestamp - 1;
+        bytes memory signature = _sign(token, claimant, PARTICIPANT_A, amount, deadline);
+
+        vm.expectRevert(abi.encodeWithSelector(ExperimentToken.SignatureExpired.selector, deadline));
+        token.claim(claimant, PARTICIPANT_A, amount, deadline, signature);
     }
 
     function test_ClaimRevertsForZeroRecipient() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = proofElementForA;
+        uint256 amount = 100 ether;
+        uint256 deadline = block.timestamp + 1 days;
+        bytes memory signature = _sign(token, address(0), PARTICIPANT_A, amount, deadline);
 
         vm.expectRevert(ExperimentToken.InvalidRecipient.selector);
-        token.claim(address(0), PARTICIPANT_A, proof);
+        token.claim(address(0), PARTICIPANT_A, amount, deadline, signature);
     }
 
     function test_PauseBlocksTransfers() public {
-        address recipient = makeAddr("recipient");
-
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                1_000 ether,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 1_000 ether, address(this), SIGNER)
         );
+
+        address recipient = makeAddr("recipient");
 
         bool initialTransfer = token.transfer(recipient, 10 ether);
         assertTrue(initialTransfer);
@@ -170,36 +144,20 @@ contract ExperimentTokenFactoryTest is Test {
         assertEq(token.balanceOf(recipient), 11 ether);
     }
 
-    function test_UpdateClaimParameters() public {
+    function test_SetAllowanceSigner() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
-        token.setClaimParameters(500 ether, 50 ether);
+        address newSigner = makeAddr("new-signer");
 
-        assertEq(token.baseClaimAmount(), 500 ether);
-        assertEq(token.bonusPerClaim(), 50 ether);
+        token.setAllowanceSigner(newSigner);
+        assertEq(token.allowanceSigner(), newSigner);
     }
 
     function test_BatchMintMintsTokensAndEmits() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
         ExperimentToken.BatchMintRequest[] memory mints = new ExperimentToken.BatchMintRequest[](2);
@@ -214,15 +172,7 @@ contract ExperimentTokenFactoryTest is Test {
 
     function test_BatchMintRevertsForZeroAmount() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
         ExperimentToken.BatchMintRequest[] memory mints = new ExperimentToken.BatchMintRequest[](1);
@@ -234,15 +184,7 @@ contract ExperimentTokenFactoryTest is Test {
 
     function test_BatchMintRevertsForEmptyBatch() public {
         ExperimentToken token = ExperimentToken(
-            factory.deployToken(
-                "Experiment Token",
-                "EDGE",
-                0,
-                address(this),
-                merkleRoot,
-                100 ether,
-                10 ether
-            )
+            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
         );
 
         ExperimentToken.BatchMintRequest[] memory emptyMints = new ExperimentToken.BatchMintRequest[](0);
@@ -251,7 +193,48 @@ contract ExperimentTokenFactoryTest is Test {
         token.batchMint(emptyMints, "none");
     }
 
-    function _hashPair(bytes32 a, bytes32 b) private pure returns (bytes32) {
-        return a < b ? keccak256(abi.encodePacked(a, b)) : keccak256(abi.encodePacked(b, a));
+    function _sign(
+        ExperimentToken token,
+        address to,
+        uint256 participantId,
+        uint256 amount,
+        uint256 deadline
+    ) private view returns (bytes memory) {
+        return _signWithKey(token, to, participantId, amount, deadline, SIGNER_PK);
+    }
+
+    function _signWithKey(
+        ExperimentToken token,
+        address to,
+        uint256 participantId,
+        uint256 amount,
+        uint256 deadline,
+        uint256 privateKey
+    ) private view returns (bytes memory) {
+        bytes32 digest = _digest(address(token), to, participantId, amount, deadline);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    function _digest(
+        address token,
+        address to,
+        uint256 participantId,
+        uint256 amount,
+        uint256 deadline
+    ) private view returns (bytes32) {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("ExperimentToken")),
+                keccak256(bytes("1")),
+                block.chainid,
+                token
+            )
+        );
+
+        bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, to, participantId, amount, deadline));
+
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 }

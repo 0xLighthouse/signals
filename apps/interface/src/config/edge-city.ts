@@ -7,42 +7,25 @@ const EDGE_CITY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS
 const EDGE_CITY_CLAIM_FUNCTION = process.env.NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION ?? 'claim'
 const EDGE_CITY_REQUIRED_POPUPS =
   process.env.NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS?.split(',').map((id) => id.trim()).filter(Boolean) ?? []
-const EDGE_CITY_MERKLE_ROOT = process.env.NEXT_PUBLIC_EDGE_CITY_MERKLE_ROOT
 
-const EDGE_CITY_CUSTOM_ABI =
+const EDGE_CITY_CUSTOM_ABI: Abi =
   EDGE_CITY_CLAIM_FUNCTION === 'claim'
-    ? ([
+    ? [
         ...erc20Abi,
         {
-          inputs: [
-            { internalType: 'address', name: 'to', type: 'address' },
-            { internalType: 'uint256', name: 'participantId', type: 'uint256' },
-            { internalType: 'bytes32[]', name: 'proof', type: 'bytes32[]' },
-          ],
           name: 'claim',
-          outputs: [],
-          stateMutability: 'nonpayable',
           type: 'function',
-        },
-        {
+          stateMutability: 'nonpayable',
           inputs: [
-            {
-              components: [
-                { internalType: 'address', name: 'to', type: 'address' },
-                { internalType: 'uint256', name: 'amount', type: 'uint256' },
-              ],
-              internalType: 'struct ExperimentToken.BatchMintRequest[]',
-              name: 'mints',
-              type: 'tuple[]',
-            },
-            { internalType: 'string', name: 'reason', type: 'string' },
+            { name: 'to', type: 'address', internalType: 'address' },
+            { name: 'participantId', type: 'uint256', internalType: 'uint256' },
+            { name: 'amount', type: 'uint256', internalType: 'uint256' },
+            { name: 'deadline', type: 'uint256', internalType: 'uint256' },
+            { name: 'signature', type: 'bytes', internalType: 'bytes' },
           ],
-          name: 'batchMint',
           outputs: [],
-          stateMutability: 'nonpayable',
-          type: 'function',
         },
-      ] satisfies Abi)
+      ]
     : (ERC20WithFaucetABI as Abi)
 
 export const edgeCityConfig = {
@@ -51,7 +34,6 @@ export const edgeCityConfig = {
   claimFunction: EDGE_CITY_CLAIM_FUNCTION,
   requiredPopups: EDGE_CITY_REQUIRED_POPUPS,
   abi: EDGE_CITY_CUSTOM_ABI,
-  merkleRoot: EDGE_CITY_MERKLE_ROOT as `0x${string}` | undefined,
 } as const
 
 export type EdgeCityProfile = {
@@ -90,4 +72,12 @@ export type EdgeCityProfile = {
 export type EdgeCityLoginResponse = {
   access_token: string
   token_type: string
+}
+
+export type EdgeCityAllowance = {
+  participantId: number
+  to: `0x${string}`
+  amount: string
+  deadline: number
+  signature: `0x${string}`
 }

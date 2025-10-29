@@ -14,9 +14,7 @@ contract ExperimentTokenFactory {
         string name,
         string symbol,
         uint256 initialSupply,
-        bytes32 merkleRoot,
-        uint256 baseClaimAmount,
-        uint256 bonusPerClaim
+        address allowanceSigner
     );
 
     /**
@@ -25,18 +23,14 @@ contract ExperimentTokenFactory {
      * @param symbol The token symbol.
      * @param initialSupply Optional initial token supply (18 decimals) minted to the owner.
      * @param owner The owner who receives the initial supply and manages allowlist parameters.
-     * @param merkleRoot Merkle root covering the eligible participant IDs.
-     * @param baseClaimAmount Amount minted on every valid claim before bonuses.
-     * @param bonusPerClaim Additional tokens minted for each successful claim.
+     * @param allowanceSigner Address authorized to issue claim allowances (defaults to owner when zero).
      */
     function deployToken(
         string memory name,
         string memory symbol,
         uint256 initialSupply,
         address owner,
-        bytes32 merkleRoot,
-        uint256 baseClaimAmount,
-        uint256 bonusPerClaim
+        address allowanceSigner
     ) external returns (address tokenAddress) {
         address resolvedOwner = owner == address(0) ? msg.sender : owner;
 
@@ -45,9 +39,7 @@ contract ExperimentTokenFactory {
             symbol,
             resolvedOwner,
             initialSupply,
-            merkleRoot,
-            baseClaimAmount,
-            bonusPerClaim
+            allowanceSigner
         );
 
         emit TokenDeployed(
@@ -56,9 +48,7 @@ contract ExperimentTokenFactory {
             name,
             symbol,
             initialSupply,
-            merkleRoot,
-            baseClaimAmount,
-            bonusPerClaim
+            allowanceSigner == address(0) ? resolvedOwner : allowanceSigner
         );
 
         return address(token);

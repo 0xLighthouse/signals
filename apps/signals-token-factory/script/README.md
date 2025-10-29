@@ -43,29 +43,42 @@ All parameters are passed as script arguments (no environment variables needed e
 
 **Parameters (in order):**
 
-1. `factoryAddress` - Address of the deployed ExperimentTokenFactory
-2. `name` - Token name (e.g., "My Token")
-3. `symbol` - Token symbol (e.g., "MTK")
-4. `merkleRoot` - Allowlist merkle root (bytes32, use `0x0000...` for no allowlist)
-5. `baseClaimAmount` - Base claim amount per address in wei
-6. `bonusPerClaim` - Bonus amount per claim in wei
-7. `initialSupply` - Initial token supply in wei (use `0` for none)
-8. `owner` - Token owner address (use `0x0000000000000000000000000000000000000000` for deployer)
+1. `network` - Network label matching the configured deployer key (e.g., `anvil`, `base-sepolia`)
+2. `factoryAddress` - Address of the deployed `ExperimentTokenFactory`
+3. `name` - Token name (e.g., "My Token")
+4. `symbol` - Token symbol (e.g., "MTK")
+5. `initialSupply` - Initial token supply in wei (use `0` for none)
+6. `owner` - Token owner address (use `0x0000000000000000000000000000000000000000` to default to the broadcaster)
+7. `allowanceSigner` - Optional allowance signer (use `0x000…000` to default to the owner)
 
 **Example:**
 
 ```sh
-forge script script/DeployToken.s.sol:DeployToken \
+forge script script/DeployFactoryToken.s.sol:DeployFactoryToken \
     --rpc-url $LOCAL_RPC \
     --broadcast \
     --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
-    -s "run(address,string,string,bytes32,uint256,uint256,uint256,address)" \
+    -s "run(string,address,string,string,uint256,address,address)" \
+    "anvil" \
     "0xD00B87df994b17a27aBA4f04c7A7D77bE3b95e10" \
     "Test Token" \
     "TEST" \
-    "0x0000000000000000000000000000000000000000000000000000000000000000" \
-    "1000000000000000000" \
-    "100000000000000000" \
     "0" \
+    "0x0000000000000000000000000000000000000000" \
     "0x0000000000000000000000000000000000000000"
+```
+
+## Manage Allowance Signer
+
+Use `SetAllowanceSigner` to rotate the off-chain signer key:
+
+```sh
+forge script script/ExperimentOwner.s.sol:SetAllowanceSigner \
+    --rpc-url $BASE_SEPOLIA_RPC \
+    --broadcast \
+    --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
+    -s "run(string,address,address)" \
+    "base-sepolia" \
+    "0xYourTokenAddress" \
+    "0xNewAllowanceSigner"
 ```

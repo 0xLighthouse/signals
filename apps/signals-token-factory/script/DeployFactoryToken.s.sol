@@ -14,25 +14,21 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  *  - factoryAddress: Address of the ExperimentTokenFactory
  *  - name: Token name
  *  - symbol: Token symbol
- *  - merkleRoot: Allowlist merkle root
- *  - baseClaimAmount: Base claim amount per address
- *  - bonusPerClaim: Bonus amount per claim
  *  - initialSupply: Initial token supply (use 0 for none)
  *  - owner: Token owner address (use address(0) for deployer)
+ *  - allowanceSigner: Optional allowance signer (use address(0) to default to owner)
  *
  * Usage:
- *  forge script script/DeployToken.s.sol:DeployToken \
+ *  forge script script/DeployFactoryToken.s.sol:DeployFactoryToken \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      -s "run(string,address,string,string,bytes32,uint256,uint256,uint256,address)" \
+ *      -s "run(string,address,string,string,uint256,address,address)" \
  *      "base-sepolia" \
  *      "0xYourFactoryAddress" \
  *      "MyToken" \
  *      "MTK" \
- *      "0x1234567890123456789012345678901234567890123456789012345678901234" \
- *      "1000000000000000000" \
- *      "100000000000000000" \
  *      "0" \
+ *      "0x0000000000000000000000000000000000000000" \
  *      "0x0000000000000000000000000000000000000000"
  */
 contract DeployFactoryToken is ExperimentDeployerBase {
@@ -41,11 +37,9 @@ contract DeployFactoryToken is ExperimentDeployerBase {
         address factoryAddress,
         string memory name,
         string memory symbol,
-        bytes32 merkleRoot,
-        uint256 baseClaimAmount,
-        uint256 bonusPerClaim,
         uint256 initialSupply,
-        address owner
+        address owner,
+        address allowanceSigner
     ) external {
         require(factoryAddress != address(0), "Factory address required");
         require(bytes(name).length > 0, "Token name required");
@@ -58,17 +52,18 @@ contract DeployFactoryToken is ExperimentDeployerBase {
             owner = deployerAddress;
         }
 
+        if (allowanceSigner == address(0)) {
+            allowanceSigner = owner;
+        }
+
         console.log("=== Deploy ExperimentToken ===");
         console.log("Factory:", factoryAddress);
         console.log("Deployer:", deployerAddress);
         console.log("Owner:", owner);
+        console.log("Allowance signer:", allowanceSigner);
         console.log("Name:", name);
         console.log("Symbol:", symbol);
         console.log("Initial Supply:", initialSupply);
-        console.log("Base Claim Amount:", baseClaimAmount);
-        console.log("Bonus Per Claim:", bonusPerClaim);
-        console.log("Allowlist root:");
-        console.logBytes32(merkleRoot);
 
         vm.startBroadcast(deployerPrivateKey);
         address tokenAddress = ExperimentTokenFactory(factoryAddress).deployToken(
@@ -76,9 +71,7 @@ contract DeployFactoryToken is ExperimentDeployerBase {
             symbol,
             initialSupply,
             owner,
-            merkleRoot,
-            baseClaimAmount,
-            bonusPerClaim
+            allowanceSigner
         );
         vm.stopBroadcast();
 

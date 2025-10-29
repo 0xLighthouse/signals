@@ -61,39 +61,6 @@ abstract contract ExperimentOwnerBase is Script {
 }
 
 /**
- * @notice Updates the Merkle allowlist root for an ExperimentToken.
- *
- * Usage:
- *  forge script script/ExperimentOwner.s.sol:UpdateMerkleRoot \
- *      --rpc-url $BASE_SEPOLIA_RPC \
- *      --broadcast \
- *      -s "run(string,address,bytes32)" \
- *      "base-sepolia" \
- *      "0xYourTokenAddress" \
- *      "0xYourNewRoot"
- */
-contract UpdateMerkleRoot is ExperimentOwnerBase {
-    function run(string memory network, address tokenAddress, bytes32 newRoot) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
-        ExperimentToken token = ExperimentToken(tokenAddress);
-
-        console.log("=== Update Merkle Root ===");
-        console.log("Deployer:", deployerAddress);
-        console.log("Token:", tokenAddress);
-        console.log("Current root:");
-        console.logBytes32(token.merkleRoot());
-        console.log("New root:");
-        console.logBytes32(newRoot);
-
-        vm.startBroadcast(deployerPrivateKey);
-        token.setMerkleRoot(newRoot);
-        vm.stopBroadcast();
-
-        console.log("Merkle root updated");
-    }
-}
-
-/**
  * @notice Performs a batch mint using a JSON configuration file.
  *
  * The configuration file must include `mints` (array of `{ "to": address, "amount": uint256 }`) and an
@@ -138,34 +105,33 @@ contract BatchMint is ExperimentOwnerBase {
 }
 
 /**
- * @notice Adjusts base and bonus claim parameters.
+ * @notice Updates the allowance signer authorized to issue claim allowances.
  *
  * Usage:
- *  forge script script/ExperimentOwner.s.sol:SetClaimParameters \
+ *  forge script script/ExperimentOwner.s.sol:SetAllowanceSigner \
  *      --rpc-url $BASE_SEPOLIA_RPC \
  *      --broadcast \
- *      -s "run(string,address,uint256,uint256)" \
+ *      -s "run(string,address,address)" \
  *      "base-sepolia" \
  *      "0xYourTokenAddress" \
- *      "1000000000000000000000" \
- *      "100000000000000000000"
+ *      "0xNewAllowanceSigner"
  */
-contract SetClaimParameters is ExperimentOwnerBase {
-    function run(string memory network, address tokenAddress, uint256 baseClaimAmount, uint256 bonusPerClaim) external {
+contract SetAllowanceSigner is ExperimentOwnerBase {
+    function run(string memory network, address tokenAddress, address newSigner) external {
         (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
         ExperimentToken token = ExperimentToken(tokenAddress);
 
-        console.log("=== Update Claim Parameters ===");
+        console.log("=== Update Allowance Signer ===");
         console.log("Deployer:", deployerAddress);
         console.log("Token:", tokenAddress);
-        console.log("Base claim amount:", baseClaimAmount);
-        console.log("Bonus per claim:", bonusPerClaim);
+        console.log("Current signer:", token.allowanceSigner());
+        console.log("New signer:", newSigner);
 
         vm.startBroadcast(deployerPrivateKey);
-        token.setClaimParameters(baseClaimAmount, bonusPerClaim);
+        token.setAllowanceSigner(newSigner);
         vm.stopBroadcast();
 
-        console.log("Claim parameters updated");
+        console.log("Allowance signer updated");
     }
 }
 
