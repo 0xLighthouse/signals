@@ -34,7 +34,7 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  *      "0" \
  *      "0x0000000000000000000000000000000000000000"
  */
-contract DeployToken is ExperimentDeployerBase {
+contract DeployFactoryToken is ExperimentDeployerBase {
     function run(
         address factoryAddress,
         string memory name,

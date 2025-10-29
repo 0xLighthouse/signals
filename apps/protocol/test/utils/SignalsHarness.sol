@@ -124,7 +124,7 @@ contract SignalsHarness is Test {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
         (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", amount, lockDuration, _emptyAttachmentsArray()
+            "Test Initiative", "Description", _emptyAttachmentsArray(), amount, lockDuration
         );
         vm.stopPrank();
 
@@ -158,7 +158,7 @@ contract SignalsHarness is Test {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
         (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", amount, lockDuration, _emptyAttachmentsArray()
+            "Test Initiative", "Description", _emptyAttachmentsArray(), amount, lockDuration
         );
         vm.stopPrank();
 

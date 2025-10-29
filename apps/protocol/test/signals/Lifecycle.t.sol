@@ -73,9 +73,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 2",
             "Description 2",
+            new ISignals.Attachment[](0),
             lockAmount,
-            6,
-            new ISignals.Attachment[](0)
+            6
         );
         vm.stopPrank();
 
@@ -114,9 +114,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 1",
             "Description 1",
+            new ISignals.Attachment[](0),
             lockAmount,
-            1,
-            new ISignals.Attachment[](0)
+            1
         );
 
         vm.startPrank(_bob);
@@ -169,9 +169,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 1",
             "Description 1",
+            new ISignals.Attachment[](0),
             lockAmount,
-            6,
-            new ISignals.Attachment[](0)
+            6
         );
 
         // Non-owner cannot accept the initiative

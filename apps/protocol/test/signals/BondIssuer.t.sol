@@ -32,9 +32,9 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 1",
             "Description 1",
+            new ISignals.Attachment[](0),
             100 ether,
-            6,
-            new ISignals.Attachment[](0)
+            6
         );
         vm.stopPrank();
 
@@ -59,9 +59,9 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 1",
             "Description 1",
+            new ISignals.Attachment[](0),
             100 ether,
-            6,
-            new ISignals.Attachment[](0)
+            6
         );
         vm.stopPrank();
 

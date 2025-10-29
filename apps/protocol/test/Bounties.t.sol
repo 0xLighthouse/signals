@@ -113,9 +113,9 @@ contract BountiesTest is Test, SignalsHarness {
         signals.proposeInitiativeWithLock(
             "Initiative 1",
             "Test adding bounties",
+            new ISignals.Attachment[](0),
             lockedAmount,
-            6,
-            new ISignals.Attachment[](0)
+            6
         );
 
         // Add a 500 USDC bounty (4 times)

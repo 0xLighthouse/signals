@@ -97,7 +97,9 @@ contract InitiativesTest is Test, SignalsHarness {
         // Approve the contract to spend the tokens
         vm.startPrank(_bob);
         _tokenERC20.approve(address(signals), amountToLock);
-        signals.proposeInitiativeWithLock(title, body, amountToLock, 1, new ISignals.Attachment[](0));
+        signals.proposeInitiativeWithLock(
+            title, body, new ISignals.Attachment[](0), amountToLock, 1
+        );
         vm.stopPrank();
 
         // Retrieve the initiative and check the details
