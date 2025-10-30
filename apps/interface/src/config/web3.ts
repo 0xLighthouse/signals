@@ -36,9 +36,9 @@ export const INDEXER_ENDPOINT = process.env.NEXT_PUBLIC_INDEXER_ENDPOINT!
 
 const incentivesContract = features.enableContributions
   ? {
-      abi: IncentivesABI,
-      address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a' as `0x${string}`,
-    }
+    abi: IncentivesABI,
+    address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a' as `0x${string}`,
+  }
   : undefined
 
 console.log('Anvil RPC', anvil.rpcUrls.default.http[0])
@@ -75,8 +75,8 @@ export const context = {
     },
     ...(incentivesContract
       ? {
-          Incentives: incentivesContract,
-        }
+        Incentives: incentivesContract,
+      }
       : {}),
   },
 }
