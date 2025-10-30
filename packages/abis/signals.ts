@@ -1,393 +1,4 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Incentives
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const incentivesAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: '_signalsContract', internalType: 'address', type: 'address' },
-      { name: '_tokenRegistry', internalType: 'address', type: 'address' },
-      { name: '_allocations', internalType: 'uint256[3]', type: 'uint256[3]' },
-      { name: '_receivers', internalType: 'address[3]', type: 'address[3]' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: '_token', internalType: 'address', type: 'address' },
-      { name: '_amount', internalType: 'uint256', type: 'uint256' },
-      { name: '_expiresAt', internalType: 'uint256', type: 'uint256' },
-      {
-        name: '_terms',
-        internalType: 'enum IIncentives.Conditions',
-        type: 'uint8',
-      },
-    ],
-    name: 'addIncentive',
-    outputs: [],
-    stateMutability: 'payable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'allocations',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'address', type: 'address' },
-    ],
-    name: 'balances',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_version', internalType: 'uint256', type: 'uint256' }],
-    name: 'config',
-    outputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256[3]', type: 'uint256[3]' },
-      { name: '', internalType: 'address[3]', type: 'address[3]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getIncentives',
-    outputs: [
-      { name: '', internalType: 'address[]', type: 'address[]' },
-      { name: '', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'expiredCount', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'handleInitiativeAccepted',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'handleInitiativeExpired',
-    outputs: [],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'incentiveCount',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'incentives',
-    outputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: 'token', internalType: 'contract IERC20', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'paid', internalType: 'uint256', type: 'uint256' },
-      { name: 'refunded', internalType: 'uint256', type: 'uint256' },
-      { name: 'expiresAt', internalType: 'uint256', type: 'uint256' },
-      { name: 'contributor', internalType: 'address', type: 'address' },
-      {
-        name: 'terms',
-        internalType: 'enum IIncentives.Conditions',
-        type: 'uint8',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'incentivesByInitiative',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: '_tokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'previewRewards',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'receivers',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'registry',
-    outputs: [
-      { name: '', internalType: 'contract TokenRegistry', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'signalsContract',
-    outputs: [{ name: '', internalType: 'contract ISignals', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_allocations', internalType: 'uint256[3]', type: 'uint256[3]' },
-      { name: '_receivers', internalType: 'address[3]', type: 'address[3]' },
-    ],
-    name: 'updateSplits',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'version',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'incentiveId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'initiativeId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'token',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'expiresAt',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'terms',
-        internalType: 'enum IIncentives.Conditions',
-        type: 'uint8',
-        indexed: false,
-      },
-    ],
-    name: 'IncentiveAdded',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'incentiveId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'protocolAmount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'voterAmount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'treasuryAmount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'IncentivePaidOut',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'initiativeId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'contributor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'IncentiveRefunded',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'version',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'IncentivesUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'initiativeId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'supporter',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'RewardClaimed',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
-    name: 'AddressEmptyCode',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'AddressInsufficientBalance',
-  },
-  { type: 'error', inputs: [], name: 'FailedInnerCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Signals
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -411,9 +22,22 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'activityTimeout',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'lockAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'accountCanPropose',
+    outputs: [{ name: 'result', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'lockAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'accountCanSupport',
+    outputs: [{ name: 'result', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
@@ -428,10 +52,47 @@ export const signalsAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'authorizationToken',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
     name: 'balanceOf',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'boardClosedAt',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'boardOpenAt',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'bounties',
+    outputs: [
+      { name: '', internalType: 'contract IBounties', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'closeBoard',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -461,26 +122,6 @@ export const signalsAbi = [
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
     name: 'getApproved',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getBondInfo',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct IBondIssuer.BondInfo',
-        type: 'tuple',
-        components: [
-          { name: 'referenceId', internalType: 'uint256', type: 'uint256' },
-          { name: 'nominalValue', internalType: 'uint256', type: 'uint256' },
-          { name: 'expires', internalType: 'uint256', type: 'uint256' },
-          { name: 'created', internalType: 'uint256', type: 'uint256' },
-          { name: 'claimed', internalType: 'bool', type: 'bool' },
-        ],
-      },
-    ],
     stateMutability: 'view',
   },
   {
@@ -539,9 +180,56 @@ export const signalsAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getLockData',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct ISignalsLock.LockData',
+        type: 'tuple',
+        components: [
+          { name: 'referenceId', internalType: 'uint256', type: 'uint256' },
+          { name: 'nominalValue', internalType: 'uint256', type: 'uint256' },
+          { name: 'expires', internalType: 'uint256', type: 'uint256' },
+          { name: 'created', internalType: 'uint256', type: 'uint256' },
+          { name: 'claimed', internalType: 'bool', type: 'bool' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'supporter', internalType: 'address', type: 'address' }],
     name: 'getLocksForSupporter',
     outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getParticipantRequirements',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IAuthorizer.ParticipantRequirements',
+        type: 'tuple',
+        components: [
+          {
+            name: 'eligibilityType',
+            internalType: 'enum IAuthorizer.EligibilityType',
+            type: 'uint8',
+          },
+          { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'minHoldingDuration',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
@@ -551,6 +239,33 @@ export const signalsAbi = [
     ],
     name: 'getPositionsForInitiative',
     outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getProposerRequirements',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IAuthorizer.ParticipantRequirements',
+        type: 'tuple',
+        components: [
+          {
+            name: 'eligibilityType',
+            internalType: 'enum IAuthorizer.EligibilityType',
+            type: 'uint8',
+          },
+          { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'minHoldingDuration',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
@@ -629,9 +344,16 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'incentives',
+    name: 'inactivityTimeout',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'incentivesPool',
     outputs: [
-      { name: '', internalType: 'contract IIncentives', type: 'address' },
+      { name: '', internalType: 'contract IIncentivesPool', type: 'address' },
     ],
     stateMutability: 'view',
   },
@@ -646,11 +368,6 @@ export const signalsAbi = [
           { name: 'version', internalType: 'string', type: 'string' },
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
-          {
-            name: 'proposalThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
           {
             name: 'acceptanceThreshold',
             internalType: 'uint256',
@@ -669,6 +386,64 @@ export const signalsAbi = [
             internalType: 'uint256[]',
             type: 'uint256[]',
           },
+          {
+            name: 'inactivityTimeout',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          {
+            name: 'proposerRequirements',
+            internalType: 'struct IAuthorizer.ParticipantRequirements',
+            type: 'tuple',
+            components: [
+              {
+                name: 'eligibilityType',
+                internalType: 'enum IAuthorizer.EligibilityType',
+                type: 'uint8',
+              },
+              { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+              {
+                name: 'minHoldingDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'minLockAmount',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'supporterRequirements',
+            internalType: 'struct IAuthorizer.ParticipantRequirements',
+            type: 'tuple',
+            components: [
+              {
+                name: 'eligibilityType',
+                internalType: 'enum IAuthorizer.EligibilityType',
+                type: 'uint8',
+              },
+              { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+              {
+                name: 'minHoldingDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'minLockAmount',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'releaseLockDuration',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'boardOpenAt', internalType: 'uint256', type: 'uint256' },
+          { name: 'boardClosedAt', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -705,6 +480,20 @@ export const signalsAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'isBoardClosed',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'isBoardOpen',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: '', internalType: 'uint256', type: 'uint256' },
       { name: '', internalType: 'address', type: 'address' },
@@ -718,6 +507,26 @@ export const signalsAbi = [
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
     name: 'listPositions',
     outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lockCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'lockIncentiveCreditsByInitiative',
+    outputs: [
+      { name: 'amount', internalType: 'uint128', type: 'uint128' },
+      { name: 'timestamp', internalType: 'uint128', type: 'uint128' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -744,13 +553,6 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'nextTokenId',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
@@ -771,13 +573,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'proposalThreshold',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: '_title', internalType: 'string', type: 'string' },
       { name: '_body', internalType: 'string', type: 'string' },
@@ -793,7 +588,9 @@ export const signalsAbi = [
       },
     ],
     name: 'proposeInitiative',
-    outputs: [],
+    outputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'nonpayable',
   },
   {
@@ -801,8 +598,6 @@ export const signalsAbi = [
     inputs: [
       { name: '_title', internalType: 'string', type: 'string' },
       { name: '_body', internalType: 'string', type: 'string' },
-      { name: '_amount', internalType: 'uint256', type: 'uint256' },
-      { name: '_lockDuration', internalType: 'uint256', type: 'uint256' },
       {
         name: '_attachments',
         internalType: 'struct ISignals.Attachment[]',
@@ -813,17 +608,55 @@ export const signalsAbi = [
           { name: 'description', internalType: 'string', type: 'string' },
         ],
       },
+      { name: '_amount', internalType: 'uint256', type: 'uint256' },
+      { name: '_lockDuration', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'proposeInitiativeWithLock',
-    outputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    outputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'redeem',
+    inputs: [],
+    name: 'proposerRequirements',
+    outputs: [
+      {
+        name: 'eligibilityType',
+        internalType: 'enum IAuthorizer.EligibilityType',
+        type: 'uint8',
+      },
+      { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+      { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
+      { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'lockId', internalType: 'uint256', type: 'uint256' }],
+    name: 'redeemLock',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'lockIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'redeemLocksForInitiative',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'releaseLockDuration',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -868,6 +701,22 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
+      { name: '_boardOpenAt', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setBoardOpenAt',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_bounties', internalType: 'address', type: 'address' }],
+    name: 'setBounties',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: '_decayCurveType', internalType: 'uint256', type: 'uint256' },
       {
         name: '_decayCurveParameters',
@@ -882,16 +731,26 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_newThreshold', internalType: 'uint256', type: 'uint256' },
+      { name: 'incentivesPool_', internalType: 'address', type: 'address' },
+      {
+        name: 'incentivesConfig_',
+        internalType: 'struct IIncentivizer.IncentivesConfig',
+        type: 'tuple',
+        components: [
+          {
+            name: 'incentiveType',
+            internalType: 'enum IIncentivizer.IncentiveType',
+            type: 'uint8',
+          },
+          {
+            name: 'incentiveParametersWAD',
+            internalType: 'uint256[]',
+            type: 'uint256[]',
+          },
+        ],
+      },
     ],
-    name: 'setInactivityThreshold',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_incentives', internalType: 'address', type: 'address' }],
-    name: 'setIncentives',
+    name: 'setIncentivesPool',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -921,6 +780,22 @@ export const signalsAbi = [
     ],
     name: 'supporterLocks',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'supporterRequirements',
+    outputs: [
+      {
+        name: 'eligibilityType',
+        internalType: 'enum IAuthorizer.EligibilityType',
+        type: 'uint8',
+      },
+      { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+      { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
+      { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -1090,6 +965,19 @@ export const signalsAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'actor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'BoardClosed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'decayCurveType',
         internalType: 'uint256',
         type: 'uint256',
@@ -1103,6 +991,19 @@ export const signalsAbi = [
       },
     ],
     name: 'DecayCurveUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'version',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'Initialized',
   },
   {
     type: 'event',
@@ -1169,6 +1070,7 @@ export const signalsAbi = [
           { name: 'mimeType', internalType: 'string', type: 'string' },
           { name: 'description', internalType: 'string', type: 'string' },
         ],
+        indexed: false,
       },
     ],
     name: 'InitiativeProposed',
@@ -1234,13 +1136,19 @@ export const signalsAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'initiativeId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
         name: 'tokenId',
         internalType: 'uint256',
         type: 'uint256',
         indexed: true,
       },
       {
-        name: 'actor',
+        name: 'payee',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -1258,6 +1166,37 @@ export const signalsAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      {
+        name: 'initiativeId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'lockId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'claimant',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'percentOfInitiativeRewardsWAD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsClaimed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       { name: 'from', internalType: 'address', type: 'address', indexed: true },
       { name: 'to', internalType: 'address', type: 'address', indexed: true },
       {
@@ -1269,6 +1208,18 @@ export const signalsAbi = [
     ],
     name: 'Transfer',
   },
+  {
+    type: 'error',
+    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
+    name: 'AddressEmptyCode',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
+  },
+  { type: 'error', inputs: [], name: 'DecayCurves_InvalidCurveParameters' },
+  { type: 'error', inputs: [], name: 'DecayCurves_InvalidInterval' },
   { type: 'error', inputs: [], name: 'ERC721EnumerableForbiddenBatchMint' },
   {
     type: 'error',
@@ -1325,20 +1276,9 @@ export const signalsAbi = [
     ],
     name: 'ERC721OutOfBoundsIndex',
   },
-  { type: 'error', inputs: [], name: 'InitiativeNotFound' },
-  { type: 'error', inputs: [], name: 'InsufficientTokens' },
-  {
-    type: 'error',
-    inputs: [{ name: 'message', internalType: 'string', type: 'string' }],
-    name: 'InvalidInitiativeState',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'message', internalType: 'string', type: 'string' }],
-    name: 'InvalidInput',
-  },
-  { type: 'error', inputs: [], name: 'InvalidRedemption' },
-  { type: 'error', inputs: [], name: 'InvalidTokenId' },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
+  { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'NotInitializing' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -1349,7 +1289,58 @@ export const signalsAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'TokenTransferFailed' },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  { type: 'error', inputs: [], name: 'Signals_AlreadyInitialized' },
+  { type: 'error', inputs: [], name: 'Signals_AlreadyRedeemed' },
+  { type: 'error', inputs: [], name: 'Signals_AttachmentInvalidURI' },
+  { type: 'error', inputs: [], name: 'Signals_AttachmentLimitExceeded' },
+  { type: 'error', inputs: [], name: 'Signals_BoardAlreadyOpened' },
+  { type: 'error', inputs: [], name: 'Signals_BoardNotOpen' },
+  { type: 'error', inputs: [], name: 'Signals_ConfigErrorZeroMinBalance' },
+  { type: 'error', inputs: [], name: 'Signals_ConfigErrorZeroMinDuration' },
+  { type: 'error', inputs: [], name: 'Signals_EmptyBody' },
+  { type: 'error', inputs: [], name: 'Signals_EmptyTitle' },
+  { type: 'error', inputs: [], name: 'Signals_IncentivesPoolAlreadySet' },
+  { type: 'error', inputs: [], name: 'Signals_IncentivesPoolNotApproved' },
+  { type: 'error', inputs: [], name: 'Signals_InitiativeNotFound' },
+  { type: 'error', inputs: [], name: 'Signals_InsufficientTokens' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidBoardClosedTime' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidBoardOpenTime' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidDecayCurveType' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidIncentiveParameters' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidInitiativeState' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidLockDuration' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidTokenId' },
+  { type: 'error', inputs: [], name: 'Signals_NotEligibleForExpiration' },
+  { type: 'error', inputs: [], name: 'Signals_NotProposedState' },
+  { type: 'error', inputs: [], name: 'Signals_NotTokenOwner' },
+  { type: 'error', inputs: [], name: 'Signals_NotWithdrawableState' },
+  { type: 'error', inputs: [], name: 'Signals_ParticipantInsufficientBalance' },
+  {
+    type: 'error',
+    inputs: [],
+    name: 'Signals_ParticipantInsufficientDuration',
+  },
+  {
+    type: 'error',
+    inputs: [],
+    name: 'Signals_ParticipantInsufficientLockAmount',
+  },
+  { type: 'error', inputs: [], name: 'Signals_ParticipantNoCheckpointSupport' },
+  { type: 'error', inputs: [], name: 'Signals_StillTimelocked' },
+  { type: 'error', inputs: [], name: 'Signals_TokenTransferFailed' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroAcceptanceThreshold' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroAddressIncentivesPool' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroAddressOwner' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroAddressToken' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroLockInterval' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroMaxLockIntervals' },
+  { type: 'error', inputs: [], name: 'Signals_ZeroProposalCap' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1369,16 +1360,12 @@ export const signalsFactoryAbi = [
     inputs: [
       {
         name: 'config',
-        internalType: 'struct ISignalsFactory.FactoryDeployment',
+        internalType: 'struct ISignals.BoardConfig',
         type: 'tuple',
         components: [
+          { name: 'version', internalType: 'string', type: 'string' },
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
-          {
-            name: 'proposalThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
           {
             name: 'acceptanceThreshold',
             internalType: 'uint256',
@@ -1397,6 +1384,64 @@ export const signalsFactoryAbi = [
             internalType: 'uint256[]',
             type: 'uint256[]',
           },
+          {
+            name: 'inactivityTimeout',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          {
+            name: 'proposerRequirements',
+            internalType: 'struct IAuthorizer.ParticipantRequirements',
+            type: 'tuple',
+            components: [
+              {
+                name: 'eligibilityType',
+                internalType: 'enum IAuthorizer.EligibilityType',
+                type: 'uint8',
+              },
+              { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+              {
+                name: 'minHoldingDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'minLockAmount',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'supporterRequirements',
+            internalType: 'struct IAuthorizer.ParticipantRequirements',
+            type: 'tuple',
+            components: [
+              {
+                name: 'eligibilityType',
+                internalType: 'enum IAuthorizer.EligibilityType',
+                type: 'uint8',
+              },
+              { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
+              {
+                name: 'minHoldingDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'minLockAmount',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'releaseLockDuration',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'boardOpenAt', internalType: 'uint256', type: 'uint256' },
+          { name: 'boardClosedAt', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -1430,6 +1475,6 @@ export const signalsFactoryAbi = [
     ],
     name: 'BoardCreated',
   },
-  { type: 'error', inputs: [], name: 'FactoryDeploymentFailed' },
-  { type: 'error', inputs: [], name: 'InvalidOwnerAddress' },
+  { type: 'error', inputs: [], name: 'SignalsFactory_DeploymentFailed' },
+  { type: 'error', inputs: [], name: 'SignalsFactory_ZeroAddressOwner' },
 ] as const

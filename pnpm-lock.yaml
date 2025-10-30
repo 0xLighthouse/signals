@@ -324,13 +324,6 @@ importers:
         version: 4.9.5
 
   packages/shared:
-    dependencies:
-      '@openzeppelin/merkle-tree':
-        specifier: ^1.0.5
-        version: 1.0.8
-      viem:
-        specifier: 2.23.15
-        version: 2.23.15(bufferutil@4.0.9)(typescript@4.9.5)(utf-8-validate@6.0.5)(zod@4.1.12)
     devDependencies:
       eslint:
         specifier: ^7.32.0
@@ -17027,11 +17020,6 @@ snapshots:
       typescript: 5.9.3
       zod: 4.1.12
 
-  abitype@1.0.8(typescript@4.9.5)(zod@4.1.12):
-    optionalDependencies:
-      typescript: 4.9.5
-      zod: 4.1.12
-
   abitype@1.0.8(typescript@5.9.3)(zod@3.25.76):
     optionalDependencies:
       typescript: 5.9.3
@@ -17051,11 +17039,6 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
       zod: 3.25.76
-
-  abitype@1.1.1(typescript@4.9.5)(zod@4.1.12):
-    optionalDependencies:
-      typescript: 4.9.5
-      zod: 4.1.12
 
   abitype@1.1.1(typescript@5.9.3)(zod@3.22.4):
     optionalDependencies:
@@ -22063,20 +22046,6 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  ox@0.6.9(typescript@4.9.5)(zod@4.1.12):
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.1.1(typescript@4.9.5)(zod@4.1.12)
-      eventemitter3: 5.0.1
-    optionalDependencies:
-      typescript: 4.9.5
-    transitivePeerDependencies:
-      - zod
-
   ox@0.6.9(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
@@ -24514,23 +24483,6 @@ snapshots:
       d3-shape: 3.2.0
       d3-time: 3.1.0
       d3-timer: 3.0.1
-
-  viem@2.23.15(bufferutil@4.0.9)(typescript@4.9.5)(utf-8-validate@6.0.5)(zod@4.1.12):
-    dependencies:
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
-      '@scure/bip32': 1.6.2
-      '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@4.9.5)(zod@4.1.12)
-      isows: 1.0.6(ws@8.18.1(bufferutil@4.0.9)(utf-8-validate@6.0.5))
-      ox: 0.6.9(typescript@4.9.5)(zod@4.1.12)
-      ws: 8.18.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
-    optionalDependencies:
-      typescript: 4.9.5
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
 
   viem@2.23.15(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76):
     dependencies:

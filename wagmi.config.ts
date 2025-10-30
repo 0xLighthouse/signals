@@ -14,4 +14,16 @@ export default defineConfig([
       }),
     ],
   },
+  {
+    out: 'packages/abis/signals-token-factory.ts',
+    plugins: [
+      foundry({
+        project: 'apps/signals-token-factory',
+        include: [
+          'ExperimentToken.sol/ExperimentToken.json',
+          'ExperimentTokenFactory.sol/ExperimentTokenFactory.json',
+        ],
+      }),
+    ],
+  },
 ])
