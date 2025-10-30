@@ -1,136 +1,133 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.26;
 
-import "forge-std/Script.sol";
-// import {MockERC20} from "../test/mocks/MockERC20.m.sol";
-// import {Signals} from "../src/Signals.sol";
-// import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import "forge-std/console.sol";
+import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
+import {ISignals} from "../src/interfaces/ISignals.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {MockERC20} from "../test/mocks/MockERC20.m.sol";
 
 /**
- * Seeds three initiatives with a lock of 12 months from Alice, Bob and Charlie
+ * Seeds a Signals board with example initiatives and token locks for local testing.
  *
- * @notice forge script script/TestnetData.s.sol --fork-url $TESTNET_RPC --broadcast
+ * @notice forge script script/TestnetData.s.sol --rpc-url $ANVIL_RPC_URL --broadcast --sig "run(string,address)" anvil <boardAddress>
  */
-contract TestnetDataScript is Script {
-// address _deployer;
-// address _alice;
-// address _bob;
-// address _charlie;
+contract SeedInitiativesScript is SharedScriptBase {
+    MockERC20 private token;
+    ISignals private board;
 
-// MockERC20 token;
-// Signals board;
+    address private _deployer;
+    address private _alice;
+    address private _bob;
+    address private _charlie;
 
-// string[] private titles = [
-//     "Implement Governance Updates",
-//     "Treasury Allocation Proposal",
-//     "Community Development Fund",
-//     "Protocol Upgrade Initiative",
-//     "Partnership Program Launch"
-// ];
+    string[] private titles = [
+        "Accelerating Local Coordination Networks",
+        "Ethical Acceleration Charter",
+        "AI-Augmented Collective Reasoning Pilot"
+    ];
 
-// string[] private descriptions = [
-//     "This proposal aims to improve the current governance structure...",
-//     "A strategic allocation of treasury funds for sustainable growth...",
-//     "Creating a dedicated fund for community-driven development...",
-//     "Critical protocol upgrades to enhance security and efficiency...",
-//     "Establishing strategic partnerships to expand ecosystem..."
-// ];
+    string[] private descriptions = [
+        "Establish funding and shared tools for neighborhood-scale coordination experiments.",
+        "Draft and ratify a shared framework for ethical acceleration across decentralized systems.",
+        "Experiment with AI-assisted deliberation tools that summarize arguments and surface consensus."
+    ];
 
-// function _faucet(address _to, uint256 _amount) internal {
-//     vm.startBroadcast(_deployer);
-//     payable(_to).transfer(_amount);
-//     vm.stopBroadcast();
-// }
+    function run(string memory network, address boardAddress) external {
+        if (!isSupportedNetwork(network)) {
+            revert(string.concat("Unsupported network [", network, "] provided"));
+        }
 
-// function _createInitiativeData(uint256 index) internal view returns (string memory title, string memory body) {
-//     // Use modulo to cycle through predefined content if index exceeds array length
-//     uint256 i = index % titles.length;
-//     title = string.concat(titles[i], " #", Strings.toString(index));
-//     body = string.concat(
-//         descriptions[i], "\n\nProposal ID: ", Strings.toString(index), "\nSubmitted as part of the test dataset"
-//     );
-// }
+        // This script is intended for local testing where faucet mechanics are available.
+        if (keccak256(abi.encodePacked(network)) != keccak256(abi.encodePacked("anvil"))) {
+            revert("SeedInitiativesScript only supports the anvil network");
+        }
 
-// function _proposeInitiative(uint256 _proposerKey, uint256 amountToLock, uint256 index) internal {
-//     vm.startBroadcast(_proposerKey);
-//     (string memory title, string memory body) = _createInitiativeData(index);
-//     token.approve(address(board), amountToLock);
-//     board.proposeInitiativeWithLock(title, body, amountToLock, 12);
-//     vm.stopBroadcast();
-// }
+        (uint256 deployerKey, address deployerAddress) = _loadDeployer(network);
+        console.log("=== Seeds: Initiatives ===");
+        console.log(string.concat("Network: ", network));
+        console.log("Deployer:", deployerAddress);
 
-// function run() external {
-//     // Load the private keys from the seed phrase
-//     string memory seedPhrase = vm.envString("TESTNET_SEED_PHRASE");
-//     address bondIssuer = vm.envAddress("TESTNET_BOND_ISSUER");
+        string memory seedPhrase = vm.envString("ANVIL_SEED_PHRASE");
 
-//     uint256 deployerKey = vm.deriveKey(seedPhrase, 0);
-//     uint256 aliceKey = vm.deriveKey(seedPhrase, 1);
-//     uint256 bobKey = vm.deriveKey(seedPhrase, 2);
-//     uint256 charlieKey = vm.deriveKey(seedPhrase, 3);
+        uint256 aliceKey = vm.deriveKey(seedPhrase, 1);
+        uint256 bobKey = vm.deriveKey(seedPhrase, 2);
+        uint256 charlieKey = vm.deriveKey(seedPhrase, 3);
 
-//     address deployerAddress = vm.addr(deployerKey);
+        _deployer = deployerAddress;
+        _alice = vm.addr(aliceKey);
+        _bob = vm.addr(bobKey);
+        _charlie = vm.addr(charlieKey);
 
-//     // DUMP ETH BALANCE
-//     console.log("Deployer Address:", deployerAddress);
-//     console.log("Deployer (ETH) Balance:", deployerAddress.balance);
+        board = ISignals(boardAddress);
+        token = MockERC20(board.token());
 
-//     // Get the addresses from the private keys
-//     _deployer = vm.addr(deployerKey);
-//     _alice = vm.addr(aliceKey);
-//     _bob = vm.addr(bobKey);
-//     _charlie = vm.addr(charlieKey);
+        console.log("Signals board:", boardAddress);
+        console.log("Token:", address(token));
+        console.log(string.concat("Token symbol: ", token.symbol()));
 
-//     // Load the Signals contract instance
-//     board = Signals(bondIssuer);
-//     token = MockERC20(board.token());
-//     string memory tokenSymbol = token.symbol();
+        uint256[3] memory proposerKeys = [aliceKey, bobKey, charlieKey];
+        address[3] memory proposers = [_alice, _bob, _charlie];
 
-//     console.log("Deployer (%s) Balance:", tokenSymbol, token.balanceOf(deployerAddress));
+        _ensureEthBalances(proposers);
+        _seedTokenBalances(deployerKey, proposers);
 
-//     // Log the deployer addresses
-//     console.log("----- Accounts -----");
-//     console.log("Deployer:", _deployer);
-//     console.log("Alice:", _alice);
-//     console.log("Bob:", _bob);
-//     console.log("Charlie:", _charlie);
+        uint256 proposalThreshold = board.getProposerRequirements().minBalance;
+        console.log("Proposal threshold:", proposalThreshold);
 
-//     // Create array of private keys instead of addresses
-//     uint256[3] memory proposerKeys = [aliceKey, bobKey, charlieKey];
-//     address[3] memory proposers = [_alice, _bob, _charlie];
+        for (uint256 i = 0; i < proposers.length; i++) {
+            uint256 amountToLock = proposalThreshold / 5;
+            if (amountToLock == 0) {
+                amountToLock = 1 ether;
+            }
+            _proposeInitiative(proposerKeys[i], amountToLock, i);
+        }
 
-//     // If the proposer has no balance, top up their balance from the deployer
-//     for (uint256 i = 0; i < proposers.length; i++) {
-//         if (proposers[i].balance == 0) {
-//             console.log("topping up address:", proposers[i], "with", 0.1 ether);
-//             _faucet(proposers[i], 0.1 ether);
-//         }
-//     }
+        console.log("Final initiative count:", board.initiativeCount());
+    }
 
-//     // Get threshold
-//     uint256 proposalThreshold = board.getProposerRequirements().minBalance;
-//     console.log("Proposal Threshold:", proposalThreshold);
+    function _ensureEthBalances(address[3] memory accounts) internal {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            if (accounts[i].balance == 0) {
+                console.log("Topping up ETH for:", accounts[i]);
+                vm.deal(accounts[i], 0.1 ether);
+            }
+        }
+    }
 
-//     for (uint256 i = 0; i < proposers.length; i++) {
-//         // Send min tokens to proposers so they can propose initiatives
-//         uint256 balanceBefore = token.balanceOf(proposers[i]);
+    function _seedTokenBalances(uint256 deployerKey, address[3] memory proposers) internal {
+        uint256 proposalThreshold = board.getProposerRequirements().minBalance;
+        vm.startBroadcast(deployerKey);
+        for (uint256 i = 0; i < proposers.length; i++) {
+            uint256 balance = token.balanceOf(proposers[i]);
+            uint256 requiredBalance = proposalThreshold > balance ? proposalThreshold - balance : 0;
+            if (requiredBalance > 0) {
+                console.log("Transferring tokens to:", proposers[i]);
+                bool success = token.transfer(proposers[i], requiredBalance);
+                require(success, "token transfer failed");
+            }
+        }
+        vm.stopBroadcast();
+    }
 
-//         uint256 balanceNeeded = balanceBefore > proposalThreshold ? 0 : proposalThreshold - balanceBefore;
+    function _createInitiativeData(uint256 index) internal view returns (string memory title, string memory body) {
+        uint256 i = index % titles.length;
+        title = string.concat(titles[i], " #", Strings.toString(index + 1));
+        body = string.concat(
+            descriptions[i],
+            "\n\nProposal ID: ",
+            Strings.toString(index + 1),
+            "\nSubmitted as part of the test dataset"
+        );
+    }
 
-//         if (balanceNeeded > 0) {
-//             // Top up balance from deployer
-//             vm.startBroadcast(deployerKey);
-//             console.log("topping up address:", proposers[i], "with", balanceNeeded);
-//             require(token.transfer(proposers[i], balanceNeeded), "Transfer failed");
-//             vm.stopBroadcast();
-//         }
-
-//         // Propose initiative using the correct private key
-//         uint256 amountToLock = proposalThreshold / 5;
-
-//         _proposeInitiative(proposerKeys[i], amountToLock, i);
-//     }
-
-//     console.log("Initiative Count:", board.initiativeCount());
-// }
+    function _proposeInitiative(uint256 proposerKey, uint256 amountToLock, uint256 index) internal {
+        vm.startBroadcast(proposerKey);
+        (string memory title, string memory body) = _createInitiativeData(index);
+        token.approve(address(board), amountToLock);
+        ISignals.Attachment[] memory attachments = new ISignals.Attachment[](0);
+        board.proposeInitiativeWithLock(title, body, attachments, amountToLock, 12);
+        vm.stopBroadcast();
+        console.log(string.concat("Submitted initiative: ", title));
+    }
 }

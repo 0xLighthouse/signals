@@ -7,6 +7,9 @@ evm_version = "cancun"
 optimizer_runs = 1
 via_ir = true
 ffi = false
+remappings = [
+    '@shared/=../../packages/shared-solidity/src/'
+]
 
 [fmt]
 line_length = 100

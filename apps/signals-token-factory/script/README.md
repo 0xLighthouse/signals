@@ -8,8 +8,8 @@
 
 ```sh
 # Fund local wallet with ETH easily
-cast send <0xADDRESS> --value 10ether --rpc-url $LOCAL_RPC --private-key
-cast send 0x8DC791f24589F480fF31Fe654D09bD01B5c5c2E8 --value 10ether --rpc-url $LOCAL_RPC --private-key
+cast send <0xADDRESS> --value 10ether --rpc-url $ANVIL_RPC --private-key
+cast send 0x8DC791f24589F480fF31Fe654D09bD01B5c5c2E8 --value 10ether --rpc-url $ANVIL_RPC --private-key
 ```
 
 ## Latest deplyment info
@@ -60,9 +60,9 @@ forge script script/DeployFactoryToken.s.sol:DeployFactoryToken \
     --private-key $TESTNET_DEPLOYER_PRIVATE_KEY \
     -s "run(string,address,string,string,uint256,address,address)" \
     "anvil" \
-    "0xD00B87df994b17a27aBA4f04c7A7D77bE3b95e10" \
-    "Test Token" \
-    "TEST" \
+    "0x5FbDB2315678afecb367f032d93F642f64180aa3" \
+    "Signals Experiment" \
+    "SIG-INT" \
     "0" \
     "0x0000000000000000000000000000000000000000" \
     "0x0000000000000000000000000000000000000000"
