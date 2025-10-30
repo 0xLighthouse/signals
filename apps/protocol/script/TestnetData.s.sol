@@ -79,11 +79,15 @@ contract SeedInitiativesScript is SharedScriptBase {
         uint256 proposalThreshold = proposerReq.minBalance;
         console.log("Proposal threshold:", proposalThreshold);
         uint256 lockRequirement = proposerReq.minLockAmount;
+        uint256 lockDuration = board.maxLockIntervals();
+        if (lockDuration == 0) {
+            lockDuration = 1;
+        }
         if (lockRequirement == 0) {
             lockRequirement = proposalThreshold > 0 ? proposalThreshold : 1 ether;
         }
         for (uint256 i = 0; i < proposers.length; i++) {
-            _proposeInitiative(proposerKeys[i], lockRequirement, i);
+            _proposeInitiative(proposerKeys[i], lockRequirement, lockDuration, i);
         }
 
         console.log("Final initiative count:", board.initiativeCount());
@@ -136,12 +140,17 @@ contract SeedInitiativesScript is SharedScriptBase {
         );
     }
 
-    function _proposeInitiative(uint256 proposerKey, uint256 amountToLock, uint256 index) internal {
+    function _proposeInitiative(
+        uint256 proposerKey,
+        uint256 amountToLock,
+        uint256 lockDuration,
+        uint256 index
+    ) internal {
         vm.startBroadcast(proposerKey);
         (string memory title, string memory body) = _createInitiativeData(index);
         token.approve(address(board), amountToLock);
         ISignals.Attachment[] memory attachments = new ISignals.Attachment[](0);
-        board.proposeInitiativeWithLock(title, body, attachments, amountToLock, 12);
+        board.proposeInitiativeWithLock(title, body, attachments, amountToLock, lockDuration);
         vm.stopBroadcast();
         console.log(string.concat("Submitted initiative: ", title));
     }
