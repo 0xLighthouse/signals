@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import "forge-std/console.sol";
 import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
+import {IAuthorizer} from "../src/interfaces/IAuthorizer.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IExperimentToken} from "@shared/interfaces/IExperimentToken.sol";
 
@@ -74,15 +75,15 @@ contract SeedInitiativesScript is SharedScriptBase {
 
         _ensureBoardOpen();
 
-        uint256 proposalThreshold = board.getProposerRequirements().minBalance;
+        IAuthorizer.ParticipantRequirements memory proposerReq = board.getProposerRequirements();
+        uint256 proposalThreshold = proposerReq.minBalance;
         console.log("Proposal threshold:", proposalThreshold);
-
+        uint256 lockRequirement = proposerReq.minLockAmount;
+        if (lockRequirement == 0) {
+            lockRequirement = proposalThreshold > 0 ? proposalThreshold : 1 ether;
+        }
         for (uint256 i = 0; i < proposers.length; i++) {
-            uint256 amountToLock = proposalThreshold / 5;
-            if (amountToLock == 0) {
-                amountToLock = 1 ether;
-            }
-            _proposeInitiative(proposerKeys[i], amountToLock, i);
+            _proposeInitiative(proposerKeys[i], lockRequirement, i);
         }
 
         console.log("Final initiative count:", board.initiativeCount());
