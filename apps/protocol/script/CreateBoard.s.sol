@@ -8,10 +8,7 @@ import {Signals} from "../src/Signals.sol";
 import {ISignalsFactory} from "../src/interfaces/ISignalsFactory.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 import {IAuthorizer} from "../src/interfaces/IAuthorizer.sol";
-import {TokenRegistry} from "../src/TokenRegistry.sol";
-import {Bounties} from "../src/Bounties.sol";
-import {MockERC20} from "../test/mocks/MockERC20.m.sol";
-import {MockStable} from "../test/mocks/MockStable.m.sol";
+import {IExperimentToken} from "@shared/interfaces/IExperimentToken.sol";
 
 /**
  * This script is used to create a Signals board with some default parameters for the Edge Experiment
@@ -25,8 +22,12 @@ contract CreateBoard is SharedScriptBase {
     address _charlie;
 
     SignalsFactory _factory;
-    MockERC20 _token;
-    Bounties _bounties;
+    IExperimentToken _token;
+
+    uint256 private constant PROPOSER_MIN_BALANCE = 10_000 ether;
+    uint256 private constant PROPOSER_MIN_LOCK = 20_000 ether;
+    uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
+    uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
 
     /**
      * @param network The network to deploy the contracts to
@@ -44,7 +45,7 @@ contract CreateBoard is SharedScriptBase {
 
         // Get factory reference
         _factory = SignalsFactory(factoryAddress);
-        _token = MockERC20(underlyingToken);
+        _token = IExperimentToken(underlyingToken);
 
         // Derive example participant accounts from the seed phrase when on anvil
         if (keccak256(abi.encodePacked(network)) != keccak256(abi.encodePacked("anvil"))) {
@@ -63,12 +64,7 @@ contract CreateBoard is SharedScriptBase {
         console.log("Bob:", _bob);
         console.log("Charlie:", _charlie);
 
-        // Distribute faucets
-        vm.startBroadcast(deployerPrivateKey);
-        _token.faucet(_alice);
-        _token.faucet(_bob);
-        _token.faucet(_charlie);
-        vm.stopBroadcast();
+        _seedParticipants(deployerPrivateKey);
 
         // decayCurveParameters for decayCurveType = 1 (exponential)
         // params[0]: per-interval multiplier in 18-decimal fixed-point.
@@ -94,15 +90,15 @@ contract CreateBoard is SharedScriptBase {
                 inactivityTimeout: 10 days, // 10 days
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
                     eligibilityType: IAuthorizer.EligibilityType.MinBalance,
-                    minBalance: 10_000 ether, // 10k tokens
+                    minBalance: PROPOSER_MIN_BALANCE, // 10k tokens
                     minHoldingDuration: 0,
-                    minLockAmount: 20_000 ether // 20k tokens
+                    minLockAmount: PROPOSER_MIN_LOCK // 20k tokens
                 }),
                 supporterRequirements: IAuthorizer.ParticipantRequirements({
                     eligibilityType: IAuthorizer.EligibilityType.MinBalance,
-                    minBalance: 10_000 ether,
+                    minBalance: SUPPORTER_MIN_BALANCE,
                     minHoldingDuration: 0,
-                    minLockAmount: 5_000 ether
+                    minLockAmount: SUPPORTER_MIN_LOCK
                 }),
                 releaseLockDuration: 0,
                 boardOpenAt: block.timestamp + 1 hours,
@@ -141,5 +137,17 @@ contract CreateBoard is SharedScriptBase {
         // Signals(protocolAddress).setBounties(address(_bounties));
         // vm.stopBroadcast();
         // console.log("BountiesContract", address(_bounties));
+    }
+
+    function _seedParticipants(uint256 deployerPrivateKey) internal {
+        IExperimentToken.BatchMintRequest[] memory mints =
+            new IExperimentToken.BatchMintRequest[](3);
+        mints[0] = IExperimentToken.BatchMintRequest({to: _alice, amount: PROPOSER_MIN_BALANCE * 3});
+        mints[1] = IExperimentToken.BatchMintRequest({to: _bob, amount: PROPOSER_MIN_BALANCE * 2});
+        mints[2] = IExperimentToken.BatchMintRequest({to: _charlie, amount: SUPPORTER_MIN_LOCK * 5});
+
+        vm.startBroadcast(deployerPrivateKey);
+        _token.batchMint(mints, "Seed Signals experiment participants");
+        vm.stopBroadcast();
     }
 }

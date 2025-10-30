@@ -5,7 +5,7 @@ import "forge-std/console.sol";
 import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
 import {ISignals} from "../src/interfaces/ISignals.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {MockERC20} from "../test/mocks/MockERC20.m.sol";
+import {IExperimentToken} from "@shared/interfaces/IExperimentToken.sol";
 
 /**
  * Seeds a Signals board with example initiatives and token locks for local testing.
@@ -13,7 +13,7 @@ import {MockERC20} from "../test/mocks/MockERC20.m.sol";
  * @notice forge script script/TestnetData.s.sol --rpc-url $ANVIL_RPC_URL --broadcast --sig "run(string,address)" anvil <boardAddress>
  */
 contract SeedInitiativesScript is SharedScriptBase {
-    MockERC20 private token;
+    IExperimentToken private token;
     ISignals private board;
 
     address private _deployer;
@@ -60,7 +60,7 @@ contract SeedInitiativesScript is SharedScriptBase {
         _charlie = vm.addr(charlieKey);
 
         board = ISignals(boardAddress);
-        token = MockERC20(board.token());
+        token = IExperimentToken(board.token());
 
         console.log("Signals board:", boardAddress);
         console.log("Token:", address(token));
@@ -110,7 +110,11 @@ contract SeedInitiativesScript is SharedScriptBase {
         vm.stopBroadcast();
     }
 
-    function _createInitiativeData(uint256 index) internal view returns (string memory title, string memory body) {
+    function _createInitiativeData(uint256 index)
+        internal
+        view
+        returns (string memory title, string memory body)
+    {
         uint256 i = index % titles.length;
         title = string.concat(titles[i], " #", Strings.toString(index + 1));
         body = string.concat(
