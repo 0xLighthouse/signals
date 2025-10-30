@@ -72,6 +72,8 @@ contract SeedInitiativesScript is SharedScriptBase {
         _ensureEthBalances(proposers);
         _seedTokenBalances(deployerKey, proposers);
 
+        _ensureBoardOpen();
+
         uint256 proposalThreshold = board.getProposerRequirements().minBalance;
         console.log("Proposal threshold:", proposalThreshold);
 
@@ -84,6 +86,14 @@ contract SeedInitiativesScript is SharedScriptBase {
         }
 
         console.log("Final initiative count:", board.initiativeCount());
+    }
+
+    function _ensureBoardOpen() internal {
+        uint256 openAt = board.boardOpenAt();
+        if (openAt > block.timestamp) {
+            console.log("Warping chain to open board at:", openAt);
+            vm.warp(openAt + 1);
+        }
     }
 
     function _ensureEthBalances(address[3] memory accounts) internal {
