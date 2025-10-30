@@ -37,19 +37,13 @@ contract ExperimentToken is ERC20Burnable, ERC20Pausable, Ownable, EIP712 {
     event BatchMinted(address indexed operator, address indexed to, uint256 amount, string reason);
     event AllowanceSignerUpdated(address indexed previousSigner, address indexed newSigner);
 
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address initialOwner_,
-        uint256 initialSupply_,
-        address allowanceSigner_
-    ) ERC20(name_, symbol_) Ownable(initialOwner_) EIP712("ExperimentToken", "1") {
+    constructor(string memory name_, string memory symbol_, address initialOwner_, address allowanceSigner_)
+        ERC20(name_, symbol_)
+        Ownable(initialOwner_)
+        EIP712("ExperimentToken", "1")
+    {
         address resolvedSigner = allowanceSigner_ == address(0) ? initialOwner_ : allowanceSigner_;
         allowanceSigner = resolvedSigner;
-
-        if (initialSupply_ > 0) {
-            _mint(initialOwner_, initialSupply_);
-        }
     }
 
     /**
@@ -77,20 +71,14 @@ contract ExperimentToken is ERC20Burnable, ERC20Pausable, Ownable, EIP712 {
      * @param deadline Timestamp after which the allowance is invalid.
      * @param signature EIP-712 signature from the allowance signer.
      */
-    function claim(
-        address to,
-        uint256 participantId,
-        uint256 amount,
-        uint256 deadline,
-        bytes calldata signature
-    ) external {
+    function claim(address to, uint256 participantId, uint256 amount, uint256 deadline, bytes calldata signature)
+        external
+    {
         if (to == address(0)) revert InvalidRecipient();
         if (_claimed[participantId]) revert ParticipantAlreadyClaimed(participantId);
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
 
-        bytes32 digest = _hashTypedDataV4(
-            keccak256(abi.encode(CLAIM_TYPEHASH, to, participantId, amount, deadline))
-        );
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(CLAIM_TYPEHASH, to, participantId, amount, deadline)));
         address recovered = ECDSA.recover(digest, signature);
         if (recovered != allowanceSigner) revert InvalidSignature();
 

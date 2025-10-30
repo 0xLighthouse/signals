@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import "forge-std/console.sol";
 
 import {ExperimentTokenFactory} from "../src/ExperimentTokenFactory.sol";
+import {ExperimentToken} from "../src/ExperimentToken.sol";
 import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
 
 /**
@@ -31,50 +32,27 @@ import {ExperimentDeployerBase} from "./utils/ExperimentDeployerBase.sol";
  *      "0x0000000000000000000000000000000000000000" \
  *      "0x0000000000000000000000000000000000000000"
  */
-contract DeployFactoryToken is ExperimentDeployerBase {
-    function run(
-        string memory network,
-        address factoryAddress,
-        string memory name,
-        string memory symbol,
-        uint256 initialSupply,
-        address owner,
-        address allowanceSigner
-    ) external {
+contract DeployTokenFromFactory is ExperimentDeployerBase {
+    function run(string memory network, address factoryAddress, string memory name, string memory symbol) external {
         require(factoryAddress != address(0), "Factory address required");
         require(bytes(name).length > 0, "Token name required");
         require(bytes(symbol).length > 0, "Token symbol required");
 
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
-
-        // Use deployer as owner if address(0) is passed
-        if (owner == address(0)) {
-            owner = deployerAddress;
-        }
-
-        if (allowanceSigner == address(0)) {
-            allowanceSigner = owner;
-        }
-
-        console.log("=== Deploy ExperimentToken ===");
-        console.log("Factory:", factoryAddress);
-        console.log("Deployer:", deployerAddress);
-        console.log("Owner:", owner);
-        console.log("Allowance signer:", allowanceSigner);
-        console.log("Name:", name);
-        console.log("Symbol:", symbol);
-        console.log("Initial Supply:", initialSupply);
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
 
         vm.startBroadcast(deployerPrivateKey);
-        address tokenAddress = ExperimentTokenFactory(factoryAddress).deployToken(
-            name,
-            symbol,
-            initialSupply,
-            owner,
-            allowanceSigner
-        );
+        address tokenAddress = ExperimentTokenFactory(factoryAddress).deployToken(name, symbol);
         vm.stopBroadcast();
 
-        console.log("ExperimentToken deployed at:", tokenAddress);
+        ExperimentToken token = ExperimentToken(tokenAddress);
+
+        console.log("=== Deploy ExperimentToken from Factory===");
+        console.log("Owner:", token.owner());
+        console.log("Signer:", token.allowanceSigner());
+        console.log("Token Address:", tokenAddress);
+        console.log("Name:", token.name());
+        console.log("Symbol:", token.symbol());
+
+        console.log("ScriptOutput:", tokenAddress);
     }
 }

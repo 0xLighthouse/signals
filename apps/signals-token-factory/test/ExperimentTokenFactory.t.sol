@@ -17,41 +17,32 @@ contract ExperimentTokenFactoryTest is Test {
         keccak256("Claim(address to,uint256 participantId,uint256 amount,uint256 deadline)");
 
     function setUp() public {
-        factory = new ExperimentTokenFactory();
+        factory = new ExperimentTokenFactory(SIGNER);
     }
 
     function test_DeployInitialSupplyAndOwner() public {
         address owner = makeAddr("owner");
-        uint256 supply = 1_000 ether;
 
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", supply, owner, address(0))
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         assertEq(token.name(), "Experiment Token");
         assertEq(token.symbol(), "EDGE");
-        assertEq(token.totalSupply(), supply);
-        assertEq(token.balanceOf(owner), supply);
         assertEq(token.owner(), owner);
-        assertEq(token.allowanceSigner(), owner);
+        assertEq(token.allowanceSigner(), SIGNER);
     }
 
     function test_DeployWithExplicitSigner() public {
         address owner = makeAddr("owner");
         address customSigner = makeAddr("signer");
 
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, owner, customSigner)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         assertEq(token.owner(), owner);
         assertEq(token.allowanceSigner(), customSigner);
     }
 
     function test_ClaimMintsTokensWithValidSignature() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address claimant = makeAddr("claimant");
         uint256 amount = 200 ether;
@@ -66,9 +57,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_ClaimRevertsForDuplicateClaims() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address claimant = makeAddr("claimant");
         uint256 amount = 100 ether;
@@ -82,9 +71,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_ClaimRevertsForInvalidSignature() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address claimant = makeAddr("claimant");
         uint256 amount = 100 ether;
@@ -96,9 +83,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_ClaimRevertsWhenExpired() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address claimant = makeAddr("claimant");
         uint256 amount = 100 ether;
@@ -110,9 +95,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_ClaimRevertsForZeroRecipient() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         uint256 amount = 100 ether;
         uint256 deadline = block.timestamp + 1 days;
@@ -123,9 +106,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_PauseBlocksTransfers() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 1_000 ether, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address recipient = makeAddr("recipient");
 
@@ -145,9 +126,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_SetAllowanceSigner() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         address newSigner = makeAddr("new-signer");
 
@@ -156,9 +135,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_BatchMintMintsTokensAndEmits() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         ExperimentToken.BatchMintRequest[] memory mints = new ExperimentToken.BatchMintRequest[](2);
         mints[0] = ExperimentToken.BatchMintRequest({to: makeAddr("alice"), amount: 50 ether});
@@ -171,9 +148,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_BatchMintRevertsForZeroAmount() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         ExperimentToken.BatchMintRequest[] memory mints = new ExperimentToken.BatchMintRequest[](1);
         mints[0] = ExperimentToken.BatchMintRequest({to: makeAddr("zero"), amount: 0});
@@ -183,9 +158,7 @@ contract ExperimentTokenFactoryTest is Test {
     }
 
     function test_BatchMintRevertsForEmptyBatch() public {
-        ExperimentToken token = ExperimentToken(
-            factory.deployToken("Experiment Token", "EDGE", 0, address(this), SIGNER)
-        );
+        ExperimentToken token = ExperimentToken(factory.deployToken("Experiment Token", "EDGE"));
 
         ExperimentToken.BatchMintRequest[] memory emptyMints = new ExperimentToken.BatchMintRequest[](0);
 
@@ -193,13 +166,11 @@ contract ExperimentTokenFactoryTest is Test {
         token.batchMint(emptyMints, "none");
     }
 
-    function _sign(
-        ExperimentToken token,
-        address to,
-        uint256 participantId,
-        uint256 amount,
-        uint256 deadline
-    ) private view returns (bytes memory) {
+    function _sign(ExperimentToken token, address to, uint256 participantId, uint256 amount, uint256 deadline)
+        private
+        view
+        returns (bytes memory)
+    {
         return _signWithKey(token, to, participantId, amount, deadline, SIGNER_PK);
     }
 
@@ -216,13 +187,11 @@ contract ExperimentTokenFactoryTest is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    function _digest(
-        address token,
-        address to,
-        uint256 participantId,
-        uint256 amount,
-        uint256 deadline
-    ) private view returns (bytes32) {
+    function _digest(address token, address to, uint256 participantId, uint256 amount, uint256 deadline)
+        private
+        view
+        returns (bytes32)
+    {
         bytes32 domainSeparator = keccak256(
             abi.encode(
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),

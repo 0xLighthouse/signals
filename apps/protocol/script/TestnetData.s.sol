@@ -17,11 +17,6 @@ contract SeedInitiativesScript is SharedScriptBase {
     IExperimentToken private token;
     ISignals private board;
 
-    address private _deployer;
-    address private _alice;
-    address private _bob;
-    address private _charlie;
-
     string[] private titles = [
         "Accelerating Local Coordination Networks",
         "Ethical Acceleration Charter",
@@ -44,34 +39,17 @@ contract SeedInitiativesScript is SharedScriptBase {
             revert("SeedInitiativesScript only supports the anvil network");
         }
 
-        (uint256 deployerKey, address deployerAddress) = _loadDeployer(network);
-        console.log("=== Seeds: Initiatives ===");
-        console.log(string.concat("Network: ", network));
-        console.log("Deployer:", deployerAddress);
-
-        string memory seedPhrase = vm.envString("ANVIL_SEED_PHRASE");
-
-        uint256 aliceKey = vm.deriveKey(seedPhrase, 1);
-        uint256 bobKey = vm.deriveKey(seedPhrase, 2);
-        uint256 charlieKey = vm.deriveKey(seedPhrase, 3);
-
-        _deployer = deployerAddress;
-        _alice = vm.addr(aliceKey);
-        _bob = vm.addr(bobKey);
-        _charlie = vm.addr(charlieKey);
+        console.log("=== Seeds Initiatives On Signals Board ===");
 
         board = ISignals(boardAddress);
         token = IExperimentToken(board.token());
 
-        console.log("Signals board:", boardAddress);
-        console.log("Token:", address(token));
-        console.log(string.concat("Token symbol: ", token.symbol()));
+        uint256[3] memory proposerKeys;
+        address[3] memory proposers;
 
-        uint256[3] memory proposerKeys = [aliceKey, bobKey, charlieKey];
-        address[3] memory proposers = [_alice, _bob, _charlie];
-
-        _ensureEthBalances(proposers);
-        _seedTokenBalances(deployerKey, proposers);
+        (proposerKeys[0], proposers[0]) = _loadPrivateKey(network, "alice");
+        (proposerKeys[1], proposers[1]) = _loadPrivateKey(network, "bob");
+        (proposerKeys[2], proposers[2]) = _loadPrivateKey(network, "charlie");
 
         _ensureBoardOpen();
 
@@ -90,7 +68,9 @@ contract SeedInitiativesScript is SharedScriptBase {
             _proposeInitiative(proposerKeys[i], lockRequirement, lockDuration, i);
         }
 
-        console.log("Final initiative count:", board.initiativeCount());
+        console.log(
+            "ScriptOutput:", Strings.toString(board.initiativeCount()), " initiatives seeded"
+        );
     }
 
     function _ensureBoardOpen() internal {

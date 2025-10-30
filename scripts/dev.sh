@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+CLEAN=false
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.envrc"
@@ -16,11 +18,8 @@ fi
 
 cd "${ROOT_DIR}"
 
-: "${ANVIL_RPC:?ANVIL_RPC is not set.}"
-: "${ANVIL_DEPLOYER_PRIVATE_KEY:?ANVIL_DEPLOYER_PRIVATE_KEY is not set.}"
-
-strip_ansi() {
-  sed -E 's/\x1b\[[0-9;]*m//g'
+extract_script_output() {
+  printf '%s\n' "$1" | sed -E 's/\x1b\[[0-9;]*m//g' | awk -F': ' '/ScriptOutput/ {print $2}' | tr -d '[:space:]'
 }
 
 run_and_capture() {
@@ -39,12 +38,19 @@ run_and_capture() {
   output=$(cat "$tmp")
   rm -f "$tmp"
 
-  eval "$__resultvar=\"\$output\""
-
   if [[ $status -ne 0 ]]; then
     echo "Command failed: $*" >&2
     exit $status
   fi
+
+  local script_output=""
+  script_output=$(extract_script_output "$output")
+  if [[ -z "${script_output}" ]]; then
+    echo "Failed to determine script output" >&2
+    exit 1
+  fi
+
+  printf -v "$__resultvar" '%s' "$script_output"
 }
 
 # Test if anvil is running on port 8545
@@ -53,99 +59,109 @@ if ! nc -z localhost 8545; then
   exit 1
 fi
 
-# Deploy the signals token factory to the development network
+#####################
+#   Set up environment variables
+#####################
+
+ANVIL_RPC=${ANVIL_RPC:-"http://localhost:8545"}
+
+export ANVIL_DEPLOYER_PRIVATE_KEY=${ANVIL_DEPLOYER_PRIVATE_KEY:-"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"}
+export ANVIL_SIGNER_PRIVATE_KEY=${ANVIL_SIGNER_PRIVATE_KEY:-"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"}
+export ANVIL_ALICE_PRIVATE_KEY=${ANVIL_ALICE_PRIVATE_KEY:-"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"}
+export ANVIL_BOB_PRIVATE_KEY=${ANVIL_BOB_PRIVATE_KEY:-"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"}
+export ANVIL_CHARLIE_PRIVATE_KEY=${ANVIL_CHARLIE_PRIVATE_KEY:-"0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"}
+
+
 cd apps/signals-token-factory
+#forge clean && forge install
+
+#####################
+#   Deploy Experiment Token Factory
+#####################
+
+echo "Deploying Experiment Token Factory..."
+run_and_capture token_factory_address \
+  forge script script/DeployTokenFactory.s.sol:DeployTokenFactory \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "run(string)" \
+    "anvil"
+
+#####################
+#   Deploy Experiment Token
+#####################
 
 TOKEN_NAME=${TOKEN_NAME:-"Signals Edge Experiment"}
 TOKEN_SYMBOL=${TOKEN_SYMBOL:-"SIG-INT"}
-TOKEN_INITIAL_SUPPLY=${TOKEN_INITIAL_SUPPLY:-0}
-TOKEN_OWNER=${TOKEN_OWNER:-"0x0000000000000000000000000000000000000000"}
-TOKEN_ALLOWANCE_SIGNER=${TOKEN_ALLOWANCE_SIGNER:-"0x0000000000000000000000000000000000000000"}
 
-echo "Deploying ExperimentTokenFactory..."
-run_and_capture token_factory_output \
-  forge script script/DeployFactory.s.sol:DeployFactory \
+echo "Deploying Experiment Token..."
+run_and_capture token_address \
+  forge script script/DeployTokenFromFactory.s.sol:DeployTokenFromFactory \
     --rpc-url "$ANVIL_RPC" \
     --broadcast \
-    --private-key "$ANVIL_DEPLOYER_PRIVATE_KEY" \
-    -s "run(string)" \
-    "anvil"
-
-token_factory_address=$(printf '%s\n' "$token_factory_output" | strip_ansi | awk -F': ' '/Factory deployed at/ {print $2}' | tr -d '[:space:]')
-if [[ -z "$token_factory_address" ]]; then
-  echo "Failed to determine ExperimentTokenFactory address" >&2
-  exit 1
-fi
-echo "ExperimentTokenFactory: $token_factory_address"
-
-echo "Deploying ExperimentToken..."
-run_and_capture token_output \
-  forge script script/DeployFactoryToken.s.sol:DeployFactoryToken \
-    --rpc-url "$ANVIL_RPC" \
-    --broadcast \
-    --private-key "$ANVIL_DEPLOYER_PRIVATE_KEY" \
-    -s "run(string,address,string,string,uint256,address,address)" \
+    -s "run(string,address,string,string)" \
     "anvil" \
     "$token_factory_address" \
     "$TOKEN_NAME" \
-    "$TOKEN_SYMBOL" \
-    "$TOKEN_INITIAL_SUPPLY" \
-    "$TOKEN_OWNER" \
-    "$TOKEN_ALLOWANCE_SIGNER"
+    "$TOKEN_SYMBOL"
 
-token_address=$(printf '%s\n' "$token_output" | strip_ansi | awk -F': ' '/ExperimentToken deployed at/ {print $2}' | tr -d '[:space:]')
-if [[ -z "$token_address" ]]; then
-  echo "Failed to determine ExperimentToken address" >&2
-  exit 1
-fi
-echo "ExperimentToken: $token_address"
+#####################
+#   Issue test tokens to Alice, Bob, and Charlie
+#####################
+
+echo "Issuing test tokens..."
+run_and_capture issue_test_tokens_output \
+  forge script script/IssueTestTokens.s.sol:IssueTestTokens \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "run(string,string,address,string[])" \
+    "anvil" \
+    "deployer" \
+    "$token_address" \
+    "[\"alice\", \"bob\", \"charlie\"]" \
 
 cd ../..
 
-# Create a Signals Board
-cd apps/protocol
-forge clean && forge install
+#####################
+#   Deploy Signals Factory
+#####################
 
-echo "Deploying SignalsFactory..."
-run_and_capture signals_factory_output \
-  forge script script/CreateFactory.s.sol:CreateFactory \
+cd apps/protocol
+#forge clean && forge install
+
+echo "Deploying Signals Factory..."
+run_and_capture signals_factory_address \
+  forge script script/DeploySignalsFactory.s.sol:DeploySignalsFactory \
     --rpc-url "$ANVIL_RPC" \
     --broadcast \
-    --private-key "$ANVIL_DEPLOYER_PRIVATE_KEY" \
     -s "run(string)" \
     "anvil"
 
-signals_factory_address=$(printf '%s\n' "$signals_factory_output" | strip_ansi | awk '/FactoryContract/ {print $2}' | tr -d '[:space:]')
-if [[ -z "$signals_factory_address" ]]; then
-  echo "Failed to determine SignalsFactory address" >&2
-  exit 1
-fi
-echo "SignalsFactory: $signals_factory_address"
 
-echo "Creating Signals board..."
-run_and_capture board_output \
-  forge script script/CreateBoard.s.sol:CreateBoard \
+#####################
+#   Deploy Signals Board
+#####################
+
+echo "Deploying Signals board..."
+run_and_capture board_address \
+  forge -vvvv script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
     --rpc-url "$ANVIL_RPC" \
     --broadcast \
-    --private-key "$ANVIL_DEPLOYER_PRIVATE_KEY" \
     -s "run(string,address,address)" \
     "anvil" \
     "$signals_factory_address" \
     "$token_address"
 
-board_address=$(printf '%s\n' "$board_output" | strip_ansi | awk '/SignalsContract/ {print $2}' | tr -d '[:space:]')
-if [[ -z "$board_address" ]]; then
-  echo "Failed to determine Signals board address" >&2
-  exit 1
-fi
-echo "Signals board: $board_address"
+
+#####################
+#   Seed test initiatives
+#####################
 
 echo "Seeding test initiatives..."
-run_and_capture seed_output \
+run_and_capture seed_initiatives_output \
   forge script script/TestnetData.s.sol:SeedInitiativesScript \
     --rpc-url "$ANVIL_RPC" \
     --broadcast \
-    --private-key "$ANVIL_DEPLOYER_PRIVATE_KEY" \
     -s "run(string,address)" \
     "anvil" \
     "$board_address"
@@ -156,5 +172,7 @@ echo
 echo "=== Deployment summary ==="
 echo "ExperimentTokenFactory: $token_factory_address"
 echo "ExperimentToken:        $token_address"
+echo "Issue test tokens:      $issue_test_tokens_output"
 echo "SignalsFactory:         $signals_factory_address"
 echo "Signals board:          $board_address"
+echo "Seed initiatives:       $seed_initiatives_output"

@@ -13,7 +13,7 @@ import {IExperimentToken} from "@shared/interfaces/IExperimentToken.sol";
 /**
  * This script is used to create a Signals board with some default parameters for the Edge Experiment
  */
-contract CreateBoard is SharedScriptBase {
+contract DeploySignalsBoardFromFactory is SharedScriptBase {
     address _deployer;
     address _instance;
 
@@ -28,6 +28,7 @@ contract CreateBoard is SharedScriptBase {
     uint256 private constant PROPOSER_MIN_LOCK = 20_000 ether;
     uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
     uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
+    uint256 private constant ACCEPTANCE_THRESHOLD = 1_000_000 ether;
 
     /**
      * @param network The network to deploy the contracts to
@@ -39,32 +40,11 @@ contract CreateBoard is SharedScriptBase {
             revert(string.concat("Unsupported network [", network, "] provided"));
         }
 
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
-
-        console.log("DeployerAddress", deployerAddress);
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadPrivateKey(network, "deployer");
 
         // Get factory reference
         _factory = SignalsFactory(factoryAddress);
         _token = IExperimentToken(underlyingToken);
-
-        // Derive example participant accounts from the seed phrase when on anvil
-        if (keccak256(abi.encodePacked(network)) != keccak256(abi.encodePacked("anvil"))) {
-            revert(string.concat("Only anvil network is supported for local deployment"));
-        }
-
-        string memory seedPhrase = vm.envString("ANVIL_SEED_PHRASE");
-        _alice = vm.addr(vm.deriveKey(seedPhrase, 1));
-        _bob = vm.addr(vm.deriveKey(seedPhrase, 2));
-        _charlie = vm.addr(vm.deriveKey(seedPhrase, 3));
-
-        console.log("=== Board Creation ===");
-        console.log("Deployer:", deployerAddress);
-        console.log("Factory:", factoryAddress);
-        console.log("Alice:", _alice);
-        console.log("Bob:", _bob);
-        console.log("Charlie:", _charlie);
-
-        _seedParticipants(deployerPrivateKey);
 
         // decayCurveParameters for decayCurveType = 1 (exponential)
         // params[0]: per-interval multiplier in 18-decimal fixed-point.
@@ -79,15 +59,15 @@ contract CreateBoard is SharedScriptBase {
         address protocolAddress = _factory.create(
             ISignals.BoardConfig({
                 version: _factory.version(),
-                owner: _alice,
+                owner: deployerAddress,
                 underlyingToken: underlyingToken,
-                acceptanceThreshold: 45_000_000 ether, // 45M tokens
-                maxLockIntervals: 7, // 21 days
-                proposalCap: 5, // 30 proposals
-                lockInterval: 3 days, // 3 days
+                acceptanceThreshold: ACCEPTANCE_THRESHOLD,
+                lockInterval: 1 days,
+                maxLockIntervals: 7,
+                proposalCap: 5,
                 decayCurveType: 1, // exponential
                 decayCurveParameters: params,
-                inactivityTimeout: 10 days, // 10 days
+                inactivityTimeout: 3 days, // 10 days
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
                     eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                     minBalance: PROPOSER_MIN_BALANCE, // 10k tokens
@@ -101,16 +81,18 @@ contract CreateBoard is SharedScriptBase {
                     minLockAmount: SUPPORTER_MIN_LOCK
                 }),
                 releaseLockDuration: 0,
-                boardOpenAt: block.timestamp + 1 hours,
-                boardClosedAt: (block.timestamp + 1 hours) + 30 days // ~30 days after opening (end of experiment)
+                boardOpenAt: block.timestamp,
+                boardClosedAt: block.timestamp + 30 days
             })
         );
-        vm.stopBroadcast();
 
+        vm.stopBroadcast();
         Signals protocol = Signals(protocolAddress);
-        console.log("SignalsContract", protocolAddress);
-        console.log("Total proposals", protocol.totalInitiatives());
-        console.log("Proposal threshold", protocol.getProposerRequirements().minBalance);
+
+        console.log("=== Signals Board Deployment ===");
+        console.log("Deployer: ", deployerAddress);
+        console.log("Underlying Token: ", underlyingToken);
+        console.log("Signals Contract Address: ", protocolAddress);
         console.log("Acceptance threshold", protocol.acceptanceThreshold());
 
         // // Deploy a mock USDC and initialize
@@ -137,17 +119,7 @@ contract CreateBoard is SharedScriptBase {
         // Signals(protocolAddress).setBounties(address(_bounties));
         // vm.stopBroadcast();
         // console.log("BountiesContract", address(_bounties));
-    }
 
-    function _seedParticipants(uint256 deployerPrivateKey) internal {
-        IExperimentToken.BatchMintRequest[] memory mints =
-            new IExperimentToken.BatchMintRequest[](3);
-        mints[0] = IExperimentToken.BatchMintRequest({to: _alice, amount: PROPOSER_MIN_BALANCE * 3});
-        mints[1] = IExperimentToken.BatchMintRequest({to: _bob, amount: PROPOSER_MIN_BALANCE * 2});
-        mints[2] = IExperimentToken.BatchMintRequest({to: _charlie, amount: SUPPORTER_MIN_LOCK * 5});
-
-        vm.startBroadcast(deployerPrivateKey);
-        _token.batchMint(mints, "Seed Signals experiment participants");
-        vm.stopBroadcast();
+        console.log("ScriptOutput:", protocolAddress);
     }
 }

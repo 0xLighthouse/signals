@@ -9,7 +9,7 @@ import "forge-std/Script.sol";
 abstract contract SharedScriptBase is Script {
     string[] public supportedNetworks = ["base-sepolia", "anvil"];
 
-    function isSupportedNetwork(string memory network) internal returns (bool) {
+    function isSupportedNetwork(string memory network) internal view returns (bool) {
         for (uint256 i = 0; i < supportedNetworks.length; i++) {
             if (keccak256(abi.encodePacked(supportedNetworks[i])) == keccak256(abi.encodePacked(network))) {
                 return true;
@@ -18,9 +18,17 @@ abstract contract SharedScriptBase is Script {
         return false;
     }
 
-    function _loadDeployer(string memory network) internal returns (uint256 privateKey, address deployer) {
+    function _loadPrivateKey(string memory network, string memory role)
+        internal
+        view
+        returns (uint256 privateKey, address deployer)
+    {
+        string memory roleUpper = _toUpperWithUnderscore(role);
         string memory networkUpper = _toUpperWithUnderscore(network);
-        string memory envVarName = string.concat(networkUpper, "_DEPLOYER_PRIVATE_KEY");
+        string memory envVarName = string.concat(networkUpper, "_", roleUpper, "_PRIVATE_KEY");
+        if (!vm.envExists(envVarName)) {
+            revert(string.concat("Private key for ", role, " on ", network, " not found in environment variables"));
+        }
         privateKey = vm.envUint(envVarName);
         deployer = vm.addr(privateKey);
     }
@@ -41,7 +49,7 @@ abstract contract SharedScriptBase is Script {
         return string(result);
     }
 
-    function _optionalEnvAddress(string memory key, address fallbackValue) internal returns (address value) {
+    function _optionalEnvAddress(string memory key, address fallbackValue) internal view returns (address value) {
         try vm.envAddress(key) returns (address candidate) {
             return candidate;
         } catch {
@@ -49,7 +57,7 @@ abstract contract SharedScriptBase is Script {
         }
     }
 
-    function _optionalEnvUint(string memory key, uint256 fallbackValue) internal returns (uint256 value) {
+    function _optionalEnvUint(string memory key, uint256 fallbackValue) internal view returns (uint256 value) {
         try vm.envUint(key) returns (uint256 candidate) {
             return candidate;
         } catch {

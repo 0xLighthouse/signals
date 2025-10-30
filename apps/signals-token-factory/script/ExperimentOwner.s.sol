@@ -1,45 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {Script} from "forge-std/Script.sol";
+import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
 import "forge-std/console.sol";
 
 import {ExperimentToken} from "../src/ExperimentTokenFactory.sol";
 
-abstract contract ExperimentOwnerBase is Script {
-    function _loadDeployer(string memory network) internal returns (uint256 privateKey, address deployer) {
-        // Convert network name to env var format: "anvil" -> "ANVIL", "base-sepolia" -> "BASE_SEPOLIA"
-        string memory networkUpper = _toUpperWithUnderscore(network);
-        string memory envVarName = string.concat(networkUpper, "_DEPLOYER_PRIVATE_KEY");
-
-        privateKey = vm.envUint(envVarName);
-        deployer = vm.addr(privateKey);
-    }
-
-    function _toUpperWithUnderscore(string memory str) internal pure returns (string memory) {
-        bytes memory strBytes = bytes(str);
-        bytes memory result = new bytes(strBytes.length);
-
-        for (uint256 i = 0; i < strBytes.length; i++) {
-            bytes1 char = strBytes[i];
-            // Convert hyphen to underscore
-            if (char == 0x2d) { // '-'
-                result[i] = 0x5f; // '_'
-            }
-            // Convert lowercase to uppercase (a-z -> A-Z)
-            else if (char >= 0x61 && char <= 0x7a) {
-                result[i] = bytes1(uint8(char) - 32);
-            }
-            else {
-                result[i] = char;
-            }
-        }
-
-        return string(result);
-    }
-
+abstract contract ExperimentOwnerBase is SharedScriptBase {
     function _readBatchMintConfig(string memory path)
         internal
+        view
         returns (ExperimentToken.BatchMintRequest[] memory mints, string memory reason)
     {
         string memory raw = vm.readFile(path);
@@ -77,14 +47,13 @@ abstract contract ExperimentOwnerBase is Script {
  */
 contract BatchMint is ExperimentOwnerBase {
     function run(string memory network, address tokenAddress, string memory configPath) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
         ExperimentToken token = ExperimentToken(tokenAddress);
         (ExperimentToken.BatchMintRequest[] memory mints, string memory reason) = _readBatchMintConfig(configPath);
 
         uint256 length = mints.length;
         uint256 totalAmount = 0;
         console.log("=== Batch Mint ===");
-        console.log("Deployer:", deployerAddress);
         console.log("Token:", tokenAddress);
         console.log("Entries:", length);
         console.log("Reason:", reason);
@@ -118,11 +87,10 @@ contract BatchMint is ExperimentOwnerBase {
  */
 contract SetAllowanceSigner is ExperimentOwnerBase {
     function run(string memory network, address tokenAddress, address newSigner) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Update Allowance Signer ===");
-        console.log("Deployer:", deployerAddress);
         console.log("Token:", tokenAddress);
         console.log("Current signer:", token.allowanceSigner());
         console.log("New signer:", newSigner);
@@ -148,11 +116,10 @@ contract SetAllowanceSigner is ExperimentOwnerBase {
  */
 contract PauseToken is ExperimentOwnerBase {
     function run(string memory network, address tokenAddress) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Pause Token ===");
-        console.log("Deployer:", deployerAddress);
         console.log("Token:", tokenAddress);
 
         vm.startBroadcast(deployerPrivateKey);
@@ -176,11 +143,10 @@ contract PauseToken is ExperimentOwnerBase {
  */
 contract UnpauseToken is ExperimentOwnerBase {
     function run(string memory network, address tokenAddress) external {
-        (uint256 deployerPrivateKey, address deployerAddress) = _loadDeployer(network);
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
         ExperimentToken token = ExperimentToken(tokenAddress);
 
         console.log("=== Unpause Token ===");
-        console.log("Deployer:", deployerAddress);
         console.log("Token:", tokenAddress);
 
         vm.startBroadcast(deployerPrivateKey);
