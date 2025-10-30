@@ -25,12 +25,19 @@ import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { usePrivy } from '@privy-io/react-auth'
 import { context } from '@/config/web3'
+import { features } from '@/config/features'
 
 interface Props {
   initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
+  const incentivesConfig = context.contracts.Incentives
+
+  if (!features.enableContributions || !incentivesConfig) {
+    return null
+  }
+
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
@@ -44,7 +51,7 @@ export function IncentiveDrawer({ initiative }: Props) {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: context.contracts.Incentives.address,
+    spender: incentivesConfig.address,
     tokenAddress: context.contracts.USDC.address,
     tokenDecimals: 6,
   })
@@ -93,8 +100,8 @@ export function IncentiveDrawer({ initiative }: Props) {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: context.contracts.Incentives.address,
-        abi: context.contracts.Incentives.abi,
+        address: incentivesConfig.address,
+        abi: incentivesConfig.abi,
         functionName: 'addIncentive',
         nonce,
         args: [

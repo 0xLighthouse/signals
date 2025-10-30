@@ -1,42 +1,42 @@
 import { createConfig, factory } from 'ponder'
-import { http, parseAbiItem } from 'viem'
+import { parseAbiItem } from 'viem'
 
 // Note: This should hot-reload when the file is changed
-import signalsTestnet from '../signals/broadcast/Testnet.s.sol/421614/run-latest.json'
+
+const DEPLOYMENTS = {
+  anvil: {
+    SignalsFactory: 'apps/protocol/broadcast/DeploySignalsFactory.s.sol/31337/run-latest.json'
+  }
+}
+
 import { resolveDeployment } from './src/utils/resolve-deployment'
 import {
-  IncentivesABI,
-  PoolManagerABI,
   SignalsABI,
   SignalsFactoryABI,
 } from '../../packages/abis'
+import { anvil } from 'viem/chains'
 
-const latestFactory = resolveDeployment('SignalsFactory', signalsTestnet)
+const latestFactory = resolveDeployment('SignalsFactory', DEPLOYMENTS.anvil.SignalsFactory)
 
 const factoryBoardCreatedEvent = parseAbiItem(
   'event BoardCreated(address indexed board, address indexed owner)',
 )
 
-const poolManagerInitializeEvent = parseAbiItem(
-  'event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)',
-)
-
 // https://ponder.sh/docs/advanced/foundry
 export default createConfig({
-  networks: {
-    arbitrumSepolia: {
-      chainId: 421614,
-      transport: http(process.env.ARBITRUM_SEPOLIA_RPC_URL!),
+  chains: {
+    anvil: {
+      id: anvil.id,
+      rpc: anvil.rpcUrls.default.http[0],
       // === RPS OPTIMIZATION SETTINGS ===
-
       // 1. Increase polling interval (default is 1000ms)
       // This reduces how often Ponder checks for new blocks
-      pollingInterval: 30_000, // Check every 10 seconds instead of every 1 second
+      pollingInterval: 1_000, // Check every 10 seconds instead of every 1 second
     },
   },
   contracts: {
     SignalsBoard: {
-      network: 'arbitrumSepolia',
+      chain: 'anvil',
       abi: SignalsABI,
       address: factory({
         address: latestFactory.address,
@@ -46,30 +46,18 @@ export default createConfig({
       // Start indexing from the last factory deployment
       startBlock: latestFactory.startBlock,
     },
-    // TODO: Move this to the Factory deployment
-    Incentives: {
-      network: 'arbitrumSepolia',
-      abi: IncentivesABI,
-      address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a',
-      startBlock: latestFactory.startBlock,
-    },
+    // // TODO: Move this to the Factory deployment
+    // Incentives: {
+    //   chain: 'anvil',
+    //   abi: IncentivesABI,
+    //   address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a',
+    //   startBlock: latestFactory.startBlock,
+    // },
     SignalsFactory: {
       abi: SignalsFactoryABI,
-      network: {
-        arbitrumSepolia: {
-          ...resolveDeployment('SignalsFactory', signalsTestnet),
-        },
-      },
-    },
-    PoolManager: {
-      abi: PoolManagerABI,
-      network: {
-        arbitrumSepolia: {
-          address: '0xfb3e0c6f74eb1a21cc1da29aec80d2dfe6c9a317',
-          // Start indexing from the last factory deployment
-          startBlock: latestFactory.startBlock,
-        },
-      },
+      chain: 'anvil',
+      address: resolveDeployment('SignalsFactory', DEPLOYMENTS.anvil.SignalsFactory).address,
+      startBlock: resolveDeployment('SignalsFactory', DEPLOYMENTS.anvil.SignalsFactory).startBlock,
     },
   },
 })

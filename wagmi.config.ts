@@ -10,7 +10,11 @@ export default defineConfig([
     plugins: [
       foundry({
         project: 'apps/protocol',
-        include: ['Signals.sol/**', 'SignalsFactory.sol/**', 'Incentives.sol/**'],
+        include: [
+          'Signals.sol/**',
+          'SignalsFactory.sol/**',
+          // , 'Incentives.sol/**'
+        ],
       }),
     ],
   },

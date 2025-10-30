@@ -1,6 +1,7 @@
 'use client'
 
 import { context, readClient } from '@/config/web3'
+import { features } from '@/config/features'
 import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
@@ -18,6 +19,12 @@ interface Props {
 
 //Provider
 export const IncentivesProvider: React.FC<Props> = ({ children }) => {
+  const incentivesConfig = context.contracts.Incentives
+
+  if (!features.enableContributions || !incentivesConfig) {
+    return <>{children}</>
+  }
+
   const { address } = useAccount()
 
   const [version, setVersion] = useState<number | null>(null)
@@ -30,8 +37,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
       try {
         const incentives = getContract({
-          address: context.contracts.Incentives.address,
-          abi: context.contracts.Incentives.abi,
+          address: incentivesConfig.address,
+          abi: incentivesConfig.abi,
           client: readClient,
         })
 
@@ -55,7 +62,7 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   return (
     <IncentivesContext.Provider
       value={{
-        address: context.contracts.Incentives.address,
+        address: incentivesConfig.address,
         version,
         allocations,
         receivers,

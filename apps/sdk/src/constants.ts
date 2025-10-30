@@ -2,7 +2,7 @@ import type { Address } from 'viem'
 import { signalsAbi, signalsFactoryAbi } from './abis'
 
 export enum ContractType {
-  UniswapV4PoolManager = 'UniswapV4PoolManager',
+  // UniswapV4PoolManager = 'UniswapV4PoolManager',
   SignalsFactory = 'SignalsFactory',
   Signals = 'Signals',
 }
@@ -14,7 +14,7 @@ export enum Network {
 
 // Define specific ABI types
 type ContractAbiMap = {
-  [ContractType.UniswapV4PoolManager]: [] // TODO: Add ABI
+  // [ContractType.UniswapV4PoolManager]: [] // TODO: Add ABI
   [ContractType.SignalsFactory]: typeof signalsFactoryAbi
   [ContractType.Signals]: typeof signalsAbi
 }
@@ -31,10 +31,6 @@ type ContractAddressesType = {
 
 export const ContractAddresses: ContractAddressesType = {
   [Network.ArbitrumSepolia]: {
-    [ContractType.UniswapV4PoolManager]: {
-      address: '0x0000000000000000000000000000000000000000',
-      abi: [], // FIXME: Add ABI
-    },
     [ContractType.SignalsFactory]: {
       address: '0x0000000000000000000000000000000000000000',
       abi: signalsFactoryAbi,
@@ -45,10 +41,10 @@ export const ContractAddresses: ContractAddressesType = {
     },
   },
   [Network.Anvil]: {
-    [ContractType.UniswapV4PoolManager]: {
-      address: '0x0000000000000000000000000000000000000000',
-      abi: [], // FIXME: Add ABI
-    },
+    // [ContractType.UniswapV4PoolManager]: {
+    //   address: '0x0000000000000000000000000000000000000000',
+    //   abi: [], // FIXME: Add ABI
+    // },
     [ContractType.SignalsFactory]: {
       address: '0x0000000000000000000000000000000000000000',
       abi: signalsFactoryAbi,

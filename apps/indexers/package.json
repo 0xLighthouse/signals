@@ -14,10 +14,10 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@uniswap/v4-sdk": "^1.21.2",
+    "drizzle-orm": "^0.44.7",
     "hono": "^4.5.0",
     "lru-cache": "^11.0.2",
-    "ponder": "^0.10.4",
+    "ponder": "^0.10.30",
     "viem": "^2.21.3"
   },
   "devDependencies": {

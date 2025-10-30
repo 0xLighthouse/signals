@@ -14,6 +14,8 @@ import { SignalsProvider } from '@/contexts/SignalsContext'
 import { IncentivesProvider } from '@/contexts/IncentivesContext'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/containers/app-sidebar'
+import { features } from '@/config/features'
+import { ReactNode } from 'react'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -39,6 +41,13 @@ export default function RootLayout({
   // Set the tailwind theme from stored cookie preference
   const theme = getThemeCookie()
 
+  const sidebarContent: ReactNode = (
+    <SidebarProvider defaultOpen={false}>
+      <AppSidebar />
+      {children}
+    </SidebarProvider>
+  )
+
   return (
     <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -46,12 +55,11 @@ export default function RootLayout({
           <Web3Provider>
             <TokenProvider>
               <SignalsProvider>
-                <IncentivesProvider>
-                  <SidebarProvider defaultOpen={false}>
-                    <AppSidebar />
-                    {children}
-                  </SidebarProvider>
-                </IncentivesProvider>
+                {features.enableContributions ? (
+                  <IncentivesProvider>{sidebarContent}</IncentivesProvider>
+                ) : (
+                  sidebarContent
+                )}
               </SignalsProvider>
               <Toaster />
             </TokenProvider>
