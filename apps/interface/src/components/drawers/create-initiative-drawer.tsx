@@ -25,8 +25,8 @@ import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
-import { context } from '@/config/web3'
 import { Typography } from '../ui/typography'
+import { useNetwork } from '@/hooks/useNetwork'
 
 type AttachmentDraft = {
   uri: string
@@ -42,6 +42,9 @@ export function CreateInitiativeDrawer() {
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
   const { formatter, board } = useSignals()
+  const { config } = useNetwork()
+  const signalsContract = config.contracts.SignalsProtocol
+  const underlyingContract = config.contracts.BoardUnderlyingToken
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number>(0)
@@ -55,9 +58,9 @@ export function CreateInitiativeDrawer() {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: context.contracts.SignalsProtocol.address,
-    tokenAddress: context.contracts.BoardUnderlyingToken.address,
-    tokenDecimals: context.contracts.BoardUnderlyingToken.decimals,
+    spender: signalsContract?.address,
+    tokenAddress: underlyingContract?.address,
+    tokenDecimals: underlyingContract?.decimals ?? 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -139,6 +142,10 @@ export function CreateInitiativeDrawer() {
         toast('Wallet not connected')
         return
       }
+      if (!signalsContract) {
+        toast('Network is missing Signals configuration. Please try again later.')
+        return
+      }
 
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
@@ -148,7 +155,10 @@ export function CreateInitiativeDrawer() {
         ? [
             title,
             description,
-            parseUnits(String(amount), 18),
+            parseUnits(
+              String(amount),
+              underlyingContract?.decimals ?? 18,
+            ),
             duration,
             preparedAttachments,
           ]
@@ -156,8 +166,8 @@ export function CreateInitiativeDrawer() {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
+        address: signalsContract.address,
+        abi: signalsContract.abi,
         functionName,
         nonce,
         args,

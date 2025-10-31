@@ -11,13 +11,22 @@ import {
 } from '../ui/breadcrumb'
 import { Slash } from 'lucide-react'
 
-import { ArbitrumIcon } from '../icons/arbitrum'
 import { DeploySignalsDrawer } from '../drawers/deploy-signals-drawer'
 import { BoardSelector } from './board-selector'
+import { ArbitrumIcon } from '../icons/arbitrum'
+import { BaseIcon } from '../icons/base'
+import { FoundryIcon } from '../icons/foundry'
+import { NetworkSwitcherDialog } from './network-switcher-dialog'
+import { useNetwork } from '@/hooks/useNetwork'
 
 export const Breadcrumbs: React.FC = () => {
   const { name, symbol } = useUnderlying()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDeployDrawerOpen, setIsDeployDrawerOpen] = useState(false)
+  const [isNetworkDialogOpen, setIsNetworkDialogOpen] = useState(false)
+  const { selected } = useNetwork()
+
+  const Icon =
+    selected === 'local' ? FoundryIcon : selected === 'base' ? BaseIcon : ArbitrumIcon
 
   const handleBoardSelect = (boardAddress: string) => {
     // TODO: Implement switching to a different board
@@ -28,11 +37,13 @@ export const Breadcrumbs: React.FC = () => {
     <Breadcrumb className="flex items-center">
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink>
-            <div className="bg-neutral-900 rounded-full p-[2px]">
-              <ArbitrumIcon />
-            </div>
-          </BreadcrumbLink>
+          <button
+            type="button"
+            onClick={() => setIsNetworkDialogOpen(true)}
+            className="bg-neutral-900 rounded-full p-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <Icon className="h-6 w-6" />
+          </button>
         </BreadcrumbItem>
         {name && symbol && (
           <div className="hidden sm:inline-flex items-center gap-1.5">
@@ -49,17 +60,18 @@ export const Breadcrumbs: React.FC = () => {
         </BreadcrumbSeparator>
         <BreadcrumbItem>
           <BoardSelector
-            onDeployBoard={() => setIsDialogOpen(true)}
+            onDeployBoard={() => setIsDeployDrawerOpen(true)}
             onBoardSelect={handleBoardSelect}
           />
         </BreadcrumbItem>
       </BreadcrumbList>
 
       <DeploySignalsDrawer
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        isOpen={isDeployDrawerOpen}
+        onOpenChange={setIsDeployDrawerOpen}
         hideTrigger={true}
       />
+      <NetworkSwitcherDialog open={isNetworkDialogOpen} onOpenChange={setIsNetworkDialogOpen} />
     </Breadcrumb>
   )
 }

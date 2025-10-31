@@ -1,7 +1,6 @@
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { context } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -27,6 +26,8 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
 import { useBondsStore } from '@/stores/useBondsStore'
+import { useNetwork } from '@/hooks/useNetwork'
+import { parseUnits } from 'viem'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
@@ -34,6 +35,10 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { authenticated, login } = usePrivy()
   const { balance, symbol, fetchContractMetadata } = useUnderlying()
   const { formatter, board } = useSignals()
+  const { config } = useNetwork()
+  const signalsContract = config.contracts.SignalsProtocol
+  const underlyingContract = config.contracts.BoardUnderlyingToken
+  const tokenDecimals = underlyingContract?.decimals ?? 18
 
   const [amountValue, setAmount] = useState('0')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -63,9 +68,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   } = useApproveTokens({
     amount,
     actor: address,
-    spender: context.contracts.SignalsProtocol.address,
-    tokenAddress: context.contracts.BoardUnderlyingToken.address,
-    tokenDecimals: 18,
+    spender: signalsContract?.address,
+    tokenAddress: underlyingContract?.address,
+    tokenDecimals,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -102,23 +107,30 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     if (!amount) {
       return toast('Please enter an amount to lock')
     }
+    if (!walletClient) {
+      toast('Wallet not connected')
+      return
+    }
+    if (!signalsContract || !underlyingContract) {
+      toast('Network is missing Signals configuration. Please try again later.')
+      return
+    }
 
     try {
-      if (!walletClient) {
-        toast('Wallet not connected')
-        return
-      }
-
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
+        address: signalsContract.address,
+        abi: signalsContract.abi,
         functionName: 'supportInitiative',
         nonce,
-        args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
+        args: [
+          BigInt(initiative.initiativeId),
+          parseUnits(String(amount), tokenDecimals),
+          BigInt(duration),
+        ],
       })
 
       console.log('Request:', request)

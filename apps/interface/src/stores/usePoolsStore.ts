@@ -1,17 +1,14 @@
 import type { Pool, GetPoolsResponse } from '@/indexers/api/types'
-import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 interface PoolsState {
   pools: Pool[]
   isFetching: boolean
   isInitialized: boolean
   fetchPools: () => Promise<void>
+  reset: () => void
 }
-
-// TODO: These values can be dynamic now..
-const CHAIN_ID = 421614
-const CURRENCY = context.contracts.BoardUnderlyingToken.address
 
 export const usePoolsStore = create<PoolsState>((set) => ({
   pools: [],
@@ -21,7 +18,15 @@ export const usePoolsStore = create<PoolsState>((set) => ({
     try {
       set({ isFetching: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/pools/${CHAIN_ID}/${CURRENCY}`)
+      const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
+      const underlyingAddress = contracts.BoardUnderlyingToken?.address
+      if (!underlyingAddress) {
+        console.warn('No underlying token configured for current network.')
+        set({ pools: [] })
+        return
+      }
+
+      const resp = await fetch(`${indexerEndpoint}/pools/${chain.id}/${underlyingAddress}`)
 
       const { data }: GetPoolsResponse = await resp.json()
       if (Array.isArray(data)) {
@@ -35,4 +40,5 @@ export const usePoolsStore = create<PoolsState>((set) => ({
       set({ isFetching: false, isInitialized: true })
     }
   },
+  reset: () => set({ pools: [], isFetching: false, isInitialized: false }),
 }))
