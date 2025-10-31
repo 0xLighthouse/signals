@@ -1,38 +1,16 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
-import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'
 import { normaliseNumber } from '@/lib/utils'
 
-const StatsBarItem = ({ title, value }: { title: string; value: string | number }) => {
-  return (
-    <div>
-      <span className="text-xl font-bold">{value}</span>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">{title}</p>
-    </div>
-  )
-}
-
 export const StatsBar = () => {
   const { address } = useAccount()
-  const {
-    balance: usdcBalance,
-    fetch: fetchUSDC,
-    symbol: usdcSymbol,
-    formatter: formatUSDC,
-  } = useRewardsStore()
   const { symbol: underlyingSymbol, totalSupply, balance: underlyingBalance } = useUnderlying()
   const { formatter, board } = useSignals()
-
-  useEffect(() => {
-    if (address) {
-      fetchUSDC(address)
-    }
-  }, [address, fetchUSDC])
 
   if (!address) return null
 
@@ -48,12 +26,11 @@ export const StatsBar = () => {
           </p>
         </div>
         <div>
-          {/* @ts-ignore */}
           <span className="text-xl font-bold">
-            {normaliseNumber(formatUSDC(usdcBalance) ?? 0) || '-'}
+            {normaliseNumber(formatter(totalSupply)) || '-'}
           </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Balance {usdcSymbol ? `(${usdcSymbol})` : ''}
+            Total supply minted {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
         <div>
