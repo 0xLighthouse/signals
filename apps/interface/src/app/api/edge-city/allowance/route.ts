@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { isAddress } from 'viem'
+import { formatUnits, isAddress, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
 import { edgeCityConfig, EdgeCityProfile } from '@/config/edge-city'
 import { readClient } from '@/config/web3'
 import { EdgeOSClient } from '@/lib/server/edgeos-client'
+import { EDGE_CITY_SIGNER_PRIVATE_KEY } from '../../secrets'
+import { MAX_ADDITIONAL_CITIES, DEFAULT_ALLOCATION_AMOUNT_INT } from '../constants'
 
 const DEFAULT_TTL_SECONDS = 60 * 60 // 1h
 
@@ -18,7 +20,8 @@ const CLAIM_TYPES = {
 } as const
 
 type AllowanceRequest = {
-  address?: string
+  chainId: number
+  recipient: `0x${string}`
 }
 
 type AllowanceResponse = {
@@ -27,6 +30,12 @@ type AllowanceResponse = {
   amount: string
   deadline: number
   signature: `0x${string}`
+}
+
+
+const calculateAllowance = async (defaultAlloc: number, additionalCitiesAttended: number) => {
+  const maxAdditionalCities = additionalCitiesAttended >= MAX_ADDITIONAL_CITIES ? MAX_ADDITIONAL_CITIES : additionalCitiesAttended
+  return defaultAlloc + (maxAdditionalCities * defaultAlloc)
 }
 
 export async function POST(request: Request) {
@@ -48,57 +57,30 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as AllowanceRequest
-    const recipientRaw = body.address?.toLowerCase()
+    const recipientRaw = body.recipient?.toLowerCase()
     if (!recipientRaw || !isAddress(recipientRaw)) {
       return NextResponse.json({ error: 'Valid wallet address is required' }, { status: 400 })
     }
     const recipient = recipientRaw as `0x${string}`
 
-    const signerKey = process.env.EDGE_CITY_SIGNER_PRIVATE_KEY
-    if (!signerKey) {
-      throw new Error('EDGE_CITY_SIGNER_PRIVATE_KEY is not configured')
-    }
-
-    const defaultAmountEnv = process.env.EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI
-    if (!defaultAmountEnv) {
-      throw new Error('EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI is not configured')
-    }
-
-    // Parse TTL safely and fallback to default if invalid or missing
-    const ttlSecondsStr = process.env.EDGE_CITY_ALLOWANCE_TTL_SECONDS
-    const ttlSeconds = ttlSecondsStr ? Number.parseInt(ttlSecondsStr, 10) : NaN
-    const allowanceTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : DEFAULT_TTL_SECONDS
-
+    // Load our private signer
     const client = new EdgeOSClient()
     const profile = (await client.getProfile(token)) as EdgeCityProfile
 
-    if (!profile.email_validated) {
-      return NextResponse.json({ error: 'Primary email is not validated' }, { status: 403 })
+    console.log('profile', JSON.stringify(profile, null, 2))
+
+    if (profile.popups?.length === 0) {
+      return NextResponse.json({ error: 'No eligible Edge City residency found' }, { status: 403 })
     }
 
-    if (edgeCityConfig.requiredPopups.length > 0) {
-      const hasEligiblePopup = profile.popups?.some((popup) =>
-        edgeCityConfig.requiredPopups.includes(String(popup.id)),
-      )
-      if (!hasEligiblePopup) {
-        return NextResponse.json({ error: 'No eligible Edge City residency found' }, { status: 403 })
-      }
-    } else if (!profile.total_days || profile.total_days <= 0) {
-      return NextResponse.json({ error: 'Residency requires at least one completed day' }, { status: 403 })
-    }
+    const totalCities = profile.popups?.length
+    const additionalCitiesAttended = totalCities - 1
+    const allowanceAmount = calculateAllowance(DEFAULT_ALLOCATION_AMOUNT_INT, additionalCitiesAttended)
+    const allowanceAmountWei = parseEther(allowanceAmount.toString())
+    const deadline = Math.floor(Date.now() / 1000) + DEFAULT_TTL_SECONDS
 
-    // Determine amount: default base + optional per-day increment
-    let amountWei = BigInt(defaultAmountEnv)
-    const perDayAmountEnv = process.env.EDGE_CITY_AMOUNT_PER_DAY_WEI
-    if (perDayAmountEnv) {
-      const perDay = BigInt(perDayAmountEnv)
-      const totalDays = BigInt(profile.total_days ?? 0)
-      amountWei += perDay * totalDays
-    }
 
-    const deadline = Math.floor(Date.now() / 1000) + allowanceTtl
-
-    const account = privateKeyToAccount(signerKey as `0x${string}`)
+    const account = privateKeyToAccount(EDGE_CITY_SIGNER_PRIVATE_KEY)
     const signature = await account.signTypedData({
       domain: {
         name: 'ExperimentToken',
@@ -111,7 +93,7 @@ export async function POST(request: Request) {
       message: {
         to: recipient,
         participantId: BigInt(profile.id),
-        amount: amountWei,
+        amount: allowanceAmountWei,
         deadline: BigInt(deadline),
       },
     })
@@ -119,7 +101,7 @@ export async function POST(request: Request) {
     const payload: AllowanceResponse = {
       participantId: profile.id,
       to: recipient,
-      amount: amountWei.toString(),
+      amount: formatUnits(allowanceAmountWei, 18), //
       deadline,
       signature,
     }
