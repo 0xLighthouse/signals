@@ -14,7 +14,12 @@ library BoardConfigs {
             version: "TEST-1.0",
             owner: _owner,
             underlyingToken: _underlyingToken,
-            acceptanceThreshold: 100_000 ether, // 100k
+            acceptanceCriteria: ISignals.AcceptanceCriteria({
+                anyoneCanAccept: false,
+                ownerMustFollowThreshold: false,
+                percentageThresholdWAD: 0,
+                fixedThreshold: 100_000 ether // 100k
+            }),
             maxLockIntervals: 365 days, // 1 year
             proposalCap: 100, // 100 proposals
             lockInterval: 1 days, // 1 day

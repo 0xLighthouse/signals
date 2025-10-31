@@ -64,8 +64,8 @@ contract Signals is
     /// @notice Maximum time we can lock tokens for denominated in intervals
     uint256 public maxLockIntervals;
 
-    /// @notice Weight required for an initiative to be accepted
-    uint256 public acceptanceThreshold;
+    /// @notice Criteria for accepting an initiative
+    AcceptanceCriteria internal _acceptanceCriteria;
 
     /// @notice Maximum number of proposals allowed
     uint256 public proposalCap;
@@ -155,10 +155,9 @@ contract Signals is
 
     /// @inheritdoc ISignals
     function initialize(ISignals.BoardConfig calldata config) external initializer {
-        // Validate configuration parameters
+        // Immutable parameters - TODO: Break out functions for things that can be updated
         if (config.underlyingToken == address(0)) revert ISignals.Signals_ZeroAddressToken();
         if (config.owner == address(0)) revert ISignals.Signals_ZeroAddressOwner();
-        if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
         if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
         if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
         if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
@@ -166,13 +165,12 @@ contract Signals is
             revert ISignals.Signals_InvalidDecayCurveType();
         }
 
+        _setAcceptanceCriteria(config.acceptanceCriteria);
+
         if (config.boardOpenAt == 0) {
             boardOpenAt = type(uint256).max;
         } else if (config.boardOpenAt < block.timestamp) {
             boardOpenAt = block.timestamp;
-            // NOTE: If you want the board to open immediately, it is impossible to predict the block.timestamp
-            //       so we will just set it to the current block.timestamp
-            // revert ISignals.Signals_InvalidBoardOpenTime();
         } else {
             boardOpenAt = config.boardOpenAt;
         }
@@ -190,7 +188,6 @@ contract Signals is
         version = config.version;
         underlyingToken = config.underlyingToken;
         authorizationToken = config.underlyingToken;
-        acceptanceThreshold = config.acceptanceThreshold;
         maxLockIntervals = config.maxLockIntervals;
         proposalCap = config.proposalCap;
         lockInterval = config.lockInterval;
@@ -400,12 +397,20 @@ contract Signals is
      * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
      * @param initiativeId ID of the initiative to accept
      */
-    function acceptInitiative(uint256 initiativeId)
-        external
-        payable
-        exists(initiativeId)
-        onlyOwner
-    {
+    function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) {
+        if (!_acceptanceCriteria.anyoneCanAccept) {
+            // Inherited from Ownable
+            _checkOwner();
+        }
+
+        if (_acceptanceCriteria.ownerMustFollowThreshold || msg.sender != owner()) {
+            uint256 acceptanceThreshold = getAcceptanceThreshold();
+            uint256 weight = _calculateWeightAt(initiativeId, block.timestamp);
+            if (weight < acceptanceThreshold) {
+                revert ISignals.Signals_InsufficientSupport();
+            }
+        }
+
         Initiative storage initiative = _initiatives[initiativeId];
 
         // State transition: Proposed → Accepted
@@ -568,12 +573,28 @@ contract Signals is
         _setIncentivesPool(incentivesPool_, incentivesConfig_);
     }
 
+    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria)
+        external
+        onlyOwner
+    {
+        _setAcceptanceCriteria(acceptanceCriteria);
+    }
+
+    function _setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) internal {
+        if (
+            acceptanceCriteria.percentageThresholdWAD == 0 && acceptanceCriteria.fixedThreshold == 0
+        ) {
+            revert ISignals.Signals_ZeroAcceptanceThreshold();
+        }
+        if (acceptanceCriteria.percentageThresholdWAD >= 1 ether) {
+            revert ISignals.Signals_InvalidPercentageThresholdWAD();
+        }
+        _acceptanceCriteria = acceptanceCriteria;
+    }
+
     /// @inheritdoc ISignals
     function setBoardOpenAt(uint256 _boardOpenAt) external onlyOwner {
-        if (_boardOpenAt < block.timestamp) {
-            revert ISignals.Signals_InvalidBoardOpenTime();
-        }
-        boardOpenAt = _boardOpenAt;
+        _boardOpenAt < block.timestamp ? boardOpenAt = block.timestamp : boardOpenAt = _boardOpenAt;
     }
 
     /// @inheritdoc ISignals
@@ -794,6 +815,22 @@ contract Signals is
     /// @inheritdoc ISignalsLock
     function getUnderlyingToken() external view returns (address) {
         return underlyingToken;
+    }
+
+    function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory) {
+        return _acceptanceCriteria;
+    }
+
+    function getAcceptanceThreshold() public view returns (uint256) {
+        if (_acceptanceCriteria.percentageThresholdWAD == 0) {
+            return _acceptanceCriteria.fixedThreshold;
+        }
+
+        uint256 percentThreshold = IERC20(underlyingToken).totalSupply()
+            * _acceptanceCriteria.percentageThresholdWAD / 1 ether;
+        return percentThreshold > _acceptanceCriteria.fixedThreshold
+            ? percentThreshold
+            : _acceptanceCriteria.fixedThreshold;
     }
 
     /// @inheritdoc ISignals

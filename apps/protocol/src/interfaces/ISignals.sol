@@ -32,7 +32,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         string version;
         address owner;
         address underlyingToken;
-        uint256 acceptanceThreshold;
+        AcceptanceCriteria acceptanceCriteria;
         uint256 maxLockIntervals;
         uint256 proposalCap;
         uint256 lockInterval;
@@ -44,6 +44,21 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 releaseLockDuration;
         uint256 boardOpenAt;
         uint256 boardClosedAt;
+    }
+
+    /**
+     * @notice Criteria for accepting an initiative
+     *
+     * @param anyoneCanAccept If true, anyone can accept an initiative (otherwise, only owner)
+     * @param ownerMustFollowThreshold If true, the owner must follow the threshold (otherwise, owner can accept any initiative)
+     * @param percentageThresholdWAD Support must exceed this percentage (in WAD) of total underlying token supply
+     * @param fixedThreshold Support must also exceed this fixed threshold for accepting an initiative
+     */
+    struct AcceptanceCriteria {
+        bool anyoneCanAccept;
+        bool ownerMustFollowThreshold;
+        uint256 percentageThresholdWAD;
+        uint256 fixedThreshold;
     }
 
     /**
@@ -177,6 +192,12 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when attempting to interact before board opens
     error Signals_BoardNotOpen();
 
+    /// @notice Thrown when not owner
+    error Signals_NotOwner();
+
+    /// @notice Thrown when support is insufficient for acceptance
+    error Signals_InsufficientSupport();
+
     /// @notice Thrown when attempting to set incentives pool after board has opened
     error Signals_BoardAlreadyOpened();
 
@@ -196,6 +217,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     /// @notice Thrown when acceptance threshold is zero
     error Signals_ZeroAcceptanceThreshold();
+
+    /// @notice Thrown when acceptance percentage threshold is invalid
+    error Signals_InvalidPercentageThresholdWAD();
 
     /// @notice Thrown when max lock intervals is zero
     error Signals_ZeroMaxLockIntervals();
@@ -245,14 +269,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when attachment URI is empty
     error Signals_AttachmentInvalidURI();
 
-    /// @notice Thrown when board open timestamp is invalid (in the past)
-    error Signals_InvalidBoardOpenTime();
-
     /// @notice Thrown when board closed timestamp is invalid (before open time)
     error Signals_InvalidBoardClosedTime();
 
     // Public state variables
-    function acceptanceThreshold() external view returns (uint256);
+    function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
     function maxLockIntervals() external view returns (uint256);
     function proposalCap() external view returns (uint256);
     function lockInterval() external view returns (uint256);

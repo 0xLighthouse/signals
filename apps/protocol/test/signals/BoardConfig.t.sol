@@ -42,7 +42,8 @@ contract BoardConfigTest is Test, SignalsHarness {
 
         // Reset and test zero acceptanceThreshold
         config = defaultConfig;
-        config.acceptanceThreshold = 0;
+        config.acceptanceCriteria.percentageThresholdWAD = 0;
+        config.acceptanceCriteria.fixedThreshold = 0;
         vm.expectRevert(ISignals.Signals_ZeroAcceptanceThreshold.selector);
         board.initialize(config);
 

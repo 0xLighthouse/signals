@@ -45,7 +45,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
 
         vm.expectEmit(true, true, true, true);
-        emit ISignals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1", new ISignals.Attachment[](0));
+        emit ISignals.InitiativeProposed(
+            1, _alice, "Initiative 1", "Description 1", new ISignals.Attachment[](0)
+        );
 
         signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
 
@@ -71,11 +73,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         vm.expectEmit();
         emit ISignals.InitiativeSupported(1, _bob, lockAmount, 6, 1);
         signals.proposeInitiativeWithLock(
-            "Initiative 2",
-            "Description 2",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            6
+            "Initiative 2", "Description 2", new ISignals.Attachment[](0), lockAmount, 6
         );
         vm.stopPrank();
 
@@ -112,11 +110,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // Propose an initiative
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            1
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 1
         );
 
         vm.startPrank(_bob);
@@ -162,16 +156,12 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
     /// Test accepting an initiative
     function test_Accept_Success() public {
-        uint256 lockAmount = defaultConfig.acceptanceThreshold;
+        uint256 lockAmount = defaultConfig.acceptanceCriteria.fixedThreshold / 5;
         // Propose an initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), lockAmount);
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            6
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 6
         );
 
         // Non-owner cannot accept the initiative

@@ -29,6 +29,7 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
     uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
     uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
     uint256 private constant ACCEPTANCE_THRESHOLD = 1_000_000 ether;
+    uint256 private constant ACCEPTANCE_PERCENTAGE_THRESHOLD = 25e16; // 25%
 
     /**
      * @param network The network to deploy the contracts to
@@ -61,7 +62,12 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                 version: _factory.version(),
                 owner: deployerAddress,
                 underlyingToken: underlyingToken,
-                acceptanceThreshold: ACCEPTANCE_THRESHOLD,
+                acceptanceCriteria: ISignals.AcceptanceCriteria({
+                    anyoneCanAccept: false,
+                    ownerMustFollowThreshold: false,
+                    percentageThresholdWAD: ACCEPTANCE_PERCENTAGE_THRESHOLD,
+                    fixedThreshold: ACCEPTANCE_THRESHOLD
+                }),
                 lockInterval: 1 days,
                 maxLockIntervals: 7,
                 proposalCap: 5,
@@ -93,7 +99,6 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
         console.log("Deployer: ", deployerAddress);
         console.log("Underlying Token: ", underlyingToken);
         console.log("Signals Contract Address: ", protocolAddress);
-        console.log("Acceptance threshold", protocol.acceptanceThreshold());
 
         // // Deploy a mock USDC and initialize
         // vm.startBroadcast(deployerPrivateKey);

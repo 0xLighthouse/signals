@@ -45,7 +45,22 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         // Verify the parameters were initialized correctly
         assertEq(_instance.owner(), defaultConfig.owner);
         assertEq(_instance.underlyingToken(), defaultConfig.underlyingToken);
-        assertEq(_instance.acceptanceThreshold(), defaultConfig.acceptanceThreshold);
+        assertEq(
+            _instance.getAcceptanceCriteria().anyoneCanAccept,
+            defaultConfig.acceptanceCriteria.anyoneCanAccept
+        );
+        assertEq(
+            _instance.getAcceptanceCriteria().ownerMustFollowThreshold,
+            defaultConfig.acceptanceCriteria.ownerMustFollowThreshold
+        );
+        assertEq(
+            _instance.getAcceptanceCriteria().percentageThresholdWAD,
+            defaultConfig.acceptanceCriteria.percentageThresholdWAD
+        );
+        assertEq(
+            _instance.getAcceptanceCriteria().fixedThreshold,
+            defaultConfig.acceptanceCriteria.fixedThreshold
+        );
         assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
         assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
         assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
