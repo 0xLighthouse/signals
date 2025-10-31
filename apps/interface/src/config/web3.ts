@@ -1,7 +1,7 @@
 import { createPublicClient, http, erc20Abi, Abi } from 'viem'
 import { anvil, arbitrumSepolia, hardhat } from 'viem/chains'
 
-import { SignalsABI, } from '../../../../packages/abis'
+import { SignalsABI, IncentivesPoolABI } from '../../../../packages/abis'
 import { features } from './features'
 
 // Default public client for server components or initial loading
@@ -34,12 +34,12 @@ export const INDEXER_ENDPOINT = process.env.NEXT_PUBLIC_INDEXER_ENDPOINT!
 
 
 
-const incentivesContract = features.enableContributions
-  ? {
-    abi: IncentivesABI,
-    address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a' as `0x${string}`,
-  }
-  : undefined
+// const incentivesContract = features.enableContributions
+//   ? {
+//     abi: IncentivesABI,
+//     address: '0xe4D69c41Db5c5790e3DCA52E4416fbbd676E960a' as `0x${string}`,
+//   }
+//   : undefined
 
 
 
@@ -73,10 +73,10 @@ export const context = {
     TokenRegistry: {
       address: '0xacCbbb8140Bd4494e11eEA8268d93F94895abC80' as `0x${string}`,
     },
-    ...(incentivesContract
-      ? {
-        Incentives: incentivesContract,
-      }
-      : {}),
+    // ...(incentivesContract
+    //   ? {
+    //     Incentives: incentivesContract,
+    //   }
+    //   : {}),
   },
 }
