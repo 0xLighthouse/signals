@@ -30,7 +30,7 @@ export const StatsBar = () => {
             {normaliseNumber(formatter(totalSupply)) || '-'}
           </span>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Total supply minted {underlyingSymbol ? `(${underlyingSymbol})` : ''}
+            Tokens claimed {underlyingSymbol ? `(${underlyingSymbol})` : ''}
           </p>
         </div>
         <div>
