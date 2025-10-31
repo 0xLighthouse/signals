@@ -1,7 +1,7 @@
 import { createPublicClient, http, erc20Abi, Abi } from 'viem'
 import { anvil, arbitrumSepolia, hardhat } from 'viem/chains'
 
-import { SignalsABI, IncentivesABI } from '../../../../packages/abis'
+import { SignalsABI, } from '../../../../packages/abis'
 import { features } from './features'
 
 // Default public client for server components or initial loading
@@ -41,7 +41,7 @@ const incentivesContract = features.enableContributions
   }
   : undefined
 
-console.log('Anvil RPC', anvil.rpcUrls.default.http[0])
+
 
 /**
  * Critical addresses
