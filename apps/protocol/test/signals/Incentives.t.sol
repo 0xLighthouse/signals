@@ -122,7 +122,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
         // Attempt to set pool on board (after board opens) - should revert
         vm.prank(_deployer);
-        vm.expectRevert(ISignals.Signals_BoardAlreadyOpened.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectBoardState.selector);
         signals.setIncentivesPool(address(incentivesPool), incentivesConfig);
     }
 

@@ -1,7 +1,6 @@
-import { context } from '@/config/web3'
 import { createPublicClient, getContract, http } from 'viem'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
 import { create } from 'zustand'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 interface RewardsState {
   name?: string
@@ -12,6 +11,7 @@ interface RewardsState {
   isInitialized: boolean
   formatter: (value?: number | null) => number | null
   fetch: (address: `0x${string}`) => Promise<void>
+  reset: () => void
 }
 
 export const useRewardsStore = create<RewardsState>((set) => ({
@@ -26,14 +26,29 @@ export const useRewardsStore = create<RewardsState>((set) => ({
   },
   isInitialized: false,
   fetch: async (address: `0x${string}`) => {
+    const { chain, rpcUrl, contracts } = useNetworkStore.getState().config
+    const usdcConfig = contracts.USDC
+    if (!usdcConfig) {
+      console.warn('No USDC contract configured for current network.')
+      set({
+        name: '',
+        symbol: '',
+        decimals: 0,
+        totalSupply: 0,
+        balance: 0,
+        isInitialized: true,
+      })
+      return
+    }
+
     const readClient = createPublicClient({
-      chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-      transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
+      chain,
+      transport: http(rpcUrl),
     })
 
     const token = getContract({
-      address: context.contracts.USDC.address,
-      abi: context.contracts.USDC.abi,
+      address: usdcConfig.address,
+      abi: usdcConfig.abi,
       client: readClient,
     })
 
@@ -56,4 +71,13 @@ export const useRewardsStore = create<RewardsState>((set) => ({
       isInitialized: true,
     })
   },
+  reset: () =>
+    set({
+      name: '',
+      symbol: '',
+      decimals: 0,
+      totalSupply: 0,
+      balance: 0,
+      isInitialized: false,
+    }),
 }))

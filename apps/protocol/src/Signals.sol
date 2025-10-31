@@ -15,11 +15,9 @@ import "solady/src/utils/ReentrancyGuard.sol";
 
 import {ISignalsLock} from "./interfaces/ISignalsLock.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
-import {IBounties} from "./interfaces/IBounties.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 
 import "./DecayCurves.sol";
-import "./Bounties.sol";
 import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
@@ -64,8 +62,8 @@ contract Signals is
     /// @notice Maximum time we can lock tokens for denominated in intervals
     uint256 public maxLockIntervals;
 
-    /// @notice Weight required for an initiative to be accepted
-    uint256 public acceptanceThreshold;
+    /// @notice Criteria for accepting an initiative
+    AcceptanceCriteria internal _acceptanceCriteria;
 
     /// @notice Maximum number of proposals allowed
     uint256 public proposalCap;
@@ -116,63 +114,37 @@ contract Signals is
     /// @notice Initiative counter
     uint256 public initiativeCount;
 
-    /// @notice (Optional) Reference to the Bounties contract (can only be set once)
-    // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-    //                Consider event-driven pattern to reduce tight coupling
-    //                See: Similar adapter pattern discussion in other modules
-    IBounties public bounties;
-
     /// @notice Check to make sure the initiative exists
     modifier exists(uint256 initiativeId) {
-        _exists(initiativeId);
+        if (initiativeId > initiativeCount) revert ISignals.Signals_InvalidID();
         _;
-    }
-
-    function _exists(uint256 initiativeId) internal view {
-        if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
     }
 
     modifier isOpen() {
-        _isOpen();
+        if (!isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
         _;
-    }
-
-    function _isOpen() internal view {
-        if (!isBoardOpen()) revert ISignals.Signals_BoardNotOpen();
-    }
-
-    modifier hasValidInput(string memory _title, string memory _body) {
-        _hasValidInput(_title, _body);
-        _;
-    }
-
-    function _hasValidInput(string memory _title, string memory _body) internal pure {
-        if (bytes(_title).length == 0) revert ISignals.Signals_EmptyTitle();
-        if (bytes(_body).length == 0) revert ISignals.Signals_EmptyBody();
     }
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
 
     /// @inheritdoc ISignals
     function initialize(ISignals.BoardConfig calldata config) external initializer {
-        // Validate configuration parameters
-        if (config.underlyingToken == address(0)) revert ISignals.Signals_ZeroAddressToken();
-        if (config.owner == address(0)) revert ISignals.Signals_ZeroAddressOwner();
-        if (config.acceptanceThreshold == 0) revert ISignals.Signals_ZeroAcceptanceThreshold();
-        if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
-        if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
-        if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
+        // Immutable parameters - TODO: Break out functions for things that can be updated
+        if (config.underlyingToken == address(0)) revert ISignals.Signals_InvalidArguments();
+        if (config.owner == address(0)) revert ISignals.Signals_InvalidArguments();
+        if (config.maxLockIntervals == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.lockInterval == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.proposalCap == 0) revert ISignals.Signals_InvalidArguments();
         if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
+
+        _setAcceptanceCriteria(config.acceptanceCriteria);
 
         if (config.boardOpenAt == 0) {
             boardOpenAt = type(uint256).max;
         } else if (config.boardOpenAt < block.timestamp) {
             boardOpenAt = block.timestamp;
-            // NOTE: If you want the board to open immediately, it is impossible to predict the block.timestamp
-            //       so we will just set it to the current block.timestamp
-            // revert ISignals.Signals_InvalidBoardOpenTime();
         } else {
             boardOpenAt = config.boardOpenAt;
         }
@@ -180,7 +152,7 @@ contract Signals is
         if (config.boardClosedAt == 0) {
             boardClosedAt = type(uint256).max;
         } else if (config.boardClosedAt < config.boardOpenAt) {
-            revert ISignals.Signals_InvalidBoardClosedTime();
+            revert ISignals.Signals_InvalidArguments();
         } else {
             boardClosedAt = config.boardClosedAt;
         }
@@ -190,7 +162,6 @@ contract Signals is
         version = config.version;
         underlyingToken = config.underlyingToken;
         authorizationToken = config.underlyingToken;
-        acceptanceThreshold = config.acceptanceThreshold;
         maxLockIntervals = config.maxLockIntervals;
         proposalCap = config.proposalCap;
         lockInterval = config.lockInterval;
@@ -208,13 +179,7 @@ contract Signals is
         string memory _title,
         string memory _body,
         ISignals.Attachment[] calldata _attachments
-    )
-        external
-        isOpen
-        senderCanPropose(0)
-        hasValidInput(_title, _body)
-        returns (uint256 initiativeId)
-    {
+    ) external isOpen senderCanPropose(0) returns (uint256 initiativeId) {
         initiativeId = _addInitiative(_title, _body, _attachments);
     }
 
@@ -225,13 +190,7 @@ contract Signals is
         ISignals.Attachment[] calldata _attachments,
         uint256 _amount,
         uint256 _lockDuration
-    )
-        external
-        isOpen
-        senderCanPropose(_amount)
-        hasValidInput(_title, _body)
-        returns (uint256 initiativeId, uint256 tokenId)
-    {
+    ) external isOpen senderCanPropose(_amount) returns (uint256 initiativeId, uint256 tokenId) {
         initiativeId = _addInitiative(_title, _body, _attachments);
         tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
@@ -249,6 +208,9 @@ contract Signals is
         string memory _body,
         ISignals.Attachment[] calldata _attachments
     ) internal returns (uint256 id) {
+        if (bytes(_title).length == 0 || bytes(_body).length == 0) {
+            revert ISignals.Signals_EmptyTitleOrBody();
+        }
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
         Initiative storage initiative = _initiatives[initiativeCount];
@@ -289,7 +251,7 @@ contract Signals is
         for (uint256 i = 0; i < attachments.length;) {
             ISignals.Attachment calldata attachment = attachments[i];
             if (bytes(attachment.uri).length == 0) {
-                revert ISignals.Signals_AttachmentInvalidURI();
+                revert ISignals.Signals_InvalidArguments();
             }
 
             initiative.attachments.push(
@@ -328,13 +290,13 @@ contract Signals is
         returns (uint256 tokenId)
     {
         if (lockDuration == 0 || lockDuration > maxLockIntervals) {
-            revert ISignals.Signals_InvalidLockDuration();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         Initiative storage initiative = _initiatives[initiativeId];
 
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         uint256 beforeBalance = IERC20(underlyingToken).balanceOf(address(this));
@@ -397,42 +359,40 @@ contract Signals is
 
     /**
      * @notice Mark an initiative as accepted
-     * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
      * @param initiativeId ID of the initiative to accept
      */
-    function acceptInitiative(uint256 initiativeId)
-        external
-        payable
-        exists(initiativeId)
-        onlyOwner
-    {
+    function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) {
+        if (!_acceptanceCriteria.anyoneCanAccept) {
+            // Inherited from Ownable
+            _checkOwner();
+        }
+
+        if (_acceptanceCriteria.ownerMustFollowThreshold || msg.sender != owner()) {
+            uint256 acceptanceThreshold = getAcceptanceThreshold();
+            uint256 weight = _calculateWeightAt(initiativeId, block.timestamp);
+            if (weight < acceptanceThreshold) {
+                revert ISignals.Signals_InsufficientSupport();
+            }
+        }
+
         Initiative storage initiative = _initiatives[initiativeId];
 
         // State transition: Proposed → Accepted
         // Can only accept initiatives in Proposed state (not already Accepted, Cancelled, or Expired)
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Update state and record acceptance timestamp for release timelock calculation
         initiative.state = InitiativeState.Accepted;
         initiative.acceptanceTimestamp = block.timestamp;
 
-        // Notify the Bounties contract to distribute bounty rewards if configured
-        // This is optional - bounties may not be set for all boards
-        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-        //                Consider event-driven pattern to reduce tight coupling
-        //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != address(0)) {
-            bounties.handleInitiativeAccepted(initiativeId);
-        }
-
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
 
     /**
      * @notice Mark an inactive initiative as expired
-     * @dev Only callable by owner after activityTimeout has passed. Notifies bounties if configured.
+     * @dev Only callable by owner after activityTimeout has passed.
      * @param initiativeId ID of the initiative to expire
      */
     function expireInitiative(uint256 initiativeId)
@@ -446,25 +406,17 @@ contract Signals is
         // State transition: Proposed → Expired
         // Can only expire initiatives that are still in Proposed state
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Verify initiative has been inactive for longer than inactivityTimeout
         // This prevents expiring initiatives that still have recent activity
         if (block.timestamp <= initiative.lastActivity + inactivityTimeout) {
-            revert ISignals.Signals_NotEligibleForExpiration();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Update state to Expired - allows supporters to redeem their locked tokens
         initiative.state = InitiativeState.Expired;
-
-        // Notify the Bounties contract to handle refunds if configured
-        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-        //                Consider event-driven pattern to reduce tight coupling
-        //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != address(0)) {
-            bounties.handleInitiativeExpired(initiativeId);
-        }
 
         emit InitiativeExpired(initiativeId, msg.sender);
     }
@@ -488,7 +440,7 @@ contract Signals is
             initiative.state != InitiativeState.Accepted
                 && initiative.state != InitiativeState.Expired
         ) {
-            revert ISignals.Signals_NotWithdrawableState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // If board is not closed and the initiative was accepted, enforce the release timelock
@@ -504,14 +456,14 @@ contract Signals is
             uint256 lockId = lockIds[i];
             TokenLock storage lock = _locks[lockId];
 
-            if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
+            if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotOwner();
 
             if (lock.initiativeId != initiativeId) {
-                revert ISignals.Signals_InvalidTokenId();
+                revert ISignals.Signals_InvalidID();
             }
 
             if (lock.withdrawn) {
-                revert ISignals.Signals_AlreadyRedeemed();
+                revert ISignals.Signals_TokenAlreadyRedeemed(lockId);
             }
 
             redeemAmount += lock.tokenAmount;
@@ -543,10 +495,10 @@ contract Signals is
         onlyOwner
     {
         if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
         if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         decayCurveType = _decayCurveType;
@@ -555,25 +507,36 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function setBounties(address _bounties) external onlyOwner {
-        bounties = Bounties(_bounties);
-    }
-
-    /// @inheritdoc ISignals
     function setIncentivesPool(address incentivesPool_, IncentivesConfig calldata incentivesConfig_)
         external
         onlyOwner
     {
-        if (isBoardOpen()) revert ISignals.Signals_BoardAlreadyOpened();
+        if (isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
         _setIncentivesPool(incentivesPool_, incentivesConfig_);
+    }
+
+    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria)
+        external
+        onlyOwner
+    {
+        _setAcceptanceCriteria(acceptanceCriteria);
+    }
+
+    function _setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) internal {
+        if (
+            acceptanceCriteria.percentageThresholdWAD == 0 && acceptanceCriteria.fixedThreshold == 0
+        ) {
+            revert ISignals.Signals_InvalidArguments();
+        }
+        if (acceptanceCriteria.percentageThresholdWAD >= 1 ether) {
+            revert ISignals.Signals_InvalidArguments();
+        }
+        _acceptanceCriteria = acceptanceCriteria;
     }
 
     /// @inheritdoc ISignals
     function setBoardOpenAt(uint256 _boardOpenAt) external onlyOwner {
-        if (_boardOpenAt < block.timestamp) {
-            revert ISignals.Signals_InvalidBoardOpenTime();
-        }
-        boardOpenAt = _boardOpenAt;
+        _boardOpenAt < block.timestamp ? boardOpenAt = block.timestamp : boardOpenAt = _boardOpenAt;
     }
 
     /// @inheritdoc ISignals
@@ -692,7 +655,7 @@ contract Signals is
 
         // Validate the decay curve type is recognized
         if (decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         // Apply the configured decay curve to calculate time-weighted value
@@ -777,7 +740,7 @@ contract Signals is
     /// @inheritdoc ISignalsLock
     function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
         if (_locks[tokenId].initiativeId == 0) {
-            revert ISignals.Signals_InvalidTokenId();
+            revert ISignals.Signals_InvalidID();
         }
 
         TokenLock memory lock = _locks[tokenId];
@@ -794,6 +757,22 @@ contract Signals is
     /// @inheritdoc ISignalsLock
     function getUnderlyingToken() external view returns (address) {
         return underlyingToken;
+    }
+
+    function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory) {
+        return _acceptanceCriteria;
+    }
+
+    function getAcceptanceThreshold() public view returns (uint256) {
+        if (_acceptanceCriteria.percentageThresholdWAD == 0) {
+            return _acceptanceCriteria.fixedThreshold;
+        }
+
+        uint256 percentThreshold = IERC20(underlyingToken).totalSupply()
+            * _acceptanceCriteria.percentageThresholdWAD / 1 ether;
+        return percentThreshold > _acceptanceCriteria.fixedThreshold
+            ? percentThreshold
+            : _acceptanceCriteria.fixedThreshold;
     }
 
     /// @inheritdoc ISignals

@@ -3,18 +3,24 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { readClient, ERC20WithFaucetABI, context } from '@/config/web3'
-import { WalletClient } from 'viem'
+import { ERC20WithFaucetABI } from '@/config/web3'
+import { PublicClient, WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useUnderlying } from '@/contexts/ContractContext'
+import { useNetwork } from '@/hooks/useNetwork'
 
 const handleFaucetClaim = async (
-  { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
+  {
+    token,
+    address,
+    symbol,
+  }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
   signer: WalletClient,
+  publicClient: PublicClient,
 ) => {
   if (!address) throw new Error('Address not available.')
   try {
@@ -28,7 +34,7 @@ const handleFaucetClaim = async (
       gas: 100_000n,
     })
 
-    const receipt = await readClient.waitForTransactionReceipt({
+    await publicClient.waitForTransactionReceipt({
       hash: transactionHash,
       confirmations: 2,
       pollingInterval: 2000,
@@ -49,9 +55,12 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
-  const { walletClient } = useWeb3()
+  const { walletClient, publicClient } = useWeb3()
   const { fetch: fetchUSDC } = useRewardsStore()
   const { fetchContractMetadata, symbol: underlyingSymbol } = useUnderlying()
+  const { config } = useNetwork()
+  const usdcConfig = config.contracts.USDC
+  const underlyingContract = config.contracts.BoardUnderlyingToken
 
   const handleClaim = async ({
     token,
@@ -65,7 +74,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
     isLoadingHandler: (isLoading: boolean) => void
   }) => {
     isLoadingHandler(true)
-    if (!walletClient) {
+    if (!walletClient || !publicClient) {
       toast('No wallet client found')
       isLoadingHandler(false)
       return
@@ -78,6 +87,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
           symbol,
         },
         walletClient,
+        publicClient,
       )
     } finally {
       isLoadingHandler(false)
@@ -96,11 +106,16 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
       <div className={cn('flex gap-2', vertical && 'flex-col')}>
         <Button
           variant="outline"
+          disabled={!usdcConfig}
           onClick={async () => {
+            if (!usdcConfig) {
+              toast('USDC faucet is not configured for this network.')
+              return
+            }
             await handleClaim({
-              token: context.contracts.USDC.address,
+              token: usdcConfig.address,
               address: address as `0x${string}`,
-              symbol: context.contracts.USDC.label,
+              symbol: usdcConfig.label ?? 'USDC',
               isLoadingHandler: setIsLoadingUSDC,
             })
             await fetchUSDC(address)
@@ -112,11 +127,16 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
         {/* <Separator orientation="vertical" /> */}
         <Button
           variant="outline"
+          disabled={!underlyingContract}
           onClick={async () => {
+            if (!underlyingContract) {
+              toast('Underlying token faucet is not configured for this network.')
+              return
+            }
             await handleClaim({
-              token: context.contracts.BoardUnderlyingToken.address,
+              token: underlyingContract.address,
               address: address as `0x${string}`,
-              symbol: context.contracts.BoardUnderlyingToken.label,
+              symbol: underlyingContract.label ?? 'Token',
               isLoadingHandler: setIsLoadingTokens,
             })
             await fetchContractMetadata()

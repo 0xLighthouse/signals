@@ -15,13 +15,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'acceptanceThreshold',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'account', internalType: 'address', type: 'address' },
       { name: 'lockAmount', internalType: 'uint256', type: 'uint256' },
@@ -81,15 +74,6 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'bounties',
-    outputs: [
-      { name: '', internalType: 'contract IBounties', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'closeBoard',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -116,6 +100,40 @@ export const signalsAbi = [
     name: 'expireInitiative',
     outputs: [],
     stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAcceptanceCriteria',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct ISignals.AcceptanceCriteria',
+        type: 'tuple',
+        components: [
+          { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+          {
+            name: 'ownerMustFollowThreshold',
+            internalType: 'bool',
+            type: 'bool',
+          },
+          {
+            name: 'percentageThresholdWAD',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'fixedThreshold', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAcceptanceThreshold',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -369,9 +387,27 @@ export const signalsAbi = [
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'acceptanceThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'acceptanceCriteria',
+            internalType: 'struct ISignals.AcceptanceCriteria',
+            type: 'tuple',
+            components: [
+              { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+              {
+                name: 'ownerMustFollowThreshold',
+                internalType: 'bool',
+                type: 'bool',
+              },
+              {
+                name: 'percentageThresholdWAD',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'fixedThreshold',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
           {
             name: 'maxLockIntervals',
@@ -691,6 +727,33 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: 'acceptanceCriteria',
+        internalType: 'struct ISignals.AcceptanceCriteria',
+        type: 'tuple',
+        components: [
+          { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+          {
+            name: 'ownerMustFollowThreshold',
+            internalType: 'bool',
+            type: 'bool',
+          },
+          {
+            name: 'percentageThresholdWAD',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'fixedThreshold', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    name: 'setAcceptanceCriteria',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'operator', internalType: 'address', type: 'address' },
       { name: 'approved', internalType: 'bool', type: 'bool' },
     ],
@@ -704,13 +767,6 @@ export const signalsAbi = [
       { name: '_boardOpenAt', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setBoardOpenAt',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_bounties', internalType: 'address', type: 'address' }],
-    name: 'setBounties',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1295,52 +1351,27 @@ export const signalsAbi = [
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'SafeERC20FailedOperation',
   },
-  { type: 'error', inputs: [], name: 'Signals_AlreadyInitialized' },
-  { type: 'error', inputs: [], name: 'Signals_AlreadyRedeemed' },
-  { type: 'error', inputs: [], name: 'Signals_AttachmentInvalidURI' },
   { type: 'error', inputs: [], name: 'Signals_AttachmentLimitExceeded' },
-  { type: 'error', inputs: [], name: 'Signals_BoardAlreadyOpened' },
-  { type: 'error', inputs: [], name: 'Signals_BoardNotOpen' },
-  { type: 'error', inputs: [], name: 'Signals_ConfigErrorZeroMinBalance' },
-  { type: 'error', inputs: [], name: 'Signals_ConfigErrorZeroMinDuration' },
-  { type: 'error', inputs: [], name: 'Signals_EmptyBody' },
-  { type: 'error', inputs: [], name: 'Signals_EmptyTitle' },
+  { type: 'error', inputs: [], name: 'Signals_EmptyTitleOrBody' },
   { type: 'error', inputs: [], name: 'Signals_IncentivesPoolAlreadySet' },
   { type: 'error', inputs: [], name: 'Signals_IncentivesPoolNotApproved' },
-  { type: 'error', inputs: [], name: 'Signals_InitiativeNotFound' },
+  { type: 'error', inputs: [], name: 'Signals_IncorrectBoardState' },
+  { type: 'error', inputs: [], name: 'Signals_IncorrectInitiativeState' },
+  { type: 'error', inputs: [], name: 'Signals_InsufficientLockAmount' },
+  { type: 'error', inputs: [], name: 'Signals_InsufficientSupport' },
+  { type: 'error', inputs: [], name: 'Signals_InsufficientTokenDuration' },
   { type: 'error', inputs: [], name: 'Signals_InsufficientTokens' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidBoardClosedTime' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidBoardOpenTime' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidDecayCurveType' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidIncentiveParameters' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidInitiativeState' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidLockDuration' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidTokenId' },
-  { type: 'error', inputs: [], name: 'Signals_NotEligibleForExpiration' },
-  { type: 'error', inputs: [], name: 'Signals_NotProposedState' },
-  { type: 'error', inputs: [], name: 'Signals_NotTokenOwner' },
-  { type: 'error', inputs: [], name: 'Signals_NotWithdrawableState' },
-  { type: 'error', inputs: [], name: 'Signals_ParticipantInsufficientBalance' },
-  {
-    type: 'error',
-    inputs: [],
-    name: 'Signals_ParticipantInsufficientDuration',
-  },
-  {
-    type: 'error',
-    inputs: [],
-    name: 'Signals_ParticipantInsufficientLockAmount',
-  },
-  { type: 'error', inputs: [], name: 'Signals_ParticipantNoCheckpointSupport' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidArguments' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidID' },
+  { type: 'error', inputs: [], name: 'Signals_NotOwner' },
   { type: 'error', inputs: [], name: 'Signals_StillTimelocked' },
+  {
+    type: 'error',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'Signals_TokenAlreadyRedeemed',
+  },
+  { type: 'error', inputs: [], name: 'Signals_TokenHasNoCheckpointSupport' },
   { type: 'error', inputs: [], name: 'Signals_TokenTransferFailed' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroAcceptanceThreshold' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroAddressIncentivesPool' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroAddressOwner' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroAddressToken' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroLockInterval' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroMaxLockIntervals' },
-  { type: 'error', inputs: [], name: 'Signals_ZeroProposalCap' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1367,9 +1398,27 @@ export const signalsFactoryAbi = [
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'acceptanceThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'acceptanceCriteria',
+            internalType: 'struct ISignals.AcceptanceCriteria',
+            type: 'tuple',
+            components: [
+              { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+              {
+                name: 'ownerMustFollowThreshold',
+                internalType: 'bool',
+                type: 'bool',
+              },
+              {
+                name: 'percentageThresholdWAD',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'fixedThreshold',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
           {
             name: 'maxLockIntervals',
