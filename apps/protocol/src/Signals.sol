@@ -169,7 +169,10 @@ contract Signals is
         if (config.boardOpenAt == 0) {
             boardOpenAt = type(uint256).max;
         } else if (config.boardOpenAt < block.timestamp) {
-            revert ISignals.Signals_InvalidBoardOpenTime();
+            boardOpenAt = block.timestamp;
+            // NOTE: If you want the board to open immediately, it is impossible to predict the block.timestamp
+            //       so we will just set it to the current block.timestamp
+            // revert ISignals.Signals_InvalidBoardOpenTime();
         } else {
             boardOpenAt = config.boardOpenAt;
         }

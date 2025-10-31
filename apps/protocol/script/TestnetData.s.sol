@@ -69,7 +69,7 @@ contract SeedInitiativesScript is SharedScriptBase {
         }
 
         console.log(
-            "ScriptOutput:", Strings.toString(board.initiativeCount()), " initiatives seeded"
+            "ScriptOutput:", Strings.toString(board.initiativeCount()), "Initiatives Seeded"
         );
     }
 

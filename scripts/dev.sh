@@ -144,7 +144,7 @@ run_and_capture signals_factory_address \
 
 echo "Deploying Signals board..."
 run_and_capture board_address \
-  forge -vvvv script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
+  forge script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
     --rpc-url "$ANVIL_RPC" \
     --broadcast \
     -s "run(string,address,address)" \
