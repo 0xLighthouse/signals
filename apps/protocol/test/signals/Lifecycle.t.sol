@@ -136,16 +136,12 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Check that total support is stored correctly
         assertEq(signals.getWeight(1), lockAmount * 2);
 
-        // Test getLockCountForSupporter
-        assertEq(signals.getLockCountForSupporter(_bob), 1);
-        assertEq(signals.getLockCountForSupporter(_alice), 1);
-
         // Test getLocksForSupporter
-        uint256[] memory aliceLocks = signals.getLocksForSupporter(_alice);
+        uint256[] memory aliceLocks = signals.getLocksBySupporterForInitiative(1, _alice);
         assertEq(aliceLocks.length, 1);
         assertEq(aliceLocks[0], 1);
 
-        uint256[] memory bobLocks = signals.getLocksForSupporter(_bob);
+        uint256[] memory bobLocks = signals.getLocksBySupporterForInitiative(1, _bob);
         assertEq(bobLocks.length, 1);
         assertEq(bobLocks[0], 2);
     }

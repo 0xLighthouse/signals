@@ -97,6 +97,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      */
     struct TokenLock {
         uint256 initiativeId;
+        address supporter;
         uint256 tokenAmount;
         uint256 lockDuration;
         uint256 created;
@@ -124,8 +125,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @notice Event emitted when a supporter supports an initiative
      *
      * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter // FIXME: Consider renameing to originalSupporter ??
-     * @param tokenAmount Amount of tokens locked
+     * @param supporter Address of the supporter      * @param tokenAmount Amount of tokens locked
      * @param lockDuration Duration for which tokens are locked (in intervals)
      * @param tokenId ID of the NFT issued
      */
@@ -205,6 +205,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     error Signals_IncentivesPoolNotApproved();
 
     // Public state variables
+    function version() external view returns (string memory);
+    function title() external view returns (string memory);
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
     function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
@@ -214,10 +216,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function decayCurveParameters(uint256) external view returns (uint256);
     function underlyingToken() external view returns (address);
     function inactivityTimeout() external view returns (uint256);
-    function initiativeLocks(uint256, uint256) external view returns (uint256);
-    function supporterLocks(address, uint256) external view returns (uint256);
-    function supporters(uint256, uint256) external view returns (address);
-    function isSupporter(uint256, address) external view returns (bool);
+    function locksForInitiative(uint256) external view returns (uint256[] memory);
     function lockCount() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
     function releaseLockDuration() external view returns (uint256);
@@ -244,32 +243,35 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;
-    function redeemLocksForInitiative(uint256 initiativeId, uint256[] calldata lockIds) external;
+    function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
+    function setTitle(string memory _title) external;
+    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
-    function getSupporters(uint256 initiativeId) external view returns (address[] memory);
+    function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
+        external
+        view
+        returns (uint256[] memory);
+    function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
+        external
+        view
+        returns (uint256[] memory);
+    function getSupportersOfInitiative(uint256 initiativeId)
+        external
+        view
+        returns (address[] memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);
     function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256);
     function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
         external
         view
         returns (uint256);
-    function token() external view returns (address);
-    function totalInitiatives() external view returns (uint256);
-    function totalSupporters(uint256 initiativeId) external view returns (uint256);
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
         external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
         external;
     function setBoardOpenAt(uint256 _boardOpenAt) external;
-    function closeBoard() external;
-    function getPositionsForInitiative(uint256 initiativeId)
-        external
-        view
-        returns (uint256[] memory);
-    function getLockCountForSupporter(address supporter) external view returns (uint256);
-    function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
-    function listPositions(address owner) external view returns (uint256[] memory);
+    function setBoardClosedAt(uint256 _boardClosedAt) external;
     function isBoardOpen() external view returns (bool);
     function isBoardClosed() external view returns (bool);
 }

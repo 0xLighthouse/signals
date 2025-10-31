@@ -30,11 +30,7 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 ether);
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            100 ether,
-            6
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), 100 ether, 6
         );
         vm.stopPrank();
 
@@ -57,16 +53,12 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), 100 ether);
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            100 ether,
-            6
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), 100 ether, 6
         );
         vm.stopPrank();
 
         vm.startPrank(_alice);
-        uint256[] memory nfts = signals.listPositions(_alice);
+        uint256[] memory nfts = signals.getLocksBySupporterForInitiative(1, _alice);
         assertEq(nfts.length, 1);
         assertEq(nfts[0], 1);
     }

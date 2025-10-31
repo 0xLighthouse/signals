@@ -141,7 +141,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
 
         // Owner closes the board
         vm.prank(_deployer);
-        signals.closeBoard();
+        signals.setBoardClosedAt(0);
 
         // Alice tries to propose new initiative (after board closed) - should revert
         vm.startPrank(_alice);

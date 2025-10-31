@@ -96,31 +96,21 @@ contract Signals is
     mapping(uint256 => ISignals.TokenLock) internal _locks;
 
     /// @notice Mapping from initiative ID to array of token IDs
-    mapping(uint256 => uint256[]) public initiativeLocks;
+    mapping(uint256 => uint256[]) internal _locksForInitiative;
 
-    /// @notice Mapping from supporter to their token IDs
-    mapping(address => uint256[]) public supporterLocks;
-
-    /// @notice (initiativeId => supporter[])
-    mapping(uint256 => address[]) public supporters;
-
-    /// @dev (initiativeId => (supporter => bool))
-    // Shows which initiatives a supporter has pending withdrawals for
-    mapping(uint256 => mapping(address => bool)) public isSupporter;
-
-    /// @notice Number of lock positions created as NFTs
-    uint256 public lockCount;
-
-    /// @notice Initiative counter
+    /// @notice Number of initiatives
     uint256 public initiativeCount;
 
+    /// @notice Number of token lock NFTs
+    uint256 public lockCount;
+
     /// @notice Check to make sure the initiative exists
-    modifier exists(uint256 initiativeId) {
+    modifier initiativeMustExist(uint256 initiativeId) {
         if (initiativeId > initiativeCount) revert ISignals.Signals_InvalidID();
         _;
     }
 
-    modifier isOpen() {
+    modifier boardMustBeOpen() {
         if (!isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
         _;
     }
@@ -179,7 +169,7 @@ contract Signals is
         string memory _title,
         string memory _body,
         ISignals.Attachment[] calldata _attachments
-    ) external isOpen senderCanPropose(0) returns (uint256 initiativeId) {
+    ) external boardMustBeOpen senderCanPropose(0) returns (uint256 initiativeId) {
         initiativeId = _addInitiative(_title, _body, _attachments);
     }
 
@@ -190,7 +180,12 @@ contract Signals is
         ISignals.Attachment[] calldata _attachments,
         uint256 _amount,
         uint256 _lockDuration
-    ) external isOpen senderCanPropose(_amount) returns (uint256 initiativeId, uint256 tokenId) {
+    )
+        external
+        boardMustBeOpen
+        senderCanPropose(_amount)
+        returns (uint256 initiativeId, uint256 tokenId)
+    {
         initiativeId = _addInitiative(_title, _body, _attachments);
         tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
@@ -313,26 +308,20 @@ contract Signals is
 
         _locks[lockCount] = TokenLock({
             initiativeId: initiativeId,
+            supporter: supporter,
             tokenAmount: amount,
             lockDuration: lockDuration,
             created: block.timestamp,
             withdrawn: false
         });
 
-        initiativeLocks[initiativeId].push(lockCount);
-        supporterLocks[supporter].push(lockCount);
+        _locksForInitiative[initiativeId].push(lockCount);
 
         // Update the initiative's underlying locked amount
         initiative.underlyingLocked += amount;
 
         // Update the initiative's last activity timestamp
         initiative.lastActivity = block.timestamp;
-
-        // Record the user's support
-        if (!isSupporter[initiativeId][supporter]) {
-            supporters[initiativeId].push(supporter);
-            isSupporter[initiativeId][supporter] = true;
-        }
 
         // Record this lock's contribution for incentives
         // (Function will silently skip if we aren't using incentives)
@@ -349,9 +338,9 @@ contract Signals is
     /// @inheritdoc ISignals
     function supportInitiative(uint256 initiativeId, uint256 amount, uint256 lockDuration)
         external
-        isOpen
+        boardMustBeOpen
         senderCanSupport(amount)
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         returns (uint256 tokenId)
     {
         tokenId = _addLock(initiativeId, msg.sender, amount, lockDuration);
@@ -361,7 +350,11 @@ contract Signals is
      * @notice Mark an initiative as accepted
      * @param initiativeId ID of the initiative to accept
      */
-    function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) {
+    function acceptInitiative(uint256 initiativeId)
+        external
+        payable
+        initiativeMustExist(initiativeId)
+    {
         if (!_acceptanceCriteria.anyoneCanAccept) {
             // Inherited from Ownable
             _checkOwner();
@@ -398,7 +391,7 @@ contract Signals is
     function expireInitiative(uint256 initiativeId)
         external
         payable
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         onlyOwner
     {
         Initiative storage initiative = _initiatives[initiativeId];
@@ -540,9 +533,13 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function closeBoard() external isOpen onlyOwner {
-        boardClosedAt = block.timestamp;
-        emit BoardClosed(msg.sender);
+    function setBoardClosedAt(uint256 _boardClosedAt) external onlyOwner {
+        if (_boardClosedAt < block.timestamp) {
+            _boardClosedAt = block.timestamp;
+            emit BoardClosed(msg.sender);
+        }
+        if (_boardClosedAt < boardOpenAt) revert ISignals.Signals_InvalidArguments();
+        boardClosedAt = _boardClosedAt;
     }
 
     /**
@@ -562,23 +559,18 @@ contract Signals is
         returns (uint256)
     {
         // Get all lock positions supporting this initiative
-        uint256[] memory tokenIds = initiativeLocks[initiativeId];
+        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
         uint256 weight = 0;
 
         // Sum weights from all active (non-withdrawn) locks
-        // Each lock's weight decays over time according to the configured decay curve
         for (uint256 i = 0; i < tokenIds.length;) {
-            uint256 tokenId = tokenIds[i];
+            TokenLock memory lock = _locks[tokenIds[i]];
 
-            // Direct storage access - only check withdrawn flag first (single SLOAD)
             // Only count locks that haven't been redeemed yet
-            if (!_locks[tokenId].withdrawn) {
-                // Pass storage pointer to avoid copying struct to memory
-                weight += _calculateLockWeightAt(_locks[tokenId], timestamp);
+            if (!lock.withdrawn) {
+                weight += _calculateLockWeightAt(lock, timestamp);
             }
 
-            // Unchecked increment: loop counter cannot realistically overflow uint256
-            // Saves ~30-40 gas per iteration by skipping overflow checks
             unchecked {
                 ++i;
             }
@@ -604,23 +596,20 @@ contract Signals is
         address supporter,
         uint256 timestamp
     ) internal view returns (uint256) {
-        // Get all locks owned by this supporter (across all initiatives)
-        uint256[] memory tokenIds = supporterLocks[supporter];
+        // Get all locks for this initiative
+        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
         uint256 weight = 0;
 
         // Filter for locks supporting the specific initiative and sum their weights
         for (uint256 i = 0; i < tokenIds.length;) {
-            uint256 tokenId = tokenIds[i];
+            ISignals.TokenLock memory lock = _locks[tokenIds[i]];
 
-            // Direct storage access - check initiative ID and withdrawn status
             // Only count locks for this specific initiative that haven't been redeemed
-            if (_locks[tokenId].initiativeId == initiativeId && !_locks[tokenId].withdrawn) {
-                // Pass storage pointer to avoid copying struct to memory
-                weight += _calculateLockWeightAt(_locks[tokenId], timestamp);
+            if (lock.initiativeId == initiativeId && lock.supporter == supporter && !lock.withdrawn)
+            {
+                weight += _calculateLockWeightAt(lock, timestamp);
             }
 
-            // Unchecked increment: loop counter cannot realistically overflow uint256
-            // Saves ~30-40 gas per iteration by skipping overflow checks
             unchecked {
                 ++i;
             }
@@ -639,7 +628,7 @@ contract Signals is
      * @param timestamp Timestamp to calculate weight at
      * @return Weight of the lock at the specified timestamp
      */
-    function _calculateLockWeightAt(TokenLock storage lock, uint256 timestamp)
+    function _calculateLockWeightAt(TokenLock memory lock, uint256 timestamp)
         internal
         view
         returns (uint256)
@@ -704,37 +693,77 @@ contract Signals is
         return _locks[tokenId];
     }
 
-    /**
-     * @notice Get the number of lock positions a supporter has
-     * @param supporter Address of the supporter
-     * @return Number of locks
-     */
-    function getLockCountForSupporter(address supporter) public view returns (uint256) {
-        return supporterLocks[supporter].length;
+    function locksForInitiative(uint256 initiativeId) public view returns (uint256[] memory) {
+        return _locksForInitiative[initiativeId];
     }
 
     /// @inheritdoc ISignals
-    function getLocksForSupporter(address supporter) public view returns (uint256[] memory) {
-        return supporterLocks[supporter];
+    function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
+
+        // First pass: count matching locks
+        uint256 count = 0;
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            TokenLock memory lock = _locks[tokenIds[i]];
+            if (lock.supporter == supporter && !lock.withdrawn) {
+                count++;
+            }
+        }
+
+        // Allocate array with exact size
+        uint256[] memory locks = new uint256[](count);
+
+        // Second pass: populate the array
+        uint256 index = 0;
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            TokenLock memory lock = _locks[tokenIds[i]];
+            if (lock.supporter == supporter && !lock.withdrawn) {
+                locks[index] = tokenIds[i];
+                index++;
+            }
+        }
+
+        return locks;
     }
 
-    /// @inheritdoc ISignals
-    function listPositions(address owner) public view returns (uint256[] memory) {
-        uint256 tokenCount = balanceOf(owner);
-        uint256[] memory tokens = new uint256[](tokenCount);
+    function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
 
-        // Gas optimization: unchecked increment safe as tokenCount bounded by array length
-        for (uint256 i = 0; i < tokenCount;) {
-            tokens[i] = tokenOfOwnerByIndex(owner, i);
-
-            // Unchecked increment: loop counter cannot overflow uint256
-            // Saves ~30-40 gas per iteration
+        // First pass: count matching locks
+        uint256 count = 0;
+        for (uint256 i = 0; i < tokenIds.length;) {
+            if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
+                count++;
+            }
             unchecked {
                 ++i;
             }
         }
 
-        return tokens;
+        // Allocate array with exact size
+        uint256[] memory locks = new uint256[](count);
+
+        // Second pass: populate the array
+        uint256 index = 0;
+        for (uint256 i = 0; i < tokenIds.length;) {
+            if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
+                locks[index] = tokenIds[i];
+                index++;
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        return locks;
     }
 
     /// @inheritdoc ISignalsLock
@@ -752,11 +781,6 @@ contract Signals is
             created: lock.created,
             claimed: lock.withdrawn
         });
-    }
-
-    /// @inheritdoc ISignalsLock
-    function getUnderlyingToken() external view returns (address) {
-        return underlyingToken;
     }
 
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory) {
@@ -779,24 +803,83 @@ contract Signals is
     function getInitiative(uint256 initiativeId)
         external
         view
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         returns (Initiative memory)
     {
         return _initiatives[initiativeId];
     }
 
     /// @inheritdoc ISignals
-    function getSupporters(uint256 initiativeId)
+    function getSupportersOfInitiative(uint256 initiativeId)
         external
         view
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         returns (address[] memory)
     {
-        return supporters[initiativeId];
+        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
+
+        // First pass: count unique supporters
+        uint256 uniqueCount = 0;
+        for (uint256 i = 0; i < tokenIds.length;) {
+            address supporter = _locks[tokenIds[i]].supporter;
+            // Check if we've seen this supporter earlier in the array
+            bool isUnique = true;
+            for (uint256 j = 0; j < i;) {
+                if (_locks[tokenIds[j]].supporter == supporter) {
+                    isUnique = false;
+                    break;
+                }
+                unchecked {
+                    ++j;
+                }
+            }
+            if (isUnique) {
+                unchecked {
+                    ++uniqueCount;
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Second pass: allocate array with exact size and populate
+        address[] memory supporters = new address[](uniqueCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < tokenIds.length;) {
+            address supporter = _locks[tokenIds[i]].supporter;
+            // Check if we've already added this supporter
+            bool alreadyAdded = false;
+            for (uint256 j = 0; j < index;) {
+                if (supporters[j] == supporter) {
+                    alreadyAdded = true;
+                    break;
+                }
+                unchecked {
+                    ++j;
+                }
+            }
+            if (!alreadyAdded) {
+                supporters[index] = supporter;
+                unchecked {
+                    ++index;
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        return supporters;
     }
 
     /// @inheritdoc ISignals
-    function getWeight(uint256 initiativeId) external view exists(initiativeId) returns (uint256) {
+    function getWeight(uint256 initiativeId)
+        external
+        view
+        initiativeMustExist(initiativeId)
+        returns (uint256)
+    {
         return _calculateWeightAt(initiativeId, block.timestamp);
     }
 
@@ -804,7 +887,7 @@ contract Signals is
     function getWeightAt(uint256 initiativeId, uint256 timestamp)
         external
         view
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         returns (uint256)
     {
         return _calculateWeightAt(initiativeId, timestamp);
@@ -814,42 +897,10 @@ contract Signals is
     function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
         external
         view
-        exists(initiativeId)
+        initiativeMustExist(initiativeId)
         returns (uint256)
     {
         return _calculateWeightForSupporterAt(initiativeId, supporter, timestamp);
-    }
-
-    /**
-     * @notice Get the current board title
-     * @return Current board title
-     */
-    function getTitle() external view returns (string memory) {
-        return title;
-    }
-
-    /// @inheritdoc ISignals
-    function token() external view returns (address) {
-        return underlyingToken;
-    }
-
-    /// @inheritdoc ISignals
-    function totalInitiatives() external view returns (uint256) {
-        return initiativeCount;
-    }
-
-    /// @inheritdoc ISignals
-    function totalSupporters(uint256 initiativeId) external view returns (uint256) {
-        return supporters[initiativeId].length;
-    }
-
-    /// @inheritdoc ISignals
-    function getPositionsForInitiative(uint256 initiativeId)
-        external
-        view
-        returns (uint256[] memory)
-    {
-        return initiativeLocks[initiativeId];
     }
 
     function isBoardOpen() public view returns (bool) {
