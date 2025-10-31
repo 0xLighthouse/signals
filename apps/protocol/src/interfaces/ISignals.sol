@@ -274,6 +274,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public state variables
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
+    function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
     function proposalCap() external view returns (uint256);
     function lockInterval() external view returns (uint256);
