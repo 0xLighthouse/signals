@@ -47,6 +47,6 @@ contract IssueTestTokens is SharedScriptBase {
         _token.batchMint(mints, "Test token distribution");
         vm.stopBroadcast();
 
-        console.log("ScriptOutput:", Strings.toString(totalAmount / 1 ether), " tokens issued");
+        console.log("ScriptOutput:", Strings.toString(totalAmount / 1 ether), " Tokens Issued");
     }
 }

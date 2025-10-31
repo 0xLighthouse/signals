@@ -142,15 +142,15 @@ run_and_capture token_address \
 # #   Deploy Signals Board
 # #####################
 
-# echo "Deploying Signals board..."
-# run_and_capture board_address \
-#   forge -vvvv script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
-#     --rpc-url "$ANVIL_RPC" \
-#     --broadcast \
-#     -s "run(string,address,address)" \
-#     "anvil" \
-#     "$signals_factory_address" \
-#     "$token_address"
+echo "Deploying Signals board..."
+run_and_capture board_address \
+  forge script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "run(string,address,address)" \
+    "anvil" \
+    "$signals_factory_address" \
+    "$token_address"
 
 
 # #####################
