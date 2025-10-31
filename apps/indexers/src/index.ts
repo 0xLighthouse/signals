@@ -2,6 +2,19 @@ import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { SignalsABI } from '../../../packages/abis'
 
+ponder.on('ExperimentTokenFactory:TokenDeployed', async ({ event, context }) => {
+  // Persist newly deployed token metadata
+  await context.db.insert(schema.Token).values({
+    id: event.id,
+    chainId: context.chain.id,
+    blockTimestamp: event.block.timestamp,
+    transactionHash: event.transaction.hash,
+    contractAddress: event.args.token as `0x${string}`,
+    name: event.args.name,
+    symbol: event.args.symbol,
+  })
+})
+
 ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
   await context.db.insert(schema.Initiative).values({
     id: event.id,
@@ -13,11 +26,12 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
     proposer: event.args.proposer,
     title: event.args.title,
     body: event.args.body,
-    attachments: event.args.attachments?.map((attachment) => ({
-      uri: attachment.uri,
-      mimeType: attachment.mimeType,
-      description: attachment.description,
-    })) ?? [],
+    attachments:
+      event.args.attachments?.map((attachment) => ({
+        uri: attachment.uri,
+        mimeType: attachment.mimeType,
+        description: attachment.description,
+      })) ?? [],
   })
 })
 
@@ -116,23 +130,23 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   /**
    * TODO: Patch additional board metadata
    */
-  const proposalThreshold: bigint = await context.client.readContract({
+  const proposalThreshold: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'proposalCap',
-  }) as bigint
+  })) as bigint
 
-  const acceptanceThreshold: bigint = await context.client.readContract({
+  const acceptanceThreshold: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'acceptanceThreshold',
-  }) as bigint
+  })) as bigint
 
-  const underlyingToken: `0x${string}` = await context.client.readContract({
+  const underlyingToken: `0x${string}` = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'underlyingToken',
-  }) as `0x${string}`
+  })) as `0x${string}`
 
   await context.db.insert(schema.Board).values({
     id: event.id,
@@ -146,5 +160,3 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     underlyingToken: underlyingToken as `0x${string}`,
   })
 })
-
-

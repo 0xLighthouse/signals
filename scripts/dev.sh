@@ -105,74 +105,74 @@ run_and_capture token_address \
     "$TOKEN_NAME" \
     "$TOKEN_SYMBOL"
 
-#####################
-#   Issue test tokens to Alice, Bob, and Charlie
-#####################
+# #####################
+# #   Issue test tokens to Alice, Bob, and Charlie
+# #####################
 
-echo "Issuing test tokens..."
-run_and_capture issue_test_tokens_output \
-  forge script script/IssueTestTokens.s.sol:IssueTestTokens \
-    --rpc-url "$ANVIL_RPC" \
-    --broadcast \
-    -s "run(string,string,address,string[])" \
-    "anvil" \
-    "deployer" \
-    "$token_address" \
-    "[\"alice\", \"bob\", \"charlie\"]" \
+# echo "Issuing test tokens..."
+# run_and_capture issue_test_tokens_output \
+#   forge script script/IssueTestTokens.s.sol:IssueTestTokens \
+#     --rpc-url "$ANVIL_RPC" \
+#     --broadcast \
+#     -s "run(string,string,address,string[])" \
+#     "anvil" \
+#     "deployer" \
+#     "$token_address" \
+#     "[\"alice\", \"bob\", \"charlie\"]" \
 
-cd ../..
+# cd ../..
 
-#####################
-#   Deploy Signals Factory
-#####################
+# #####################
+# #   Deploy Signals Factory
+# #####################
 
-cd apps/protocol
-#forge clean && forge install
+# cd apps/protocol
+# #forge clean && forge install
 
-echo "Deploying Signals Factory..."
-run_and_capture signals_factory_address \
-  forge script script/DeploySignalsFactory.s.sol:DeploySignalsFactory \
-    --rpc-url "$ANVIL_RPC" \
-    --broadcast \
-    -s "run(string)" \
-    "anvil"
-
-
-#####################
-#   Deploy Signals Board
-#####################
-
-echo "Deploying Signals board..."
-run_and_capture board_address \
-  forge -vvvv script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
-    --rpc-url "$ANVIL_RPC" \
-    --broadcast \
-    -s "run(string,address,address)" \
-    "anvil" \
-    "$signals_factory_address" \
-    "$token_address"
+# echo "Deploying Signals Factory..."
+# run_and_capture signals_factory_address \
+#   forge script script/DeploySignalsFactory.s.sol:DeploySignalsFactory \
+#     --rpc-url "$ANVIL_RPC" \
+#     --broadcast \
+#     -s "run(string)" \
+#     "anvil"
 
 
-#####################
-#   Seed test initiatives
-#####################
+# #####################
+# #   Deploy Signals Board
+# #####################
 
-echo "Seeding test initiatives..."
-run_and_capture seed_initiatives_output \
-  forge script script/TestnetData.s.sol:SeedInitiativesScript \
-    --rpc-url "$ANVIL_RPC" \
-    --broadcast \
-    -s "run(string,address)" \
-    "anvil" \
-    "$board_address"
+# echo "Deploying Signals board..."
+# run_and_capture board_address \
+#   forge -vvvv script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
+#     --rpc-url "$ANVIL_RPC" \
+#     --broadcast \
+#     -s "run(string,address,address)" \
+#     "anvil" \
+#     "$signals_factory_address" \
+#     "$token_address"
 
-cd ../..
 
-echo
-echo "=== Deployment summary ==="
-echo "ExperimentTokenFactory: $token_factory_address"
-echo "ExperimentToken:        $token_address"
-echo "Issue test tokens:      $issue_test_tokens_output"
-echo "SignalsFactory:         $signals_factory_address"
-echo "Signals board:          $board_address"
-echo "Seed initiatives:       $seed_initiatives_output"
+# #####################
+# #   Seed test initiatives
+# #####################
+
+# echo "Seeding test initiatives..."
+# run_and_capture seed_initiatives_output \
+#   forge script script/TestnetData.s.sol:SeedInitiativesScript \
+#     --rpc-url "$ANVIL_RPC" \
+#     --broadcast \
+#     -s "run(string,address)" \
+#     "anvil" \
+#     "$board_address"
+
+# cd ../..
+
+# echo
+# echo "=== Deployment summary ==="
+# echo "ExperimentTokenFactory: $token_factory_address"
+# echo "ExperimentToken:        $token_address"
+# echo "Issue test tokens:      $issue_test_tokens_output"
+# echo "SignalsFactory:         $signals_factory_address"
+# echo "Signals board:          $board_address"
+# echo "Seed initiatives:       $seed_initiatives_output"

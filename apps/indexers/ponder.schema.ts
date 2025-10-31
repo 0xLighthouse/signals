@@ -16,6 +16,17 @@ type InitiativeAttachment = {
 //                                   ENTITIES
 // ===========================================================================
 
+export const Token = onchainTable('tokens', (t) => ({
+  id: t.text().primaryKey(),
+  chainId: t.integer().notNull(),
+  blockTimestamp: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
+  // --- attributes
+  contractAddress: t.hex().notNull(),
+  name: t.text().notNull(),
+  symbol: t.text().notNull(),
+}))
+
 export const Board = onchainTable('boards', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
