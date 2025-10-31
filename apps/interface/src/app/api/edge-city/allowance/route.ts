@@ -3,7 +3,7 @@ import { formatUnits, isAddress, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
 import { edgeCityConfig, EdgeCityProfile } from '@/config/edge-city'
-import { readClient } from '@/config/web3'
+import { getNetworkConfig } from '@/config/web3'
 import { EdgeOSClient } from '@/lib/server/edgeos-client'
 import { EDGE_CITY_SIGNER_PRIVATE_KEY } from '../../secrets'
 import { MAX_ADDITIONAL_CITIES, DEFAULT_ALLOCATION_AMOUNT_INT } from '../constants'
@@ -40,11 +40,6 @@ const calculateAllowance = async (defaultAlloc: number, additionalCitiesAttended
 
 export async function POST(request: Request) {
   try {
-    // This endpoint only supports the signed EIP-712 allowance flow.
-    if (edgeCityConfig.claimFunction !== 'claim') {
-      return NextResponse.json({ error: 'Signed allowance is not enabled for this environment' }, { status: 400 })
-    }
-
     const authorization = request.headers.get('authorization')
     const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : null
 
@@ -85,7 +80,7 @@ export async function POST(request: Request) {
       domain: {
         name: 'ExperimentToken',
         version: '1',
-        chainId: readClient.chain.id,
+        chainId: getNetworkConfig().chain.id,
         verifyingContract: edgeCityConfig.token,
       },
       types: CLAIM_TYPES,

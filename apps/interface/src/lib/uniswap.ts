@@ -1,9 +1,8 @@
 import { Position, Pool } from '@uniswap/v4-sdk'
 import { Token } from '@uniswap/sdk-core'
 import { Pool as IndexedPool } from '@/indexers/api/types'
-import { INDEXER_ENDPOINT } from '@/config/web3'
-import { arbitrumSepolia } from 'viem/chains'
 import { hexToNumber } from 'viem'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 export type CurrencyType = 'Currency0' | 'Currency1'
 
@@ -14,7 +13,8 @@ interface PoolState {
 }
 
 const fetchPoolState = async (poolId: string): Promise<PoolState> => {
-  const response = await fetch(`${INDEXER_ENDPOINT}/pool-state/${arbitrumSepolia.id}/${poolId}`)
+  const { indexerEndpoint, chain } = useNetworkStore.getState().config
+  const response = await fetch(`${indexerEndpoint}/pool-state/${chain.id}/${poolId}`)
   const { data } = await response.json()
   return data
 }

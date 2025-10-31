@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { client } from '@/config/ponder'
-import { context } from '@/config/web3'
 import { useWeb3 } from '@/contexts/Web3Provider'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 export interface Board {
   id: string
@@ -24,7 +24,7 @@ export function useBoardAutocomplete() {
     }
 
     // Get chain ID from the public client
-    const chainId = publicClient.chain?.id || context.network.arbitrumSepolia.chainId
+    const chainId = publicClient.chain?.id || useNetworkStore.getState().config.chain.id
 
     setIsLoading(true)
     setError(null)

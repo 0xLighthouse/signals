@@ -1,10 +1,12 @@
 'use client'
 
-import { readClient, context } from '@/config/web3'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
+
+import { useNetwork } from '@/hooks/useNetwork'
 import { useUnderlying } from './ContractContext'
 import { useAccount } from '@/hooks/useAccount'
+import { useWeb3 } from './Web3Provider'
 
 export interface IBoard {
   name: string | null
@@ -63,6 +65,9 @@ interface Props {
 export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
   const { balance, formatter: underlyingFormatter } = useUnderlying()
+  const { config } = useNetwork()
+  const { publicClient } = useWeb3()
+  const signalsContract = config.contracts.SignalsProtocol
 
   const [name, setName] = useState<string | null>(null)
   const [symbol, setSymbol] = useState<string | null>(null)
@@ -76,13 +81,13 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
 
   useEffect(() => {
     const fetchContractMetadata = async () => {
-      if (!address) return
+      if (!address || !publicClient || !signalsContract) return
 
       try {
         const protocol = getContract({
-          address: context.contracts.SignalsProtocol.address,
-          abi: context.contracts.SignalsProtocol.abi,
-          client: readClient,
+          address: signalsContract.address,
+          abi: signalsContract.abi,
+          client: publicClient,
         })
 
         // Fetch contract data in parallel using Promise.all
@@ -136,7 +141,7 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
 
     // Fetch contract metadata when the address changes
     fetchContractMetadata()
-  }, [address])
+  }, [address, publicClient, signalsContract?.address, signalsContract?.abi])
 
   // Provide contract data to children
   return (

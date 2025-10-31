@@ -1,15 +1,12 @@
 'use client'
 
-import { context, readClient } from '@/config/web3'
-import { useAccount } from '@/hooks/useAccount'
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { getContract } from 'viem'
 
-const token = getContract({
-  address: context.contracts.BoardUnderlyingToken.address,
-  abi: context.contracts.BoardUnderlyingToken.abi,
-  client: readClient,
-})
+import { useNetwork } from '@/hooks/useNetwork'
+import { useAccount } from '@/hooks/useAccount'
+import { ZERO_ADDRESS } from '@/config/web3'
+import { useWeb3 } from './Web3Provider'
 
 // Types for contract metadata
 interface ContractContextType {
@@ -41,6 +38,9 @@ interface Props {
 
 export const TokenProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
+  const { config } = useNetwork()
+  const { publicClient } = useWeb3()
+  const underlyingContract = config.contracts.BoardUnderlyingToken
   const [name, setContractName] = useState<string | null>(null)
   const [symbol, setSymbol] = useState<string | null>(null)
   const [decimals, setDecimals] = useState<number | null>(null)
@@ -48,7 +48,15 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
   const [balance, setBalance] = useState<number>(0)
 
   const fetchContractMetadata = React.useCallback(async () => {
+    if (!publicClient || !underlyingContract) return
+
     try {
+      const token = getContract({
+        address: underlyingContract.address,
+        abi: underlyingContract.abi,
+        client: publicClient,
+      })
+
       // Fetch contract data in parallel using Promise.all
       const [name, symbol, decimals, totalSupply, balance] = await Promise.all([
         token.read.name(),
@@ -67,7 +75,7 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
     } catch (error) {
       console.error('Error fetching contract metadata:', error)
     }
-  }, [address])
+  }, [address, publicClient, underlyingContract?.address, underlyingContract?.abi])
 
   useEffect(() => {
     // Fetch contract metadata when the address changes
@@ -76,8 +84,9 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
 
   // Expose a formatter for the underlying token
   const formatter = (value?: number | null | undefined) => {
-    if (!decimals || !value) return value
-    const exp = 10 ** decimals
+    const effectiveDecimals = decimals ?? underlyingContract?.decimals
+    if (!effectiveDecimals || !value) return value ?? null
+    const exp = 10 ** effectiveDecimals
     return Math.ceil(value / exp)
   }
 
@@ -85,7 +94,7 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
   return (
     <ContractContext.Provider
       value={{
-        address: context.contracts.BoardUnderlyingToken.address.toLowerCase() as `0x${string}`,
+        address: (underlyingContract?.address ?? ZERO_ADDRESS).toLowerCase() as `0x${string}`,
         name,
         symbol,
         decimals,

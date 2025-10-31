@@ -1,18 +1,15 @@
 import type { Initiative, InitiativeResponse } from '../../../indexers/src/api/types'
 import { client, schema } from '@/config/ponder'
-import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 interface InitiativesState {
   initiatives: Initiative[]
   isFetching: boolean
   isInitialized: boolean
   fetchInitiatives: () => Promise<void>
+  reset: () => void
 }
-
-// TODO: These values can be dynamic now..
-const CHAIN_ID = 421614
-const ADDRESS = context.contracts.SignalsProtocol.address
 
 export const useInitiativesStore = create<InitiativesState>((set) => ({
   initiatives: [],
@@ -22,7 +19,15 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
     try {
       set({ isFetching: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/initiatives/${CHAIN_ID}/${ADDRESS}`)
+      const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
+      const boardAddress = contracts.SignalsProtocol?.address
+      if (!boardAddress) {
+        console.warn('No Signals board configured for current network.')
+        set({ initiatives: [] })
+        return
+      }
+
+      const resp = await fetch(`${indexerEndpoint}/initiatives/${chain.id}/${boardAddress}`)
       const { initiatives }: InitiativeResponse = await resp.json()
       if (Array.isArray(initiatives)) {
         set({ initiatives })
@@ -35,4 +40,5 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
       set({ isFetching: false, isInitialized: true })
     }
   },
+  reset: () => set({ initiatives: [], isFetching: false, isInitialized: false }),
 }))

@@ -1,8 +1,8 @@
 'use client'
 
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { base, arbitrumSepolia, hardhat } from 'viem/chains'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   createPublicClient,
   http,
@@ -12,12 +12,14 @@ import {
   custom,
 } from 'viem'
 
-const chain = process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia
+import { useNetworkStore } from '@/stores/useNetworkStore'
+
+const initialNetwork = useNetworkStore.getState().config
 
 const Web3Context = createContext<IWeb3Context>({
   publicClient: createPublicClient({
-    chain,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
+    chain: initialNetwork.chain,
+    transport: http(initialNetwork.rpcUrl),
   }),
   walletClient: null,
   isInitialized: false,
@@ -37,11 +39,16 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
+  const config = useNetworkStore((state) => state.config)
 
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
-  })
+  const publicClient = useMemo(
+    () =>
+      createPublicClient({
+        chain: config.chain,
+        transport: http(config.rpcUrl),
+      }),
+    [config.chain, config.rpcUrl],
+  )
 
   useEffect(() => {
     if (privyReady && walletReady) {
@@ -65,7 +72,7 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
         const provider = await wallets[0]?.getEthereumProvider?.()
         if (!cancelled && provider) {
           const client = createWalletClient({
-            chain,
+            chain: config.chain,
             transport: custom(provider),
           })
           setWalletClient(client)
@@ -82,7 +89,15 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [isInitialized, wallets])
+  }, [isInitialized, wallets, config.chain])
+
+  useEffect(() => {
+    if (!walletClient || !isInitialized) return
+
+    walletClient.switchChain?.({ id: config.chain.id }).catch((error) => {
+      console.warn('Wallet chain switch failed or unsupported', error)
+    })
+  }, [walletClient, config.chain.id, isInitialized])
 
   return (
     <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
@@ -93,6 +108,8 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
 
 // Main provider that sets up Privy
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  const config = useNetworkStore((state) => state.config)
+
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}
@@ -100,8 +117,8 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         appearance: {
           theme: 'dark',
         },
-        supportedChains: [chain],
-        defaultChain: chain,
+        supportedChains: [hardhat, arbitrumSepolia, base],
+        defaultChain: config.chain,
       }}
     >
       <Web3ContextProvider>{children}</Web3ContextProvider>

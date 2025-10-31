@@ -1,6 +1,5 @@
 'use client'
 
-import { context } from '@/config/web3'
 import { useBoardAutocomplete } from '@/hooks/useBoardAutocomplete'
 import { cn, shortAddress } from '@/lib/utils'
 import { Check, ChevronsUpDown } from 'lucide-react'
@@ -15,6 +14,7 @@ import {
   CommandList,
 } from '../ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { useNetwork } from '@/hooks/useNetwork'
 
 interface BoardSelectorProps {
   onDeployBoard: () => void
@@ -25,13 +25,15 @@ export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorPro
   const { boards, isLoading } = useBoardAutocomplete()
   const [open, setOpen] = useState(false)
   const [selectedBoard, setSelectedBoard] = useState('')
+  const { config } = useNetwork()
 
   // Initially set the current board address as selected
   useEffect(() => {
-    if (context.contracts.SignalsProtocol.address) {
-      setSelectedBoard(context.contracts.SignalsProtocol.address.toLowerCase())
+    const signalsAddress = config.contracts.SignalsProtocol?.address
+    if (signalsAddress) {
+      setSelectedBoard(signalsAddress.toLowerCase())
     }
-  }, [])
+  }, [config.contracts.SignalsProtocol?.address])
 
   // Format boards for the combobox
   const boardOptions =
@@ -59,7 +61,9 @@ export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorPro
 
   const selectedLabel =
     options?.find((option) => option.value === selectedBoard)?.label ||
-    shortAddress(context.contracts.SignalsProtocol.address)
+    (config.contracts.SignalsProtocol?.address
+      ? shortAddress(config.contracts.SignalsProtocol.address)
+      : 'Select board')
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
