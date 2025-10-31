@@ -32,7 +32,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
      */
     function test_Propose_RevertsWithInsufficientTokens() public {
         vm.startPrank(_charlie);
-        vm.expectRevert(ISignals.Signals_ParticipantInsufficientBalance.selector);
+        vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
         signals.proposeInitiative("Should revert", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
     }
@@ -45,7 +45,9 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
 
         vm.expectEmit(true, true, true, true);
-        emit ISignals.InitiativeProposed(1, _alice, "Initiative 1", "Description 1", new ISignals.Attachment[](0));
+        emit ISignals.InitiativeProposed(
+            1, _alice, "Initiative 1", "Description 1", new ISignals.Attachment[](0)
+        );
 
         signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
 
@@ -71,11 +73,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         vm.expectEmit();
         emit ISignals.InitiativeSupported(1, _bob, lockAmount, 6, 1);
         signals.proposeInitiativeWithLock(
-            "Initiative 2",
-            "Description 2",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            6
+            "Initiative 2", "Description 2", new ISignals.Attachment[](0), lockAmount, 6
         );
         vm.stopPrank();
 
@@ -112,11 +110,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // Propose an initiative
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            1
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 1
         );
 
         vm.startPrank(_bob);
@@ -142,16 +136,12 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Check that total support is stored correctly
         assertEq(signals.getWeight(1), lockAmount * 2);
 
-        // Test getLockCountForSupporter
-        assertEq(signals.getLockCountForSupporter(_bob), 1);
-        assertEq(signals.getLockCountForSupporter(_alice), 1);
-
         // Test getLocksForSupporter
-        uint256[] memory aliceLocks = signals.getLocksForSupporter(_alice);
+        uint256[] memory aliceLocks = signals.getLocksBySupporterForInitiative(1, _alice);
         assertEq(aliceLocks.length, 1);
         assertEq(aliceLocks[0], 1);
 
-        uint256[] memory bobLocks = signals.getLocksForSupporter(_bob);
+        uint256[] memory bobLocks = signals.getLocksBySupporterForInitiative(1, _bob);
         assertEq(bobLocks.length, 1);
         assertEq(bobLocks[0], 2);
     }
@@ -162,16 +152,12 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
     /// Test accepting an initiative
     function test_Accept_Success() public {
-        uint256 lockAmount = defaultConfig.acceptanceThreshold;
+        uint256 lockAmount = defaultConfig.acceptanceCriteria.fixedThreshold / 5;
         // Propose an initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), lockAmount);
         signals.proposeInitiativeWithLock(
-            "Initiative 1",
-            "Description 1",
-            new ISignals.Attachment[](0),
-            lockAmount,
-            6
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 6
         );
 
         // Non-owner cannot accept the initiative
@@ -190,8 +176,147 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // Check that no more support can be added to the accepted initiative
         vm.startPrank(_bob);
-        vm.expectRevert(ISignals.Signals_NotProposedState.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.supportInitiative(1, lockAmount, 6);
+    }
+
+    /// Test that non-owner can accept after support is added when anyoneCanAccept is enabled
+    function test_Accept_AnyoneCanAccept_AddSupportThenAccept() public {
+        // Create config with anyoneCanAccept enabled
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.acceptanceCriteria.anyoneCanAccept = true;
+        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+
+        ISignals customSignals = deploySignals(config);
+
+        // Propose with insufficient support (lock duration of 1 means weight = amount * 1)
+        uint256 initialLockAmount = 50_000 ether;
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), initialLockAmount);
+        customSignals.proposeInitiativeWithLock(
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), initialLockAmount, 1
+        );
+        vm.stopPrank();
+
+        // Verify threshold is NOT met (weight = 50k * 1 = 50k)
+        assertLt(customSignals.getWeight(1), 100_000 ether);
+
+        // Non-owner cannot accept due to insufficient support
+        vm.startPrank(_bob);
+        vm.expectRevert(ISignals.Signals_InsufficientSupport.selector);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Add more support to meet threshold
+        uint256 additionalSupport = 50_000 ether;
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(customSignals), additionalSupport);
+        customSignals.supportInitiative(1, additionalSupport, 1);
+        vm.stopPrank();
+
+        // Verify threshold is now met
+        assertGe(customSignals.getWeight(1), 100_000 ether);
+
+        // Non-owner can now accept
+        vm.startPrank(_bob);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Verify initiative is accepted
+        ISignals.Initiative memory initiative = customSignals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
+    }
+
+    /// Test that owner can bypass threshold even when non-owner cannot
+    function test_Accept_AnyoneCanAccept_OwnerBypassThreshold() public {
+        // Create config with anyoneCanAccept enabled, ownerMustFollowThreshold disabled (default)
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.acceptanceCriteria.anyoneCanAccept = true;
+        config.acceptanceCriteria.ownerMustFollowThreshold = false;
+        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+
+        ISignals customSignals = deploySignals(config);
+
+        // Propose with insufficient support (lock duration of 1 means weight = amount * 1)
+        uint256 lockAmount = 50_000 ether;
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), lockAmount);
+        customSignals.proposeInitiativeWithLock(
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 1
+        );
+        vm.stopPrank();
+
+        // Verify threshold is NOT met (weight = 50k * 1 = 50k)
+        assertLt(customSignals.getWeight(1), 100_000 ether);
+
+        // Non-owner cannot accept due to insufficient support
+        vm.startPrank(_bob);
+        vm.expectRevert(ISignals.Signals_InsufficientSupport.selector);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Owner CAN accept despite insufficient support (bypasses threshold)
+        vm.startPrank(_deployer);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Verify initiative is accepted
+        ISignals.Initiative memory initiative = customSignals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
+    }
+
+    /// Test that owner must follow threshold when enabled, then can accept after support added
+    function test_Accept_OwnerMustFollowThreshold_AddSupportThenOwnerAccepts() public {
+        // Create config with anyoneCanAccept disabled (default), ownerMustFollowThreshold enabled
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.acceptanceCriteria.anyoneCanAccept = false;
+        config.acceptanceCriteria.ownerMustFollowThreshold = true;
+        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+
+        ISignals customSignals = deploySignals(config);
+
+        // Propose with insufficient support (lock duration of 1 means weight = amount * 1)
+        uint256 initialLockAmount = 50_000 ether;
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), initialLockAmount);
+        customSignals.proposeInitiativeWithLock(
+            "Initiative 1", "Description 1", new ISignals.Attachment[](0), initialLockAmount, 1
+        );
+        vm.stopPrank();
+
+        // Verify threshold is NOT met (weight = 50k * 1 = 50k)
+        assertLt(customSignals.getWeight(1), 100_000 ether);
+
+        // Owner cannot accept due to insufficient support (must follow threshold)
+        vm.startPrank(_deployer);
+        vm.expectRevert(ISignals.Signals_InsufficientSupport.selector);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Add support to meet threshold
+        uint256 additionalSupport = 50_000 ether;
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(customSignals), additionalSupport);
+        customSignals.supportInitiative(1, additionalSupport, 1);
+        vm.stopPrank();
+
+        // Verify threshold is now met
+        assertGe(customSignals.getWeight(1), 100_000 ether);
+
+        // Non-owner still cannot accept (access control)
+        vm.startPrank(_bob);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _bob));
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Owner can now accept
+        vm.startPrank(_deployer);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Verify initiative is accepted
+        ISignals.Initiative memory initiative = customSignals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -208,7 +333,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // The initiative can not be expired before the inactivity threshold
         vm.startPrank(_deployer);
-        vm.expectRevert(ISignals.Signals_NotEligibleForExpiration.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.expireInitiative(1);
 
         // Fast forward time beyond inactivity threshold
@@ -228,7 +353,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // No additional support can be added to the expired initiative
         vm.startPrank(_bob);
-        vm.expectRevert(ISignals.Signals_NotProposedState.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.supportInitiative(1, lockAmount, 6);
         vm.stopPrank();
     }

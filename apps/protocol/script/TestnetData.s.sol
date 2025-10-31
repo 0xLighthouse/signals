@@ -42,7 +42,7 @@ contract SeedInitiativesScript is SharedScriptBase {
         console.log("=== Seeds Initiatives On Signals Board ===");
 
         board = ISignals(boardAddress);
-        token = IExperimentToken(board.token());
+        token = IExperimentToken(board.underlyingToken());
 
         uint256[3] memory proposerKeys;
         address[3] memory proposers;

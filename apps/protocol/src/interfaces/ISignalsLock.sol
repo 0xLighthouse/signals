@@ -36,5 +36,5 @@ interface ISignalsLock {
      * @notice Get the address of the underlying ERC20 token
      * @return Address of the token used for locks
      */
-    function getUnderlyingToken() external view returns (address);
+    function underlyingToken() external view returns (address);
 }

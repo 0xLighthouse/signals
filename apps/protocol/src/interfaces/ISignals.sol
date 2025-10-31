@@ -32,7 +32,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         string version;
         address owner;
         address underlyingToken;
-        uint256 acceptanceThreshold;
+        AcceptanceCriteria acceptanceCriteria;
         uint256 maxLockIntervals;
         uint256 proposalCap;
         uint256 lockInterval;
@@ -44,6 +44,21 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 releaseLockDuration;
         uint256 boardOpenAt;
         uint256 boardClosedAt;
+    }
+
+    /**
+     * @notice Criteria for accepting an initiative
+     *
+     * @param anyoneCanAccept If true, anyone can accept an initiative (otherwise, only owner)
+     * @param ownerMustFollowThreshold If true, the owner must follow the threshold (otherwise, owner can accept any initiative)
+     * @param percentageThresholdWAD Support must exceed this percentage (in WAD) of total underlying token supply
+     * @param fixedThreshold Support must also exceed this fixed threshold for accepting an initiative
+     */
+    struct AcceptanceCriteria {
+        bool anyoneCanAccept;
+        bool ownerMustFollowThreshold;
+        uint256 percentageThresholdWAD;
+        uint256 fixedThreshold;
     }
 
     /**
@@ -82,6 +97,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      */
     struct TokenLock {
         uint256 initiativeId;
+        address supporter;
         uint256 tokenAmount;
         uint256 lockDuration;
         uint256 created;
@@ -109,8 +125,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @notice Event emitted when a supporter supports an initiative
      *
      * @param initiativeId ID of the initiative
-     * @param supporter Address of the supporter // FIXME: Consider renameing to originalSupporter ??
-     * @param tokenAmount Amount of tokens locked
+     * @param supporter Address of the supporter      * @param tokenAmount Amount of tokens locked
      * @param lockDuration Duration for which tokens are locked (in intervals)
      * @param tokenId ID of the NFT issued
      */
@@ -138,97 +153,50 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Errors
 
-    /// @notice Thrown when title is empty
-    error Signals_EmptyTitle();
+    /// @notice Sender is not the owner of board or token they are interacting with
+    error Signals_NotOwner();
 
-    /// @notice Thrown when body is empty
-    error Signals_EmptyBody();
+    /// @notice Initiative or token ID is invalid
+    error Signals_InvalidID();
 
-    /// @notice Thrown when caller has insufficient token balance
+    /// @notice Provided arguments are invalid (set to 0? Exceeding the maximum?)
+    error Signals_InvalidArguments();
+
+    /// @notice Title or body is empty
+    error Signals_EmptyTitleOrBody();
+
+    /// @notice Number of attachments exceeds the limit
+    error Signals_AttachmentLimitExceeded();
+
+    /// @notice A token balance is insufficient to carry out the requested action
     error Signals_InsufficientTokens();
 
-    /// @notice Thrown when initiative is not in the required state
-    error Signals_InvalidInitiativeState();
+    /// @notice User hasn't held tokens long enough for the requested action
+    error Signals_InsufficientTokenDuration();
 
-    /// @notice Thrown when initiative is not in Proposed state
-    error Signals_NotProposedState();
+    /// @notice The requested lock amount is insufficient
+    error Signals_InsufficientLockAmount();
 
-    /// @notice Thrown when initiative is not in Accepted or Expired state
-    error Signals_NotWithdrawableState();
+    /// @notice Initiative is not in the correct state for the requested action
+    error Signals_IncorrectInitiativeState();
 
-    /// @notice Thrown when token transfer fails
+    /// @notice Token transfer failed
     error Signals_TokenTransferFailed();
 
-    /// @notice Thrown when attempting to redeem already-withdrawn tokens
-    error Signals_AlreadyRedeemed();
+    /// @notice Token has already been redeemed
+    error Signals_TokenAlreadyRedeemed(uint256 tokenId);
 
-    /// @notice Thrown when attempting to redeem before release timelock expires
+    /// @notice Token is still timelocked and cannot be redeemed yet
     error Signals_StillTimelocked();
 
-    /// @notice Thrown when token owner attempts to redeem token they don't own
-    error Signals_NotTokenOwner();
+    /// @notice The board is in the incorrect state for the requested action (open, closed, unitialized, etc.)
+    error Signals_IncorrectBoardState();
 
-    /// @notice Thrown when initiative ID exceeds initiative count
-    error Signals_InitiativeNotFound();
+    /// @notice Support is insufficient for acceptance
+    error Signals_InsufficientSupport();
 
-    /// @notice Thrown when token ID does not exist
-    error Signals_InvalidTokenId();
-
-    /// @notice Thrown when attempting to interact before board opens
-    error Signals_BoardNotOpen();
-
-    /// @notice Thrown when attempting to set incentives pool after board has opened
-    error Signals_BoardAlreadyOpened();
-
-    /// @notice Thrown when contract is already initialized
-    error Signals_AlreadyInitialized();
-
-    /// @notice Thrown when lock duration is zero or exceeds max
-    error Signals_InvalidLockDuration();
-
-    /// @notice Thrown when underlying token address is zero
-    error Signals_ZeroAddressToken();
-
-    /// @notice Thrown when owner address is zero
-    error Signals_ZeroAddressOwner();
-
-    error Signals_ZeroAddressIncentivesPool();
-
-    /// @notice Thrown when acceptance threshold is zero
-    error Signals_ZeroAcceptanceThreshold();
-
-    /// @notice Thrown when max lock intervals is zero
-    error Signals_ZeroMaxLockIntervals();
-
-    /// @notice Thrown when lock interval is zero
-    error Signals_ZeroLockInterval();
-
-    /// @notice Thrown when proposal cap is zero
-    error Signals_ZeroProposalCap();
-
-    /// @notice Thrown when decay curve type is invalid
-    error Signals_InvalidDecayCurveType();
-
-    /// @notice Thrown when user has insufficient token balance for participating
-    error Signals_ParticipantInsufficientBalance();
-
-    /// @notice Thrown when user hasn't held tokens long enough to participate
-    error Signals_ParticipantInsufficientDuration();
-
-    /// @notice Thrown when token doesn't support holding duration checks
-    error Signals_ParticipantNoCheckpointSupport();
-
-    /// @notice Thrown when user has insufficient lock amount for proposing
-    error Signals_ParticipantInsufficientLockAmount();
-
-    /// @notice Thrown when participant min balance is zero
-    error Signals_ConfigErrorZeroMinBalance();
-
-    /// @notice Thrown when participant min holding duration is zero
-    error Signals_ConfigErrorZeroMinDuration();
-
-    /// @notice Thrown when initiative not eligible for expiration (still active)
-    error Signals_NotEligibleForExpiration();
+    /// @notice Token doesn't support holding duration checks
+    error Signals_TokenHasNoCheckpointSupport();
 
     /// @notice Thrown when attempting to set incentives pool when one is already set
     error Signals_IncentivesPoolAlreadySet();
@@ -236,23 +204,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /// @notice Thrown when incentives pool is not approved for this board
     error Signals_IncentivesPoolNotApproved();
 
-    /// @notice Thrown when incentive parameters are invalid
-    error Signals_InvalidIncentiveParameters();
-
-    /// @notice Thrown when attachment array exceeds supported bounds
-    error Signals_AttachmentLimitExceeded();
-
-    /// @notice Thrown when attachment URI is empty
-    error Signals_AttachmentInvalidURI();
-
-    /// @notice Thrown when board open timestamp is invalid (in the past)
-    error Signals_InvalidBoardOpenTime();
-
-    /// @notice Thrown when board closed timestamp is invalid (before open time)
-    error Signals_InvalidBoardClosedTime();
-
     // Public state variables
-    function acceptanceThreshold() external view returns (uint256);
+    function version() external view returns (string memory);
+    function title() external view returns (string memory);
+    function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
+    function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
     function proposalCap() external view returns (uint256);
     function lockInterval() external view returns (uint256);
@@ -260,10 +216,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function decayCurveParameters(uint256) external view returns (uint256);
     function underlyingToken() external view returns (address);
     function inactivityTimeout() external view returns (uint256);
-    function initiativeLocks(uint256, uint256) external view returns (uint256);
-    function supporterLocks(address, uint256) external view returns (uint256);
-    function supporters(uint256, uint256) external view returns (address);
-    function isSupporter(uint256, address) external view returns (bool);
+    function locksForInitiative(uint256) external view returns (uint256[] memory);
     function lockCount() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
     function releaseLockDuration() external view returns (uint256);
@@ -290,33 +243,35 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;
-    function redeemLocksForInitiative(uint256 initiativeId, uint256[] calldata lockIds) external;
+    function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
+    function setTitle(string memory _title) external;
+    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
-    function getSupporters(uint256 initiativeId) external view returns (address[] memory);
+    function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
+        external
+        view
+        returns (uint256[] memory);
+    function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
+        external
+        view
+        returns (uint256[] memory);
+    function getSupportersOfInitiative(uint256 initiativeId)
+        external
+        view
+        returns (address[] memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);
     function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256);
     function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
         external
         view
         returns (uint256);
-    function token() external view returns (address);
-    function totalInitiatives() external view returns (uint256);
-    function totalSupporters(uint256 initiativeId) external view returns (uint256);
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
         external;
-    function setBounties(address _bounties) external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
         external;
     function setBoardOpenAt(uint256 _boardOpenAt) external;
-    function closeBoard() external;
-    function getPositionsForInitiative(uint256 initiativeId)
-        external
-        view
-        returns (uint256[] memory);
-    function getLockCountForSupporter(address supporter) external view returns (uint256);
-    function getLocksForSupporter(address supporter) external view returns (uint256[] memory);
-    function listPositions(address owner) external view returns (uint256[] memory);
+    function setBoardClosedAt(uint256 _boardClosedAt) external;
     function isBoardOpen() external view returns (bool);
     function isBoardClosed() external view returns (bool);
 }
