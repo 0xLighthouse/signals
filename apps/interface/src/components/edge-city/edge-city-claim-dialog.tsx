@@ -52,9 +52,9 @@ const evaluateEligibility = (profile: EdgeCityProfile) => {
     return { eligible: false, reason: 'Primary email is not validated' }
   }
 
-  if (edgeCityConfig.requiredPopups.length > 0) {
+  if (edgeCityConfig.minCities.length > 0) {
     const hasMatch = profile.popups?.some((popup) =>
-      edgeCityConfig.requiredPopups.includes(String(popup.id)),
+      edgeCityConfig.minCities.includes(String(popup.id)),
     )
     if (!hasMatch) {
       return {
@@ -124,7 +124,9 @@ export const EdgeCityClaimDialog = () => {
 
   useEffect(() => {
     if (edgeCityConfig.enabled && !edgeCityConfig.token) {
-      console.warn('Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured')
+      console.warn(
+        'Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured',
+      )
     }
   }, [])
 
@@ -132,36 +134,33 @@ export const EdgeCityClaimDialog = () => {
     return null
   }
 
-  const fetchAllowance = useCallback(
-    async (token: string, wallet: `0x${string}`) => {
-      setState((prev) => ({ ...prev, isLoadingAllowance: true }))
-      try {
-        const response = await fetch('/api/edge-city/allowance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ address: wallet }),
-        })
+  const fetchAllowance = useCallback(async (token: string, wallet: `0x${string}`) => {
+    setState((prev) => ({ ...prev, isLoadingAllowance: true }))
+    try {
+      const response = await fetch('/api/edge-city/allowance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ address: wallet }),
+      })
 
-        if (!response.ok) {
-          const { error } = (await response.json()) as { error?: string }
-          throw new Error(error ?? 'Unexpected response fetching allowance')
-        }
-
-        const payload = (await response.json()) as EdgeCityAllowance
-        setState((prev) => ({ ...prev, allowance: payload }))
-      } catch (error) {
-        console.error(error)
-        toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
-        setState((prev) => ({ ...prev, allowance: null }))
-      } finally {
-        setState((prev) => ({ ...prev, isLoadingAllowance: false }))
+      if (!response.ok) {
+        const { error } = (await response.json()) as { error?: string }
+        throw new Error(error ?? 'Unexpected response fetching allowance')
       }
-    },
-    [],
-  )
+
+      const payload = (await response.json()) as EdgeCityAllowance
+      setState((prev) => ({ ...prev, allowance: payload }))
+    } catch (error) {
+      console.error(error)
+      toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
+      setState((prev) => ({ ...prev, allowance: null }))
+    } finally {
+      setState((prev) => ({ ...prev, isLoadingAllowance: false }))
+    }
+  }, [])
 
   const handleRequestCode = async () => {
     if (!email) {
@@ -415,15 +414,20 @@ export const EdgeCityClaimDialog = () => {
                 allowance ? (
                   <p className="text-sm text-muted-foreground">
                     Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
-                    {allowance.amount} wei, expires {new Date(allowance.deadline * 1000).toLocaleString()}.
+                    {allowance.amount} wei, expires{' '}
+                    {new Date(allowance.deadline * 1000).toLocaleString()}.
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    {isLoadingAllowance ? 'Loading claim allowance…' : 'Fetching claim allowance for this wallet'}
+                    {isLoadingAllowance
+                      ? 'Loading claim allowance…'
+                      : 'Fetching claim allowance for this wallet'}
                   </p>
                 )
               ) : (
-                <p className="text-sm text-muted-foreground">Connect a wallet to fetch your claim allowance.</p>
+                <p className="text-sm text-muted-foreground">
+                  Connect a wallet to fetch your claim allowance.
+                </p>
               )
             ) : null}
             <Button
