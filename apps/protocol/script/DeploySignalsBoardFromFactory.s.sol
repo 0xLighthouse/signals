@@ -96,8 +96,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
         Signals protocol = Signals(protocolAddress);
 
         console.log("=== Signals Board Deployment ===");
-        console.log("Deployer: ", deployerAddress);
-        console.log("Underlying Token: ", underlyingToken);
+        console.log("Deployer: ", protocol.owner());
+        console.log("Underlying Token: ", protocol.underlyingToken());
         console.log("Signals Contract Address: ", protocolAddress);
 
         // // Deploy a mock USDC and initialize

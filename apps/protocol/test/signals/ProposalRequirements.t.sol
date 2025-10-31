@@ -66,7 +66,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 //     // Alice (50k) - should fail
 //     vm.startPrank(_alice);
 //     _tokenERC20.approve(address(signals), 50_000 * 1e18);
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ParticipantInsufficientBalance.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_InsufficientTokens.selector));
 //     signals.proposeInitiative("Test", "Description");
 //     vm.stopPrank();
 
@@ -146,7 +146,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 
 //     vm.startPrank(_alice);
 //     _tokenERC20Votes.approve(address(signals), 50_000 * 1e18);
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ParticipantInsufficientDuration.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_InsufficientTokenDuration.selector));
 //     signals.proposeInitiative("Test", "Description");
 //     vm.stopPrank();
 // }
@@ -168,7 +168,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 
 //     vm.startPrank(_alice);
 //     _tokenERC20.approve(address(signals), 50_000 * 1e18);
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ParticipantNoCheckpointSupport.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_TokenHasNoCheckpointSupport.selector));
 //     signals.proposeInitiative("Test", "Description");
 //     vm.stopPrank();
 // }
@@ -187,7 +187,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 //         minLockAmount: 50_000 * 1e18
 //     });
 //     Signals signals1 = new Signals();
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ConfigErrorZeroMinBalance.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_InvalidArguments.selector));
 //     signals1.initialize(config1);
 
 //     // MinBalanceAndDuration with zero duration
@@ -199,7 +199,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 //         minLockAmount: 50_000 * 1e18
 //     });
 //     Signals signals2 = new Signals();
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ConfigErrorZeroMinDuration.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_InvalidArguments.selector));
 //     signals2.initialize(config2);
 // }
 
@@ -272,7 +272,7 @@ contract SignalsProposerRequirementsTest is Test, SignalsHarness {
 
 //     // Alice now has 20k - cannot propose again
 //     assertFalse(signals.accountCanPropose(_alice, 50_000 * 1e18));
-//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_ParticipantInsufficientBalance.selector));
+//     vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_InsufficientTokens.selector));
 //     signals.proposeInitiative("Second", "Description");
 //     vm.stopPrank();
 // }

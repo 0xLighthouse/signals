@@ -116,31 +116,13 @@ contract Signals is
 
     /// @notice Check to make sure the initiative exists
     modifier exists(uint256 initiativeId) {
-        _exists(initiativeId);
+        if (initiativeId > initiativeCount) revert ISignals.Signals_InvalidID();
         _;
-    }
-
-    function _exists(uint256 initiativeId) internal view {
-        if (initiativeId > initiativeCount) revert ISignals.Signals_InitiativeNotFound();
     }
 
     modifier isOpen() {
-        _isOpen();
+        if (!isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
         _;
-    }
-
-    function _isOpen() internal view {
-        if (!isBoardOpen()) revert ISignals.Signals_BoardNotOpen();
-    }
-
-    modifier hasValidInput(string memory _title, string memory _body) {
-        _hasValidInput(_title, _body);
-        _;
-    }
-
-    function _hasValidInput(string memory _title, string memory _body) internal pure {
-        if (bytes(_title).length == 0) revert ISignals.Signals_EmptyTitle();
-        if (bytes(_body).length == 0) revert ISignals.Signals_EmptyBody();
     }
 
     constructor() ERC721("", "") Ownable(msg.sender) {}
@@ -148,13 +130,13 @@ contract Signals is
     /// @inheritdoc ISignals
     function initialize(ISignals.BoardConfig calldata config) external initializer {
         // Immutable parameters - TODO: Break out functions for things that can be updated
-        if (config.underlyingToken == address(0)) revert ISignals.Signals_ZeroAddressToken();
-        if (config.owner == address(0)) revert ISignals.Signals_ZeroAddressOwner();
-        if (config.maxLockIntervals == 0) revert ISignals.Signals_ZeroMaxLockIntervals();
-        if (config.lockInterval == 0) revert ISignals.Signals_ZeroLockInterval();
-        if (config.proposalCap == 0) revert ISignals.Signals_ZeroProposalCap();
+        if (config.underlyingToken == address(0)) revert ISignals.Signals_InvalidArguments();
+        if (config.owner == address(0)) revert ISignals.Signals_InvalidArguments();
+        if (config.maxLockIntervals == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.lockInterval == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.proposalCap == 0) revert ISignals.Signals_InvalidArguments();
         if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         _setAcceptanceCriteria(config.acceptanceCriteria);
@@ -170,7 +152,7 @@ contract Signals is
         if (config.boardClosedAt == 0) {
             boardClosedAt = type(uint256).max;
         } else if (config.boardClosedAt < config.boardOpenAt) {
-            revert ISignals.Signals_InvalidBoardClosedTime();
+            revert ISignals.Signals_InvalidArguments();
         } else {
             boardClosedAt = config.boardClosedAt;
         }
@@ -197,13 +179,7 @@ contract Signals is
         string memory _title,
         string memory _body,
         ISignals.Attachment[] calldata _attachments
-    )
-        external
-        isOpen
-        senderCanPropose(0)
-        hasValidInput(_title, _body)
-        returns (uint256 initiativeId)
-    {
+    ) external isOpen senderCanPropose(0) returns (uint256 initiativeId) {
         initiativeId = _addInitiative(_title, _body, _attachments);
     }
 
@@ -214,13 +190,7 @@ contract Signals is
         ISignals.Attachment[] calldata _attachments,
         uint256 _amount,
         uint256 _lockDuration
-    )
-        external
-        isOpen
-        senderCanPropose(_amount)
-        hasValidInput(_title, _body)
-        returns (uint256 initiativeId, uint256 tokenId)
-    {
+    ) external isOpen senderCanPropose(_amount) returns (uint256 initiativeId, uint256 tokenId) {
         initiativeId = _addInitiative(_title, _body, _attachments);
         tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
@@ -238,6 +208,9 @@ contract Signals is
         string memory _body,
         ISignals.Attachment[] calldata _attachments
     ) internal returns (uint256 id) {
+        if (bytes(_title).length == 0 || bytes(_body).length == 0) {
+            revert ISignals.Signals_EmptyTitleOrBody();
+        }
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
         Initiative storage initiative = _initiatives[initiativeCount];
@@ -278,7 +251,7 @@ contract Signals is
         for (uint256 i = 0; i < attachments.length;) {
             ISignals.Attachment calldata attachment = attachments[i];
             if (bytes(attachment.uri).length == 0) {
-                revert ISignals.Signals_AttachmentInvalidURI();
+                revert ISignals.Signals_InvalidArguments();
             }
 
             initiative.attachments.push(
@@ -317,13 +290,13 @@ contract Signals is
         returns (uint256 tokenId)
     {
         if (lockDuration == 0 || lockDuration > maxLockIntervals) {
-            revert ISignals.Signals_InvalidLockDuration();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         Initiative storage initiative = _initiatives[initiativeId];
 
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         uint256 beforeBalance = IERC20(underlyingToken).balanceOf(address(this));
@@ -407,7 +380,7 @@ contract Signals is
         // State transition: Proposed → Accepted
         // Can only accept initiatives in Proposed state (not already Accepted, Cancelled, or Expired)
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Update state and record acceptance timestamp for release timelock calculation
@@ -433,13 +406,13 @@ contract Signals is
         // State transition: Proposed → Expired
         // Can only expire initiatives that are still in Proposed state
         if (initiative.state != InitiativeState.Proposed) {
-            revert ISignals.Signals_NotProposedState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Verify initiative has been inactive for longer than inactivityTimeout
         // This prevents expiring initiatives that still have recent activity
         if (block.timestamp <= initiative.lastActivity + inactivityTimeout) {
-            revert ISignals.Signals_NotEligibleForExpiration();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // Update state to Expired - allows supporters to redeem their locked tokens
@@ -467,7 +440,7 @@ contract Signals is
             initiative.state != InitiativeState.Accepted
                 && initiative.state != InitiativeState.Expired
         ) {
-            revert ISignals.Signals_NotWithdrawableState();
+            revert ISignals.Signals_IncorrectInitiativeState();
         }
 
         // If board is not closed and the initiative was accepted, enforce the release timelock
@@ -483,14 +456,14 @@ contract Signals is
             uint256 lockId = lockIds[i];
             TokenLock storage lock = _locks[lockId];
 
-            if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotTokenOwner();
+            if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotOwner();
 
             if (lock.initiativeId != initiativeId) {
-                revert ISignals.Signals_InvalidTokenId();
+                revert ISignals.Signals_InvalidID();
             }
 
             if (lock.withdrawn) {
-                revert ISignals.Signals_AlreadyRedeemed();
+                revert ISignals.Signals_TokenAlreadyRedeemed(lockId);
             }
 
             redeemAmount += lock.tokenAmount;
@@ -522,10 +495,10 @@ contract Signals is
         onlyOwner
     {
         if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
         if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         decayCurveType = _decayCurveType;
@@ -538,7 +511,7 @@ contract Signals is
         external
         onlyOwner
     {
-        if (isBoardOpen()) revert ISignals.Signals_BoardAlreadyOpened();
+        if (isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
         _setIncentivesPool(incentivesPool_, incentivesConfig_);
     }
 
@@ -553,10 +526,10 @@ contract Signals is
         if (
             acceptanceCriteria.percentageThresholdWAD == 0 && acceptanceCriteria.fixedThreshold == 0
         ) {
-            revert ISignals.Signals_ZeroAcceptanceThreshold();
+            revert ISignals.Signals_InvalidArguments();
         }
         if (acceptanceCriteria.percentageThresholdWAD >= 1 ether) {
-            revert ISignals.Signals_InvalidPercentageThresholdWAD();
+            revert ISignals.Signals_InvalidArguments();
         }
         _acceptanceCriteria = acceptanceCriteria;
     }
@@ -682,7 +655,7 @@ contract Signals is
 
         // Validate the decay curve type is recognized
         if (decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidDecayCurveType();
+            revert ISignals.Signals_InvalidArguments();
         }
 
         // Apply the configured decay curve to calculate time-weighted value
@@ -767,7 +740,7 @@ contract Signals is
     /// @inheritdoc ISignalsLock
     function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
         if (_locks[tokenId].initiativeId == 0) {
-            revert ISignals.Signals_InvalidTokenId();
+            revert ISignals.Signals_InvalidID();
         }
 
         TokenLock memory lock = _locks[tokenId];

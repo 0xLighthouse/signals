@@ -23,17 +23,20 @@ abstract contract SignalsAuthorizer is IAuthorizer {
     }
 
     function _senderCanPropose(uint256 lockAmount) internal view {
-        EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, proposerRequirements);
+        EligibilityResult result =
+            _accountCanParticipate(msg.sender, lockAmount, proposerRequirements);
         if (result == EligibilityResult.InsufficientLockAmount) {
-            revert ISignals.Signals_ParticipantInsufficientLockAmount();
+            revert ISignals.Signals_InsufficientLockAmount();
         }
         if (result == EligibilityResult.InsufficientCurrentBalance) {
-            revert ISignals.Signals_ParticipantInsufficientBalance();
+            revert ISignals.Signals_InsufficientTokens();
         }
         if (result == EligibilityResult.InsufficientHistoricalBalance) {
-            revert ISignals.Signals_ParticipantInsufficientDuration();
+            revert ISignals.Signals_InsufficientTokenDuration();
         }
-        if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
+        if (result == EligibilityResult.TokenNotSupported) {
+            revert ISignals.Signals_TokenHasNoCheckpointSupport();
+        }
     }
 
     /// @notice Modifier to check participant requirements
@@ -43,24 +46,27 @@ abstract contract SignalsAuthorizer is IAuthorizer {
     }
 
     function _senderCanSupport(uint256 lockAmount) internal view {
-        EligibilityResult result = _accountCanParticipate(msg.sender, lockAmount, supporterRequirements);
+        EligibilityResult result =
+            _accountCanParticipate(msg.sender, lockAmount, supporterRequirements);
         if (result == EligibilityResult.InsufficientLockAmount) {
-            revert ISignals.Signals_ParticipantInsufficientLockAmount();
+            revert ISignals.Signals_InsufficientLockAmount();
         }
         if (result == EligibilityResult.InsufficientCurrentBalance) {
-            revert ISignals.Signals_ParticipantInsufficientBalance();
+            revert ISignals.Signals_InsufficientTokens();
         }
         if (result == EligibilityResult.InsufficientHistoricalBalance) {
-            revert ISignals.Signals_ParticipantInsufficientDuration();
+            revert ISignals.Signals_InsufficientTokenDuration();
         }
-        if (result == EligibilityResult.TokenNotSupported) revert ISignals.Signals_ParticipantNoCheckpointSupport();
+        if (result == EligibilityResult.TokenNotSupported) {
+            revert ISignals.Signals_TokenHasNoCheckpointSupport();
+        }
     }
 
-    function _accountCanParticipate(address account, uint256 lockAmount, ParticipantRequirements memory reqs)
-        internal
-        view
-        returns (EligibilityResult result)
-    {
+    function _accountCanParticipate(
+        address account,
+        uint256 lockAmount,
+        ParticipantRequirements memory reqs
+    ) internal view returns (EligibilityResult result) {
         if (reqs.eligibilityType == EligibilityType.None) {
             return EligibilityResult.Eligible;
         }
@@ -71,9 +77,9 @@ abstract contract SignalsAuthorizer is IAuthorizer {
 
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
             // Check historical balance using ERC20Votes checkpoints
-            try IVotes(authorizationToken).getPastVotes(account, block.number - reqs.minHoldingDuration) returns (
-                uint256 pastBalance
-            ) {
+            try IVotes(authorizationToken).getPastVotes(
+                account, block.number - reqs.minHoldingDuration
+            ) returns (uint256 pastBalance) {
                 // Verify they held the minimum balance for the required duration
                 if (pastBalance < reqs.minBalance) {
                     return EligibilityResult.InsufficientHistoricalBalance;
@@ -92,12 +98,22 @@ abstract contract SignalsAuthorizer is IAuthorizer {
         return EligibilityResult.Eligible;
     }
 
-    function accountCanPropose(address account, uint256 lockAmount) external view returns (bool result) {
-        return _accountCanParticipate(account, lockAmount, proposerRequirements) == EligibilityResult.Eligible;
+    function accountCanPropose(address account, uint256 lockAmount)
+        external
+        view
+        returns (bool result)
+    {
+        return _accountCanParticipate(account, lockAmount, proposerRequirements)
+            == EligibilityResult.Eligible;
     }
 
-    function accountCanSupport(address account, uint256 lockAmount) external view returns (bool result) {
-        return _accountCanParticipate(account, lockAmount, supporterRequirements) == EligibilityResult.Eligible;
+    function accountCanSupport(address account, uint256 lockAmount)
+        external
+        view
+        returns (bool result)
+    {
+        return _accountCanParticipate(account, lockAmount, supporterRequirements)
+            == EligibilityResult.Eligible;
     }
 
     /// @notice Internal function to validate participant requirements
@@ -107,13 +123,13 @@ abstract contract SignalsAuthorizer is IAuthorizer {
                 || reqs.eligibilityType == EligibilityType.MinBalanceAndDuration
         ) {
             if (reqs.minBalance == 0) {
-                revert ISignals.Signals_ConfigErrorZeroMinBalance();
+                revert ISignals.Signals_InvalidArguments();
             }
         }
 
         if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
             if (reqs.minHoldingDuration == 0) {
-                revert ISignals.Signals_ConfigErrorZeroMinDuration();
+                revert ISignals.Signals_InvalidArguments();
             }
         }
     }

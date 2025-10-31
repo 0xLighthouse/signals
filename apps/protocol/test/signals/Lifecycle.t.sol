@@ -32,7 +32,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
      */
     function test_Propose_RevertsWithInsufficientTokens() public {
         vm.startPrank(_charlie);
-        vm.expectRevert(ISignals.Signals_ParticipantInsufficientBalance.selector);
+        vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
         signals.proposeInitiative("Should revert", "Description 1", new ISignals.Attachment[](0));
         vm.stopPrank();
     }
@@ -180,7 +180,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // Check that no more support can be added to the accepted initiative
         vm.startPrank(_bob);
-        vm.expectRevert(ISignals.Signals_NotProposedState.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.supportInitiative(1, lockAmount, 6);
     }
 
@@ -337,7 +337,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // The initiative can not be expired before the inactivity threshold
         vm.startPrank(_deployer);
-        vm.expectRevert(ISignals.Signals_NotEligibleForExpiration.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.expireInitiative(1);
 
         // Fast forward time beyond inactivity threshold
@@ -357,7 +357,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // No additional support can be added to the expired initiative
         vm.startPrank(_bob);
-        vm.expectRevert(ISignals.Signals_NotProposedState.selector);
+        vm.expectRevert(ISignals.Signals_IncorrectInitiativeState.selector);
         signals.supportInitiative(1, lockAmount, 6);
         vm.stopPrank();
     }

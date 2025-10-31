@@ -31,44 +31,44 @@ contract BoardConfigTest is Test, SignalsHarness {
         // Zero address for token
         config = defaultConfig;
         config.underlyingToken = address(0);
-        vm.expectRevert(ISignals.Signals_ZeroAddressToken.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test zero owner
         config = defaultConfig;
         config.owner = address(0);
-        vm.expectRevert(ISignals.Signals_ZeroAddressOwner.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test zero acceptanceThreshold
         config = defaultConfig;
         config.acceptanceCriteria.percentageThresholdWAD = 0;
         config.acceptanceCriteria.fixedThreshold = 0;
-        vm.expectRevert(ISignals.Signals_ZeroAcceptanceThreshold.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test zero maxLockIntervals
         config = defaultConfig;
         config.maxLockIntervals = 0;
-        vm.expectRevert(ISignals.Signals_ZeroMaxLockIntervals.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test zero lockInterval
         config = defaultConfig;
         config.lockInterval = 0;
-        vm.expectRevert(ISignals.Signals_ZeroLockInterval.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test zero proposalCap
         config = defaultConfig;
         config.proposalCap = 0;
-        vm.expectRevert(ISignals.Signals_ZeroProposalCap.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
         // Reset and test invalid decayCurveType
         config = defaultConfig;
         config.decayCurveType = 2;
-        vm.expectRevert(ISignals.Signals_InvalidDecayCurveType.selector);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
     }
 }

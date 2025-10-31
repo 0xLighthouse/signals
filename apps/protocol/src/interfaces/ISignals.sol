@@ -153,124 +153,56 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Errors
 
-    /// @notice Thrown when title is empty
-    error Signals_EmptyTitle();
-
-    /// @notice Thrown when body is empty
-    error Signals_EmptyBody();
-
-    /// @notice Thrown when caller has insufficient token balance
-    error Signals_InsufficientTokens();
-
-    /// @notice Thrown when initiative is not in the required state
-    error Signals_InvalidInitiativeState();
-
-    /// @notice Thrown when initiative is not in Proposed state
-    error Signals_NotProposedState();
-
-    /// @notice Thrown when initiative is not in Accepted or Expired state
-    error Signals_NotWithdrawableState();
-
-    /// @notice Thrown when token transfer fails
-    error Signals_TokenTransferFailed();
-
-    /// @notice Thrown when attempting to redeem already-withdrawn tokens
-    error Signals_AlreadyRedeemed();
-
-    /// @notice Thrown when attempting to redeem before release timelock expires
-    error Signals_StillTimelocked();
-
-    /// @notice Thrown when token owner attempts to redeem token they don't own
-    error Signals_NotTokenOwner();
-
-    /// @notice Thrown when initiative ID exceeds initiative count
-    error Signals_InitiativeNotFound();
-
-    /// @notice Thrown when token ID does not exist
-    error Signals_InvalidTokenId();
-
-    /// @notice Thrown when attempting to interact before board opens
-    error Signals_BoardNotOpen();
-
-    /// @notice Thrown when not owner
+    /// @notice Sender is not the owner of board or token they are interacting with
     error Signals_NotOwner();
 
-    /// @notice Thrown when support is insufficient for acceptance
+    /// @notice Initiative or token ID is invalid
+    error Signals_InvalidID();
+
+    /// @notice Provided arguments are invalid (set to 0? Exceeding the maximum?)
+    error Signals_InvalidArguments();
+
+    /// @notice Title or body is empty
+    error Signals_EmptyTitleOrBody();
+
+    /// @notice Number of attachments exceeds the limit
+    error Signals_AttachmentLimitExceeded();
+
+    /// @notice A token balance is insufficient to carry out the requested action
+    error Signals_InsufficientTokens();
+
+    /// @notice User hasn't held tokens long enough for the requested action
+    error Signals_InsufficientTokenDuration();
+
+    /// @notice The requested lock amount is insufficient
+    error Signals_InsufficientLockAmount();
+
+    /// @notice Initiative is not in the correct state for the requested action
+    error Signals_IncorrectInitiativeState();
+
+    /// @notice Token transfer failed
+    error Signals_TokenTransferFailed();
+
+    /// @notice Token has already been redeemed
+    error Signals_TokenAlreadyRedeemed(uint256 tokenId);
+
+    /// @notice Token is still timelocked and cannot be redeemed yet
+    error Signals_StillTimelocked();
+
+    /// @notice The board is in the incorrect state for the requested action (open, closed, unitialized, etc.)
+    error Signals_IncorrectBoardState();
+
+    /// @notice Support is insufficient for acceptance
     error Signals_InsufficientSupport();
 
-    /// @notice Thrown when attempting to set incentives pool after board has opened
-    error Signals_BoardAlreadyOpened();
-
-    /// @notice Thrown when contract is already initialized
-    error Signals_AlreadyInitialized();
-
-    /// @notice Thrown when lock duration is zero or exceeds max
-    error Signals_InvalidLockDuration();
-
-    /// @notice Thrown when underlying token address is zero
-    error Signals_ZeroAddressToken();
-
-    /// @notice Thrown when owner address is zero
-    error Signals_ZeroAddressOwner();
-
-    error Signals_ZeroAddressIncentivesPool();
-
-    /// @notice Thrown when acceptance threshold is zero
-    error Signals_ZeroAcceptanceThreshold();
-
-    /// @notice Thrown when acceptance percentage threshold is invalid
-    error Signals_InvalidPercentageThresholdWAD();
-
-    /// @notice Thrown when max lock intervals is zero
-    error Signals_ZeroMaxLockIntervals();
-
-    /// @notice Thrown when lock interval is zero
-    error Signals_ZeroLockInterval();
-
-    /// @notice Thrown when proposal cap is zero
-    error Signals_ZeroProposalCap();
-
-    /// @notice Thrown when decay curve type is invalid
-    error Signals_InvalidDecayCurveType();
-
-    /// @notice Thrown when user has insufficient token balance for participating
-    error Signals_ParticipantInsufficientBalance();
-
-    /// @notice Thrown when user hasn't held tokens long enough to participate
-    error Signals_ParticipantInsufficientDuration();
-
-    /// @notice Thrown when token doesn't support holding duration checks
-    error Signals_ParticipantNoCheckpointSupport();
-
-    /// @notice Thrown when user has insufficient lock amount for proposing
-    error Signals_ParticipantInsufficientLockAmount();
-
-    /// @notice Thrown when participant min balance is zero
-    error Signals_ConfigErrorZeroMinBalance();
-
-    /// @notice Thrown when participant min holding duration is zero
-    error Signals_ConfigErrorZeroMinDuration();
-
-    /// @notice Thrown when initiative not eligible for expiration (still active)
-    error Signals_NotEligibleForExpiration();
+    /// @notice Token doesn't support holding duration checks
+    error Signals_TokenHasNoCheckpointSupport();
 
     /// @notice Thrown when attempting to set incentives pool when one is already set
     error Signals_IncentivesPoolAlreadySet();
 
     /// @notice Thrown when incentives pool is not approved for this board
     error Signals_IncentivesPoolNotApproved();
-
-    /// @notice Thrown when incentive parameters are invalid
-    error Signals_InvalidIncentiveParameters();
-
-    /// @notice Thrown when attachment array exceeds supported bounds
-    error Signals_AttachmentLimitExceeded();
-
-    /// @notice Thrown when attachment URI is empty
-    error Signals_AttachmentInvalidURI();
-
-    /// @notice Thrown when board closed timestamp is invalid (before open time)
-    error Signals_InvalidBoardClosedTime();
 
     // Public state variables
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
@@ -327,7 +259,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function totalSupporters(uint256 initiativeId) external view returns (uint256);
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
         external;
-    function setBounties(address _bounties) external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
         external;
     function setBoardOpenAt(uint256 _boardOpenAt) external;

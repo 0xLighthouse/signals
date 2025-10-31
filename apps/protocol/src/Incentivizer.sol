@@ -50,7 +50,7 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         IncentivesConfig calldata incentivesConfig_
     ) internal {
         if (address(incentivesPool_) == address(0)) {
-            revert ISignals.Signals_ZeroAddressIncentivesPool();
+            revert ISignals.Signals_InvalidArguments();
         }
         if (address(incentivesPool) != address(0)) {
             revert ISignals.Signals_IncentivesPoolAlreadySet();
@@ -66,7 +66,7 @@ abstract contract SignalsIncentivizer is IIncentivizer {
                 incentivesConfig_.incentiveParametersWAD.length < 2
                     || incentivesConfig_.incentiveParametersWAD.length > INCENTIVE_RESOLUTION
             ) {
-                revert ISignals.Signals_InvalidIncentiveParameters();
+                revert ISignals.Signals_InvalidArguments();
             }
         }
         _incentivesConfig = incentivesConfig_;
