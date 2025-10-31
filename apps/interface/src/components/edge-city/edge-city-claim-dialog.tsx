@@ -132,6 +132,37 @@ export const EdgeCityClaimDialog = () => {
     return null
   }
 
+  const fetchAllowance = useCallback(
+    async (token: string, wallet: `0x${string}`) => {
+      setState((prev) => ({ ...prev, isLoadingAllowance: true }))
+      try {
+        const response = await fetch('/api/edge-city/allowance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ address: wallet }),
+        })
+
+        if (!response.ok) {
+          const { error } = (await response.json()) as { error?: string }
+          throw new Error(error ?? 'Unexpected response fetching allowance')
+        }
+
+        const payload = (await response.json()) as EdgeCityAllowance
+        setState((prev) => ({ ...prev, allowance: payload }))
+      } catch (error) {
+        console.error(error)
+        toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
+        setState((prev) => ({ ...prev, allowance: null }))
+      } finally {
+        setState((prev) => ({ ...prev, isLoadingAllowance: false }))
+      }
+    },
+    [],
+  )
+
   const handleRequestCode = async () => {
     if (!email) {
       toast('Enter an email to continue')
@@ -193,6 +224,11 @@ export const EdgeCityClaimDialog = () => {
         allowance: null,
         step: 'review',
       }))
+
+      // If the signed-allowance flow is enabled and a wallet is connected, trigger allowance fetch immediately
+      if (edgeCityConfig.claimFunction === 'claim' && address) {
+        void fetchAllowance(payload.accessToken, address as `0x${string}`)
+      }
     } catch (error) {
       console.error(error)
       toast(error instanceof Error ? error.message : 'Failed to verify your code')
@@ -265,37 +301,6 @@ export const EdgeCityClaimDialog = () => {
       setState((prev) => ({ ...prev, isClaiming: false }))
     }
   }
-
-  const fetchAllowance = useCallback(
-    async (token: string, wallet: `0x${string}`) => {
-      setState((prev) => ({ ...prev, isLoadingAllowance: true }))
-      try {
-        const response = await fetch('/api/edge-city/allowance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ address: wallet }),
-        })
-
-        if (!response.ok) {
-          const { error } = (await response.json()) as { error?: string }
-          throw new Error(error ?? 'Unexpected response fetching allowance')
-        }
-
-        const payload = (await response.json()) as EdgeCityAllowance
-        setState((prev) => ({ ...prev, allowance: payload }))
-      } catch (error) {
-        console.error(error)
-        toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
-        setState((prev) => ({ ...prev, allowance: null }))
-      } finally {
-        setState((prev) => ({ ...prev, isLoadingAllowance: false }))
-      }
-    },
-    [],
-  )
 
   useEffect(() => {
     if (step !== 'review') return
@@ -398,21 +403,27 @@ export const EdgeCityClaimDialog = () => {
             </div>
             {!eligibility.eligible && eligibility.reason ? (
               <p className="text-sm text-red-500">{eligibility.reason}</p>
-            ) : (
+            ) : address ? (
               <p className="text-sm text-muted-foreground">
                 Wallet {address?.slice(0, 6)}…{address?.slice(-4)} is eligible to claim tokens.
               </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Connect a wallet to continue.</p>
             )}
             {edgeCityConfig.claimFunction === 'claim' ? (
-              allowance ? (
-                <p className="text-sm text-muted-foreground">
-                  Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
-                  {allowance.amount} wei, expires {new Date(allowance.deadline * 1000).toLocaleString()}.
-                </p>
+              address ? (
+                allowance ? (
+                  <p className="text-sm text-muted-foreground">
+                    Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
+                    {allowance.amount} wei, expires {new Date(allowance.deadline * 1000).toLocaleString()}.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {isLoadingAllowance ? 'Loading claim allowance…' : 'Fetching claim allowance for this wallet'}
+                  </p>
+                )
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {isLoadingAllowance ? 'Loading claim allowance…' : 'Fetching claim allowance for this wallet'}
-                </p>
+                <p className="text-sm text-muted-foreground">Connect a wallet to fetch your claim allowance.</p>
               )
             ) : null}
             <Button
@@ -420,6 +431,7 @@ export const EdgeCityClaimDialog = () => {
               onClick={handleClaim}
               disabled={
                 !eligibility.eligible ||
+                !address ||
                 (edgeCityConfig.claimFunction === 'claim' && (!allowance || isLoadingAllowance))
               }
               isLoading={isClaiming}

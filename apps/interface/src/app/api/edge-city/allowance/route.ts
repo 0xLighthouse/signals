@@ -31,6 +31,11 @@ type AllowanceResponse = {
 
 export async function POST(request: Request) {
   try {
+    // This endpoint only supports the signed EIP-712 allowance flow.
+    if (edgeCityConfig.claimFunction !== 'claim') {
+      return NextResponse.json({ error: 'Signed allowance is not enabled for this environment' }, { status: 400 })
+    }
+
     const authorization = request.headers.get('authorization')
     const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : null
 
@@ -43,11 +48,11 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as AllowanceRequest
-    const recipient = body.address?.toLowerCase()
-
-    if (!recipient || !isAddress(recipient)) {
+    const recipientRaw = body.address?.toLowerCase()
+    if (!recipientRaw || !isAddress(recipientRaw)) {
       return NextResponse.json({ error: 'Valid wallet address is required' }, { status: 400 })
     }
+    const recipient = recipientRaw as `0x${string}`
 
     const signerKey = process.env.EDGE_CITY_SIGNER_PRIVATE_KEY
     if (!signerKey) {
@@ -56,12 +61,12 @@ export async function POST(request: Request) {
 
     const defaultAmountEnv = process.env.EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI
     if (!defaultAmountEnv) {
-
       throw new Error('EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI is not configured')
     }
 
-
-    const ttlSeconds = Number.parseInt(process.env.EDGE_CITY_ALLOWANCE_TTL_SECONDS ?? '', 60 * 60)
+    // Parse TTL safely and fallback to default if invalid or missing
+    const ttlSecondsStr = process.env.EDGE_CITY_ALLOWANCE_TTL_SECONDS
+    const ttlSeconds = ttlSecondsStr ? Number.parseInt(ttlSecondsStr, 10) : NaN
     const allowanceTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : DEFAULT_TTL_SECONDS
 
     const client = new EdgeOSClient()
@@ -82,6 +87,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Residency requires at least one completed day' }, { status: 403 })
     }
 
+    // Determine amount: default base + optional per-day increment
     let amountWei = BigInt(defaultAmountEnv)
     const perDayAmountEnv = process.env.EDGE_CITY_AMOUNT_PER_DAY_WEI
     if (perDayAmountEnv) {
@@ -103,7 +109,7 @@ export async function POST(request: Request) {
       types: CLAIM_TYPES,
       primaryType: 'Claim',
       message: {
-        to: recipient as `0x${string}`,
+        to: recipient,
         participantId: BigInt(profile.id),
         amount: amountWei,
         deadline: BigInt(deadline),
@@ -112,7 +118,7 @@ export async function POST(request: Request) {
 
     const payload: AllowanceResponse = {
       participantId: profile.id,
-      to: recipient as `0x${string}`,
+      to: recipient,
       amount: amountWei.toString(),
       deadline,
       signature,

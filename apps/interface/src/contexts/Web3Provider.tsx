@@ -6,7 +6,6 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import {
   createPublicClient,
   http,
-  Address,
   PublicClient,
   WalletClient,
   createWalletClient,
@@ -51,21 +50,37 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [privyReady, walletReady])
 
-  // Make a viem signer available once the app has initialized
+  // Make a viem signer available once the app has initialized and a wallet exists
   useEffect(() => {
+    if (!isInitialized) return
+
+    if (!wallets || wallets.length === 0) {
+      setWalletClient(null)
+      return
+    }
+
+    let cancelled = false
     const makeWalletClient = async () => {
-      const provider = await wallets[0].getEthereumProvider()
-      if (provider) {
-        const walletClient = createWalletClient({
-          chain,
-          transport: custom(provider),
-        })
-        setWalletClient(walletClient)
+      try {
+        const provider = await wallets[0]?.getEthereumProvider?.()
+        if (!cancelled && provider) {
+          const client = createWalletClient({
+            chain,
+            transport: custom(provider),
+          })
+          setWalletClient(client)
+        } else if (!cancelled) {
+          setWalletClient(null)
+        }
+      } catch (err) {
+        console.error('Failed to create wallet client', err)
+        if (!cancelled) setWalletClient(null)
       }
     }
 
-    if (isInitialized) {
-      makeWalletClient()
+    void makeWalletClient()
+    return () => {
+      cancelled = true
     }
   }, [isInitialized, wallets])
 
