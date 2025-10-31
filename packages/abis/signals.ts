@@ -15,13 +15,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'acceptanceThreshold',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'account', internalType: 'address', type: 'address' },
       { name: 'lockAmount', internalType: 'uint256', type: 'uint256' },
@@ -116,6 +109,40 @@ export const signalsAbi = [
     name: 'expireInitiative',
     outputs: [],
     stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAcceptanceCriteria',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct ISignals.AcceptanceCriteria',
+        type: 'tuple',
+        components: [
+          { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+          {
+            name: 'ownerMustFollowThreshold',
+            internalType: 'bool',
+            type: 'bool',
+          },
+          {
+            name: 'percentageThresholdWAD',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'fixedThreshold', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAcceptanceThreshold',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -369,9 +396,27 @@ export const signalsAbi = [
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'acceptanceThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'acceptanceCriteria',
+            internalType: 'struct ISignals.AcceptanceCriteria',
+            type: 'tuple',
+            components: [
+              { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+              {
+                name: 'ownerMustFollowThreshold',
+                internalType: 'bool',
+                type: 'bool',
+              },
+              {
+                name: 'percentageThresholdWAD',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'fixedThreshold',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
           {
             name: 'maxLockIntervals',
@@ -685,6 +730,33 @@ export const signalsAbi = [
       { name: 'data', internalType: 'bytes', type: 'bytes' },
     ],
     name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'acceptanceCriteria',
+        internalType: 'struct ISignals.AcceptanceCriteria',
+        type: 'tuple',
+        components: [
+          { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+          {
+            name: 'ownerMustFollowThreshold',
+            internalType: 'bool',
+            type: 'bool',
+          },
+          {
+            name: 'percentageThresholdWAD',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+          { name: 'fixedThreshold', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    name: 'setAcceptanceCriteria',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1308,15 +1380,17 @@ export const signalsAbi = [
   { type: 'error', inputs: [], name: 'Signals_IncentivesPoolAlreadySet' },
   { type: 'error', inputs: [], name: 'Signals_IncentivesPoolNotApproved' },
   { type: 'error', inputs: [], name: 'Signals_InitiativeNotFound' },
+  { type: 'error', inputs: [], name: 'Signals_InsufficientSupport' },
   { type: 'error', inputs: [], name: 'Signals_InsufficientTokens' },
   { type: 'error', inputs: [], name: 'Signals_InvalidBoardClosedTime' },
-  { type: 'error', inputs: [], name: 'Signals_InvalidBoardOpenTime' },
   { type: 'error', inputs: [], name: 'Signals_InvalidDecayCurveType' },
   { type: 'error', inputs: [], name: 'Signals_InvalidIncentiveParameters' },
   { type: 'error', inputs: [], name: 'Signals_InvalidInitiativeState' },
   { type: 'error', inputs: [], name: 'Signals_InvalidLockDuration' },
+  { type: 'error', inputs: [], name: 'Signals_InvalidPercentageThresholdWAD' },
   { type: 'error', inputs: [], name: 'Signals_InvalidTokenId' },
   { type: 'error', inputs: [], name: 'Signals_NotEligibleForExpiration' },
+  { type: 'error', inputs: [], name: 'Signals_NotOwner' },
   { type: 'error', inputs: [], name: 'Signals_NotProposedState' },
   { type: 'error', inputs: [], name: 'Signals_NotTokenOwner' },
   { type: 'error', inputs: [], name: 'Signals_NotWithdrawableState' },
@@ -1367,9 +1441,27 @@ export const signalsFactoryAbi = [
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'acceptanceThreshold',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'acceptanceCriteria',
+            internalType: 'struct ISignals.AcceptanceCriteria',
+            type: 'tuple',
+            components: [
+              { name: 'anyoneCanAccept', internalType: 'bool', type: 'bool' },
+              {
+                name: 'ownerMustFollowThreshold',
+                internalType: 'bool',
+                type: 'bool',
+              },
+              {
+                name: 'percentageThresholdWAD',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'fixedThreshold',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
           {
             name: 'maxLockIntervals',

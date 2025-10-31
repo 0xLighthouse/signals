@@ -15,11 +15,9 @@ import "solady/src/utils/ReentrancyGuard.sol";
 
 import {ISignalsLock} from "./interfaces/ISignalsLock.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
-import {IBounties} from "./interfaces/IBounties.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 
 import "./DecayCurves.sol";
-import "./Bounties.sol";
 import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
@@ -115,12 +113,6 @@ contract Signals is
 
     /// @notice Initiative counter
     uint256 public initiativeCount;
-
-    /// @notice (Optional) Reference to the Bounties contract (can only be set once)
-    // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-    //                Consider event-driven pattern to reduce tight coupling
-    //                See: Similar adapter pattern discussion in other modules
-    IBounties public bounties;
 
     /// @notice Check to make sure the initiative exists
     modifier exists(uint256 initiativeId) {
@@ -394,7 +386,6 @@ contract Signals is
 
     /**
      * @notice Mark an initiative as accepted
-     * @dev Only callable by owner. Notifies bounties and calculates incentives if configured.
      * @param initiativeId ID of the initiative to accept
      */
     function acceptInitiative(uint256 initiativeId) external payable exists(initiativeId) {
@@ -423,21 +414,12 @@ contract Signals is
         initiative.state = InitiativeState.Accepted;
         initiative.acceptanceTimestamp = block.timestamp;
 
-        // Notify the Bounties contract to distribute bounty rewards if configured
-        // This is optional - bounties may not be set for all boards
-        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-        //                Consider event-driven pattern to reduce tight coupling
-        //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != address(0)) {
-            bounties.handleInitiativeAccepted(initiativeId);
-        }
-
         emit InitiativeAccepted(initiativeId, msg.sender);
     }
 
     /**
      * @notice Mark an inactive initiative as expired
-     * @dev Only callable by owner after activityTimeout has passed. Notifies bounties if configured.
+     * @dev Only callable by owner after activityTimeout has passed.
      * @param initiativeId ID of the initiative to expire
      */
     function expireInitiative(uint256 initiativeId)
@@ -462,14 +444,6 @@ contract Signals is
 
         // Update state to Expired - allows supporters to redeem their locked tokens
         initiative.state = InitiativeState.Expired;
-
-        // Notify the Bounties contract to handle refunds if configured
-        // TODO(@arnold): [MEDIUM] Evaluate coupling between Signals and Bounties contracts
-        //                Consider event-driven pattern to reduce tight coupling
-        //                See: Similar adapter pattern discussion in other modules
-        if (address(bounties) != address(0)) {
-            bounties.handleInitiativeExpired(initiativeId);
-        }
 
         emit InitiativeExpired(initiativeId, msg.sender);
     }
@@ -557,11 +531,6 @@ contract Signals is
         decayCurveType = _decayCurveType;
         decayCurveParameters = _decayCurveParameters;
         emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
-    }
-
-    /// @inheritdoc ISignals
-    function setBounties(address _bounties) external onlyOwner {
-        bounties = Bounties(_bounties);
     }
 
     /// @inheritdoc ISignals

@@ -19,6 +19,17 @@ export default defineConfig([
     ],
   },
   {
+    out: 'packages/abis/signals-incentives-pool.ts',
+    plugins: [
+      foundry({
+        project: 'apps/protocol',
+        include: [
+          'IncentivesPool.sol/**',
+        ],
+      }),
+    ],
+  },
+  {
     out: 'packages/abis/signals-token-factory.ts',
     plugins: [
       foundry({
