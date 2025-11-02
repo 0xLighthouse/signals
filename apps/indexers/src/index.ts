@@ -139,7 +139,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   const acceptanceThreshold: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
-    functionName: 'acceptanceThreshold',
+    functionName: 'getAcceptanceThreshold',
   })) as bigint
 
   const underlyingToken: `0x${string}` = (await context.client.readContract({
