@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useUnderlying } from '@/contexts/NetworkContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'

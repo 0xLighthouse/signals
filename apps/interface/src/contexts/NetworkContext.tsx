@@ -9,7 +9,7 @@ import { ZERO_ADDRESS } from '@/config/web3'
 import { useWeb3 } from './Web3Provider'
 
 // Types for contract metadata
-interface ContractContextType {
+interface NetworkContextType {
   address: `0x${string}`
   name: string | null
   symbol: string | null
@@ -17,17 +17,16 @@ interface ContractContextType {
   totalSupply: number | null
   balance: number | null
   fetchContractMetadata: () => Promise<void>
-  formatter: (value?: number | null | undefined) => number
 }
 
 // Default values for the context
-export const ContractContext = createContext<ContractContextType | undefined>(undefined)
+export const NetworkContext = createContext<NetworkContextType | undefined>(undefined)
 
 // Custom hook to use the contract context
 export const useUnderlying = () => {
-  const context = useContext(ContractContext)
+  const context = useContext(NetworkContext)
   if (!context) {
-    throw new Error('useUnderlying must be used within a ContractContext')
+    throw new Error('useUnderlying must be used within a NetworkContext')
   }
   return context
 }
@@ -36,7 +35,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const TokenProvider: React.FC<Props> = ({ children }) => {
+export const NetworkProvider: React.FC<Props> = ({ children }) => {
   const { address } = useAccount()
   const { config } = useNetwork()
   const { publicClient } = useWeb3()
@@ -92,7 +91,7 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
 
   // Provide contract data to children
   return (
-    <ContractContext.Provider
+    <NetworkContext.Provider
       value={{
         address: (underlyingContract?.address ?? ZERO_ADDRESS).toLowerCase() as `0x${string}`,
         name,
@@ -105,6 +104,6 @@ export const TokenProvider: React.FC<Props> = ({ children }) => {
       }}
     >
       {children}
-    </ContractContext.Provider>
+    </NetworkContext.Provider>
   )
 }

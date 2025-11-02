@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useUnderlying } from '@/contexts/NetworkContext'
 import { useSignals } from '@/contexts/SignalsContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
@@ -104,7 +104,9 @@ export function CreateInitiativeDrawer() {
 
   const handleAttachmentChange = (index: number, field: keyof AttachmentDraft, value: string) => {
     setAttachments((prev) =>
-      prev.map((attachment, idx) => (idx === index ? { ...attachment, [field]: value } : attachment)),
+      prev.map((attachment, idx) =>
+        idx === index ? { ...attachment, [field]: value } : attachment,
+      ),
     )
   }
 
@@ -127,7 +129,8 @@ export function CreateInitiativeDrawer() {
 
     const hasInvalidAttachment = trimmedAttachments.some(
       (attachment) =>
-        attachment.uri.length === 0 && (attachment.mimeType.length > 0 || attachment.description.length > 0),
+        attachment.uri.length === 0 &&
+        (attachment.mimeType.length > 0 || attachment.description.length > 0),
     )
 
     if (hasInvalidAttachment) {
@@ -155,10 +158,7 @@ export function CreateInitiativeDrawer() {
         ? [
             title,
             description,
-            parseUnits(
-              String(amount),
-              underlyingContract?.decimals ?? 18,
-            ),
+            parseUnits(String(amount), underlyingContract?.decimals ?? 18),
             duration,
             preparedAttachments,
           ]
@@ -276,7 +276,8 @@ export function CreateInitiativeDrawer() {
                 <div className="my-4">
                   <Label>Attachments</Label>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Optional supporting links or files. Provide a URI along with an optional MIME type and description.
+                    Optional supporting links or files. Provide a URI along with an optional MIME
+                    type and description.
                   </p>
                   {attachments.map((attachment, index) => (
                     <div key={`attachment-${index}`} className="mb-4 rounded-md border p-4">
@@ -308,7 +309,9 @@ export function CreateInitiativeDrawer() {
                             id={`attachment-mime-${index}`}
                             placeholder="application/pdf"
                             value={attachment.mimeType}
-                            onChange={(e) => handleAttachmentChange(index, 'mimeType', e.target.value)}
+                            onChange={(e) =>
+                              handleAttachmentChange(index, 'mimeType', e.target.value)
+                            }
                           />
                         </div>
                         <div>
@@ -317,7 +320,9 @@ export function CreateInitiativeDrawer() {
                             id={`attachment-description-${index}`}
                             placeholder="Short description"
                             value={attachment.description}
-                            onChange={(e) => handleAttachmentChange(index, 'description', e.target.value)}
+                            onChange={(e) =>
+                              handleAttachmentChange(index, 'description', e.target.value)
+                            }
                           />
                         </div>
                       </div>

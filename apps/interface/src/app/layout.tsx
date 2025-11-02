@@ -9,7 +9,7 @@ import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
 
-import { TokenProvider } from '@/contexts/ContractContext'
+import { NetworkProvider } from '@/contexts/NetworkContext'
 import { SignalsProvider } from '@/contexts/SignalsContext'
 import { IncentivesProvider } from '@/contexts/IncentivesContext'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -36,12 +36,12 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
   // Set the tailwind theme from stored cookie preference
   const theme = getThemeCookie()
 
-  const sidebarContent: ReactNode = (
+  const sidebarContent = (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       {children}
@@ -53,16 +53,17 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
-            <TokenProvider>
-              <SignalsProvider>
+            <NetworkProvider>
+              <p>Hello</p>
+              {/* <SignalsProvider>
                 {features.enableContributions ? (
                   <IncentivesProvider>{sidebarContent}</IncentivesProvider>
                 ) : (
                   sidebarContent
                 )}
               </SignalsProvider>
-              <Toaster />
-            </TokenProvider>
+              <Toaster /> */}
+            </NetworkProvider>
           </Web3Provider>
         </ThemeProvider>
       </body>

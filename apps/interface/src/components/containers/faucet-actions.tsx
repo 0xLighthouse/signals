@@ -10,15 +10,11 @@ import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useUnderlying } from '@/contexts/NetworkContext'
 import { useNetwork } from '@/hooks/useNetwork'
 
 const handleFaucetClaim = async (
-  {
-    token,
-    address,
-    symbol,
-  }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
+  { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
   signer: WalletClient,
   publicClient: PublicClient,
 ) => {

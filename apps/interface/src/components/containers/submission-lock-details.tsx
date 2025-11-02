@@ -4,7 +4,7 @@ import { Chart } from './initiatives/chart'
 import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useUnderlying } from '@/contexts/NetworkContext'
 
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'

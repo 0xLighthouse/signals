@@ -1,6 +1,6 @@
 'use client'
 
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useUnderlying } from '@/contexts/NetworkContext'
 import React, { useState } from 'react'
 import {
   Breadcrumb,
@@ -25,8 +25,7 @@ export const Breadcrumbs: React.FC = () => {
   const [isNetworkDialogOpen, setIsNetworkDialogOpen] = useState(false)
   const { selected } = useNetwork()
 
-  const Icon =
-    selected === 'local' ? FoundryIcon : selected === 'base' ? BaseIcon : ArbitrumIcon
+  const Icon = selected === 'local' ? FoundryIcon : selected === 'base' ? BaseIcon : ArbitrumIcon
 
   const handleBoardSelect = (boardAddress: string) => {
     // TODO: Implement switching to a different board
