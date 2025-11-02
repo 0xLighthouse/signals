@@ -20,7 +20,7 @@ import { NetworkSwitcherDialog } from './network-switcher-dialog'
 import { useNetwork } from '@/hooks/useNetwork'
 
 export const Breadcrumbs: React.FC = () => {
-  const { name, symbol } = useUnderlying()
+  const { name, symbol, setActiveBoard } = useUnderlying()
   const [isDeployDrawerOpen, setIsDeployDrawerOpen] = useState(false)
   const [isNetworkDialogOpen, setIsNetworkDialogOpen] = useState(false)
   const { selected } = useNetwork()
@@ -28,8 +28,7 @@ export const Breadcrumbs: React.FC = () => {
   const Icon = selected === 'local' ? FoundryIcon : selected === 'base' ? BaseIcon : ArbitrumIcon
 
   const handleBoardSelect = (boardAddress: string) => {
-    // TODO: Implement switching to a different board
-    console.log('Selected board:', boardAddress)
+    void setActiveBoard(boardAddress as `0x${string}`)
   }
 
   return (

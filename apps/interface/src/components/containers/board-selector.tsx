@@ -1,9 +1,8 @@
 'use client'
 
-import { useBoardAutocomplete } from '@/hooks/useBoardAutocomplete'
 import { cn, shortAddress } from '@/lib/utils'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../ui/button'
 import {
   Command,
@@ -14,6 +13,7 @@ import {
   CommandList,
 } from '../ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { useUnderlying } from '@/contexts/NetworkContext'
 import { useNetwork } from '@/hooks/useNetwork'
 
 interface BoardSelectorProps {
@@ -22,37 +22,34 @@ interface BoardSelectorProps {
 }
 
 export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorProps) {
-  const { boards, isLoading } = useBoardAutocomplete()
+  const { boards, isBoardsLoading, selectedBoard, setActiveBoard } = useUnderlying()
   const [open, setOpen] = useState(false)
-  const [selectedBoard, setSelectedBoard] = useState('')
   const { config } = useNetwork()
 
-  // Initially set the current board address as selected
-  useEffect(() => {
-    const signalsAddress = config.contracts.SignalsProtocol?.address
-    if (signalsAddress) {
-      setSelectedBoard(signalsAddress.toLowerCase())
-    }
-  }, [config.contracts.SignalsProtocol?.address])
+  // Options derived from context boards + deploy shortcut
+  const boardOptions = useMemo(
+    () =>
+      boards.map((b) => ({
+        value: b.contractAddress.toLowerCase(),
+        label: shortAddress(b.contractAddress),
+      })),
+    [boards],
+  )
 
-  // Format boards for the combobox
-  const boardOptions =
-    boards?.map((board) => ({
-      value: board.contractAddress.toLowerCase(),
-      label: shortAddress(board.contractAddress),
-    })) || []
+  const options = useMemo(
+    () => [...boardOptions, { value: 'deploy', label: 'Deploy new board' }],
+    [boardOptions],
+  )
 
-  // Add option to deploy a new board
-  const options = [...boardOptions, { value: 'deploy', label: 'Deploy new board' }]
-
-  const handleSelect = (value: string) => {
+  const handleSelect = async (value: string) => {
     if (value === 'deploy') {
       onDeployBoard()
       setOpen(false)
       return
     }
 
-    setSelectedBoard(value)
+    // Switch board via context and bubble up
+    await setActiveBoard(value as `0x${string}`)
     if (onBoardSelect) {
       onBoardSelect(value)
     }
@@ -60,10 +57,16 @@ export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorPro
   }
 
   const selectedLabel =
-    options?.find((option) => option.value === selectedBoard)?.label ||
+    options.find((option) => option.value === selectedBoard)?.label ||
     (config.contracts.SignalsProtocol?.address
       ? shortAddress(config.contracts.SignalsProtocol.address)
       : 'Select board')
+
+  // Close popover on outside state changes to avoid stale UI
+  useEffect(() => {
+    if (!open) return
+    // when boards change, keep popover consistent
+  }, [boards, open])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -82,7 +85,7 @@ export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorPro
         <Command>
           <CommandInput placeholder="Search board..." className="h-9" />
           <CommandList>
-            <CommandEmpty>{isLoading ? 'Loading...' : 'No board found.'}</CommandEmpty>
+            <CommandEmpty>{isBoardsLoading ? 'Loading...' : 'No board found.'}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem key={option.value} value={option.value} onSelect={handleSelect}>
