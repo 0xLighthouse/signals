@@ -11,7 +11,7 @@ library BoardConfigs {
         returns (ISignals.BoardConfig memory)
     {
         return ISignals.BoardConfig({
-            version: "TEST-1.0",
+            version: "0.0.1",
             owner: _owner,
             underlyingToken: _underlyingToken,
             acceptanceCriteria: ISignals.AcceptanceCriteria({
@@ -31,6 +31,45 @@ library BoardConfigs {
                 minBalance: 50_000 ether, // 50k tokens to propose,
                 minHoldingDuration: 0,
                 minLockAmount: 0
+            }),
+            supporterRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.None,
+                minBalance: 0,
+                minHoldingDuration: 0,
+                minLockAmount: 0
+            }),
+            releaseLockDuration: 0,
+            boardOpenAt: boardOpenAt_,
+            boardClosedAt: 0
+        });
+    }
+
+    function defaultEdgeCityConfig(address _owner, address _underlyingToken, uint256 boardOpenAt_)
+        internal
+        pure
+        returns (ISignals.BoardConfig memory)
+    {
+        return ISignals.BoardConfig({
+            version: "0.0.2",
+            owner: _owner,
+            underlyingToken: _underlyingToken,
+            acceptanceCriteria: ISignals.AcceptanceCriteria({
+                anyoneCanAccept: true,
+                ownerMustFollowThreshold: true,
+                percentageThresholdWAD: 3e17, // 30%
+                fixedThreshold: 5_000_000 ether // 5M tokens
+            }),
+            lockInterval: 1 days, // 1 day
+            maxLockIntervals: 14 days,
+            proposalCap: 10,
+            decayCurveType: 0, // Linear
+            decayCurveParameters: new uint256[](7e17), // 70% decay rate
+            inactivityTimeout: 3 days, // 60 days
+            proposerRequirements: IAuthorizer.ParticipantRequirements({
+                eligibilityType: IAuthorizer.EligibilityType.MinBalance,
+                minBalance: 10_000 ether,
+                minHoldingDuration: 0,
+                minLockAmount: 10_000 ether
             }),
             supporterRequirements: IAuthorizer.ParticipantRequirements({
                 eligibilityType: IAuthorizer.EligibilityType.None,
