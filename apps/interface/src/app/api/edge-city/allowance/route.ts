@@ -20,8 +20,10 @@ const CLAIM_TYPES = {
 } as const
 
 type AllowanceRequest = {
-  chainId: number
-  recipient: `0x${string}`
+  chainId?: number
+  recipient?: `0x${string}`
+  address?: `0x${string}`
+  tokenAddress: `0x${string}`
 }
 
 type AllowanceResponse = {
@@ -47,12 +49,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 })
     }
 
-    if (!edgeCityConfig.token) {
-      return NextResponse.json({ error: 'Edge City token configuration missing' }, { status: 500 })
-    }
-
     const body = (await request.json()) as AllowanceRequest
-    const recipientRaw = body.recipient?.toLowerCase()
+
+    // Get token address from request body (derived from board's underlying token)
+    const tokenAddressRaw = body.tokenAddress?.toLowerCase()
+    if (!tokenAddressRaw || !isAddress(tokenAddressRaw)) {
+      return NextResponse.json({ error: 'Valid token address is required' }, { status: 400 })
+    }
+    const tokenAddress = tokenAddressRaw as `0x${string}`
+
+    // Get recipient address from request body
+    const recipientRaw = (body.recipient || body.address)?.toLowerCase()
     if (!recipientRaw || !isAddress(recipientRaw)) {
       return NextResponse.json({ error: 'Valid wallet address is required' }, { status: 400 })
     }
@@ -80,8 +87,8 @@ export async function POST(request: Request) {
       domain: {
         name: 'ExperimentToken',
         version: '1',
-        chainId: getNetworkConfig().chain.id,
-        verifyingContract: edgeCityConfig.token,
+        chainId: body.chainId ?? getNetworkConfig().chain.id,
+        verifyingContract: tokenAddress,
       },
       types: CLAIM_TYPES,
       primaryType: 'Claim',

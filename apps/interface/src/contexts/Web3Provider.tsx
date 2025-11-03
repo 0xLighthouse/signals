@@ -106,6 +106,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   // Initialize boards on network change
   useEffect(() => {
     if (!isInitialized) return
+    console.log('Fetching boards for network', config.chain.id)
     void useBoardsStore.getState().fetchBoards()
   }, [isInitialized, config.chain.id])
 

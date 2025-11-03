@@ -15,6 +15,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/containers/app-sidebar'
 import { features } from '@/config/features'
 import { ReactNode } from 'react'
+import { Debug } from '@/components/debug'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -54,6 +55,7 @@ export default function RootLayout({
           <Web3Provider>
             <BoardProvider>
               <SignalsProvider>
+                <Debug />
                 {features.enableContributions ? (
                   <IncentivesProvider>{sidebarContent}</IncentivesProvider>
                 ) : (

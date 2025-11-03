@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
+import { useNetwork } from '@/hooks/useNetwork'
 
 type ClaimStep = 'email' | 'code' | 'review' | 'completed'
 
@@ -52,10 +53,9 @@ const evaluateEligibility = (profile: EdgeCityProfile) => {
     return { eligible: false, reason: 'Primary email is not validated' }
   }
 
-  if (edgeCityConfig.minCities.length > 0) {
-    const hasMatch = profile.popups?.some((popup) =>
-      edgeCityConfig.minCities.includes(String(popup.id)),
-    )
+  if (Array.isArray(edgeCityConfig.minCities) && edgeCityConfig.minCities.length > 0) {
+    const minCitiesArray = edgeCityConfig.minCities as unknown as readonly unknown[]
+    const hasMatch = profile.popups?.some((popup) => minCitiesArray.includes(String(popup.id)))
     if (!hasMatch) {
       return {
         eligible: false,
@@ -90,6 +90,7 @@ export const EdgeCityClaimDialog = () => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
   const { walletClient } = useWeb3()
+  const { config } = useNetwork()
 
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<ClaimState>(initialState)
@@ -118,45 +119,43 @@ export const EdgeCityClaimDialog = () => {
     }
   }, [open])
 
-  useEffect(() => {
-    if (edgeCityConfig.enabled && !edgeCityConfig.token) {
-      console.warn(
-        'Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured',
-      )
-    }
-  }, [])
+  // Get the underlying token from the board's configuration
+  const underlyingToken = config.contracts.BoardUnderlyingToken?.address
 
-  if (!edgeCityConfig.enabled || !edgeCityConfig.token) {
+  if (!edgeCityConfig.enabled || !underlyingToken) {
     return null
   }
 
-  const fetchAllowance = useCallback(async (token: string, wallet: `0x${string}`) => {
-    setState((prev) => ({ ...prev, isLoadingAllowance: true }))
-    try {
-      const response = await fetch('/api/edge-city/allowance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ address: wallet }),
-      })
+  const fetchAllowance = useCallback(
+    async (token: string, wallet: `0x${string}`) => {
+      setState((prev) => ({ ...prev, isLoadingAllowance: true }))
+      try {
+        const response = await fetch('/api/edge-city/allowance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ address: wallet, tokenAddress: underlyingToken }),
+        })
 
-      if (!response.ok) {
-        const { error } = (await response.json()) as { error?: string }
-        throw new Error(error ?? 'Unexpected response fetching allowance')
+        if (!response.ok) {
+          const { error } = (await response.json()) as { error?: string }
+          throw new Error(error ?? 'Unexpected response fetching allowance')
+        }
+
+        const payload = (await response.json()) as EdgeCityAllowance
+        setState((prev) => ({ ...prev, allowance: payload }))
+      } catch (error) {
+        console.error(error)
+        toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
+        setState((prev) => ({ ...prev, allowance: null }))
+      } finally {
+        setState((prev) => ({ ...prev, isLoadingAllowance: false }))
       }
-
-      const payload = (await response.json()) as EdgeCityAllowance
-      setState((prev) => ({ ...prev, allowance: payload }))
-    } catch (error) {
-      console.error(error)
-      toast(error instanceof Error ? error.message : 'Failed to load claim allowance')
-      setState((prev) => ({ ...prev, allowance: null }))
-    } finally {
-      setState((prev) => ({ ...prev, isLoadingAllowance: false }))
-    }
-  }, [])
+    },
+    [underlyingToken],
+  )
 
   const handleRequestCode = async () => {
     if (!email) {
@@ -263,10 +262,16 @@ export const EdgeCityClaimDialog = () => {
       const participantId = BigInt(profile.id)
       const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
+      if (!underlyingToken) {
+        toast('Token address not available')
+        setState((prev) => ({ ...prev, isClaiming: false }))
+        return
+      }
+
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
         account: address,
-        address: edgeCityConfig.token,
+        address: underlyingToken as `0x${string}`,
         abi: edgeCityConfig.abi,
         functionName: edgeCityConfig.claimFunction,
         args: claimArgs as unknown as readonly unknown[],
@@ -426,12 +431,7 @@ export const EdgeCityClaimDialog = () => {
             <Button
               className="w-full"
               onClick={handleClaim}
-              disabled={
-                !eligibility.eligible ||
-                !address ||
-                !allowance ||
-                isLoadingAllowance
-              }
+              disabled={!eligibility.eligible || !address || !allowance || isLoadingAllowance}
               isLoading={isClaiming}
             >
               Claim tokens
