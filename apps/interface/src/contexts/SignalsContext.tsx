@@ -4,10 +4,10 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { getContract } from 'viem'
 
 import { useNetwork } from '@/hooks/useNetwork'
-import { useUnderlying } from './NetworkContext'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from './Web3Provider'
 import { NetworkConfig } from '@/config/network-types'
+import { useBoard } from './BoardContext'
 
 export interface BoardMetadata {
   name: string | null
@@ -26,7 +26,6 @@ type ISignalsContext = {
   board: BoardMetadata
   formatter: (value?: number | null | undefined) => number
   refresh: () => Promise<void>
-  listBoards: () => Promise<void>
 }
 
 // Default values for the context
@@ -49,10 +48,11 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address: walletAddress } = useAccount()
   const { config } = useNetwork()
   const { publicClient } = useWeb3()
-  const { formatter: underlyingFormatter, refreshBoards } = useUnderlying()
+  const { formatter, selectedBoard } = useBoard()
 
   const signalsContract = config.contracts.SignalsProtocol
 
+  // Board metadata state
   const [board, setBoard] = useState<BoardMetadata>({
     name: null,
     symbol: null,
@@ -126,28 +126,37 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
         symbol,
       ] = await Promise.all([
         // @ts-ignore
-        protocol.read.initiativeCount?.().catch(() => null),
+        protocol.read
+          .initiativeCount?.()
+          .catch(() => null),
         // @ts-ignore
-        protocol.read.lockInterval?.().catch(() => null),
+        protocol.read
+          .lockInterval?.()
+          .catch(() => null),
         // @ts-ignore
-        protocol.read.decayCurveType?.().catch(() => null),
+        protocol.read
+          .decayCurveType?.()
+          .catch(() => null),
         // Some ABIs expect an index; use 0n as a safe default if required
         // @ts-ignore
-        protocol.read.decayCurveParameters?.([0n]).catch(() => null),
+        protocol.read
+          .decayCurveParameters?.([0n])
+          .catch(() => null),
         // @ts-ignore
-        protocol.read.name?.().catch(() => null),
+        protocol.read
+          .name?.()
+          .catch(() => null),
         // @ts-ignore
-        protocol.read.symbol?.().catch(() => null),
+        protocol.read
+          .symbol?.()
+          .catch(() => null),
       ])
 
       const pt = proposalThreshold ? Number(proposalThreshold) : null
       const at = acceptanceThreshold ? Number(acceptanceThreshold) : null
 
       // meetsThreshold uses raw units; formatter handles UI conversion
-      const meetsThreshold =
-        pt != null
-          ? Boolean((pt ?? 0) > 0 && (walletAddress ? true : false)) // presence of wallet; precise comparison depends on balance which is rendered via Underlying
-          : false
+      const meetsThreshold = pt != null && pt > 0 && walletAddress != null
 
       setBoard({
         name: name ? String(name) : null,
@@ -161,7 +170,7 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
         decayCurveParameters:
           decayCurveParametersRaw != null
             ? Array.isArray(decayCurveParametersRaw)
-              ? decayCurveParametersRaw.map((x: any) => Number(x))
+              ? decayCurveParametersRaw.map((x: bigint | number | string) => Number(x))
               : [Number(decayCurveParametersRaw)]
             : null,
       })
@@ -171,20 +180,18 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
     }
   }, [publicClient, signalsContract?.address, signalsContract?.abi, walletAddress])
 
+  // Refresh board metadata when selected board changes
   useEffect(() => {
     void fetchBoardMetadata()
-  }, [fetchBoardMetadata])
+  }, [fetchBoardMetadata, selectedBoard])
 
   return (
     <SignalsContext.Provider
       value={{
         config,
         board,
-        formatter: (value?: number | null | undefined) => underlyingFormatter(value),
+        formatter,
         refresh: fetchBoardMetadata,
-        listBoards: async () => {
-          await refreshBoards()
-        },
       }}
     >
       {children}

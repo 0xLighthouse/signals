@@ -13,7 +13,7 @@ import {
   CommandList,
 } from '../ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { useUnderlying } from '@/contexts/NetworkContext'
+import { useBoard } from '@/contexts/BoardContext'
 import { useNetwork } from '@/hooks/useNetwork'
 
 interface BoardSelectorProps {
@@ -22,7 +22,7 @@ interface BoardSelectorProps {
 }
 
 export function BoardSelector({ onDeployBoard, onBoardSelect }: BoardSelectorProps) {
-  const { boards, isBoardsLoading, selectedBoard, setActiveBoard } = useUnderlying()
+  const { boards, isBoardsLoading, selectedBoard, setActiveBoard } = useBoard()
   const [open, setOpen] = useState(false)
   const { config } = useNetwork()
 

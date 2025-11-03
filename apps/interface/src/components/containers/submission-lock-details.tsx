@@ -4,7 +4,7 @@ import { Chart } from './initiatives/chart'
 import { Alert, AlertTitle } from '../ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
-import { useUnderlying } from '@/contexts/NetworkContext'
+import { useBoard } from '@/contexts/BoardContext'
 
 import { AvatarGroup } from '../ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
@@ -31,7 +31,7 @@ export const SubmissionLockDetails: React.FC<Props> = ({
   proposeNewInitiative = false,
   supportInitiative = false,
 }) => {
-  const { symbol, decimals } = useUnderlying()
+  const { underlyingSymbol: symbol, underlyingDecimals: decimals } = useBoard()
 
   const weight = amount ? amount * (duration || 1) : 0
 

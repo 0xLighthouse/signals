@@ -17,8 +17,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { useUnderlying } from '@/contexts/NetworkContext'
 import { useSignals } from '@/contexts/SignalsContext'
+import { useBoard } from '@/contexts/BoardContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
@@ -37,11 +37,15 @@ type AttachmentDraft = {
 const MAX_ATTACHMENTS = 5
 
 export function CreateInitiativeDrawer() {
-  const { balance, symbol, fetchContractMetadata } = useUnderlying()
+  const {
+    underlyingBalance: balance,
+    underlyingSymbol: symbol,
+    fetchUnderlyingMetadata: fetchContractMetadata,
+  } = useBoard()
+  const { formatter, board } = useSignals()
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const { formatter, board } = useSignals()
   const { config } = useNetwork()
   const signalsContract = config.contracts.SignalsProtocol
   const underlyingContract = config.contracts.BoardUnderlyingToken

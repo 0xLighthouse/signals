@@ -1,6 +1,6 @@
 'use client'
 
-import { useUnderlying } from '@/contexts/NetworkContext'
+import { useBoard } from '@/contexts/BoardContext'
 import React, { useState } from 'react'
 import {
   Breadcrumb,
@@ -20,7 +20,7 @@ import { NetworkSwitcherDialog } from './network-switcher-dialog'
 import { useNetwork } from '@/hooks/useNetwork'
 
 export const Breadcrumbs: React.FC = () => {
-  const { name, symbol, setActiveBoard } = useUnderlying()
+  const { underlyingName: name, underlyingSymbol: symbol, setActiveBoard } = useBoard()
   const [isDeployDrawerOpen, setIsDeployDrawerOpen] = useState(false)
   const [isNetworkDialogOpen, setIsNetworkDialogOpen] = useState(false)
   const { selected } = useNetwork()
