@@ -5,27 +5,26 @@ import { StatsBar } from '@/components/containers/stats-bar'
 import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     network: string
     boardAddress: string
-  }
+  }>
 }
 
-export default function BoardPage({ params }: PageProps) {
-  const networkKey = getNetworkFromSlug(params.network)
+export default async function BoardPage({ params }: PageProps) {
+  const { network, boardAddress } = await params
+  const networkKey = getNetworkFromSlug(network)
+
+  console.log('networkKey', networkKey)
+  console.log('boardAddress', boardAddress)
 
   if (!networkKey) {
     notFound()
   }
 
-  // Validate board address format
-  if (!params.boardAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-    notFound()
-  }
-
   return (
     <PageLayout>
-      <StatsBar />
+      {/* <StatsBar /> */}
       <InitiativesList />
     </PageLayout>
   )
