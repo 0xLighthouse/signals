@@ -54,15 +54,14 @@ export default function RootLayout({
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
             <NetworkProvider>
-              <p>Hello</p>
-              {/* <SignalsProvider>
+              <SignalsProvider>
                 {features.enableContributions ? (
                   <IncentivesProvider>{sidebarContent}</IncentivesProvider>
                 ) : (
                   sidebarContent
                 )}
               </SignalsProvider>
-              <Toaster /> */}
+              <Toaster />
             </NetworkProvider>
           </Web3Provider>
         </ThemeProvider>

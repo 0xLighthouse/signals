@@ -41,6 +41,14 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false)
   const config = useNetworkStore((state) => state.config)
 
+  console.log('----- WEB3 CONTEXT -----')
+  console.log('----- WEB3 CONTEXT -----')
+  console.log('----- WEB3 CONTEXT -----')
+  console.log('----- WEB3 CONTEXT -----')
+  // omit contracts
+  const { contracts, ...rest } = config
+  console.log(JSON.stringify(rest, null, 2))
+
   const publicClient = useMemo(
     () =>
       createPublicClient({

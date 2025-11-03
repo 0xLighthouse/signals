@@ -239,7 +239,8 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
   const formatUnderlying = useCallback(
     (value?: number | null | undefined) => {
       const effectiveDecimals =
-        underlyingDecimals ?? useNetworkStore.getState().config.contracts.BoardUnderlyingToken?.decimals
+        underlyingDecimals ??
+        useNetworkStore.getState().config.contracts.BoardUnderlyingToken?.decimals
       if (!effectiveDecimals || !value) return 0
       const exp = 10 ** effectiveDecimals
       return Math.ceil(value / exp)
@@ -249,8 +250,8 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
 
   const underlyingAddress = useMemo(
     () =>
-      ((useNetworkStore.getState().config.contracts.BoardUnderlyingToken?.address ??
-        ZERO_ADDRESS) as `0x${string}`),
+      (useNetworkStore.getState().config.contracts.BoardUnderlyingToken?.address ??
+        ZERO_ADDRESS) as `0x${string}`,
     [config.contracts.BoardUnderlyingToken?.address],
   )
 
