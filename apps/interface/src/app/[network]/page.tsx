@@ -6,13 +6,14 @@ import { BoardsList } from '@/components/containers/boards/boards-lists'
 import { PageLayout } from '@/components/containers/page-layout'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     network: string
-  }
+  }>
 }
 
-export default function NetworkPage({ params }: PageProps) {
-  const networkKey = getNetworkFromSlug(params.network)
+export default async function NetworkPage({ params }: PageProps) {
+  const { network } = await params
+  const networkKey = getNetworkFromSlug(network)
 
   if (!networkKey) {
     notFound()

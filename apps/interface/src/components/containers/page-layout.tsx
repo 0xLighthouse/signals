@@ -10,15 +10,10 @@ interface PageLayoutProps {
   fullWidth?: boolean
 }
 
-export function PageLayout({ 
-  children, 
-  sidebar,
-  fullWidth = false 
-}: PageLayoutProps) {
+export function PageLayout({ children, sidebar, fullWidth = false }: PageLayoutProps) {
   const sidebarContent = sidebar || (
     <>
       <FAQs />
-      <FaucetActions />
       <Footer />
     </>
   )
@@ -28,14 +23,8 @@ export function PageLayout({
       <TopNav />
       <div className="container mx-auto max-w-7xl">
         <div className={`grid grid-cols-1 ${!fullWidth ? 'lg:grid-cols-[800px_1fr]' : ''}`}>
-          <div className="px-4 py-8 space-y-6 sm:pt-8 pt-[calc(60px+2rem)]">
-            {children}
-          </div>
-          {!fullWidth && (
-            <div className="hidden lg:block px-4 py-8">
-              {sidebarContent}
-            </div>
-          )}
+          <div className="px-4 py-8 space-y-6 sm:pt-8 pt-[calc(60px+2rem)]">{children}</div>
+          {!fullWidth && <div className="hidden lg:block px-4 py-8">{sidebarContent}</div>}
         </div>
       </div>
     </main>
