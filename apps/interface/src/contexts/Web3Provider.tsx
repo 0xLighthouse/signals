@@ -1,8 +1,8 @@
 'use client'
 
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
-import { base, arbitrumSepolia, hardhat } from 'viem/chains'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { base, anvil } from 'viem/chains'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   createPublicClient,
   http,
@@ -13,8 +13,12 @@ import {
 } from 'viem'
 
 import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useBoardsStore } from '@/stores/useBoardsStore'
 
-const initialNetwork = useNetworkStore.getState().config
+// Lazy initialization to avoid module-level store access
+const getInitialNetwork = () => useNetworkStore.getState().config
+
+const initialNetwork = getInitialNetwork()
 
 const Web3Context = createContext<IWeb3Context>({
   publicClient: createPublicClient({
@@ -34,20 +38,12 @@ interface IWeb3Context {
 }
 
 // Separate internal component that uses Privy hooks
-const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
+const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
   const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
   const config = useNetworkStore((state) => state.config)
-
-  console.log('----- WEB3 CONTEXT -----')
-  console.log('----- WEB3 CONTEXT -----')
-  console.log('----- WEB3 CONTEXT -----')
-  console.log('----- WEB3 CONTEXT -----')
-  // omit contracts
-  const { contracts, ...rest } = config
-  console.log(JSON.stringify(rest, null, 2))
 
   const publicClient = useMemo(
     () =>
@@ -97,7 +93,7 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [isInitialized, wallets, config.chain])
+  }, [isInitialized, wallets, config])
 
   useEffect(() => {
     if (!walletClient || !isInitialized) return
@@ -107,25 +103,40 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     })
   }, [walletClient, config.chain.id, isInitialized])
 
+  // Initialize boards on network change
+  useEffect(() => {
+    if (!isInitialized) return
+    void useBoardsStore.getState().fetchBoards()
+  }, [isInitialized, config.chain.id])
+
   return (
     <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
-      {children}
+      {children as ReactNode}
     </Web3Context.Provider>
   )
 }
 
-// Main provider that sets up Privy
-export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+/**
+ * Core Web3 provider that sets up Privy
+ * @param children - The child components to wrap
+ * @returns
+ */
+export const Web3Provider = ({ children }: { children: ReactNode }) => {
   const config = useNetworkStore((state) => state.config)
+
+  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
+  if (!privyAppId) {
+    throw new Error('NEXT_PUBLIC_PRIVY_APP_ID environment variable is required')
+  }
 
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}
+      appId={privyAppId}
       config={{
         appearance: {
           theme: 'dark',
         },
-        supportedChains: [hardhat, arbitrumSepolia, base],
+        supportedChains: [anvil, base],
         defaultChain: config.chain,
       }}
     >

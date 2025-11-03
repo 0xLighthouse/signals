@@ -25,10 +25,15 @@ export const getLocks = async (c: Context) => {
     },
   })
 
-  // Hydrate the pools with currency info
+  const client = (publicClients as Record<string, any>)[chainId]
+  if (!client) {
+    return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
+  }
+
+  // Hydrate the locks with on-chain metadata
   const locksWithMetadata = await Promise.all(
     locks.map(async (lock) => {
-      const metadata = await publicClients['421614'].readContract({
+      const metadata = await client.readContract({
         address,
         abi: SignalsABI,
         functionName: 'getBondInfo',

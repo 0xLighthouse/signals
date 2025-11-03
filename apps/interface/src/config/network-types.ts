@@ -22,6 +22,7 @@ export interface NetworkConfig {
   chain: Chain
   rpcUrl: string
   indexerEndpoint: string
+  indexerGraphQLEndpoint: string
   explorerUrl?: string
   contracts: ContractsConfig
 }

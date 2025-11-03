@@ -25,6 +25,11 @@ export const getInitiatives = async (c: Context) => {
     )
   }
 
+  const client = (publicClients as Record<string, any>)[chainId]
+  if (!client) {
+    return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
+  }
+
   const records = await db.query.Initiative.findMany({
     where: and(
       eq(schema.Initiative.chainId, Number(chainId)),
@@ -34,16 +39,12 @@ export const getInitiatives = async (c: Context) => {
 
   const initiatives = await Promise.all(
     records.map(async (initiative) => {
-      // const supporters = await db.query.Weight.findMany({
-      //   where: eq(schema.Weight.initiativeId, initiative.initiativeId),
-      // })
-
-      const initiativeState = await publicClients['421614'].readContract({
+      const initiativeState = (await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getInitiative',
         args: [BigInt(initiative.initiativeId)],
-      }) as {
+      })) as {
         state: number
         attachments: { uri: string; mimeType: string; description: string }[]
       }
@@ -64,14 +65,14 @@ export const getInitiatives = async (c: Context) => {
         }
       })()
 
-      const weight = await publicClients['421614'].readContract({
+      const weight = await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getWeight',
         args: [BigInt(initiative.initiativeId)],
       })
 
-      const supporters = await publicClients['421614'].readContract({
+      const supporters = await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getSupporters',

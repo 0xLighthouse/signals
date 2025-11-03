@@ -17,19 +17,17 @@ export const TopNav = () => {
         </div>
         <div className="flex items-center absolute left-1/2 transform -translate-x-1/2 sm:top-0 top-[60px]">
           <NavList
-            items={[
-              { href: '/', label: 'Initiatives', icon: Lightbulb },
-            ]}
+            items={[{ href: '/', label: 'Initiatives', icon: Lightbulb }]}
             className="max-w-md"
           />
         </div>
         <div className="flex lg:hidden items-center gap-4">
-          <CreateInitiativeDrawer />
+          {/* <CreateInitiativeDrawer /> */}
           <EdgeCityClaimDialog />
           <SidebarTrigger />
         </div>
         <div className="hidden lg:flex items-center gap-4">
-          <CreateInitiativeDrawer />
+          {/* <CreateInitiativeDrawer /> */}
           <EdgeCityClaimDialog />
           <ConnectButton />
           <ThemeToggle className="" />
