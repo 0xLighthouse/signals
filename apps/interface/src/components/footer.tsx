@@ -19,7 +19,7 @@ export function Footer() {
         </div>
         <Separator orientation="vertical" />
         <div>
-          <a href="https://docs.lighthouse.cx/protocols/signals" className="hover:underline">
+          <a href="https://signals.docs.lighthouse.cx" className="hover:underline">
             Docs
           </a>
         </div>

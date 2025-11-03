@@ -2,6 +2,9 @@ import { Abi, erc20Abi } from 'viem'
 
 const EDGE_CITY_ENV = process.env.NEXT_PUBLIC_EDGE_CITY?.toLowerCase() === 'true'
 
+console.log('EDGE_CITY_ENV', EDGE_CITY_ENV)
+
+
 const EDGE_CITY_CUSTOM_ABI: Abi = [
   ...erc20Abi,
   {
