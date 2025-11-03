@@ -3,10 +3,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { getContract } from 'viem'
 
-import { useNetwork } from '@/hooks/useNetwork'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from './Web3Provider'
-import { NetworkConfig } from '@/config/network-types'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 import { useBoard } from './BoardContext'
 
 export interface BoardMetadata {
@@ -22,7 +21,6 @@ export interface BoardMetadata {
 }
 
 type ISignalsContext = {
-  config: NetworkConfig
   board: BoardMetadata
   formatter: (value?: number | null | undefined) => number
   refresh: () => Promise<void>
@@ -46,11 +44,15 @@ interface Props {
 
 export const SignalsProvider: React.FC<Props> = ({ children }) => {
   const { address: walletAddress } = useAccount()
-  const { config } = useNetwork()
+  // Subscribe to only the specific config fields we need
+  const signalsContractAddress = useNetworkStore(
+    (state) => state.config.contracts.SignalsProtocol?.address,
+  )
+  const signalsContractAbi = useNetworkStore(
+    (state) => state.config.contracts.SignalsProtocol?.abi,
+  )
   const { publicClient } = useWeb3()
-  const { formatter, selectedBoard } = useBoard()
-
-  const signalsContract = config.contracts.SignalsProtocol
+  const { formatter, boardAddress } = useBoard()
 
   // Board metadata state
   const [board, setBoard] = useState<BoardMetadata>({
@@ -66,7 +68,7 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
   })
 
   const fetchBoardMetadata = useCallback(async () => {
-    if (!publicClient || !signalsContract?.address || !signalsContract?.abi) {
+    if (!publicClient || !signalsContractAddress || !signalsContractAbi) {
       // If there is no configured board, reset to defaults
       setBoard({
         name: null,
@@ -84,8 +86,8 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
 
     try {
       const protocol = getContract({
-        address: signalsContract.address,
-        abi: signalsContract.abi,
+        address: signalsContractAddress,
+        abi: signalsContractAbi,
         client: publicClient,
       })
 
@@ -178,17 +180,16 @@ export const SignalsProvider: React.FC<Props> = ({ children }) => {
       console.error('Error fetching Signals board metadata:', error)
       // Keep existing state to avoid UI flicker on transient errors
     }
-  }, [publicClient, signalsContract?.address, signalsContract?.abi, walletAddress])
+  }, [publicClient, signalsContractAddress, signalsContractAbi, walletAddress])
 
-  // Refresh board metadata when selected board changes
+  // Refresh board metadata when board address changes
   useEffect(() => {
     void fetchBoardMetadata()
-  }, [fetchBoardMetadata, selectedBoard])
+  }, [fetchBoardMetadata, boardAddress])
 
   return (
     <SignalsContext.Provider
       value={{
-        config,
         board,
         formatter,
         refresh: fetchBoardMetadata,

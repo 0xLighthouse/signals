@@ -5,7 +5,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
 
-import { useNetwork } from '@/hooks/useNetwork'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 import { useWeb3 } from './Web3Provider'
 
 interface ContextValues {
@@ -21,11 +21,14 @@ interface Props {
 
 //Provider
 export const IncentivesProvider: React.FC<Props> = ({ children }) => {
-  const { config } = useNetwork()
   const { publicClient } = useWeb3()
-  const incentivesConfig = config.contracts.Incentives
+  // Subscribe to only the specific config fields we need
+  const incentivesAddress = useNetworkStore(
+    (state) => state.config.contracts.Incentives?.address,
+  )
+  const incentivesAbi = useNetworkStore((state) => state.config.contracts.Incentives?.abi)
 
-  if (!features.enableContributions || !incentivesConfig) {
+  if (!features.enableContributions || !incentivesAddress || !incentivesAbi) {
     return <>{children}</>
   }
 
@@ -41,8 +44,8 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
       try {
         const incentives = getContract({
-          address: incentivesConfig.address,
-          abi: incentivesConfig.abi,
+          address: incentivesAddress,
+          abi: incentivesAbi,
           client: publicClient,
         })
 
@@ -60,13 +63,13 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
     // Fetch contract metadata when the address changes
     fetchMetadata()
-  }, [address, incentivesConfig.address, incentivesConfig.abi, publicClient])
+  }, [address, incentivesAddress, incentivesAbi, publicClient])
 
   // Provide contract data to children
   return (
     <IncentivesContext.Provider
       value={{
-        address: incentivesConfig.address,
+        address: incentivesAddress,
         version,
         allocations,
         receivers,

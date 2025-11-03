@@ -11,7 +11,6 @@ import { useNetworkStore } from '@/stores/useNetworkStore'
 import { SignalsABI, SignalsFactoryABI } from '../../../../packages/abis'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useBondsStore } from '@/stores/useBondsStore'
-import { usePoolsStore } from '@/stores/usePoolsStore'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 
 type BoardSummary = {
@@ -57,7 +56,6 @@ interface Props {
 const resetStoresForChange = () => {
   useInitiativesStore.getState().reset()
   useBondsStore.getState().reset()
-  usePoolsStore.getState().reset()
   useRewardsStore.getState().reset()
 }
 

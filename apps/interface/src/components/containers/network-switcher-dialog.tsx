@@ -19,7 +19,6 @@ import { toast } from 'sonner'
 
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useBondsStore } from '@/stores/useBondsStore'
-import { usePoolsStore } from '@/stores/usePoolsStore'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 
 const OptimismIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -75,7 +74,6 @@ const disabledNetworks = [
 const resetStoresForNetworkChange = () => {
   useInitiativesStore.getState().reset()
   useBondsStore.getState().reset()
-  usePoolsStore.getState().reset()
   useRewardsStore.getState().reset()
 }
 

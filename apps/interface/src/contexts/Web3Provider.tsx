@@ -43,15 +43,18 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
-  const config = useNetworkStore((state) => state.config)
+  // Subscribe to only the fields we need to avoid unnecessary re-renders
+  const chain = useNetworkStore((state) => state.config.chain)
+  const rpcUrl = useNetworkStore((state) => state.config.rpcUrl)
+  const chainId = useNetworkStore((state) => state.config.chain.id)
 
   const publicClient = useMemo(
     () =>
       createPublicClient({
-        chain: config.chain,
-        transport: http(config.rpcUrl),
+        chain,
+        transport: http(rpcUrl),
       }),
-    [config.chain, config.rpcUrl],
+    [chain.id, rpcUrl],
   )
 
   useEffect(() => {
@@ -76,7 +79,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
         const provider = await wallets[0]?.getEthereumProvider?.()
         if (!cancelled && provider) {
           const client = createWalletClient({
-            chain: config.chain,
+            chain,
             transport: custom(provider),
           })
           setWalletClient(client)
@@ -93,22 +96,22 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [isInitialized, wallets, config])
+  }, [isInitialized, wallets, chain])
 
   useEffect(() => {
     if (!walletClient || !isInitialized) return
 
-    walletClient.switchChain?.({ id: config.chain.id }).catch((error) => {
+    walletClient.switchChain?.({ id: chainId }).catch((error) => {
       console.warn('Wallet chain switch failed or unsupported', error)
     })
-  }, [walletClient, config.chain.id, isInitialized])
+  }, [walletClient, chainId, isInitialized])
 
   // Initialize boards on network change
   useEffect(() => {
     if (!isInitialized) return
-    console.log('Fetching boards for network', config.chain.id)
+    console.log('Fetching boards for network', chainId)
     void useBoardsStore.getState().fetchBoards()
-  }, [isInitialized, config.chain.id])
+  }, [isInitialized, chainId])
 
   return (
     <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
@@ -123,7 +126,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
  * @returns
  */
 export const Web3Provider = ({ children }: { children: ReactNode }) => {
-  const config = useNetworkStore((state) => state.config)
+  const chain = useNetworkStore((state) => state.config.chain)
 
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
   if (!privyAppId) {
@@ -138,7 +141,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
           theme: 'dark',
         },
         supportedChains: [anvil, base],
-        defaultChain: config.chain,
+        defaultChain: chain,
       }}
     >
       <Web3ContextProvider>{children}</Web3ContextProvider>
