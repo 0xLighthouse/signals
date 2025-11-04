@@ -59,12 +59,6 @@ contract BoardConfigTest is Test, SignalsHarness {
         vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
-        // Reset and test zero proposalCap
-        config = defaultConfig;
-        config.proposalCap = 0;
-        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
-        board.initialize(config);
-
         // Reset and test invalid decayCurveType
         config = defaultConfig;
         config.decayCurveType = 2;

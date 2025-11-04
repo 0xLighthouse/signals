@@ -16,9 +16,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @param version The version of the Signals contract
      * @param acceptanceThreshold Weight required for an initiative to be accepted
      * @param maxLockIntervals Maximum lock intervals allowed
-     * @param proposalCap The maximum active proposals a user can submit
-     * TODO(@arnold): [LOW] Verify proposalCap behavior and rename to activeProposalLimit
-     *                Field name should clearly indicate it limits concurrent active proposals
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
@@ -34,7 +31,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         address underlyingToken;
         AcceptanceCriteria acceptanceCriteria;
         uint256 maxLockIntervals;
-        uint256 proposalCap;
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
@@ -210,7 +206,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
     function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
-    function proposalCap() external view returns (uint256);
     function lockInterval() external view returns (uint256);
     function decayCurveType() external view returns (uint256);
     function decayCurveParameters(uint256) external view returns (uint256);

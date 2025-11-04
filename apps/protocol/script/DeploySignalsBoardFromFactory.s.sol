@@ -70,7 +70,6 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                 }),
                 lockInterval: 1 days,
                 maxLockIntervals: 7,
-                proposalCap: 5,
                 decayCurveType: 1, // exponential
                 decayCurveParameters: params,
                 inactivityTimeout: 3 days, // 10 days

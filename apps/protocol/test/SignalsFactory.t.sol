@@ -62,7 +62,6 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             defaultConfig.acceptanceCriteria.fixedThreshold
         );
         assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
-        assertEq(_instance.proposalCap(), defaultConfig.proposalCap);
         assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
         assertEq(_instance.decayCurveType(), defaultConfig.decayCurveType);
         assertEq(_instance.version(), defaultConfig.version);
@@ -116,9 +115,6 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     // TODO: Test with different maxLockIntervals values
     // function test_Create_WithDifferentMaxLockIntervals() public {}
 
-    // TODO: Test with different proposalCap values
-    // function test_Create_WithDifferentProposalCap() public {}
-
     // TODO: Test with different decayCurveType values
     // function test_Create_WithDifferentDecayCurveTypes() public {}
 
@@ -157,7 +153,6 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     //     uint256 proposalThreshold,
     //     uint256 acceptanceThreshold,
     //     uint256 maxLockIntervals,
-    //     uint256 proposalCap
     // ) public {}
 
     /*//////////////////////////////////////////////////////////////

@@ -65,9 +65,6 @@ contract Signals is
     /// @notice Criteria for accepting an initiative
     AcceptanceCriteria internal _acceptanceCriteria;
 
-    /// @notice Maximum number of proposals allowed
-    uint256 public proposalCap;
-
     /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
     uint256 public decayCurveType;
 
@@ -124,7 +121,6 @@ contract Signals is
         if (config.owner == address(0)) revert ISignals.Signals_InvalidArguments();
         if (config.maxLockIntervals == 0) revert ISignals.Signals_InvalidArguments();
         if (config.lockInterval == 0) revert ISignals.Signals_InvalidArguments();
-        if (config.proposalCap == 0) revert ISignals.Signals_InvalidArguments();
         if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
             revert ISignals.Signals_InvalidArguments();
         }
@@ -153,7 +149,6 @@ contract Signals is
         underlyingToken = config.underlyingToken;
         authorizationToken = config.underlyingToken;
         maxLockIntervals = config.maxLockIntervals;
-        proposalCap = config.proposalCap;
         lockInterval = config.lockInterval;
         decayCurveType = config.decayCurveType;
         decayCurveParameters = config.decayCurveParameters;

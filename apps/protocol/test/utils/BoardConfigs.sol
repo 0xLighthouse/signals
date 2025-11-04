@@ -21,7 +21,6 @@ library BoardConfigs {
                 fixedThreshold: 100_000 ether // 100k
             }),
             maxLockIntervals: 365 days, // 1 year
-            proposalCap: 100, // 100 proposals
             lockInterval: 1 days, // 1 day
             decayCurveType: 0, // Linear
             decayCurveParameters: new uint256[](1),
@@ -61,7 +60,6 @@ library BoardConfigs {
             }),
             lockInterval: 1 days, // 1 day
             maxLockIntervals: 14 days,
-            proposalCap: 10,
             decayCurveType: 0, // Linear
             decayCurveParameters: new uint256[](7e17), // 70% decay rate
             inactivityTimeout: 3 days, // 60 days
