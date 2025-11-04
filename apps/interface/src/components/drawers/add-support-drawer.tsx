@@ -37,6 +37,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     underlyingBalance: balance,
     underlyingSymbol: symbol,
     fetchUnderlyingMetadata: fetchContractMetadata,
+    boardAddress,
   } = useBoard()
   const { formatter, board } = useSignals()
   const { config } = useNetwork()
@@ -149,7 +150,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       setIsDrawerOpen(false)
       resetFormState()
       toast('Upvote submitted!')
-      fetchInitiatives()
+      if (boardAddress) {
+        fetchInitiatives(boardAddress)
+      }
       fetchContractMetadata()
     } catch (err) {
       console.error(err)

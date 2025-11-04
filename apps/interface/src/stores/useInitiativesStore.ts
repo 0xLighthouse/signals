@@ -7,7 +7,7 @@ interface InitiativesState {
   initiatives: Initiative[]
   isFetching: boolean
   isInitialized: boolean
-  fetchInitiatives: () => Promise<void>
+  fetchInitiatives: (boardAddress?: `0x${string}`) => Promise<void>
   reset: () => void
 }
 
@@ -15,12 +15,20 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
   initiatives: [],
   isFetching: false,
   isInitialized: false,
-  fetchInitiatives: async () => {
+  fetchInitiatives: async (signalsBoardAddress?: `0x${string}`) => {
+
+    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
+    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
+    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
+    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
+    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
+
     try {
       set({ isFetching: true })
 
       const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
-      const boardAddress = contracts.SignalsProtocol?.address
+      // Use provided board address or fall back to configured default
+      const boardAddress = signalsBoardAddress || contracts.SignalsProtocol?.address
       if (!boardAddress) {
         console.warn('No Signals board configured for current network.')
         set({ initiatives: [] })
@@ -29,6 +37,11 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
 
       const resp = await fetch(`${indexerEndpoint}/initiatives/${chain.id}/${boardAddress}`)
       const { initiatives }: InitiativeResponse = await resp.json()
+
+
+      console.log('----- RESP ---', initiatives)
+
+
       if (Array.isArray(initiatives)) {
         set({ initiatives })
       } else {

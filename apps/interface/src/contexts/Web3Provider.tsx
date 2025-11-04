@@ -141,7 +141,9 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
           theme: 'dark',
         },
         supportedChains: [anvil, base],
-        defaultChain: chain,
+        defaultChain: {
+          ...chain,
+        },
       }}
     >
       <Web3ContextProvider>{children}</Web3ContextProvider>

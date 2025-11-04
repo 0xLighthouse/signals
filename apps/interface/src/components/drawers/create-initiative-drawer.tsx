@@ -41,6 +41,7 @@ export function CreateInitiativeDrawer() {
     underlyingBalance: balance,
     underlyingSymbol: symbol,
     fetchUnderlyingMetadata: fetchContractMetadata,
+    boardAddress,
   } = useBoard()
   const { formatter, board } = useSignals()
   const { address } = useAccount()
@@ -188,7 +189,9 @@ export function CreateInitiativeDrawer() {
       setIsDrawerOpen(false)
       resetFormState()
       toast('Initiative submitted!')
-      fetchInitiatives()
+      if (boardAddress) {
+        fetchInitiatives(boardAddress)
+      }
       fetchContractMetadata()
     } catch (error) {
       console.error(error)

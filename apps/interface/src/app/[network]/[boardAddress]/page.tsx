@@ -25,7 +25,7 @@ export default async function BoardPage({ params }: PageProps) {
   return (
     <PageLayout>
       {/* <StatsBar /> */}
-      <InitiativesList />
+      <InitiativesList boardAddress={boardAddress} />
     </PageLayout>
   )
 }
