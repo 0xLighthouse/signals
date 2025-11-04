@@ -83,6 +83,9 @@ contract Signals is
     /// @notice Timestamp when board closed or will close for participation
     uint256 public boardClosedAt;
 
+    /// @notice If board was cancelled
+    bool public boardCancelled;
+
     /// @notice Maximum number of metadata attachments allowed per initiative
     uint256 internal constant MAX_ATTACHMENTS = 5;
 
@@ -147,14 +150,19 @@ contract Signals is
 
         version = config.version;
         underlyingToken = config.underlyingToken;
-        authorizationToken = config.underlyingToken;
-        maxLockIntervals = config.maxLockIntervals;
+
         lockInterval = config.lockInterval;
+        maxLockIntervals = config.maxLockIntervals;
+
         decayCurveType = config.decayCurveType;
         decayCurveParameters = config.decayCurveParameters;
+
         proposerRequirements = config.proposerRequirements;
         supporterRequirements = config.supporterRequirements;
         releaseLockDuration = config.releaseLockDuration;
+
+        // Set which token the authorizer uses to check eligibility
+        authorizationToken = config.underlyingToken;
 
         transferOwnership(config.owner);
     }
@@ -416,27 +424,21 @@ contract Signals is
         redeemLocksForInitiative(lock.initiativeId, lockIds);
     }
 
-    // TODO: Check to make sure these lock IDs all belong to this initiative
+    /**
+     * @notice Redeem multiple locks for an initiative
+     * @param initiativeId ID of the initiative to redeem locks for
+     * @param lockIds Array of lock IDs to redeem
+     * @dev Rules: If initiative is accepted, tokens can be redeemed after the release timelock.
+     *       If initiative is expired or board is cancelled, tokens can be redeemed immediately.
+     *       Otherwise, tokens can be redeemed after the timelock expires.
+     *
+     */
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds)
         public
         nonReentrant
     {
-        Initiative memory initiative = _initiatives[initiativeId];
-
-        // Can only redeem from Accepted or Expired initiatives
-        if (
-            initiative.state != InitiativeState.Accepted
-                && initiative.state != InitiativeState.Expired
-        ) {
-            revert ISignals.Signals_IncorrectInitiativeState();
-        }
-
-        // If board is not closed and the initiative was accepted, enforce the release timelock
-        if (initiative.state == InitiativeState.Accepted && !isBoardClosed()) {
-            if (block.timestamp < initiative.acceptanceTimestamp + releaseLockDuration) {
-                revert ISignals.Signals_StillTimelocked();
-            }
-        }
+        InitiativeState state = _initiatives[initiativeId].state;
+        uint256 acceptanceTimestamp = _initiatives[initiativeId].acceptanceTimestamp;
 
         uint256 redeemAmount = 0;
 
@@ -444,21 +446,36 @@ contract Signals is
             uint256 lockId = lockIds[i];
             TokenLock storage lock = _locks[lockId];
 
+            // Check if owner
             if (ownerOf(lockId) != msg.sender) revert ISignals.Signals_NotOwner();
 
+            // Check if lock belongs to the initiative
             if (lock.initiativeId != initiativeId) {
                 revert ISignals.Signals_InvalidID();
             }
 
+            // Check if lock has already been redeemed
             if (lock.withdrawn) {
                 revert ISignals.Signals_TokenAlreadyRedeemed(lockId);
             }
 
-            redeemAmount += lock.tokenAmount;
-            lock.withdrawn = true;
-            _burn(lockId);
+            // We can redeem now if one of these is true:
+            // 1. The board is cancelled
+            // 2. The initiative is expired
+            // 3. The lock has expired
+            // 4. The initiative has been accepted and the release timelock has passed
+            if (
+                boardCancelled || state == InitiativeState.Expired
+                    || lock.created + lock.lockDuration * lockInterval <= block.timestamp
+                    || state == InitiativeState.Accepted
+                        && acceptanceTimestamp + releaseLockDuration <= block.timestamp
+            ) {
+                redeemAmount += lock.tokenAmount;
+                lock.withdrawn = true;
+                _burn(lockId);
 
-            emit Redeemed(initiativeId, lockId, msg.sender, lock.tokenAmount);
+                emit Redeemed(initiativeId, lockId, msg.sender, lock.tokenAmount);
+            }
         }
 
         // Transfer underlying tokens back to the supporter
@@ -524,17 +541,27 @@ contract Signals is
 
     /// @inheritdoc ISignals
     function setBoardOpenAt(uint256 _boardOpenAt) external onlyOwner {
+        if (isBoardClosed()) revert ISignals.Signals_IncorrectBoardState();
         _boardOpenAt < block.timestamp ? boardOpenAt = block.timestamp : boardOpenAt = _boardOpenAt;
     }
 
     /// @inheritdoc ISignals
-    function setBoardClosedAt(uint256 _boardClosedAt) external onlyOwner {
-        if (_boardClosedAt < block.timestamp) {
-            _boardClosedAt = block.timestamp;
-            emit BoardClosed(msg.sender);
+    function setBoardClosedAt(uint256 _boardClosedAt) external boardMustBeOpen onlyOwner {
+        if (_boardClosedAt < block.timestamp || _boardClosedAt < boardOpenAt) {
+            revert ISignals.Signals_InvalidArguments();
         }
-        if (_boardClosedAt < boardOpenAt) revert ISignals.Signals_InvalidArguments();
         boardClosedAt = _boardClosedAt;
+    }
+
+    function closeBoard() external boardMustBeOpen onlyOwner {
+        boardClosedAt = block.timestamp;
+        emit BoardClosed(msg.sender);
+    }
+
+    function cancelBoard() external boardMustBeOpen onlyOwner {
+        boardClosedAt = block.timestamp;
+        boardCancelled = true;
+        emit BoardCancelled(msg.sender);
     }
 
     /**

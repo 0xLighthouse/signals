@@ -21,7 +21,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @param decayCurveParameters Parameters to control the decay curve behavior
      * @param proposerRequirements Requirements for who can propose (immutable)
      * @param participantRequirements Requirements for who can support initiatives (immutable)
-     * @param releaseLockDuration Duration tokens remain locked after acceptance (0 = immediate release)
+     * @param releaseLockDuration Duration tokens remain locked after acceptance (in seconds)
      * @param boardOpenAt Timestamp when board opens for participation (0 = doesn't open until updated)
      * @param boardClosedAt Timestamp when board closes for participation (0 = never closes)
      */
@@ -145,8 +145,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 indexed initiativeId, uint256 indexed tokenId, address indexed payee, uint256 amount
     );
     event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
-    event BoardClosed(address indexed actor);
-
+    event BoardClosed(address indexed sender);
+    event BoardCancelled(address indexed sender);
     // Errors
 
     /// @notice Sender is not the owner of board or token they are interacting with
