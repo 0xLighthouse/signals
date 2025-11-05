@@ -254,7 +254,7 @@ contract Signals is
         internal
         returns (uint256 tokenId)
     {
-        if (lockDuration == 0 || lockDuration > maxLockIntervals) {
+        if (lockDuration > maxLockIntervals) {
             revert ISignals.Signals_InvalidArguments();
         }
 
@@ -666,13 +666,13 @@ contract Signals is
         uint256 elapsedIntervals = (timestamp - lock.created) / lockInterval;
 
         // Lock has expired (duration passed) or already withdrawn - no weight
-        if (elapsedIntervals >= lock.lockDuration || lock.withdrawn) {
+        if (lock.withdrawn) {
             return 0;
         }
 
-        // Validate the decay curve type is recognized
-        if (decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidArguments();
+        // At minimum, we provide support equal to the tokens locked
+        if (elapsedIntervals >= lock.lockDuration) {
+            return lock.tokenAmount;
         }
 
         // Apply the configured decay curve to calculate time-weighted value

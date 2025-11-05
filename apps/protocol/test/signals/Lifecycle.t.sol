@@ -306,6 +306,93 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     }
 
     /*//////////////////////////////////////////////////////////////
+                        LOCK DURATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// Test lock with zero duration has equal support and can be redeemed immediately
+    function test_LockWithZeroDuration_EqualSupport_ImmediateRedeem() public {
+        uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
+        uint256 beforeBalance = _tokenERC20.balanceOf(_alice);
+
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(signals), lockAmount);
+
+        // Propose with lock duration = 0
+        signals.proposeInitiativeWithLock(_metadata(1), lockAmount, 0);
+        vm.stopPrank();
+
+        // Check that weight equals lock amount (no multiplier for duration 0)
+        assertEq(signals.getWeight(1), lockAmount);
+
+        // Check lock info
+        ISignals.TokenLock memory lock = signals.getTokenLock(1);
+        assertEq(lock.tokenAmount, lockAmount);
+        assertEq(lock.lockDuration, 0);
+        assertEq(lock.withdrawn, false);
+
+        // Redeem immediately - should succeed for duration 0
+        vm.startPrank(_alice);
+        uint256[] memory lockIds = new uint256[](1);
+        lockIds[0] = 1;
+        signals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Verify redemption succeeded
+        ISignals.TokenLock memory lockAfter = signals.getTokenLock(1);
+        assertEq(lockAfter.withdrawn, true);
+        assertEq(_tokenERC20.balanceOf(_alice), beforeBalance);
+    }
+
+    /// Test lock with duration has increased support and can only be redeemed after expiration
+    function test_LockWithDuration_IncreasedSupport_RedeemAfterExpiration() public {
+        uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
+        uint256 lockDuration = 6;
+        uint256 beforeBalance = _tokenERC20.balanceOf(_bob);
+
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(signals), lockAmount);
+
+        // Propose with lock duration > 0
+        signals.proposeInitiativeWithLock(_metadata(2), lockAmount, lockDuration);
+        vm.stopPrank();
+
+        // Check that weight is greater than lock amount (multiplier applied for duration > 0)
+        assertGt(signals.getWeight(1), lockAmount);
+
+        // Check lock info
+        ISignals.TokenLock memory lock = signals.getTokenLock(1);
+        assertEq(lock.tokenAmount, lockAmount);
+        assertEq(lock.lockDuration, lockDuration);
+        assertEq(lock.withdrawn, false);
+
+        // Attempt to redeem immediately - should fail (no tokens transferred, withdrawn still false)
+        vm.startPrank(_bob);
+        uint256[] memory lockIds = new uint256[](1);
+        lockIds[0] = 1;
+        signals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Verify redemption did NOT succeed
+        ISignals.TokenLock memory lockAfterFirstAttempt = signals.getTokenLock(1);
+        assertEq(lockAfterFirstAttempt.withdrawn, false);
+        assertEq(_tokenERC20.balanceOf(_bob), beforeBalance - lockAmount);
+
+        // Fast forward time past lock expiration (lockDuration * lockInterval)
+        // lockInterval is 1 day, so warp by lockDuration days
+        vm.warp(block.timestamp + lockDuration * 1 days);
+
+        // Attempt to redeem again - should succeed now
+        vm.startPrank(_bob);
+        signals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Verify redemption succeeded
+        ISignals.TokenLock memory lockAfterSecondAttempt = signals.getTokenLock(1);
+        assertEq(lockAfterSecondAttempt.withdrawn, true);
+        assertEq(_tokenERC20.balanceOf(_bob), beforeBalance);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         EXPIRATION TESTS
     //////////////////////////////////////////////////////////////*/
 
