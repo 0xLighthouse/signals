@@ -15,18 +15,12 @@ import {ISignals} from "../src/interfaces/ISignals.sol";
 import {SignalsHarness} from "./utils/SignalsHarness.sol";
 
 contract SignalsFactoryTest is Test, SignalsHarness {
-    SignalsFactory _factory;
-
-    function setUp() public {
-        _factory = new SignalsFactory();
-    }
-
     /*//////////////////////////////////////////////////////////////
                         INITIALIZATION TESTS
     //////////////////////////////////////////////////////////////*/
 
     function test_Version_Correct() public {
-        assertEq(_factory.version(), "0.1.0");
+        assertEq(factory.version(), "0.1.0");
     }
 
     function test_Create_DeploysSignalsContract() public {
@@ -36,7 +30,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         uint256[] memory _decayCurveParameters = new uint256[](1);
         _decayCurveParameters[0] = 9e17;
 
-        address instanceAddress = _factory.create(defaultConfig);
+        address instanceAddress = factory.create(defaultConfig);
         assertTrue(instanceAddress != address(0));
 
         // Load the Signals contract instance
@@ -82,7 +76,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         ISignals.BoardConfig memory config = defaultConfig;
         config.owner = address(0);
 
-        _factory.create(config);
+        factory.create(config);
     }
 
     /*//////////////////////////////////////////////////////////////

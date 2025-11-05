@@ -171,7 +171,7 @@ contract Signals is
         // Set which token the authorizer uses to check eligibility
         authorizationToken = config.underlyingToken;
 
-        transferOwnership(config.owner);
+        _transferOwnership(config.owner);
     }
 
     /// @inheritdoc ISignals

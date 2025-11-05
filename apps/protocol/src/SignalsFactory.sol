@@ -6,7 +6,7 @@ import "forge-std/console.sol";
 // TODO(@arnold): [LOW] Use OpenZeppelin Clones library for minimal proxy pattern
 //                Consider using EIP-1167 minimal proxy clones for gas-efficient deployment
 //                Benchmark gas savings vs current approach before implementing
-// import '@openzeppelin/contracts/proxy/Clones.sol';
+import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -19,8 +19,15 @@ import "./Signals.sol";
 
 contract SignalsFactory is ISignalsFactory {
     using SafeERC20 for IERC20;
+    using Clones for address;
 
     string public constant VERSION = "0.1.0";
+
+    address public immutable implementation;
+
+    constructor(address _implementation) {
+        implementation = _implementation;
+    }
 
     /// @notice Thrown when deployment of Signals instance fails
     error SignalsFactory_DeploymentFailed();
@@ -50,12 +57,12 @@ contract SignalsFactory is ISignalsFactory {
         //                This prevents deploying boards with invalid configurations
 
         // Initialize the new Signals contract
-        Signals instance = new Signals();
-        instance.initialize(config);
+        address instance = implementation.clone();
+        Signals(instance).initialize(config);
 
         // Emit an event for the creation of the new contract
-        emit BoardCreated(address(instance), config.owner);
+        emit BoardCreated(instance, config.owner);
 
-        return address(instance);
+        return instance;
     }
 }

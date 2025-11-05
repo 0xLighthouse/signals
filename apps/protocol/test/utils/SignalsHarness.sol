@@ -38,7 +38,7 @@ contract SignalsHarness is Test {
     MockERC20 internal _dai = new MockERC20("DAI", "DAI", 18);
 
     // --- Factory ---
-    SignalsFactory internal factory = new SignalsFactory();
+    SignalsFactory factory = new SignalsFactory(address(new Signals()));
 
     ISignals.BoardConfig public defaultConfig =
         BoardConfigs.defaultConfig(_deployer, address(_tokenERC20), block.timestamp);

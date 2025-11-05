@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import "forge-std/console.sol";
 import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
 import {SignalsFactory} from "../src/SignalsFactory.sol";
+import {Signals} from "../src/Signals.sol";
 
 /**
  * This script deploys the SignalsFactory contract
@@ -19,9 +20,13 @@ contract DeploySignalsFactory is SharedScriptBase {
 
         (uint256 deployerPrivateKey, address deployerAddress) = _loadPrivateKey(network, "deployer");
 
-        // Deploy factory
         vm.startBroadcast(deployerPrivateKey);
-        SignalsFactory factory = new SignalsFactory();
+        // Deploy Signals implementation
+        address implementation = address(new Signals());
+        console.log("Implementation Address: ", implementation);
+
+        // Deploy factory
+        SignalsFactory factory = new SignalsFactory(implementation);
         vm.stopBroadcast();
 
         console.log("=== Signals Factory Deployment ===");
