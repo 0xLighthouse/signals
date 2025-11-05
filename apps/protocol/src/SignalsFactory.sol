@@ -12,14 +12,12 @@ import "./interfaces/ISignals.sol";
 import "./interfaces/ISignalsFactory.sol";
 
 import "./Signals.sol";
+
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
-
 contract SignalsFactory is ISignalsFactory {
     using SafeERC20 for IERC20;
     using Clones for address;
-
-    string public constant VERSION = "0.1.0";
 
     address public immutable implementation;
 

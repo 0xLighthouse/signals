@@ -2,14 +2,9 @@
 
 pragma solidity ^0.8.24;
 
-import "forge-std/console.sol";
-
 import {IIncentivizer} from "./interfaces/IIncentivizer.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
-import {IVotes} from "./interfaces/IVotes.sol";
-import {console} from "forge-std/console.sol";
 
 abstract contract SignalsIncentivizer is IIncentivizer {
     uint256 constant INCENTIVE_RESOLUTION = 24;

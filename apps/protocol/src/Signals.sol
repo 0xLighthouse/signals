@@ -15,8 +15,6 @@ import "solady/src/utils/ReentrancyGuard.sol";
 
 import {ISignalsLock} from "./interfaces/ISignalsLock.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
-import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
-
 import "./DecayCurves.sol";
 import {SignalsConstants} from "./utils/Constants.sol";
 
