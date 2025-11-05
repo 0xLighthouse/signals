@@ -5,6 +5,7 @@ pragma solidity ^0.8.24;
 import {IIncentivizer} from "./interfaces/IIncentivizer.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
+import {IncentivesMath} from "./IncentivesMath.sol";
 
 abstract contract SignalsIncentivizer is IIncentivizer {
     uint256 constant INCENTIVE_RESOLUTION = 24;
@@ -193,23 +194,8 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         returns (uint256[] memory)
     {
         uint256[] memory config = _incentivesConfig.incentiveParametersWAD;
-
-        uint256[] memory interpolated = _scaleIncentiveConfigParameters(config, numberOfBuckets);
-
-        uint256 totalInterpolatedValues = 0;
-
-        //Sum all interpolated values
-        for (uint256 i = 0; i < interpolated.length; i++) {
-            totalInterpolatedValues += interpolated[i];
-        }
-
-        // Replace each value with its percentage of the whole
-        for (uint256 i = 0; i < interpolated.length; i++) {
-            interpolated[i] = (interpolated[i] * 1e18) / totalInterpolatedValues;
-        }
-
-        // Return the percentage of the entire rewards each bucket is entitled to
-        return interpolated;
+        uint256[] memory multipliers = IncentivesMath.bucketMultipliers(config, numberOfBuckets);
+        return multipliers;
     }
 
     function _scaleIncentiveConfigParameters(uint256[] memory config, uint256 numberOfBuckets)
@@ -218,68 +204,11 @@ abstract contract SignalsIncentivizer is IIncentivizer {
         returns (uint256[] memory)
     {
         uint256[] memory interpolated = new uint256[](numberOfBuckets);
-        // If there is only one bucket, we just use a value of 1e18
-        if (numberOfBuckets == 1) {
-            interpolated[0] = 1e18;
-            return interpolated;
-        }
-
-        if (numberOfBuckets == config.length) {
-            interpolated = config;
-        } else {
-            // The first and the last buckets don't change, so we can just set them to the first and last config values.
-            interpolated[0] = config[0];
-            interpolated[interpolated.length - 1] = config[config.length - 1];
-        }
-
-        if (numberOfBuckets > 2) {
-            // We will think of index/value as an X/Y coordinate. We can then convert the X coordinates to match the scale of the
-            // number of buckets, and use geometric interpolation to find Y values for each bucket..
-
-            // Convert indexes into WAD
-            uint256[] memory indexes = new uint256[](config.length);
-            for (uint256 i = 0; i < config.length; i++) {
-                indexes[i] = i * 1e18;
-            }
-
-            // Find the multiplier, based on the scale difference between the two (0-index). Multiplying the index of the last config by this number should give the index of the last bucket.
-            uint256 multiplier = ((numberOfBuckets - 1) * 1e18) / (config.length - 1);
-
-            // Scale the config indexes to match the number of buckets.
-            for (uint256 i = 0; i < indexes.length; i++) {
-                indexes[i] = indexes[i] * multiplier / 1e18;
-            }
-
-            // Thinking of it like XY cooridnates, use linear interpolation to find the Y coordinate (value) for the X coordinate (index) of each bucket.
-            // We can make the lookup efficient by keeping track of the last config index and using it to find the next config index (since we know the bucket index is always increasing).
-            uint256 lastConfigIndex = 0;
-
-            for (uint256 i = 1; i < numberOfBuckets - 1; i++) {
-                uint256 desiredX = i * 1e18;
-                while (indexes[lastConfigIndex + 1] < desiredX) lastConfigIndex++;
-
-                interpolated[i] = _geometricLinearInterpolation(
-                    desiredX,
-                    indexes[lastConfigIndex],
-                    config[lastConfigIndex],
-                    indexes[lastConfigIndex + 1],
-                    config[lastConfigIndex + 1]
-                );
-            }
-        }
-        return interpolated;
+        return IncentivesMath.scaleParameters(config, numberOfBuckets);
     }
 
-    function _geometricLinearInterpolation(
-        uint256 x,
-        uint256 x1,
-        uint256 y1,
-        uint256 x2,
-        uint256 y2
-    ) private pure returns (uint256) {
-        return uint256(
-            int256(y1)
-                + ((int256(x) - int256(x1)) * (int256(y2) - int256(y1))) / (int256(x2) - int256(x1))
-        );
-    }
+    // NOTE: The original _geometricLinearInterpolation() is intentionally removed via indirection.
+    // It is no longer required internally, as the math now lives in IncentivesMath.
+    // Keeping it absent lets the compiler/optimizer reduce bytecode size when unused.
+    // (Tests call _scaleIncentiveConfigParameters and _getBucketMultipliers only.)
 }
