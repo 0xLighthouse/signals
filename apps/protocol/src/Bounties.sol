@@ -67,15 +67,21 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBounties
-    function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers) external onlyOwner {
+    function updateSplits(uint256[3] memory _allocations, address[3] memory _receivers)
+        external
+        onlyOwner
+    {
         _updateShares(_allocations, _receivers);
     }
 
     /// @inheritdoc IBounties
-    function addBounty(uint256 _initiativeId, address _token, uint256 _amount, uint256 _expiresAt, Conditions _terms)
-        external
-        payable
-    {
+    function addBounty(
+        uint256 _initiativeId,
+        address _token,
+        uint256 _amount,
+        uint256 _expiresAt,
+        Conditions _terms
+    ) external payable {
         _addBounty(_initiativeId, _token, _amount, _expiresAt, _terms);
     }
 
@@ -135,11 +141,15 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         Conditions _terms
     ) internal {
         if (!REGISTRY.isAllowed(_token)) revert IBounties.Bounties_TokenNotRegistered();
-        if (_initiativeId > SIGNALS_CONTRACT.initiativeCount()) revert IBounties.Bounties_InvalidInitiative();
+        if (_initiativeId > SIGNALS_CONTRACT.initiativeCount()) {
+            revert IBounties.Bounties_InvalidInitiative();
+        }
 
         IERC20 token = IERC20(_token);
         if (token.balanceOf(msg.sender) < _amount) revert IBounties.Bounties_InsufficientBalance();
-        if (token.allowance(msg.sender, address(this)) < _amount) revert IBounties.Bounties_InsufficientAllowance();
+        if (token.allowance(msg.sender, address(this)) < _amount) {
+            revert IBounties.Bounties_InsufficientAllowance();
+        }
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -178,7 +188,8 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
      * @param _initiativeId Initiative ID to distribute bounties for
      */
     function _distributeBounties(uint256 _initiativeId) internal {
-        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) = getBounties(_initiativeId);
+        (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount) =
+            getBounties(_initiativeId);
 
         if (expiredCount > 0) {
             // TODO(@arnold): [MEDIUM] Implement refund logic for expired bounties
@@ -206,7 +217,11 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBounties
-    function config(uint256 _version) external view returns (uint256, uint256[3] memory, address[3] memory) {
+    function config(uint256 _version)
+        external
+        view
+        returns (uint256, uint256[3] memory, address[3] memory)
+    {
         return (version, allocations[_version], receivers[_version]);
     }
 
@@ -265,37 +280,42 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBounties
-    function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256) {
-        // Fetch bounties for this initiative
-        uint256[] memory bountyIds = bountiesByInitiative[_initiativeId];
-        if (bountyIds.length == 0) return 0;
+    function previewRewards(uint256 _initiativeId, uint256 _tokenId)
+        external
+        view
+        returns (uint256)
+    {
+        // // Fetch bounties for this initiative
+        // uint256[] memory bountyIds = bountiesByInitiative[_initiativeId];
+        // if (bountyIds.length == 0) return 0;
 
-        // Get token metadata
-        ISignals.TokenLock memory bond = SIGNALS_CONTRACT.getTokenLock(_tokenId);
+        // // Get token metadata
+        // ISignals.TokenLock memory bond = SIGNALS_CONTRACT.getTokenLock(_tokenId);
 
-        // Verify this token is for the specified initiative
-        if (bond.initiativeId != _initiativeId) return 0;
+        // // Verify this token is for the specified initiative
+        // if (bond.initiativeId != _initiativeId) return 0;
 
-        // If the token has already been withdrawn, return 0
-        if (bond.withdrawn) return 0;
+        // // If the token has already been withdrawn, return 0
+        // if (bond.withdrawn) return 0;
 
-        // Calculate the proportion of rewards this token should receive
-        uint256 totalRewards = 0;
+        // // Calculate the proportion of rewards this token should receive
+        // uint256 totalRewards = 0;
 
-        // FIXME: This is a bit sketchy as we are mixing various token denominations...
-        (, uint256[] memory _amounts,) = getBounties(_initiativeId);
-        for (uint256 i = 0; i < _amounts.length; i++) {
-            totalRewards += _amounts[i];
-        }
+        // // FIXME: This is a bit sketchy as we are mixing various token denominations...
+        // (, uint256[] memory _amounts,) = getBounties(_initiativeId);
+        // for (uint256 i = 0; i < _amounts.length; i++) {
+        //     totalRewards += _amounts[i];
+        // }
 
-        // Calculate voter rewards
-        uint256 underlyingLocked = SIGNALS_CONTRACT.getInitiative(_initiativeId).underlyingLocked;
-        uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
-        uint256 voterRewards = (totalRewards * allocations[version][1]) / SignalsConstants.BASIS_POINTS;
-        uint256 tokenRewards = (voterRewards * shareOfPool);
+        // // Calculate voter rewards
+        // uint256 underlyingLocked = SIGNALS_CONTRACT.getInitiative(_initiativeId).underlyingLocked;
+        // uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
+        // uint256 voterRewards = (totalRewards * allocations[version][1]) / SignalsConstants.BASIS_POINTS;
+        // uint256 tokenRewards = (voterRewards * shareOfPool);
 
-        console.log("Share of pool", shareOfPool);
+        // console.log("Share of pool", shareOfPool);
 
-        return tokenRewards;
+        // return tokenRewards;
+        return 0;
     }
 }

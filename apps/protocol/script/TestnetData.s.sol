@@ -108,16 +108,19 @@ contract SeedInitiativesScript is SharedScriptBase {
     function _createInitiativeData(uint256 index)
         internal
         view
-        returns (string memory title, string memory body)
+        returns (ISignals.Metadata memory metadata)
     {
         uint256 i = index % titles.length;
-        title = string.concat(titles[i], " #", Strings.toString(index + 1));
-        body = string.concat(
-            descriptions[i],
-            "\n\nProposal ID: ",
-            Strings.toString(index + 1),
-            "\nSubmitted as part of the test dataset"
-        );
+        metadata = ISignals.Metadata({
+            title: string.concat(titles[i], " #", Strings.toString(index + 1)),
+            body: string.concat(
+                descriptions[i],
+                "\n\nProposal ID: ",
+                Strings.toString(index + 1),
+                "\nSubmitted as part of the test dataset"
+            ),
+            attachments: new ISignals.Attachment[](0)
+        });
     }
 
     function _proposeInitiative(
@@ -127,11 +130,10 @@ contract SeedInitiativesScript is SharedScriptBase {
         uint256 index
     ) internal {
         vm.startBroadcast(proposerKey);
-        (string memory title, string memory body) = _createInitiativeData(index);
+        ISignals.Metadata memory metadata = _createInitiativeData(index);
         token.approve(address(board), amountToLock);
-        ISignals.Attachment[] memory attachments = new ISignals.Attachment[](0);
-        board.proposeInitiativeWithLock(title, body, attachments, amountToLock, lockDuration);
+        board.proposeInitiativeWithLock(metadata, amountToLock, lockDuration);
         vm.stopBroadcast();
-        console.log(string.concat("Submitted initiative: ", title));
+        console.log(string.concat("Submitted initiative: ", metadata.title));
     }
 }

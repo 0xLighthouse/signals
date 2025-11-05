@@ -5,6 +5,10 @@ import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {IAuthorizer} from "../../src/interfaces/IAuthorizer.sol";
 
 library BoardConfigs {
+    function _emptyBoardMetadata() internal pure returns (ISignals.Metadata memory) {
+        return ISignals.Metadata({title: "", body: "", attachments: new ISignals.Attachment[](0)});
+    }
+
     function defaultConfig(address _owner, address _underlyingToken, uint256 boardOpenAt_)
         internal
         pure
@@ -12,6 +16,11 @@ library BoardConfigs {
     {
         return ISignals.BoardConfig({
             version: "0.0.1",
+            boardMetadata: ISignals.Metadata({
+                title: "Test Board",
+                body: "Board using default config",
+                attachments: new ISignals.Attachment[](0)
+            }),
             owner: _owner,
             underlyingToken: _underlyingToken,
             acceptanceCriteria: ISignals.AcceptanceCriteria({
@@ -50,6 +59,11 @@ library BoardConfigs {
     {
         return ISignals.BoardConfig({
             version: "0.0.2",
+            boardMetadata: ISignals.Metadata({
+                title: "Edge City Board",
+                body: "Board using default edge city config",
+                attachments: new ISignals.Attachment[](0)
+            }),
             owner: _owner,
             underlyingToken: _underlyingToken,
             acceptanceCriteria: ISignals.AcceptanceCriteria({

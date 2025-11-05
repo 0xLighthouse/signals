@@ -33,7 +33,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
     function test_Propose_RevertsWithInsufficientTokens() public {
         vm.startPrank(_charlie);
         vm.expectRevert(ISignals.Signals_InsufficientTokens.selector);
-        signals.proposeInitiative("Should revert", "Description 1", new ISignals.Attachment[](0));
+        signals.proposeInitiative(_metadata(1));
         vm.stopPrank();
     }
 
@@ -45,16 +45,14 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), defaultConfig.proposerRequirements.minBalance);
 
         vm.expectEmit(true, true, true, true);
-        emit ISignals.InitiativeProposed(
-            1, _alice, "Initiative 1", "Description 1", new ISignals.Attachment[](0)
-        );
+        emit ISignals.InitiativeProposed(1, _alice, _metadata(1));
 
-        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
+        signals.proposeInitiative(_metadata(1));
 
         // Check that the initiative is stored correctly
         ISignals.Initiative memory initiative = signals.getInitiative(1);
-        assertEq(initiative.title, "Initiative 1");
-        assertEq(initiative.body, "Description 1");
+        assertEq(signals.getInitiativeMetadata(1).title, "Initiative 1");
+        assertEq(signals.getInitiativeMetadata(1).body, "Description 1");
         assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Proposed));
         assertEq(initiative.proposer, _alice);
 
@@ -72,15 +70,13 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // We should receive a tokenId of 1
         vm.expectEmit();
         emit ISignals.InitiativeSupported(1, _bob, lockAmount, 6, 1);
-        signals.proposeInitiativeWithLock(
-            "Initiative 2", "Description 2", new ISignals.Attachment[](0), lockAmount, 6
-        );
+        signals.proposeInitiativeWithLock(_metadata(2), lockAmount, 6);
         vm.stopPrank();
 
         // Check that the initiative is stored correctly
         ISignals.Initiative memory initiative = signals.getInitiative(1);
-        assertEq(initiative.title, "Initiative 2");
-        assertEq(initiative.body, "Description 2");
+        assertEq(signals.getInitiativeMetadata(1).title, "Initiative 2");
+        assertEq(signals.getInitiativeMetadata(1).body, "Description 2");
         assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Proposed));
         assertEq(initiative.proposer, _bob);
 
@@ -109,9 +105,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         _tokenERC20.approve(address(signals), lockAmount);
 
         // Propose an initiative
-        signals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 1
-        );
+        signals.proposeInitiativeWithLock(_metadata(1), lockAmount, 1);
 
         vm.startPrank(_bob);
         _tokenERC20.approve(address(signals), lockAmount);
@@ -156,9 +150,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Propose an initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), lockAmount);
-        signals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 6
-        );
+        signals.proposeInitiativeWithLock(_metadata(1), lockAmount, 6);
 
         // Non-owner cannot accept the initiative
         vm.startPrank(_bob);
@@ -193,9 +185,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         uint256 initialLockAmount = 50_000 ether;
         vm.startPrank(_alice);
         _tokenERC20.approve(address(customSignals), initialLockAmount);
-        customSignals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", new ISignals.Attachment[](0), initialLockAmount, 1
-        );
+        customSignals.proposeInitiativeWithLock(_metadata(1), initialLockAmount, 1);
         vm.stopPrank();
 
         // Verify threshold is NOT met (weight = 50k * 1 = 50k)
@@ -241,9 +231,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         uint256 lockAmount = 50_000 ether;
         vm.startPrank(_alice);
         _tokenERC20.approve(address(customSignals), lockAmount);
-        customSignals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", new ISignals.Attachment[](0), lockAmount, 1
-        );
+        customSignals.proposeInitiativeWithLock(_metadata(1), lockAmount, 1);
         vm.stopPrank();
 
         // Verify threshold is NOT met (weight = 50k * 1 = 50k)
@@ -279,9 +267,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         uint256 initialLockAmount = 50_000 ether;
         vm.startPrank(_alice);
         _tokenERC20.approve(address(customSignals), initialLockAmount);
-        customSignals.proposeInitiativeWithLock(
-            "Initiative 1", "Description 1", new ISignals.Attachment[](0), initialLockAmount, 1
-        );
+        customSignals.proposeInitiativeWithLock(_metadata(1), initialLockAmount, 1);
         vm.stopPrank();
 
         // Verify threshold is NOT met (weight = 50k * 1 = 50k)
@@ -329,7 +315,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Propose an initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), lockAmount);
-        signals.proposeInitiative("Initiative 1", "Description 1", new ISignals.Attachment[](0));
+        signals.proposeInitiative(_metadata(1));
 
         // The initiative can not be expired before the inactivity threshold
         vm.startPrank(_deployer);

@@ -142,9 +142,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
         // Alice proposes initiative without lock (no support)
         vm.prank(_alice);
-        signals.proposeInitiative(
-            "Test Initiative", "Alice's initiative without support", new ISignals.Attachment[](0)
-        );
+        signals.proposeInitiative(_metadata(1));
 
         uint256 initiativeId = 1; // First initiative
 
@@ -218,13 +216,8 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         uint256 aliceSupportAmount = 50_000 * 1e18;
         uint256 lockDuration = 10;
         _tokenERC20.approve(address(signals), aliceSupportAmount);
-        (uint256 initiativeId, uint256 aliceLockId) = signals.proposeInitiativeWithLock(
-            "Test Initiative",
-            "Multi-supporter test",
-            new ISignals.Attachment[](0),
-            aliceSupportAmount,
-            lockDuration
-        );
+        (uint256 initiativeId, uint256 aliceLockId) =
+            signals.proposeInitiativeWithLock(_metadata(1), aliceSupportAmount, lockDuration);
         vm.stopPrank();
 
         // Warp forward past bucket 0 into bucket 5 (starting interval is 1 hour)
@@ -317,9 +310,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
         // === FIRST INITIATIVE - Depletes the pool ===
 
         vm.prank(_alice);
-        signals.proposeInitiative(
-            "First Initiative", "Will deplete pool", new ISignals.Attachment[](0)
-        );
+        signals.proposeInitiative(_metadata(1));
         uint256 initiative1 = 1;
 
         vm.startPrank(_alice);
@@ -351,9 +342,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
         // Bob proposes a second initiative
         vm.prank(_bob);
-        signals.proposeInitiative(
-            "Second Initiative", "Pool is depleted", new ISignals.Attachment[](0)
-        );
+        signals.proposeInitiative(_metadata(2));
         uint256 initiative2 = 2;
 
         vm.startPrank(_bob);

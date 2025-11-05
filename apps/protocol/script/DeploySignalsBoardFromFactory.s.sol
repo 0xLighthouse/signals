@@ -60,6 +60,11 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
         address protocolAddress = _factory.create(
             ISignals.BoardConfig({
                 version: _factory.version(),
+                boardMetadata: ISignals.Metadata({
+                    title: "",
+                    body: "",
+                    attachments: new ISignals.Attachment[](0)
+                }),
                 owner: deployerAddress,
                 underlyingToken: underlyingToken,
                 acceptanceCriteria: ISignals.AcceptanceCriteria({

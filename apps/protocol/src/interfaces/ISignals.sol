@@ -27,6 +27,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      */
     struct BoardConfig {
         string version;
+        Metadata boardMetadata;
         address owner;
         address underlyingToken;
         AcceptanceCriteria acceptanceCriteria;
@@ -40,6 +41,28 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 releaseLockDuration;
         uint256 boardOpenAt;
         uint256 boardClosedAt;
+    }
+
+    /**
+     * @notice Metadata associated with the board or initiative
+     *
+     * @param title The title of the board
+     * @param body The detailed body of the board in markdown format
+     * @param attachments Optional metadata attachments associated with the board
+     */
+    struct Metadata {
+        string title;
+        string body;
+        Attachment[] attachments;
+    }
+
+    /**
+     * @notice Optional metadata attachment associated with an initiative
+     */
+    struct Attachment {
+        string uri;
+        string mimeType;
+        string description;
     }
 
     /**
@@ -71,14 +94,10 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @param acceptanceTimestamp The timestamp when the initiative was accepted (0 if not accepted)
      */
     struct Initiative {
-        string title;
-        string body;
-        Attachment[] attachments;
         InitiativeState state;
         address proposer;
         uint256 timestamp;
         uint256 lastActivity;
-        uint256 underlyingLocked;
         uint256 acceptanceTimestamp;
     }
 
@@ -98,15 +117,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 lockDuration;
         uint256 created;
         bool withdrawn;
-    }
-
-    /**
-     * @notice Optional metadata attachment associated with an initiative
-     */
-    struct Attachment {
-        string uri;
-        string mimeType;
-        string description;
     }
 
     // Enums
@@ -133,11 +143,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         uint256 tokenId
     );
     event InitiativeProposed(
-        uint256 indexed initiativeId,
-        address indexed proposer,
-        string title,
-        string body,
-        Attachment[] attachments
+        uint256 indexed initiativeId, address indexed proposer, Metadata metadata
     );
     event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
@@ -202,7 +208,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public state variables
     function version() external view returns (string memory);
-    function title() external view returns (string memory);
     function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory);
     function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
@@ -220,15 +225,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
-    function proposeInitiative(
-        string memory title,
-        string memory body,
-        Attachment[] calldata attachments
-    ) external returns (uint256 initiativeId);
+    function proposeInitiative(Metadata calldata metadata)
+        external
+        returns (uint256 initiativeId);
     function proposeInitiativeWithLock(
-        string memory title,
-        string memory body,
-        Attachment[] calldata attachments,
+        Metadata calldata metadata,
         uint256 amount,
         uint256 lockDuration
     ) external returns (uint256 initiativeId, uint256 lockId);
@@ -240,6 +241,10 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function redeemLock(uint256 lockId) external;
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
     function setTitle(string memory _title) external;
+    function setBody(string memory _body) external;
+    function setAttachment(uint256 _index, Attachment calldata _attachment) external;
+    function getBoardMetadata() external view returns (Metadata memory);
+    function getInitiativeMetadata(uint256 initiativeId) external view returns (Metadata memory);
     function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);

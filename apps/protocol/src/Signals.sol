@@ -46,7 +46,7 @@ contract Signals is
     string public version;
 
     /// @notice Vanity title for the Board. eg. "Season 1: The Great Reset"
-    string public title;
+    Metadata internal _boardMetadata;
 
     /// @notice The underlying ERC20 token used for locking
     address public underlyingToken;
@@ -92,6 +92,10 @@ contract Signals is
     /// @notice (initiativeId => Initiative)
     mapping(uint256 => Initiative) internal _initiatives;
 
+    mapping(uint256 => Metadata) internal _initiativeMetadata;
+
+    mapping(uint256 => Attachment[]) internal _initiativeAttachments;
+
     /// @notice Mapping from token ID to lock details
     mapping(uint256 => ISignals.TokenLock) internal _locks;
 
@@ -127,6 +131,9 @@ contract Signals is
         if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
             revert ISignals.Signals_InvalidArguments();
         }
+
+        _validateMetadata(config.boardMetadata);
+        _boardMetadata = config.boardMetadata;
 
         _setAcceptanceCriteria(config.acceptanceCriteria);
 
@@ -168,19 +175,18 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function proposeInitiative(
-        string memory _title,
-        string memory _body,
-        ISignals.Attachment[] calldata _attachments
-    ) external boardMustBeOpen senderCanPropose(0) returns (uint256 initiativeId) {
-        initiativeId = _addInitiative(_title, _body, _attachments);
+    function proposeInitiative(Metadata calldata _metadata)
+        external
+        boardMustBeOpen
+        senderCanPropose(0)
+        returns (uint256 initiativeId)
+    {
+        initiativeId = _addInitiative(_metadata);
     }
 
     /// @inheritdoc ISignals
     function proposeInitiativeWithLock(
-        string calldata _title,
-        string calldata _body,
-        ISignals.Attachment[] calldata _attachments,
+        Metadata calldata _metadata,
         uint256 _amount,
         uint256 _lockDuration
     )
@@ -189,89 +195,50 @@ contract Signals is
         senderCanPropose(_amount)
         returns (uint256 initiativeId, uint256 tokenId)
     {
-        initiativeId = _addInitiative(_title, _body, _attachments);
+        initiativeId = _addInitiative(_metadata);
         tokenId = _addLock(initiativeId, msg.sender, _amount, _lockDuration);
     }
 
     /**
      * @notice Internal function to create a new initiative
      * @dev Validates proposer has sufficient tokens based on threshold
-     * @param _title Title of the initiative
-     * @param _body Body content of the initiative
-     * @param _attachments Optional metadata attachments to persist with the initiative
+     * @param _metadata Metadata for the initiative
      * @return id The ID of the newly created initiative
      */
-    function _addInitiative(
-        string memory _title,
-        string memory _body,
-        ISignals.Attachment[] calldata _attachments
-    ) internal returns (uint256 id) {
-        if (bytes(_title).length == 0 || bytes(_body).length == 0) {
-            revert ISignals.Signals_EmptyTitleOrBody();
-        }
+    function _addInitiative(Metadata calldata _metadata) internal returns (uint256 id) {
+        // Validate metadata
+        _validateMetadata(_metadata);
+
         // Increment first, so there is no initiative with an id of 0 (Following the pattern of ERC20 and 721)
         initiativeCount++;
         Initiative storage initiative = _initiatives[initiativeCount];
 
         initiative.state = ISignals.InitiativeState.Proposed;
-        initiative.title = _title;
-        initiative.body = _body;
         initiative.proposer = msg.sender;
         initiative.timestamp = block.timestamp;
         initiative.lastActivity = block.timestamp;
-        initiative.underlyingLocked = 0;
         initiative.acceptanceTimestamp = 0;
 
-        ISignals.Attachment[] memory attachmentsForEvent =
-            _storeAttachments(initiative, _attachments);
+        _initiativeMetadata[initiativeCount] = _metadata;
 
-        emit InitiativeProposed(initiativeCount, msg.sender, _title, _body, attachmentsForEvent);
+        emit InitiativeProposed(initiativeCount, msg.sender, _metadata);
         return initiativeCount;
     }
 
-    /**
-     * @notice Persist attachments on-chain and prepare copies for event emission
-     * @param initiative Storage pointer to the initiative being populated
-     * @param attachments Attachments provided by the proposer
-     * @return attachmentsForEvent Copy of attachments suitable for event emission
-     */
-    function _storeAttachments(
-        Initiative storage initiative,
-        ISignals.Attachment[] calldata attachments
-    ) internal returns (ISignals.Attachment[] memory) {
-        if (attachments.length > MAX_ATTACHMENTS) {
+    function _validateMetadata(Metadata calldata _metadata) internal pure {
+        if (bytes(_metadata.title).length == 0) {
+            // Empty body is okay for now
+            revert ISignals.Signals_EmptyTitleOrBody();
+        }
+
+        if (_metadata.attachments.length > MAX_ATTACHMENTS) {
             revert ISignals.Signals_AttachmentLimitExceeded();
         }
-
-        ISignals.Attachment[] memory attachmentsForEvent =
-            new ISignals.Attachment[](attachments.length);
-
-        for (uint256 i = 0; i < attachments.length;) {
-            ISignals.Attachment calldata attachment = attachments[i];
-            if (bytes(attachment.uri).length == 0) {
+        for (uint256 i = 0; i < _metadata.attachments.length; i++) {
+            if (bytes(_metadata.attachments[i].uri).length == 0) {
                 revert ISignals.Signals_InvalidArguments();
             }
-
-            initiative.attachments.push(
-                ISignals.Attachment({
-                    uri: attachment.uri,
-                    mimeType: attachment.mimeType,
-                    description: attachment.description
-                })
-            );
-
-            attachmentsForEvent[i] = ISignals.Attachment({
-                uri: attachment.uri,
-                mimeType: attachment.mimeType,
-                description: attachment.description
-            });
-
-            unchecked {
-                ++i;
-            }
         }
-
-        return attachmentsForEvent;
     }
 
     /**
@@ -319,9 +286,6 @@ contract Signals is
         });
 
         _locksForInitiative[initiativeId].push(lockCount);
-
-        // Update the initiative's underlying locked amount
-        initiative.underlyingLocked += amount;
 
         // Update the initiative's last activity timestamp
         initiative.lastActivity = block.timestamp;
@@ -491,7 +455,49 @@ contract Signals is
      * @param _title New title for the board
      */
     function setTitle(string memory _title) external onlyOwner {
-        title = _title;
+        if (bytes(_title).length == 0) {
+            revert ISignals.Signals_InvalidArguments();
+        }
+        _boardMetadata.title = _title;
+    }
+
+    function setBody(string memory _body) external onlyOwner {
+        if (bytes(_body).length == 0) {
+            revert ISignals.Signals_InvalidArguments();
+        }
+        _boardMetadata.body = _body;
+    }
+
+    /**
+     * @notice Add, remove, or change an attachment for the board
+     * @param _index Index of the attachment to set
+     * @param _attachment Attachment to set
+     */
+    function setAttachment(uint256 _index, Attachment calldata _attachment) external onlyOwner {
+        if (_index >= MAX_ATTACHMENTS || _index > _boardMetadata.attachments.length) {
+            revert ISignals.Signals_InvalidArguments();
+        } else if (bytes(_attachment.uri).length == 0) {
+            if (_index < _boardMetadata.attachments.length) {
+                // Remove the indicated index
+                _boardMetadata.attachments[_index] =
+                    _boardMetadata.attachments[_boardMetadata.attachments.length - 1];
+                _boardMetadata.attachments.pop();
+            } else {
+                revert ISignals.Signals_InvalidArguments();
+            }
+        } else if (_index == _boardMetadata.attachments.length) {
+            _boardMetadata.attachments.push(_attachment);
+        } else {
+            _boardMetadata.attachments[_index] = _attachment;
+        }
+    }
+
+    function getBoardMetadata() external view returns (Metadata memory) {
+        return _boardMetadata;
+    }
+
+    function getInitiativeMetadata(uint256 initiativeId) external view returns (Metadata memory) {
+        return _initiativeMetadata[initiativeId];
     }
 
     /// @inheritdoc ISignals

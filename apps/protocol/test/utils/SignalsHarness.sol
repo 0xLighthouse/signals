@@ -6,6 +6,7 @@ import "forge-std/console.sol";
 
 import {Signals} from "../../src/Signals.sol";
 import {SignalsFactory} from "../../src/SignalsFactory.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 import {MockERC20Votes} from "../mocks/MockERC20Votes.m.sol";
@@ -94,6 +95,20 @@ contract SignalsHarness is Test {
                     TEST HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function _metadata(uint256 number) internal pure returns (ISignals.Metadata memory) {
+        ISignals.Attachment[] memory attachments = new ISignals.Attachment[](1);
+        attachments[0] = ISignals.Attachment({
+            uri: string(abi.encodePacked("test://", number)),
+            mimeType: "text/test",
+            description: string(abi.encodePacked("URI description ", number))
+        });
+        return ISignals.Metadata({
+            title: string.concat("Initiative ", Strings.toString(number)),
+            body: string.concat("Description ", Strings.toString(number)),
+            attachments: attachments
+        });
+    }
+
     function _emptyAttachmentsArray()
         internal
         pure
@@ -123,9 +138,8 @@ contract SignalsHarness is Test {
     ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", _emptyAttachmentsArray(), amount, lockDuration
-        );
+        (initiativeId, tokenId) =
+            signals.proposeInitiativeWithLock(_metadata(1), amount, lockDuration);
         vm.stopPrank();
 
         vm.prank(_deployer);
@@ -157,9 +171,8 @@ contract SignalsHarness is Test {
     ) internal returns (uint256 initiativeId, uint256 tokenId) {
         vm.startPrank(proposer);
         _tokenERC20.approve(address(signals), amount);
-        (initiativeId, tokenId) = signals.proposeInitiativeWithLock(
-            "Test Initiative", "Description", _emptyAttachmentsArray(), amount, lockDuration
-        );
+        (initiativeId, tokenId) =
+            signals.proposeInitiativeWithLock(_metadata(1), amount, lockDuration);
         vm.stopPrank();
 
         vm.warp(block.timestamp + 61 days); // Past activity timeout
