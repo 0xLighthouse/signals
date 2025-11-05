@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "forge-std/console.sol";
-
 // TODO(@arnold): [LOW] Use OpenZeppelin Clones library for minimal proxy pattern
 //                Consider using EIP-1167 minimal proxy clones for gas-efficient deployment
 //                Benchmark gas savings vs current approach before implementing
@@ -14,14 +12,12 @@ import "./interfaces/ISignals.sol";
 import "./interfaces/ISignalsFactory.sol";
 
 import "./Signals.sol";
+
 /// @title SignalsFactory
 /// @notice Factory contract to create instances of the Signals contract
-
 contract SignalsFactory is ISignalsFactory {
     using SafeERC20 for IERC20;
     using Clones for address;
-
-    string public constant VERSION = "0.1.0";
 
     address public immutable implementation;
 
@@ -39,7 +35,7 @@ contract SignalsFactory is ISignalsFactory {
     event BoardCreated(address indexed board, address indexed owner);
 
     function version() external pure returns (string memory) {
-        return VERSION;
+        return "0.1.0";
     }
 
     /// @notice Creates a new Signals contract

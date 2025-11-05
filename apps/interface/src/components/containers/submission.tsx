@@ -5,47 +5,55 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
-import { useUnderlying } from '@/contexts/ContractContext'
-import { context } from '@/config/web3'
-import { createWalletClient, custom } from 'viem'
-import { readClient } from '@/config/web3'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
+import { useBoard } from '@/contexts/BoardContext'
 import { useAccount } from '@/hooks/useAccount'
+import { useWeb3 } from '@/contexts/Web3Provider'
+import { useNetwork } from '@/hooks/useNetwork'
 
 export const Submission = () => {
   const { address } = useAccount()
-  const { name, symbol, totalSupply, balance } = useUnderlying()
+  const {
+    underlyingName: name,
+    underlyingSymbol: symbol,
+    underlyingTotalSupply: totalSupply,
+    underlyingBalance: balance,
+  } = useBoard()
+  const { publicClient, walletClient } = useWeb3()
+  const { config } = useNetwork()
 
   const handleSubmission = async () => {
     if (!address) throw new Error('Address not available.')
+    if (!walletClient || !publicClient) {
+      throw new Error('Wallet not connected')
+    }
+    const signalsContract = config.contracts.SignalsProtocol
+    if (!signalsContract) {
+      console.warn('No Signals board configured for current network.')
+      return
+    }
 
     try {
       // Signer get nonce
-      const nonce = await readClient.getTransactionCount({
+      const nonce = await publicClient.getTransactionCount({
         address,
       })
 
-      const signer = createWalletClient({
-        chain: process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia,
-        // Injected provider from MetaMask
-        transport: custom(window.ethereum),
-      })
-
       // Use the viem client to send the transaction
-      const transactionHash = await signer.writeContract({
+      const { request } = await publicClient.simulateContract({
         account: address,
-        nonce,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
+        address: signalsContract.address,
+        abi: signalsContract.abi,
         functionName: 'proposeInitiative',
         args: ['Initiative 1', 'Description 1', []],
-        gas: 100_000n,
+        nonce,
       })
+
+      const transactionHash = await walletClient.writeContract(request)
 
       console.log('Transaction Hash:', transactionHash)
       console.log('Waiting for txn to be mined...')
 
-      const receipt = await readClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash: transactionHash,
         confirmations: 2,
         pollingInterval: 2000,

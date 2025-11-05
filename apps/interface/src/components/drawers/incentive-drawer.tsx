@@ -24,17 +24,19 @@ import { useWeb3 } from '@/contexts/Web3Provider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { usePrivy } from '@privy-io/react-auth'
-import { context } from '@/config/web3'
 import { features } from '@/config/features'
+import { useNetwork } from '@/hooks/useNetwork'
 
 interface Props {
   initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
-  const incentivesConfig = context.contracts.Incentives
+  const { config } = useNetwork()
+  const incentivesConfig = config.contracts.Incentives
+  const usdcConfig = config.contracts.USDC
 
-  if (!features.enableContributions || !incentivesConfig) {
+  if (!features.enableContributions || !incentivesConfig || !usdcConfig) {
     return null
   }
 
@@ -52,8 +54,8 @@ export function IncentiveDrawer({ initiative }: Props) {
     amount,
     actor: address,
     spender: incentivesConfig.address,
-    tokenAddress: context.contracts.USDC.address,
-    tokenDecimals: 6,
+    tokenAddress: usdcConfig.address,
+    tokenDecimals: usdcConfig.decimals ?? 6,
   })
 
   const resetFormState = () => {
@@ -94,7 +96,7 @@ export function IncentiveDrawer({ initiative }: Props) {
       const nonce = await publicClient.getTransactionCount({ address })
 
       // Define the token address and other required parameters
-      const tokenAddress = context.contracts.USDC.address // Replace with the selected token if dynamic
+      const tokenAddress = usdcConfig.address // Replace with the selected token if dynamic
       const expiresAt = 0
       const terms = 0
 

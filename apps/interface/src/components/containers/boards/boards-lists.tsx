@@ -1,0 +1,45 @@
+'use client'
+
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ListContainer } from '@/components/list-container'
+import { PageSection } from '@/components/page-section'
+import { useBoardsStore } from '@/stores/useBoardsStore'
+import { BoardCard } from './board-card'
+
+export const BoardsList = () => {
+  const boards = useBoardsStore((state) => state.boards)
+  const isFetchingBoards = useBoardsStore((state) => state.isFetching)
+
+  console.log(boards)
+
+  // Ensure boards is always an array before filtering
+  const _boardsSorted = boards.sort((a, b) => b.contractAddress.localeCompare(a.contractAddress))
+
+  if (isFetchingBoards) {
+    return <LoadingSpinner />
+  }
+
+  // If we have no boards, show empty state
+  if (boards.length === 0) {
+    return (
+      <ListContainer title="Boards">
+        <PageSection>
+          <div className="text-center py-8">
+            <h3 className="text-lg font-medium mb-2">No boards found</h3>
+            <p className="text-neutral-500 dark:text-neutral-400">
+              There are currently no active boards.
+            </p>
+          </div>
+        </PageSection>
+      </ListContainer>
+    )
+  }
+
+  return (
+    <ListContainer title="Boards">
+      {_boardsSorted.map((board) => (
+        <BoardCard key={board.contractAddress} board={board} />
+      ))}
+    </ListContainer>
+  )
+}

@@ -1,47 +1,29 @@
 'use client'
 
-import { readClient, context } from '@/config/web3'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { getContract } from 'viem'
-import { useUnderlying } from './ContractContext'
-import { useAccount } from '@/hooks/useAccount'
 
-export interface IBoard {
+import { useAccount } from '@/hooks/useAccount'
+import { useWeb3 } from './Web3Provider'
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useBoard } from './BoardContext'
+
+export interface BoardMetadata {
   name: string | null
   symbol: string | null
-  // TODO: Move this out of IBoard as its metadata
   initiativesCount: number | null
   proposalThreshold: number | null
-  // TODO: Move this out of IBoard as its related to the users balance
-  meetsThreshold: boolean
   acceptanceThreshold: number | null
+  meetsThreshold: boolean
   lockInterval: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
 }
 
-// TODO: Surface underlying token metadata
-interface IUnderlyingToken {
-  name: string | null
-  symbol: string | null
-  decimals: number | null
-  totalSupply: number | null
-}
-
-// TODO: Surface incentives metadata, related to the board
-interface IIncentives {
-  address: string
-  version: number | null
-  allocations: bigint[] | null
-  receivers: `0x${string}`[] | null
-}
-
-// Types for contract metadata
 type ISignalsContext = {
-  board: IBoard
-  underlyingToken?: IUnderlyingToken
-  incentives?: IIncentives
-  formatter: (value?: number | null) => number
+  board: BoardMetadata
+  formatter: (value?: number | null | undefined) => number
+  refresh: () => Promise<void>
 }
 
 // Default values for the context
@@ -61,99 +43,156 @@ interface Props {
 }
 
 export const SignalsProvider: React.FC<Props> = ({ children }) => {
-  const { address } = useAccount()
-  const { balance, formatter: underlyingFormatter } = useUnderlying()
+  const { address: walletAddress } = useAccount()
+  // Subscribe to only the specific config fields we need
+  const signalsContractAddress = useNetworkStore(
+    (state) => state.config.contracts.SignalsProtocol?.address,
+  )
+  const signalsContractAbi = useNetworkStore(
+    (state) => state.config.contracts.SignalsProtocol?.abi,
+  )
+  const { publicClient } = useWeb3()
+  const { formatter, boardAddress } = useBoard()
 
-  const [name, setName] = useState<string | null>(null)
-  const [symbol, setSymbol] = useState<string | null>(null)
-  const [initiativesCount, setInitiativesCount] = useState<number | null>(null)
-  const [proposalThreshold, setProposalThreshold] = useState<number | null>(null)
-  const [acceptanceThreshold, setAcceptanceThreshold] = useState<number | null>(null)
-  const [lockInterval, setLockInterval] = useState<number | null>(null)
-  const [decayCurveType, setDecayCurveType] = useState<number | null>(null)
-  const [decayCurveParameters, setDecayCurveParameters] = useState<number[] | null>(null)
-  const meetsThreshold = Boolean(balance && proposalThreshold && balance >= proposalThreshold)
+  // Board metadata state
+  const [board, setBoard] = useState<BoardMetadata>({
+    name: null,
+    symbol: null,
+    initiativesCount: null,
+    proposalThreshold: null,
+    acceptanceThreshold: null,
+    meetsThreshold: false,
+    lockInterval: null,
+    decayCurveType: null,
+    decayCurveParameters: null,
+  })
 
-  useEffect(() => {
-    const fetchContractMetadata = async () => {
-      if (!address) return
-
-      try {
-        const protocol = getContract({
-          address: context.contracts.SignalsProtocol.address,
-          abi: context.contracts.SignalsProtocol.abi,
-          client: readClient,
-        })
-
-        // Fetch contract data in parallel using Promise.all
-        const [
-          proposalThreshold,
-          acceptanceThreshold,
-          count,
-          lockInterval,
-          decayCurveType,
-          decayCurveParameters,
-          name,
-          symbol,
-        ] = await Promise.all([
-          protocol.read.proposalThreshold(),
-          protocol.read.acceptanceThreshold(),
-          protocol.read.initiativeCount(),
-          protocol.read.lockInterval(),
-          protocol.read.decayCurveType(),
-          protocol.read.decayCurveParameters([0n]),
-          protocol.read.name(),
-          protocol.read.symbol(),
-        ])
-
-        console.log('----- SIGNALS CONTEXT -----')
-        console.log('proposalThreshold', proposalThreshold)
-        console.log('acceptanceThreshold', acceptanceThreshold)
-        console.log('count', count)
-        console.log('lockInterval', lockInterval)
-        console.log('decayCurveType', decayCurveType)
-        console.log('decayCurveParameters', [decayCurveParameters])
-        console.log('name', name)
-        console.log('symbol', symbol)
-
-        // Update state with fetched metadata
-        setInitiativesCount(Number(count))
-        setProposalThreshold(Number(proposalThreshold))
-        setAcceptanceThreshold(Number(acceptanceThreshold))
-        setLockInterval(Number(lockInterval))
-        setDecayCurveType(Number(decayCurveType))
-        setName(name)
-        setSymbol(symbol)
-
-        // TODO: Fix this
-        // TODO: Fix this
-        // TODO: Fix this
-        setDecayCurveParameters([Number(decayCurveParameters) / 1e18])
-      } catch (error) {
-        console.error('Error fetching contract metadata:', error)
-      }
+  const fetchBoardMetadata = useCallback(async () => {
+    if (!publicClient || !signalsContractAddress || !signalsContractAbi) {
+      // If there is no configured board, reset to defaults
+      setBoard({
+        name: null,
+        symbol: null,
+        initiativesCount: null,
+        proposalThreshold: null,
+        acceptanceThreshold: null,
+        meetsThreshold: false,
+        lockInterval: null,
+        decayCurveType: null,
+        decayCurveParameters: null,
+      })
+      return
     }
 
-    // Fetch contract metadata when the address changes
-    fetchContractMetadata()
-  }, [address])
+    try {
+      const protocol = getContract({
+        address: signalsContractAddress,
+        abi: signalsContractAbi,
+        client: publicClient,
+      })
 
-  // Provide contract data to children
+      // Attempt to read thresholds with compatibility for older ABI variants.
+      let proposalThreshold: bigint | null = null
+      try {
+        // @ts-ignore
+        proposalThreshold = await protocol.read.proposalThreshold()
+      } catch {
+        try {
+          // @ts-ignore
+          proposalThreshold = await protocol.read.proposalCap()
+        } catch {
+          proposalThreshold = null
+        }
+      }
+
+      let acceptanceThreshold: bigint | null = null
+      try {
+        // @ts-ignore
+        acceptanceThreshold = await protocol.read.acceptanceThreshold()
+      } catch {
+        try {
+          // @ts-ignore
+          acceptanceThreshold = await protocol.read.getAcceptanceThreshold()
+        } catch {
+          acceptanceThreshold = null
+        }
+      }
+
+      // Fetch remaining metadata (best-effort)
+      const [
+        initiativesCount,
+        lockInterval,
+        decayCurveType,
+        decayCurveParametersRaw,
+        name,
+        symbol,
+      ] = await Promise.all([
+        // @ts-ignore
+        protocol.read
+          .initiativeCount?.()
+          .catch(() => null),
+        // @ts-ignore
+        protocol.read
+          .lockInterval?.()
+          .catch(() => null),
+        // @ts-ignore
+        protocol.read
+          .decayCurveType?.()
+          .catch(() => null),
+        // Some ABIs expect an index; use 0n as a safe default if required
+        // @ts-ignore
+        protocol.read
+          .decayCurveParameters?.([0n])
+          .catch(() => null),
+        // @ts-ignore
+        protocol.read
+          .name?.()
+          .catch(() => null),
+        // @ts-ignore
+        protocol.read
+          .symbol?.()
+          .catch(() => null),
+      ])
+
+      const pt = proposalThreshold ? Number(proposalThreshold) : null
+      const at = acceptanceThreshold ? Number(acceptanceThreshold) : null
+
+      // meetsThreshold uses raw units; formatter handles UI conversion
+      const meetsThreshold = pt != null && pt > 0 && walletAddress != null
+
+      setBoard({
+        name: name ? String(name) : null,
+        symbol: symbol ? String(symbol) : null,
+        initiativesCount: initiativesCount != null ? Number(initiativesCount) : null,
+        proposalThreshold: pt,
+        acceptanceThreshold: at,
+        meetsThreshold,
+        lockInterval: lockInterval != null ? Number(lockInterval) : null,
+        decayCurveType: decayCurveType != null ? Number(decayCurveType) : null,
+        decayCurveParameters:
+          decayCurveParametersRaw != null
+            ? Array.isArray(decayCurveParametersRaw)
+              ? decayCurveParametersRaw.map((x: bigint | number | string) => Number(x))
+              : [Number(decayCurveParametersRaw)]
+            : null,
+      })
+    } catch (error) {
+      console.error('Error fetching Signals board metadata:', error)
+      // Keep existing state to avoid UI flicker on transient errors
+    }
+  }, [publicClient, signalsContractAddress, signalsContractAbi, walletAddress])
+
+  // Refresh board metadata when board address changes
+  useEffect(() => {
+    void fetchBoardMetadata()
+  }, [fetchBoardMetadata, boardAddress])
+
   return (
     <SignalsContext.Provider
       value={{
-        formatter: underlyingFormatter,
-        board: {
-          name,
-          symbol,
-          initiativesCount,
-          proposalThreshold,
-          acceptanceThreshold,
-          meetsThreshold,
-          lockInterval,
-          decayCurveType,
-          decayCurveParameters,
-        },
+        board,
+        formatter,
+        refresh: fetchBoardMetadata,
       }}
     >
       {children}

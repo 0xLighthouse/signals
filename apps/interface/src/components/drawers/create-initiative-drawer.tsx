@@ -17,16 +17,16 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
+import { useBoard } from '@/contexts/BoardContext'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
-import { context } from '@/config/web3'
 import { Typography } from '../ui/typography'
+import { useNetwork } from '@/hooks/useNetwork'
 
 type AttachmentDraft = {
   uri: string
@@ -37,11 +37,19 @@ type AttachmentDraft = {
 const MAX_ATTACHMENTS = 5
 
 export function CreateInitiativeDrawer() {
-  const { balance, symbol, fetchContractMetadata } = useUnderlying()
+  const {
+    underlyingBalance: balance,
+    underlyingSymbol: symbol,
+    fetchUnderlyingMetadata: fetchContractMetadata,
+    boardAddress,
+  } = useBoard()
+  const { formatter, board } = useSignals()
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const { formatter, board } = useSignals()
+  const { config } = useNetwork()
+  const signalsContract = config.contracts.SignalsProtocol
+  const underlyingContract = config.contracts.BoardUnderlyingToken
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number>(0)
@@ -55,9 +63,9 @@ export function CreateInitiativeDrawer() {
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: context.contracts.SignalsProtocol.address,
-    tokenAddress: context.contracts.BoardUnderlyingToken.address,
-    tokenDecimals: context.contracts.BoardUnderlyingToken.decimals,
+    spender: signalsContract?.address,
+    tokenAddress: underlyingContract?.address,
+    tokenDecimals: underlyingContract?.decimals ?? 18,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -101,7 +109,9 @@ export function CreateInitiativeDrawer() {
 
   const handleAttachmentChange = (index: number, field: keyof AttachmentDraft, value: string) => {
     setAttachments((prev) =>
-      prev.map((attachment, idx) => (idx === index ? { ...attachment, [field]: value } : attachment)),
+      prev.map((attachment, idx) =>
+        idx === index ? { ...attachment, [field]: value } : attachment,
+      ),
     )
   }
 
@@ -124,7 +134,8 @@ export function CreateInitiativeDrawer() {
 
     const hasInvalidAttachment = trimmedAttachments.some(
       (attachment) =>
-        attachment.uri.length === 0 && (attachment.mimeType.length > 0 || attachment.description.length > 0),
+        attachment.uri.length === 0 &&
+        (attachment.mimeType.length > 0 || attachment.description.length > 0),
     )
 
     if (hasInvalidAttachment) {
@@ -139,6 +150,10 @@ export function CreateInitiativeDrawer() {
         toast('Wallet not connected')
         return
       }
+      if (!signalsContract) {
+        toast('Network is missing Signals configuration. Please try again later.')
+        return
+      }
 
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
@@ -148,7 +163,7 @@ export function CreateInitiativeDrawer() {
         ? [
             title,
             description,
-            parseUnits(String(amount), 18),
+            parseUnits(String(amount), underlyingContract?.decimals ?? 18),
             duration,
             preparedAttachments,
           ]
@@ -156,8 +171,8 @@ export function CreateInitiativeDrawer() {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
+        address: signalsContract.address,
+        abi: signalsContract.abi,
         functionName,
         nonce,
         args,
@@ -174,7 +189,9 @@ export function CreateInitiativeDrawer() {
       setIsDrawerOpen(false)
       resetFormState()
       toast('Initiative submitted!')
-      fetchInitiatives()
+      if (boardAddress) {
+        fetchInitiatives(boardAddress)
+      }
       fetchContractMetadata()
     } catch (error) {
       console.error(error)
@@ -266,7 +283,8 @@ export function CreateInitiativeDrawer() {
                 <div className="my-4">
                   <Label>Attachments</Label>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Optional supporting links or files. Provide a URI along with an optional MIME type and description.
+                    Optional supporting links or files. Provide a URI along with an optional MIME
+                    type and description.
                   </p>
                   {attachments.map((attachment, index) => (
                     <div key={`attachment-${index}`} className="mb-4 rounded-md border p-4">
@@ -298,7 +316,9 @@ export function CreateInitiativeDrawer() {
                             id={`attachment-mime-${index}`}
                             placeholder="application/pdf"
                             value={attachment.mimeType}
-                            onChange={(e) => handleAttachmentChange(index, 'mimeType', e.target.value)}
+                            onChange={(e) =>
+                              handleAttachmentChange(index, 'mimeType', e.target.value)
+                            }
                           />
                         </div>
                         <div>
@@ -307,7 +327,9 @@ export function CreateInitiativeDrawer() {
                             id={`attachment-description-${index}`}
                             placeholder="Short description"
                             value={attachment.description}
-                            onChange={(e) => handleAttachmentChange(index, 'description', e.target.value)}
+                            onChange={(e) =>
+                              handleAttachmentChange(index, 'description', e.target.value)
+                            }
                           />
                         </div>
                       </div>

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import "forge-std/console.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -91,7 +89,6 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
             revert IBounties.Bounties_NotAuthorized();
         }
 
-        console.log("Initiative accepted", _initiativeId);
         // Pay out relevant parties
         _distributeBounties(_initiativeId);
     }
@@ -105,7 +102,6 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         // TODO(@arnold): [MEDIUM] Flag bounties for this initiative as refundable
         //                When an initiative expires, mark associated bounties as refundable
         //                so contributors can reclaim their tokens via a claim function
-        console.log("Initiative expired", _initiativeId);
     }
 
     /**

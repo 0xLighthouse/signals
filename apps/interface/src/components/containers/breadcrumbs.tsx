@@ -1,6 +1,6 @@
 'use client'
 
-import { useUnderlying } from '@/contexts/ContractContext'
+import { useBoard } from '@/contexts/BoardContext'
 import React, { useState } from 'react'
 import {
   Breadcrumb,
@@ -12,27 +12,20 @@ import {
 import { Slash } from 'lucide-react'
 
 import { ArbitrumIcon } from '../icons/arbitrum'
-import { DeploySignalsDrawer } from '../drawers/deploy-signals-drawer'
-import { BoardSelector } from './board-selector'
+import { BaseIcon } from '../icons/base'
+import { FoundryIcon } from '../icons/foundry'
 
 export const Breadcrumbs: React.FC = () => {
-  const { name, symbol } = useUnderlying()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { underlyingName: name, underlyingSymbol: symbol, network } = useBoard()
+  const [isDeployDrawerOpen, setIsDeployDrawerOpen] = useState(false)
 
-  const handleBoardSelect = (boardAddress: string) => {
-    // TODO: Implement switching to a different board
-    console.log('Selected board:', boardAddress)
-  }
+  const Icon = network === 'local' ? FoundryIcon : network === 'base' ? BaseIcon : ArbitrumIcon
 
   return (
     <Breadcrumb className="flex items-center">
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink>
-            <div className="bg-neutral-900 rounded-full p-[2px]">
-              <ArbitrumIcon />
-            </div>
-          </BreadcrumbLink>
+          <p>Network</p>
         </BreadcrumbItem>
         {name && symbol && (
           <div className="hidden sm:inline-flex items-center gap-1.5">
@@ -47,19 +40,7 @@ export const Breadcrumbs: React.FC = () => {
         <BreadcrumbSeparator>
           <Slash />
         </BreadcrumbSeparator>
-        <BreadcrumbItem>
-          <BoardSelector
-            onDeployBoard={() => setIsDialogOpen(true)}
-            onBoardSelect={handleBoardSelect}
-          />
-        </BreadcrumbItem>
       </BreadcrumbList>
-
-      <DeploySignalsDrawer
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        hideTrigger={true}
-      />
     </Breadcrumb>
   )
 }

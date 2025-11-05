@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
+import { useNetwork } from '@/hooks/useNetwork'
 
 type ClaimStep = 'email' | 'code' | 'review' | 'completed'
 
@@ -52,10 +53,9 @@ const evaluateEligibility = (profile: EdgeCityProfile) => {
     return { eligible: false, reason: 'Primary email is not validated' }
   }
 
-  if (edgeCityConfig.requiredPopups.length > 0) {
-    const hasMatch = profile.popups?.some((popup) =>
-      edgeCityConfig.requiredPopups.includes(String(popup.id)),
-    )
+  if (Array.isArray(edgeCityConfig.minCities) && edgeCityConfig.minCities.length > 0) {
+    const minCitiesArray = edgeCityConfig.minCities as unknown as readonly unknown[]
+    const hasMatch = profile.popups?.some((popup) => minCitiesArray.includes(String(popup.id)))
     if (!hasMatch) {
       return {
         eligible: false,
@@ -74,26 +74,23 @@ const buildClaimArgs = (
   participantId: bigint,
   allowance?: EdgeCityAllowance,
 ) => {
-  if (edgeCityConfig.claimFunction === 'claim') {
-    if (!allowance) {
-      throw new Error('Claim allowance missing')
-    }
-    return [
-      address,
-      participantId,
-      BigInt(allowance.amount),
-      BigInt(allowance.deadline),
-      allowance.signature,
-    ] as const
+  if (!allowance) {
+    throw new Error('Claim allowance missing')
   }
-
-  return [address] as const
+  return [
+    address,
+    participantId,
+    BigInt(allowance.amount),
+    BigInt(allowance.deadline),
+    allowance.signature,
+  ] as const
 }
 
 export const EdgeCityClaimDialog = () => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
   const { walletClient } = useWeb3()
+  const { config } = useNetwork()
 
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<ClaimState>(initialState)
@@ -122,13 +119,10 @@ export const EdgeCityClaimDialog = () => {
     }
   }, [open])
 
-  useEffect(() => {
-    if (edgeCityConfig.enabled && !edgeCityConfig.token) {
-      console.warn('Edge City feature enabled but NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS is not configured')
-    }
-  }, [])
+  // Get the underlying token from the board's configuration
+  const underlyingToken = config.contracts.BoardUnderlyingToken?.address
 
-  if (!edgeCityConfig.enabled || !edgeCityConfig.token) {
+  if (!edgeCityConfig.enabled || !underlyingToken) {
     return null
   }
 
@@ -142,7 +136,7 @@ export const EdgeCityClaimDialog = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ address: wallet }),
+          body: JSON.stringify({ address: wallet, tokenAddress: underlyingToken }),
         })
 
         if (!response.ok) {
@@ -160,7 +154,7 @@ export const EdgeCityClaimDialog = () => {
         setState((prev) => ({ ...prev, isLoadingAllowance: false }))
       }
     },
-    [],
+    [underlyingToken],
   )
 
   const handleRequestCode = async () => {
@@ -225,8 +219,8 @@ export const EdgeCityClaimDialog = () => {
         step: 'review',
       }))
 
-      // If the signed-allowance flow is enabled and a wallet is connected, trigger allowance fetch immediately
-      if (edgeCityConfig.claimFunction === 'claim' && address) {
+      // If a wallet is connected, trigger allowance fetch immediately
+      if (address) {
         void fetchAllowance(payload.accessToken, address as `0x${string}`)
       }
     } catch (error) {
@@ -258,7 +252,7 @@ export const EdgeCityClaimDialog = () => {
       return
     }
 
-    if (edgeCityConfig.claimFunction === 'claim' && !allowance) {
+    if (!allowance) {
       toast('No claim allowance available for this participant')
       return
     }
@@ -268,10 +262,16 @@ export const EdgeCityClaimDialog = () => {
       const participantId = BigInt(profile.id)
       const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
+      if (!underlyingToken) {
+        toast('Token address not available')
+        setState((prev) => ({ ...prev, isClaiming: false }))
+        return
+      }
+
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
         account: address,
-        address: edgeCityConfig.token,
+        address: underlyingToken as `0x${string}`,
         abi: edgeCityConfig.abi,
         functionName: edgeCityConfig.claimFunction,
         args: claimArgs as unknown as readonly unknown[],
@@ -304,7 +304,6 @@ export const EdgeCityClaimDialog = () => {
 
   useEffect(() => {
     if (step !== 'review') return
-    if (edgeCityConfig.claimFunction !== 'claim') return
     if (!address || !accessToken) return
     if (allowance && allowance.to.toLowerCase() === address.toLowerCase()) return
     if (isLoadingAllowance) return
@@ -410,30 +409,29 @@ export const EdgeCityClaimDialog = () => {
             ) : (
               <p className="text-sm text-muted-foreground">Connect a wallet to continue.</p>
             )}
-            {edgeCityConfig.claimFunction === 'claim' ? (
-              address ? (
-                allowance ? (
-                  <p className="text-sm text-muted-foreground">
-                    Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
-                    {allowance.amount} wei, expires {new Date(allowance.deadline * 1000).toLocaleString()}.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {isLoadingAllowance ? 'Loading claim allowance…' : 'Fetching claim allowance for this wallet'}
-                  </p>
-                )
+            {address ? (
+              allowance ? (
+                <p className="text-sm text-muted-foreground">
+                  Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
+                  {allowance.amount} wei, expires{' '}
+                  {new Date(allowance.deadline * 1000).toLocaleString()}.
+                </p>
               ) : (
-                <p className="text-sm text-muted-foreground">Connect a wallet to fetch your claim allowance.</p>
+                <p className="text-sm text-muted-foreground">
+                  {isLoadingAllowance
+                    ? 'Loading claim allowance…'
+                    : 'Fetching claim allowance for this wallet'}
+                </p>
               )
-            ) : null}
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Connect a wallet to fetch your claim allowance.
+              </p>
+            )}
             <Button
               className="w-full"
               onClick={handleClaim}
-              disabled={
-                !eligibility.eligible ||
-                !address ||
-                (edgeCityConfig.claimFunction === 'claim' && (!allowance || isLoadingAllowance))
-              }
+              disabled={!eligibility.eligible || !address || !allowance || isLoadingAllowance}
               isLoading={isClaiming}
             >
               Claim tokens

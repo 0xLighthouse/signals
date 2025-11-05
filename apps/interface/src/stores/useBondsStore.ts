@@ -1,6 +1,6 @@
 import type { InitiativeLock, Lock, LockResponse } from 'indexers/src/api/types'
-import { context, INDEXER_ENDPOINT } from '@/config/web3'
 import { create } from 'zustand'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 interface BondsState {
   initiativeLocks: InitiativeLock[]
@@ -15,11 +15,8 @@ interface BondsState {
   fetchInitiativeLocks: (initiativeId: string) => Promise<void>
   fetchBondsOwned: (userAddress: string) => Promise<void>
   fetchBondsAvailable: (hookAddress: string) => Promise<void>
+  reset: () => void
 }
-
-// TODO: These values can be dynamic now..
-const CHAIN_ID = 421614
-const BOARD = context.contracts.SignalsProtocol.address
 
 export const useBondsStore = create<BondsState>((set, get) => ({
   initiativeLocks: [],
@@ -42,7 +39,19 @@ export const useBondsStore = create<BondsState>((set, get) => ({
     try {
       set({ isFetchingInitiativeLocks: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/locks/${CHAIN_ID}/${BOARD}/${initiativeId}`)
+      const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
+      const boardAddress = contracts.SignalsProtocol?.address
+      if (!boardAddress) {
+        console.warn('No Signals board configured for current network.')
+        set({
+          initiativeLocks: [],
+          isFetchingInitiativeLocks: false,
+          isInitiativeLocksInitialized: true,
+        })
+        return
+      }
+
+      const resp = await fetch(`${indexerEndpoint}/locks/${chain.id}/${boardAddress}/${initiativeId}`)
       const { data } = await resp.json()
 
       if (Array.isArray(data)) {
@@ -76,7 +85,19 @@ export const useBondsStore = create<BondsState>((set, get) => ({
     try {
       set({ isFetchingBondsOwned: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/bonds/${CHAIN_ID}/${BOARD}/${userAddress}`)
+      const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
+      const boardAddress = contracts.SignalsProtocol?.address
+      if (!boardAddress) {
+        console.warn('No Signals board configured for current network.')
+        set({
+          bondsOwned: [],
+          isFetchingBondsOwned: false,
+          isBondsOwnedInitialized: true,
+        })
+        return
+      }
+
+      const resp = await fetch(`${indexerEndpoint}/bonds/${chain.id}/${boardAddress}/${userAddress}`)
       const { data }: LockResponse = await resp.json()
 
       if (Array.isArray(data)) {
@@ -110,7 +131,19 @@ export const useBondsStore = create<BondsState>((set, get) => ({
     try {
       set({ isBondsAvailableFetching: true })
 
-      const resp = await fetch(`${INDEXER_ENDPOINT}/bonds/${CHAIN_ID}/${BOARD}/${hookAddress}`)
+      const { chain, indexerEndpoint, contracts } = useNetworkStore.getState().config
+      const boardAddress = contracts.SignalsProtocol?.address
+      if (!boardAddress) {
+        console.warn('No Signals board configured for current network.')
+        set({
+          bondsAvailable: [],
+          isBondsAvailableFetching: false,
+          isBondsAvailableInitalized: true,
+        })
+        return
+      }
+
+      const resp = await fetch(`${indexerEndpoint}/bonds/${chain.id}/${boardAddress}/${hookAddress}`)
       const { data }: LockResponse = await resp.json()
 
       if (Array.isArray(data)) {
@@ -136,4 +169,16 @@ export const useBondsStore = create<BondsState>((set, get) => ({
       })
     }
   },
+  reset: () =>
+    set({
+      initiativeLocks: [],
+      isInitiativeLocksInitialized: false,
+      isFetchingInitiativeLocks: false,
+      bondsOwned: [],
+      isFetchingBondsOwned: false,
+      isBondsOwnedInitialized: false,
+      bondsAvailable: [],
+      isBondsAvailableFetching: false,
+      isBondsAvailableInitalized: false,
+    }),
 }))

@@ -10,19 +10,24 @@ const app = new Hono()
 
 app.use('/sql/*', client({ db, schema }))
 
-// app.use('/', graphql({ db, schema }))
-// app.use('/graphql', graphql({ db, schema }))
+/**
+ * @returns List initiatives for a given chainId and board address
+ * @example http://localhost:42069/initiatives/31337/0xBoardAddress
+ */
+app.get('/initiatives/:chainId/:address', getInitiatives)
 
-// /**
-//  * @returns List initiatives for a given chainId and address
-//  * @example http://localhost:42069/initiatives/421614/0x7E00a6dfF783649fB3017151652448647600D47E
-//  */
-// app.get('/initiatives/:chainId/:address', getInitiatives)
-// app.get('/locks/:chainId/:address/:initiativeId', getInitiativeLocks)
+/**
+ * @returns List locks for a given chainId, board address, and initiativeId
+ */
+app.get('/locks/:chainId/:address/:initiativeId', getInitiativeLocks)
 
-// /**
-//  * @returns List bonds for a given chainId and address
-//  */
-// app.get('/bonds/:chainId/:address/:supporter', getLocks)
+/**
+ * @returns List bonds owned by supporter for a given chainId and board address
+ */
+app.get('/bonds/:chainId/:address/:supporter', getLocks)
+
+// Optionally expose GraphQL if needed by clients
+app.use('/', graphql({ db, schema }))
+app.use('/graphql', graphql({ db, schema }))
 
 export default app

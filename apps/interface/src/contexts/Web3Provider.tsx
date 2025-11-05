@@ -1,8 +1,8 @@
 'use client'
 
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
-import { arbitrumSepolia, hardhat } from 'viem/chains'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { base, anvil } from 'viem/chains'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   createPublicClient,
   http,
@@ -12,12 +12,18 @@ import {
   custom,
 } from 'viem'
 
-const chain = process.env.NEXT_PUBLIC_SIGNALS_ENV === 'dev' ? hardhat : arbitrumSepolia
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useBoardsStore } from '@/stores/useBoardsStore'
+
+// Lazy initialization to avoid module-level store access
+const getInitialNetwork = () => useNetworkStore.getState().config
+
+const initialNetwork = getInitialNetwork()
 
 const Web3Context = createContext<IWeb3Context>({
   publicClient: createPublicClient({
-    chain,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
+    chain: initialNetwork.chain,
+    transport: http(initialNetwork.rpcUrl),
   }),
   walletClient: null,
   isInitialized: false,
@@ -32,16 +38,24 @@ interface IWeb3Context {
 }
 
 // Separate internal component that uses Privy hooks
-const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
+const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
   const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
+  // Subscribe to only the fields we need to avoid unnecessary re-renders
+  const chain = useNetworkStore((state) => state.config.chain)
+  const rpcUrl = useNetworkStore((state) => state.config.rpcUrl)
+  const chainId = useNetworkStore((state) => state.config.chain.id)
 
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(process.env.NEXT_PUBLIC_RPC_URL!),
-  })
+  const publicClient = useMemo(
+    () =>
+      createPublicClient({
+        chain,
+        transport: http(rpcUrl),
+      }),
+    [chain.id, rpcUrl],
+  )
 
   useEffect(() => {
     if (privyReady && walletReady) {
@@ -82,26 +96,54 @@ const Web3ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [isInitialized, wallets])
+  }, [isInitialized, wallets, chain])
+
+  useEffect(() => {
+    if (!walletClient || !isInitialized) return
+
+    walletClient.switchChain?.({ id: chainId }).catch((error) => {
+      console.warn('Wallet chain switch failed or unsupported', error)
+    })
+  }, [walletClient, chainId, isInitialized])
+
+  // Initialize boards on network change
+  useEffect(() => {
+    if (!isInitialized) return
+    console.log('Fetching boards for network', chainId)
+    void useBoardsStore.getState().fetchBoards()
+  }, [isInitialized, chainId])
 
   return (
     <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
-      {children}
+      {children as ReactNode}
     </Web3Context.Provider>
   )
 }
 
-// Main provider that sets up Privy
-export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+/**
+ * Core Web3 provider that sets up Privy
+ * @param children - The child components to wrap
+ * @returns
+ */
+export const Web3Provider = ({ children }: { children: ReactNode }) => {
+  const chain = useNetworkStore((state) => state.config.chain)
+
+  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
+  if (!privyAppId) {
+    throw new Error('NEXT_PUBLIC_PRIVY_APP_ID environment variable is required')
+  }
+
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID as string}
+      appId={privyAppId}
       config={{
         appearance: {
           theme: 'dark',
         },
-        supportedChains: [chain],
-        defaultChain: chain,
+        supportedChains: [anvil, base],
+        defaultChain: {
+          ...chain,
+        },
       }}
     >
       <Web3ContextProvider>{children}</Web3ContextProvider>

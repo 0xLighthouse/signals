@@ -1,10 +1,12 @@
 'use client'
 
-import { context, readClient } from '@/config/web3'
 import { features } from '@/config/features'
 import { useAccount } from '@/hooks/useAccount'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
+
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useWeb3 } from './Web3Provider'
 
 interface ContextValues {
   address: string
@@ -19,9 +21,14 @@ interface Props {
 
 //Provider
 export const IncentivesProvider: React.FC<Props> = ({ children }) => {
-  const incentivesConfig = context.contracts.Incentives
+  const { publicClient } = useWeb3()
+  // Subscribe to only the specific config fields we need
+  const incentivesAddress = useNetworkStore(
+    (state) => state.config.contracts.Incentives?.address,
+  )
+  const incentivesAbi = useNetworkStore((state) => state.config.contracts.Incentives?.abi)
 
-  if (!features.enableContributions || !incentivesConfig) {
+  if (!features.enableContributions || !incentivesAddress || !incentivesAbi) {
     return <>{children}</>
   }
 
@@ -33,13 +40,13 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
   useEffect(() => {
     const fetchMetadata = async () => {
-      if (!address) return
+      if (!address || !publicClient) return
 
       try {
         const incentives = getContract({
-          address: incentivesConfig.address,
-          abi: incentivesConfig.abi,
-          client: readClient,
+          address: incentivesAddress,
+          abi: incentivesAbi,
+          client: publicClient,
         })
 
         const version = await incentives.read.version()
@@ -56,13 +63,13 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
 
     // Fetch contract metadata when the address changes
     fetchMetadata()
-  }, [address])
+  }, [address, incentivesAddress, incentivesAbi, publicClient])
 
   // Provide contract data to children
   return (
     <IncentivesContext.Provider
       value={{
-        address: incentivesConfig.address,
+        address: incentivesAddress,
         version,
         allocations,
         receivers,

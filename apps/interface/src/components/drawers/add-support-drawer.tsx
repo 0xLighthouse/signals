@@ -1,7 +1,6 @@
 import { ChevronUp, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { context } from '@/config/web3'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -15,8 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
-import { useUnderlying } from '@/contexts/ContractContext'
 import { useSignals } from '@/contexts/SignalsContext'
+import { useBoard } from '@/contexts/BoardContext'
 import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
@@ -27,13 +26,24 @@ import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
 import { useBondsStore } from '@/stores/useBondsStore'
+import { useNetwork } from '@/hooks/useNetwork'
+import { parseUnits } from 'viem'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
-  const { balance, symbol, fetchContractMetadata } = useUnderlying()
+  const {
+    underlyingBalance: balance,
+    underlyingSymbol: symbol,
+    fetchUnderlyingMetadata: fetchContractMetadata,
+    boardAddress,
+  } = useBoard()
   const { formatter, board } = useSignals()
+  const { config } = useNetwork()
+  const signalsContract = config.contracts.SignalsProtocol
+  const underlyingContract = config.contracts.BoardUnderlyingToken
+  const tokenDecimals = underlyingContract?.decimals ?? 18
 
   const [amountValue, setAmount] = useState('0')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -63,9 +73,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   } = useApproveTokens({
     amount,
     actor: address,
-    spender: context.contracts.SignalsProtocol.address,
-    tokenAddress: context.contracts.BoardUnderlyingToken.address,
-    tokenDecimals: 18,
+    spender: signalsContract?.address,
+    tokenAddress: underlyingContract?.address,
+    tokenDecimals,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -102,23 +112,30 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     if (!amount) {
       return toast('Please enter an amount to lock')
     }
+    if (!walletClient) {
+      toast('Wallet not connected')
+      return
+    }
+    if (!signalsContract || !underlyingContract) {
+      toast('Network is missing Signals configuration. Please try again later.')
+      return
+    }
 
     try {
-      if (!walletClient) {
-        toast('Wallet not connected')
-        return
-      }
-
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: context.contracts.SignalsProtocol.address,
-        abi: context.contracts.SignalsProtocol.abi,
+        address: signalsContract.address,
+        abi: signalsContract.abi,
         functionName: 'supportInitiative',
         nonce,
-        args: [BigInt(initiative.initiativeId), BigInt(amount * 1e18), BigInt(duration)],
+        args: [
+          BigInt(initiative.initiativeId),
+          parseUnits(String(amount), tokenDecimals),
+          BigInt(duration),
+        ],
       })
 
       console.log('Request:', request)
@@ -133,7 +150,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       setIsDrawerOpen(false)
       resetFormState()
       toast('Upvote submitted!')
-      fetchInitiatives()
+      if (boardAddress) {
+        fetchInitiatives(boardAddress)
+      }
       fetchContractMetadata()
     } catch (err) {
       console.error(err)

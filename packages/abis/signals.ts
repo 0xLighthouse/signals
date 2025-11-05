@@ -73,13 +73,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'closeBoard',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     name: 'decayCurveParameters',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -191,13 +184,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'supporter', internalType: 'address', type: 'address' }],
-    name: 'getLockCountForSupporter',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
     name: 'getLockData',
     outputs: [
@@ -218,8 +204,21 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'supporter', internalType: 'address', type: 'address' }],
-    name: 'getLocksForSupporter',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'owner', internalType: 'address', type: 'address' },
+    ],
+    name: 'getLocksByOwnerForInitiative',
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'supporter', internalType: 'address', type: 'address' },
+    ],
+    name: 'getLocksBySupporterForInitiative',
     outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
@@ -248,15 +247,6 @@ export const signalsAbi = [
         ],
       },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getPositionsForInitiative',
-    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -291,15 +281,8 @@ export const signalsAbi = [
     inputs: [
       { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'getSupporters',
+    name: 'getSupportersOfInitiative',
     outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getTitle',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
     stateMutability: 'view',
   },
   {
@@ -313,6 +296,7 @@ export const signalsAbi = [
         type: 'tuple',
         components: [
           { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+          { name: 'supporter', internalType: 'address', type: 'address' },
           { name: 'tokenAmount', internalType: 'uint256', type: 'uint256' },
           { name: 'lockDuration', internalType: 'uint256', type: 'uint256' },
           { name: 'created', internalType: 'uint256', type: 'uint256' },
@@ -320,13 +304,6 @@ export const signalsAbi = [
         ],
       },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getUnderlyingToken',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -497,16 +474,6 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'initiativeLocks',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'owner', internalType: 'address', type: 'address' },
       { name: 'operator', internalType: 'address', type: 'address' },
     ],
@@ -526,23 +493,6 @@ export const signalsAbi = [
     inputs: [],
     name: 'isBoardOpen',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'address', type: 'address' },
-    ],
-    name: 'isSupporter',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'listPositions',
-    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -570,6 +520,15 @@ export const signalsAbi = [
     inputs: [],
     name: 'lockInterval',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'locksForInitiative',
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -764,6 +723,15 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
+      { name: '_boardClosedAt', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setBoardClosedAt',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: '_boardOpenAt', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setBoardOpenAt',
@@ -830,16 +798,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'supporterLocks',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'supporterRequirements',
     outputs: [
@@ -852,16 +810,6 @@ export const signalsAbi = [
       { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
       { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'supporters',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -883,13 +831,6 @@ export const signalsAbi = [
     inputs: [],
     name: 'title',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'token',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -919,23 +860,7 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'totalInitiatives',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'totalSupporters',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },

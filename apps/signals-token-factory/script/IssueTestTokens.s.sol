@@ -37,7 +37,7 @@ contract IssueTestTokens is SharedScriptBase {
             new IExperimentToken.BatchMintRequest[](tokenRecipients.length);
 
         for (uint256 i = 0; i < tokenRecipients.length; i++) {
-            (, address recipientAddress) = _loadPrivateKey(network, tokenRecipients[i]);
+            address recipientAddress = _resolveAddress(network, tokenRecipients[i]);
             uint256 amount = TEST_TOKEN_AMOUNT * (i + 1);
             totalAmount += amount;
             mints[i] = IExperimentToken.BatchMintRequest({to: recipientAddress, amount: amount});

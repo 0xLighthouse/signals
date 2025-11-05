@@ -26,7 +26,6 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <FAQs />
-          <FaucetActions vertical />
           <Footer />
         </SidebarGroup>
       </SidebarContent>

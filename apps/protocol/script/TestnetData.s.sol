@@ -35,6 +35,9 @@ contract SeedInitiativesScript is SharedScriptBase {
         }
 
         // This script is intended for local testing where faucet mechanics are available.
+        // @notice For creating new Initiatives: On testnets please use the UI
+        // @notice For creating new Initiatives: On testnets please use the UI
+        // @notice For creating new Initiatives: On testnets please use the UI
         if (keccak256(abi.encodePacked(network)) != keccak256(abi.encodePacked("anvil"))) {
             revert("SeedInitiativesScript only supports the anvil network");
         }

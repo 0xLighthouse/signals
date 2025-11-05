@@ -1,38 +1,32 @@
 import { Abi, erc20Abi } from 'viem'
-import { ERC20WithFaucetABI } from './web3'
 
 const EDGE_CITY_ENV = process.env.NEXT_PUBLIC_EDGE_CITY?.toLowerCase() === 'true'
 
-const EDGE_CITY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS
-const EDGE_CITY_CLAIM_FUNCTION = process.env.NEXT_PUBLIC_EDGE_CITY_CLAIM_FUNCTION ?? 'claim'
-const EDGE_CITY_REQUIRED_POPUPS =
-  process.env.NEXT_PUBLIC_EDGE_CITY_REQUIRED_POPUPS?.split(',').map((id) => id.trim()).filter(Boolean) ?? []
+console.log('EDGE_CITY_ENV', EDGE_CITY_ENV)
 
-const EDGE_CITY_CUSTOM_ABI: Abi =
-  EDGE_CITY_CLAIM_FUNCTION === 'claim'
-    ? [
-        ...erc20Abi,
-        {
-          name: 'claim',
-          type: 'function',
-          stateMutability: 'nonpayable',
-          inputs: [
-            { name: 'to', type: 'address', internalType: 'address' },
-            { name: 'participantId', type: 'uint256', internalType: 'uint256' },
-            { name: 'amount', type: 'uint256', internalType: 'uint256' },
-            { name: 'deadline', type: 'uint256', internalType: 'uint256' },
-            { name: 'signature', type: 'bytes', internalType: 'bytes' },
-          ],
-          outputs: [],
-        },
-      ]
-    : (ERC20WithFaucetABI as Abi)
+
+const EDGE_CITY_CUSTOM_ABI: Abi = [
+  ...erc20Abi,
+  {
+    name: 'claim',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address', internalType: 'address' },
+      { name: 'participantId', type: 'uint256', internalType: 'uint256' },
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
+      { name: 'deadline', type: 'uint256', internalType: 'uint256' },
+      { name: 'signature', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [],
+  },
+]
 
 export const edgeCityConfig = {
   enabled: EDGE_CITY_ENV,
-  token: EDGE_CITY_TOKEN_ADDRESS as `0x${string}` | undefined,
-  claimFunction: EDGE_CITY_CLAIM_FUNCTION,
-  requiredPopups: EDGE_CITY_REQUIRED_POPUPS,
+  claimFunction: 'claim' as const,
+  minCities: 1,
+  maxCities: 3,
   abi: EDGE_CITY_CUSTOM_ABI,
 } as const
 

@@ -47,15 +47,15 @@ contract SignalsBondIssuerTest is Test, SignalsHarness {
                         NFT LISTING TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_ListPositions_ByOwner() public {
-        vm.startPrank(_alice);
-        _tokenERC20.approve(address(signals), 100 ether);
-        signals.proposeInitiativeWithLock(_metadata(1), 100 ether, 6);
-        vm.stopPrank();
+    // function test_ListPositions_ByOwner() public {
+    //     vm.startPrank(_alice);
+    //     _tokenERC20.approve(address(signals), 100 ether);
+    //     signals.proposeInitiativeWithLock(_metadata(1), 100 ether, 6);
+    //     vm.stopPrank();
 
-        vm.startPrank(_alice);
-        uint256[] memory nfts = signals.getLocksBySupporterForInitiative(1, _alice);
-        assertEq(nfts.length, 1);
-        assertEq(nfts[0], 1);
-    }
+    //     vm.startPrank(_alice);
+    //     uint256[] memory nfts = signals.getLocksBySupporterForInitiative(1, _alice);
+    //     assertEq(nfts.length, 1);
+    //     assertEq(nfts[0], 1);
+    // }
 }

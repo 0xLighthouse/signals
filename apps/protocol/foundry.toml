@@ -4,12 +4,11 @@ out = "out"
 libs = ["lib"]
 solc_version = '0.8.26'
 evm_version = "cancun"
-optimizer_runs = 1
+optimizer = true
+optimizer_runs = 20000
 via_ir = true
 ffi = false
-remappings = [
-    '@shared/=../../packages/shared-solidity/src/'
-]
+remappings = ['@shared/=../../packages/shared-solidity/src/']
 
 [fmt]
 line_length = 100

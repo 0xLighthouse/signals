@@ -8,14 +8,14 @@ import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
-
-import { TokenProvider } from '@/contexts/ContractContext'
+import { BoardProvider } from '@/contexts/BoardContext'
 import { SignalsProvider } from '@/contexts/SignalsContext'
 import { IncentivesProvider } from '@/contexts/IncentivesContext'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/containers/app-sidebar'
 import { features } from '@/config/features'
 import { ReactNode } from 'react'
+import { Debug } from '@/components/debug'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -36,12 +36,12 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
   // Set the tailwind theme from stored cookie preference
   const theme = getThemeCookie()
 
-  const sidebarContent: ReactNode = (
+  const sidebarContent = (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       {children}
@@ -53,16 +53,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
-            <TokenProvider>
-              <SignalsProvider>
-                {features.enableContributions ? (
-                  <IncentivesProvider>{sidebarContent}</IncentivesProvider>
-                ) : (
-                  sidebarContent
-                )}
-              </SignalsProvider>
-              <Toaster />
-            </TokenProvider>
+            <BoardProvider>
+              <SignalsProvider>{sidebarContent}</SignalsProvider>
+            </BoardProvider>
+            <Toaster />
           </Web3Provider>
         </ThemeProvider>
       </body>

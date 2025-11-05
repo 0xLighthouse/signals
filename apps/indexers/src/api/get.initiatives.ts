@@ -1,20 +1,24 @@
 import { db, publicClients } from 'ponder:api'
-import { and, eq } from 'drizzle-orm'
-import schema from 'ponder:schema'
 import { Context } from 'hono'
 import { SignalsABI } from '../../../../packages/abis'
 import { transform } from '../utils/transform'
 
 export const getInitiatives = async (c: Context) => {
-  const chainId = c.req.param('chainId')
+  const chainId = Number(c.req.param('chainId'))
   const address = c.req.param('address').toLowerCase() as `0x${string}`
 
+  console.log('----- chainId ---', chainId)
+  console.log('----- address ---', address)
+
   const board = await db.query.Board.findFirst({
-    where: and(
-      eq(schema.Board.chainId, Number(chainId)),
-      eq(schema.Board.contractAddress, address),
+    where: (board, { eq, and }) => and(
+      eq(board.chainId, chainId),
+      eq(board.contractAddress, address),
     ),
   })
+
+
+
 
   if (!board) {
     return c.json(
@@ -25,25 +29,26 @@ export const getInitiatives = async (c: Context) => {
     )
   }
 
+  const client = (publicClients as Record<string, any>)[chainId]
+  if (!client) {
+    return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
+  }
+
   const records = await db.query.Initiative.findMany({
-    where: and(
-      eq(schema.Initiative.chainId, Number(chainId)),
-      eq(schema.Initiative.contractAddress, address),
+    where: (initiative, { eq, and }) => and(
+      eq(initiative.chainId, Number(chainId)),
+      eq(initiative.contractAddress, address),
     ),
   })
 
   const initiatives = await Promise.all(
     records.map(async (initiative) => {
-      // const supporters = await db.query.Weight.findMany({
-      //   where: eq(schema.Weight.initiativeId, initiative.initiativeId),
-      // })
-
-      const initiativeState = await publicClients['421614'].readContract({
+      const initiativeState = (await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getInitiative',
         args: [BigInt(initiative.initiativeId)],
-      }) as {
+      })) as {
         state: number
         attachments: { uri: string; mimeType: string; description: string }[]
       }
@@ -64,14 +69,14 @@ export const getInitiatives = async (c: Context) => {
         }
       })()
 
-      const weight = await publicClients['421614'].readContract({
+      const weight = await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getWeight',
         args: [BigInt(initiative.initiativeId)],
       })
 
-      const supporters = await publicClients['421614'].readContract({
+      const supporters = await client.readContract({
         address: initiative.contractAddress,
         abi: SignalsABI,
         functionName: 'getSupporters',
@@ -79,7 +84,7 @@ export const getInitiatives = async (c: Context) => {
       })
 
       const _incentives = await db.query.Incentive.findMany({
-        where: eq(schema.Incentive.initiativeId, BigInt(initiative.initiativeId)),
+        where: (incentiveRow, { eq }) => eq(incentiveRow.initiativeId, BigInt(initiative.initiativeId)),
       })
 
       let rewards = 0n

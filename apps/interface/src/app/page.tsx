@@ -1,12 +1,7 @@
-import { PageLayout } from '@/components/containers/page-layout'
-import { StatsBar } from '@/components/containers/stats-bar'
-import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
+import { redirect } from 'next/navigation'
+import { getDefaultNetwork, getNetworkUrl } from '@/lib/routing'
 
 export default function Home() {
-  return (
-    <PageLayout>
-      <StatsBar />
-      <InitiativesList />
-    </PageLayout>
-  )
+  const defaultNetwork = getDefaultNetwork()
+  redirect(getNetworkUrl(defaultNetwork))
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {SignalsHarness} from "../utils/SignalsHarness.sol";
-import {SignalsIncentivizer} from "../../src/Incentivizer.sol";
+import {IncentivesPoolHarness} from "../utils/IncentivesPoolHarness.sol";
 
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {IIncentivizer} from "../../src/interfaces/IIncentivizer.sol";
@@ -13,20 +13,40 @@ import {IncentivesPool} from "../../src/IncentivesPool.sol";
 import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 
 /**
- * @title SignalsIncentivizerTest
- * @notice Tests for SignalsIncentivizer internal functions
+ * @title IncentivesPoolTest
+ * @notice Tests for IncentivesPool internal functions
  * @dev Tests bucket reduction and multiplier calculation logic
  */
-contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
+contract IncentivesPoolTest is Test {
+    IncentivesPoolHarness public incentivesPool;
+    MockERC20 public rewardToken;
+    address public testBoard;
     uint256 constant TEST_INITIATIVE_ID = 1;
+    uint256 constant INCENTIVE_RESOLUTION = 24;
+    IIncentivizer.IncentivesConfig public testConfig;
 
     function setUp() public {
+        // Deploy reward token
+        rewardToken = new MockERC20("Reward", "RWD", 18);
+
+        // Deploy IncentivesPoolHarness
+        incentivesPool = new IncentivesPoolHarness(address(rewardToken));
+
+        // Use this test contract as the board
+        testBoard = address(this);
+
+        // Approve test board
+        rewardToken.mint(address(this), 1000000e18);
+        rewardToken.approve(address(incentivesPool), 1000000e18);
+        incentivesPool.addFundsToPool(1000000e18);
+        incentivesPool.approveBoard(testBoard, 100000e18, 10000e18);
+
         // Initialize incentives config for testing
         uint256[] memory params = new uint256[](3);
         params[0] = 1 * 1e18;
         params[1] = 2 * 1e18;
         params[2] = 3 * 1e18;
-        _incentivesConfig = IIncentivizer.IncentivesConfig({
+        testConfig = IIncentivizer.IncentivesConfig({
             incentiveType: IIncentivizer.IncentiveType.Linear,
             incentiveParametersWAD: params
         });
@@ -40,16 +60,21 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
     function test_ReduceIncentiveBuckets() public {
         // Setup: Create buckets with known values
         // [ 100 ][ 200 ][ 300 ][ 400 ][ 500 ][ 600 ]...
-        IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets =
-            _incentiveBucketsByInitiative[TEST_INITIATIVE_ID];
+        IncentivesPool.IncentiveBucket[INCENTIVE_RESOLUTION] memory buckets;
 
         for (uint256 i = 0; i < INCENTIVE_RESOLUTION; i++) {
             buckets[i].bucketTotalIncentiveCredits = uint128((i + 1) * 100);
             buckets[i].endTime = uint128(1000 + i * 100); // 1000, 1100, 1200...
         }
 
+        // Set the buckets in the pool
+        incentivesPool.setBuckets(testBoard, TEST_INITIATIVE_ID, buckets);
+
         // Act: Reduce buckets
-        _reduceIncentiveBuckets(buckets);
+        incentivesPool.exposed_reduceIncentiveBuckets(testBoard, TEST_INITIATIVE_ID);
+
+        // Get the reduced buckets
+        buckets = incentivesPool.getBuckets(testBoard, TEST_INITIATIVE_ID);
 
         uint256[] memory expectedBucketTotalIncentiveCredits = new uint256[](24);
         expectedBucketTotalIncentiveCredits[0] = 100 + 200;
@@ -92,7 +117,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
     /// @notice Test _getBucketMultipliers with numberOfBuckets = 1
     function test_GetBucketMultipliers_SingleBucket() public {
         // Act
-        uint256[] memory multipliers = _getBucketMultipliers(1);
+        uint256[] memory multipliers = incentivesPool.exposed_getBucketMultipliers(testConfig, 1);
 
         // Assert: Should return [1e18] (100%)
         assertEq(multipliers.length, 1);
@@ -103,7 +128,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
     function test_GetBucketMultipliers_TwoBuckets() public {
         // Config is [1, 2, 3], with 2 buckets should use first and last: [1, 3]
         // Act
-        uint256[] memory multipliers = _getBucketMultipliers(2);
+        uint256[] memory multipliers = incentivesPool.exposed_getBucketMultipliers(testConfig, 2);
 
         // Assert: Should use outermost config values
         assertEq(multipliers.length, 2);
@@ -117,7 +142,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         params[1] = 2 * 1e18;
         params[2] = 3 * 1e18;
 
-        uint256[] memory interpolated = _scaleIncentiveConfigParameters(params, 6);
+        uint256[] memory interpolated = incentivesPool.exposed_scaleIncentiveConfigParameters(params, 6);
 
         // Assert
         assertEq(interpolated.length, 6);
@@ -132,7 +157,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         params[1] = 2 * 1e18;
         params[2] = 1 * 1e18;
 
-        interpolated = _scaleIncentiveConfigParameters(params, 6);
+        interpolated = incentivesPool.exposed_scaleIncentiveConfigParameters(params, 6);
         assertEq(interpolated.length, 6);
         assertEq(interpolated[0], 30 * 1e17); //3.0
         assertEq(interpolated[1], 26 * 1e17); //2.6
@@ -149,7 +174,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         longParams[4] = 5 * 1e18;
         longParams[5] = 6 * 1e18;
         longParams[6] = 7 * 1e18;
-        interpolated = _scaleIncentiveConfigParameters(longParams, 3);
+        interpolated = incentivesPool.exposed_scaleIncentiveConfigParameters(longParams, 3);
         assertEq(interpolated.length, 3);
         assertApproxEqAbs(interpolated[0], 1 * 1e18, 10); //1.0
         assertApproxEqAbs(interpolated[1], 4 * 1e18, 10); //4.0
@@ -159,7 +184,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         valleyParams[0] = 3 * 1e18;
         valleyParams[1] = 1 * 1e18;
         valleyParams[2] = 2 * 1e18;
-        interpolated = _scaleIncentiveConfigParameters(valleyParams, 6);
+        interpolated = incentivesPool.exposed_scaleIncentiveConfigParameters(valleyParams, 6);
         assertEq(interpolated.length, 6);
         assertApproxEqAbs(interpolated[0], 30 * 1e17, 10); //3.0
         assertApproxEqAbs(interpolated[1], 22 * 1e17, 10); //1.0
@@ -174,7 +199,13 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         valleyParams[0] = 3 * 1e18;
         valleyParams[1] = 1 * 1e18;
         valleyParams[2] = 2 * 1e18;
-        uint256[] memory multipliers = _getBucketMultipliers(6);
+
+        IIncentivizer.IncentivesConfig memory valleyConfig = IIncentivizer.IncentivesConfig({
+            incentiveType: IIncentivizer.IncentiveType.Linear,
+            incentiveParametersWAD: valleyParams
+        });
+
+        uint256[] memory multipliers = incentivesPool.exposed_getBucketMultipliers(valleyConfig, 6);
         assertEq(multipliers.length, 6);
         for (uint256 i = 0; i < multipliers.length; i++) {
             console.log("multiplier", i, multipliers[i]);
@@ -192,7 +223,7 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         bucketCounts[4] = 12;
 
         for (uint256 i = 0; i < bucketCounts.length; i++) {
-            uint256[] memory multipliers = _getBucketMultipliers(bucketCounts[i]);
+            uint256[] memory multipliers = incentivesPool.exposed_getBucketMultipliers(testConfig, bucketCounts[i]);
 
             uint256 sum = 0;
             for (uint256 j = 0; j < multipliers.length; j++) {
@@ -211,10 +242,14 @@ contract SignalsIncentivizerTest is Test, SignalsIncentivizer {
         equalParams[0] = 5;
         equalParams[1] = 5;
         equalParams[2] = 5;
-        _incentivesConfig.incentiveParametersWAD = equalParams;
+
+        IIncentivizer.IncentivesConfig memory equalConfig = IIncentivizer.IncentivesConfig({
+            incentiveType: IIncentivizer.IncentiveType.Linear,
+            incentiveParametersWAD: equalParams
+        });
 
         // Act
-        uint256[] memory multipliers = _getBucketMultipliers(3);
+        uint256[] memory multipliers = incentivesPool.exposed_getBucketMultipliers(equalConfig, 3);
 
         // Assert: All multipliers should be equal (~1e18 / 3 each)
         assertEq(multipliers.length, 3);

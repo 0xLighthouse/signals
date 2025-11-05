@@ -61,8 +61,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
             ISignals.BoardConfig({
                 version: _factory.version(),
                 boardMetadata: ISignals.Metadata({
-                    title: "",
-                    body: "",
+                    title: "Edge Experiment Signals Board",
+                    body: "Default board deployed via script for the Edge Experiment environment.",
                     attachments: new ISignals.Attachment[](0)
                 }),
                 owner: deployerAddress,

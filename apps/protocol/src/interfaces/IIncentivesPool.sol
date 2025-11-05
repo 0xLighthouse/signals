@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import {IIncentivizer} from "./IIncentivizer.sol";
+
 /**
  * @title IIncentivesPool
  * @notice Interface for the IncentivesPool contract that manages board-wide participation rewards
@@ -100,4 +102,36 @@ interface IIncentivesPool {
      * @return Total reward per initiative for the board
      */
     function totalRewardPerInitiative(address board) external view returns (uint256);
+
+    /**
+     * @notice Record how much a user participated so we can calculate incentives later
+     * @dev Called by approved boards to track lock contributions
+     *
+     * @param initiativeId The ID of the initiative
+     * @param lockId The ID of the lock
+     * @param credit The amount of contributions added to the initiative
+     * @param config The incentives configuration for the board
+     */
+    function addIncentivesCreditForLock(
+        uint256 initiativeId,
+        uint256 lockId,
+        uint128 credit,
+        IIncentivizer.IncentivesConfig calldata config
+    ) external;
+
+    /**
+     * @notice Claim incentives for a set of locks
+     * @dev Called by approved boards to distribute rewards
+     *
+     * @param initiativeId The ID of the initiative
+     * @param lockIds The IDs of the locks
+     * @param payee The address to pay the incentives to
+     * @param config The incentives configuration for the board
+     */
+    function claimIncentivesForLocks(
+        uint256 initiativeId,
+        uint256[] memory lockIds,
+        address payee,
+        IIncentivizer.IncentivesConfig calldata config
+    ) external;
 }

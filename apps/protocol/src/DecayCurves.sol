@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/console.sol";
-
 import {SignalsConstants} from "./utils/Constants.sol";
 
 library DecayCurves {
