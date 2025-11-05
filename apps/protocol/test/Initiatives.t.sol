@@ -83,9 +83,9 @@ contract InitiativesTest is Test, SignalsHarness {
         assertEq(address(initiative.proposer), _bob);
 
         // Retrieve the initiative metadata and check the details
-        ISignals.Metadata memory retrievedMetadata = signals.getInitiativeMetadata(1);
-        assertEq(retrievedMetadata.title, "Initiative 1");
-        assertEq(retrievedMetadata.body, "Description 1");
+        // ISignals.Metadata memory retrievedMetadata = signals.getInitiativeMetadata(1);
+        // assertEq(retrievedMetadata.title, "Initiative 1");
+        // assertEq(retrievedMetadata.body, "Description 1");
 
         // The weight should be equal to the amount of tokens locked
         uint256 weight = signals.getWeightAt(1, block.timestamp);
@@ -120,13 +120,13 @@ contract InitiativesTest is Test, SignalsHarness {
         signals.proposeInitiative(metadata);
         vm.stopPrank();
 
-        ISignals.Metadata memory retrievedMetadata = signals.getInitiativeMetadata(1);
-        assertEq(retrievedMetadata.attachments.length, 2);
-        assertEq(retrievedMetadata.attachments[0].uri, attachments[0].uri);
-        assertEq(retrievedMetadata.attachments[0].mimeType, attachments[0].mimeType);
-        assertEq(retrievedMetadata.attachments[0].description, attachments[0].description);
-        assertEq(retrievedMetadata.attachments[1].uri, attachments[1].uri);
-        assertEq(retrievedMetadata.attachments[1].mimeType, attachments[1].mimeType);
-        assertEq(retrievedMetadata.attachments[1].description, attachments[1].description);
+        // ISignals.Metadata memory retrievedMetadata = signals.getInitiativeMetadata(1);
+        // assertEq(retrievedMetadata.attachments.length, 2);
+        // assertEq(retrievedMetadata.attachments[0].uri, attachments[0].uri);
+        // assertEq(retrievedMetadata.attachments[0].mimeType, attachments[0].mimeType);
+        // assertEq(retrievedMetadata.attachments[0].description, attachments[0].description);
+        // assertEq(retrievedMetadata.attachments[1].uri, attachments[1].uri);
+        // assertEq(retrievedMetadata.attachments[1].mimeType, attachments[1].mimeType);
+        // assertEq(retrievedMetadata.attachments[1].description, attachments[1].description);
     }
 }

@@ -10,11 +10,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import {SignalsAuthorizer} from "./Authorizer.sol";
-import {SignalsIncentivizer} from "./Incentivizer.sol";
 import "solady/src/utils/ReentrancyGuard.sol";
 
 import {ISignalsLock} from "./interfaces/ISignalsLock.sol";
 import {ISignals} from "./interfaces/ISignals.sol";
+import {IIncentivizer} from "./interfaces/IIncentivizer.sol";
+import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 import "./DecayCurves.sol";
 import {SignalsConstants} from "./utils/Constants.sol";
 
@@ -32,7 +33,6 @@ import {SignalsConstants} from "./utils/Constants.sol";
 contract Signals is
     ISignals,
     SignalsAuthorizer,
-    SignalsIncentivizer,
     ERC721Enumerable,
     Ownable,
     ReentrancyGuard,
@@ -83,6 +83,12 @@ contract Signals is
 
     /// @notice If board was cancelled
     bool public boardCancelled;
+
+    /// @notice (Optional) Reference to the IncentivesPool contract (can be set before board opens)
+    IIncentivesPool public incentivesPool;
+
+    /// @notice Configuration for board-wide incentive rewards (internal storage)
+    IIncentivizer.IncentivesConfig internal _incentivesConfig;
 
     /// @notice Maximum number of metadata attachments allowed per initiative
     uint256 internal constant MAX_ATTACHMENTS = 5;
@@ -292,8 +298,12 @@ contract Signals is
         // (Function will silently skip if we aren't using incentives)
         // NOTE: For now we are basing credit on weight at lock time. If we want to do something else,
         // this is where to change it.
-        uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
-        _addIncentivesCreditForLock(initiativeId, lockCount, uint128(weight));
+        if (address(incentivesPool) != address(0)) {
+            uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
+            incentivesPool.addIncentivesCreditForLock(
+                initiativeId, lockCount, uint128(weight), _incentivesConfig
+            );
+        }
 
         emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, lockCount);
 
@@ -445,58 +455,63 @@ contract Signals is
             revert ISignals.Signals_TokenTransferFailed();
         }
 
-        _claimIncentivesForLocks(initiativeId, lockIds, msg.sender);
-    }
-
-    /**
-     * @notice Set the board title
-     * @param _title New title for the board
-     */
-    function setTitle(string memory _title) external onlyOwner {
-        if (bytes(_title).length == 0) {
-            revert ISignals.Signals_InvalidArguments();
-        }
-        _boardMetadata.title = _title;
-    }
-
-    function setBody(string memory _body) external onlyOwner {
-        if (bytes(_body).length == 0) {
-            revert ISignals.Signals_InvalidArguments();
-        }
-        _boardMetadata.body = _body;
-    }
-
-    /**
-     * @notice Add, remove, or change an attachment for the board
-     * @param _index Index of the attachment to set
-     * @param _attachment Attachment to set
-     */
-    function setAttachment(uint256 _index, Attachment calldata _attachment) external onlyOwner {
-        if (_index >= MAX_ATTACHMENTS || _index > _boardMetadata.attachments.length) {
-            revert ISignals.Signals_InvalidArguments();
-        } else if (bytes(_attachment.uri).length == 0) {
-            if (_index < _boardMetadata.attachments.length) {
-                // Remove the indicated index
-                _boardMetadata.attachments[_index] =
-                    _boardMetadata.attachments[_boardMetadata.attachments.length - 1];
-                _boardMetadata.attachments.pop();
-            } else {
-                revert ISignals.Signals_InvalidArguments();
-            }
-        } else if (_index == _boardMetadata.attachments.length) {
-            _boardMetadata.attachments.push(_attachment);
-        } else {
-            _boardMetadata.attachments[_index] = _attachment;
+        // Claim incentives if pool is configured
+        if (address(incentivesPool) != address(0)) {
+            incentivesPool.claimIncentivesForLocks(
+                initiativeId, lockIds, msg.sender, _incentivesConfig
+            );
         }
     }
 
-    function getBoardMetadata() external view returns (Metadata memory) {
-        return _boardMetadata;
-    }
+    // /**
+    //  * @notice Set the board title
+    //  * @param _title New title for the board
+    //  */
+    // function setTitle(string memory _title) external onlyOwner {
+    //     if (bytes(_title).length == 0) {
+    //         revert ISignals.Signals_InvalidArguments();
+    //     }
+    //     _boardMetadata.title = _title;
+    // }
 
-    function getInitiativeMetadata(uint256 initiativeId) external view returns (Metadata memory) {
-        return _initiativeMetadata[initiativeId];
-    }
+    // function setBody(string memory _body) external onlyOwner {
+    //     if (bytes(_body).length == 0) {
+    //         revert ISignals.Signals_InvalidArguments();
+    //     }
+    //     _boardMetadata.body = _body;
+    // }
+
+    // /**
+    //  * @notice Add, remove, or change an attachment for the board
+    //  * @param _index Index of the attachment to set
+    //  * @param _attachment Attachment to set
+    //  */
+    // function setAttachment(uint256 _index, Attachment calldata _attachment) external onlyOwner {
+    //     if (_index >= MAX_ATTACHMENTS || _index > _boardMetadata.attachments.length) {
+    //         revert ISignals.Signals_InvalidArguments();
+    //     } else if (bytes(_attachment.uri).length == 0) {
+    //         if (_index < _boardMetadata.attachments.length) {
+    //             // Remove the indicated index
+    //             _boardMetadata.attachments[_index] =
+    //                 _boardMetadata.attachments[_boardMetadata.attachments.length - 1];
+    //             _boardMetadata.attachments.pop();
+    //         } else {
+    //             revert ISignals.Signals_InvalidArguments();
+    //         }
+    //     } else if (_index == _boardMetadata.attachments.length) {
+    //         _boardMetadata.attachments.push(_attachment);
+    //     } else {
+    //         _boardMetadata.attachments[_index] = _attachment;
+    //     }
+    // }
+
+    // function getBoardMetadata() external view returns (Metadata memory) {
+    //     return _boardMetadata;
+    // }
+
+    // function getInitiativeMetadata(uint256 initiativeId) external view returns (Metadata memory) {
+    //     return _initiativeMetadata[initiativeId];
+    // }
 
     /// @inheritdoc ISignals
     function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
@@ -516,12 +531,33 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function setIncentivesPool(address incentivesPool_, IncentivesConfig calldata incentivesConfig_)
-        external
-        onlyOwner
-    {
+    function setIncentivesPool(
+        address incentivesPool_,
+        IIncentivizer.IncentivesConfig calldata incentivesConfig_
+    ) external onlyOwner {
         if (isBoardOpen()) revert ISignals.Signals_IncorrectBoardState();
-        _setIncentivesPool(incentivesPool_, incentivesConfig_);
+
+        if (address(incentivesPool_) == address(0)) {
+            revert ISignals.Signals_InvalidArguments();
+        }
+        if (address(incentivesPool) != address(0)) {
+            revert ISignals.Signals_IncentivesPoolAlreadySet();
+        }
+
+        if (!IIncentivesPool(incentivesPool_).isBoardApproved(address(this))) {
+            revert ISignals.Signals_IncentivesPoolNotApproved();
+        }
+        incentivesPool = IIncentivesPool(incentivesPool_);
+
+        if (incentivesConfig_.incentiveType == IIncentivizer.IncentiveType.Linear) {
+            if (
+                incentivesConfig_.incentiveParametersWAD.length < 2
+                    || incentivesConfig_.incentiveParametersWAD.length > 24
+            ) {
+                revert ISignals.Signals_InvalidArguments();
+            }
+        }
+        _incentivesConfig = incentivesConfig_;
     }
 
     function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria)
@@ -723,74 +759,74 @@ contract Signals is
         return _locksForInitiative[initiativeId];
     }
 
-    /// @inheritdoc ISignals
-    function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
-        public
-        view
-        returns (uint256[] memory)
-    {
-        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
+    // /// @inheritdoc ISignals
+    // function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
+    //     public
+    //     view
+    //     returns (uint256[] memory)
+    // {
+    //     uint256[] memory tokenIds = _locksForInitiative[initiativeId];
 
-        // First pass: count matching locks
-        uint256 count = 0;
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            TokenLock memory lock = _locks[tokenIds[i]];
-            if (lock.supporter == supporter && !lock.withdrawn) {
-                count++;
-            }
-        }
+    //     // First pass: count matching locks
+    //     uint256 count = 0;
+    //     for (uint256 i = 0; i < tokenIds.length; i++) {
+    //         TokenLock memory lock = _locks[tokenIds[i]];
+    //         if (lock.supporter == supporter && !lock.withdrawn) {
+    //             count++;
+    //         }
+    //     }
 
-        // Allocate array with exact size
-        uint256[] memory locks = new uint256[](count);
+    //     // Allocate array with exact size
+    //     uint256[] memory locks = new uint256[](count);
 
-        // Second pass: populate the array
-        uint256 index = 0;
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            TokenLock memory lock = _locks[tokenIds[i]];
-            if (lock.supporter == supporter && !lock.withdrawn) {
-                locks[index] = tokenIds[i];
-                index++;
-            }
-        }
+    //     // Second pass: populate the array
+    //     uint256 index = 0;
+    //     for (uint256 i = 0; i < tokenIds.length; i++) {
+    //         TokenLock memory lock = _locks[tokenIds[i]];
+    //         if (lock.supporter == supporter && !lock.withdrawn) {
+    //             locks[index] = tokenIds[i];
+    //             index++;
+    //         }
+    //     }
 
-        return locks;
-    }
+    //     return locks;
+    // }
 
-    function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
-        public
-        view
-        returns (uint256[] memory)
-    {
-        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
+    // function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
+    //     public
+    //     view
+    //     returns (uint256[] memory)
+    // {
+    //     uint256[] memory tokenIds = _locksForInitiative[initiativeId];
 
-        // First pass: count matching locks
-        uint256 count = 0;
-        for (uint256 i = 0; i < tokenIds.length;) {
-            if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
-                count++;
-            }
-            unchecked {
-                ++i;
-            }
-        }
+    //     // First pass: count matching locks
+    //     uint256 count = 0;
+    //     for (uint256 i = 0; i < tokenIds.length;) {
+    //         if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
+    //             count++;
+    //         }
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
 
-        // Allocate array with exact size
-        uint256[] memory locks = new uint256[](count);
+    //     // Allocate array with exact size
+    //     uint256[] memory locks = new uint256[](count);
 
-        // Second pass: populate the array
-        uint256 index = 0;
-        for (uint256 i = 0; i < tokenIds.length;) {
-            if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
-                locks[index] = tokenIds[i];
-                index++;
-            }
-            unchecked {
-                ++i;
-            }
-        }
+    //     // Second pass: populate the array
+    //     uint256 index = 0;
+    //     for (uint256 i = 0; i < tokenIds.length;) {
+    //         if (ownerOf(tokenIds[i]) == owner && !_locks[tokenIds[i]].withdrawn) {
+    //             locks[index] = tokenIds[i];
+    //             index++;
+    //         }
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
 
-        return locks;
-    }
+    //     return locks;
+    // }
 
     /// @inheritdoc ISignalsLock
     function getLockData(uint256 tokenId) external view returns (ISignalsLock.LockData memory) {
@@ -835,69 +871,69 @@ contract Signals is
         return _initiatives[initiativeId];
     }
 
-    /// @inheritdoc ISignals
-    function getSupportersOfInitiative(uint256 initiativeId)
-        external
-        view
-        initiativeMustExist(initiativeId)
-        returns (address[] memory)
-    {
-        uint256[] memory tokenIds = _locksForInitiative[initiativeId];
+    //
+    // function getSupportersOfInitiative(uint256 initiativeId)
+    //     external
+    //     view
+    //     initiativeMustExist(initiativeId)
+    //     returns (address[] memory)
+    // {
+    //     uint256[] memory tokenIds = _locksForInitiative[initiativeId];
 
-        // First pass: count unique supporters
-        uint256 uniqueCount = 0;
-        for (uint256 i = 0; i < tokenIds.length;) {
-            address supporter = _locks[tokenIds[i]].supporter;
-            // Check if we've seen this supporter earlier in the array
-            bool isUnique = true;
-            for (uint256 j = 0; j < i;) {
-                if (_locks[tokenIds[j]].supporter == supporter) {
-                    isUnique = false;
-                    break;
-                }
-                unchecked {
-                    ++j;
-                }
-            }
-            if (isUnique) {
-                unchecked {
-                    ++uniqueCount;
-                }
-            }
-            unchecked {
-                ++i;
-            }
-        }
+    //     // First pass: count unique supporters
+    //     uint256 uniqueCount = 0;
+    //     for (uint256 i = 0; i < tokenIds.length;) {
+    //         address supporter = _locks[tokenIds[i]].supporter;
+    //         // Check if we've seen this supporter earlier in the array
+    //         bool isUnique = true;
+    //         for (uint256 j = 0; j < i;) {
+    //             if (_locks[tokenIds[j]].supporter == supporter) {
+    //                 isUnique = false;
+    //                 break;
+    //             }
+    //             unchecked {
+    //                 ++j;
+    //             }
+    //         }
+    //         if (isUnique) {
+    //             unchecked {
+    //                 ++uniqueCount;
+    //             }
+    //         }
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
 
-        // Second pass: allocate array with exact size and populate
-        address[] memory supporters = new address[](uniqueCount);
-        uint256 index = 0;
-        for (uint256 i = 0; i < tokenIds.length;) {
-            address supporter = _locks[tokenIds[i]].supporter;
-            // Check if we've already added this supporter
-            bool alreadyAdded = false;
-            for (uint256 j = 0; j < index;) {
-                if (supporters[j] == supporter) {
-                    alreadyAdded = true;
-                    break;
-                }
-                unchecked {
-                    ++j;
-                }
-            }
-            if (!alreadyAdded) {
-                supporters[index] = supporter;
-                unchecked {
-                    ++index;
-                }
-            }
-            unchecked {
-                ++i;
-            }
-        }
+    //     // Second pass: allocate array with exact size and populate
+    //     address[] memory supporters = new address[](uniqueCount);
+    //     uint256 index = 0;
+    //     for (uint256 i = 0; i < tokenIds.length;) {
+    //         address supporter = _locks[tokenIds[i]].supporter;
+    //         // Check if we've already added this supporter
+    //         bool alreadyAdded = false;
+    //         for (uint256 j = 0; j < index;) {
+    //             if (supporters[j] == supporter) {
+    //                 alreadyAdded = true;
+    //                 break;
+    //             }
+    //             unchecked {
+    //                 ++j;
+    //             }
+    //         }
+    //         if (!alreadyAdded) {
+    //             supporters[index] = supporter;
+    //             unchecked {
+    //                 ++index;
+    //             }
+    //         }
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
 
-        return supporters;
-    }
+    //     return supporters;
+    // }
 
     /// @inheritdoc ISignals
     function getWeight(uint256 initiativeId)
