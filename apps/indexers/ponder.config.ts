@@ -7,7 +7,7 @@ import {
   ExperimentTokenABI,
   ExperimentTokenFactoryABI,
 } from '../../packages/abis'
-import { anvil } from 'viem/chains'
+import { anvil, base, baseSepolia } from 'viem/chains'
 
 // Note: This should hot-reload when the file is changed
 
@@ -18,33 +18,44 @@ const DEPLOYMENTS = {
     ExperimentTokenFactory:
       'apps/signals-token-factory/broadcast/DeployTokenFactory.s.sol/31337/run-latest.json',
   },
+  baseSepolia: {
+    SignalsFactory:
+      'apps/protocol/broadcast/DeploySignalsFactory.s.sol/84532/run-latest.json',
+    ExperimentTokenFactory:
+      'apps/signals-token-factory/broadcast/DeployTokenFactory.s.sol/84532/run-latest.json',
+  },
 }
 
 const latestSignalsFactory = resolveDeployment(
   'SignalsFactory',
-  DEPLOYMENTS.anvil.SignalsFactory,
+  DEPLOYMENTS.baseSepolia.SignalsFactory,
 )
 const latestExperimentTokenFactory = resolveDeployment(
   'ExperimentTokenFactory',
-  DEPLOYMENTS.anvil.ExperimentTokenFactory,
+  DEPLOYMENTS.baseSepolia.ExperimentTokenFactory,
 )
 
 // https://ponder.sh/docs/advanced/foundry
 export default createConfig({
   chains: {
-    anvil: {
-      id: anvil.id,
-      rpc: anvil.rpcUrls.default.http[0],
-      // === RPS OPTIMIZATION SETTINGS ===
-      // Increase polling interval (default is 1000ms)
-      pollingInterval: 1_000,
-      disableCache: true,
+    // anvil: {
+    //   id: anvil.id,
+    //   rpc: anvil.rpcUrls.default.http[0],
+    //   // === RPS OPTIMIZATION SETTINGS ===
+    //   // Increase polling interval (default is 1000ms)
+    //   pollingInterval: 1_000,
+    //   disableCache: true,
+    // },
+    baseSepolia: {
+      id: baseSepolia.id,
+      rpc: process.env.PONDER_RPC_URL_84532,
+      pollingInterval: 5_000,
     },
   },
   contracts: {
     // Track the factory itself to receive TokenDeployed events
     ExperimentTokenFactory: {
-      chain: 'anvil',
+      chain: 'baseSepolia',
       abi: ExperimentTokenFactoryABI,
       address: latestExperimentTokenFactory.address,
       startBlock: latestExperimentTokenFactory.startBlock,
@@ -52,7 +63,7 @@ export default createConfig({
 
     // Dynamically track all ExperimentToken instances created by the factory
     ExperimentToken: {
-      chain: 'anvil',
+      chain: 'baseSepolia',
       abi: ExperimentTokenABI,
       address: factory({
         address: latestExperimentTokenFactory.address,
@@ -65,7 +76,7 @@ export default createConfig({
     },
 
     SignalsBoard: {
-      chain: 'anvil',
+      chain: 'baseSepolia',
       abi: SignalsABI,
       address: factory({
         address: latestSignalsFactory.address,
@@ -80,7 +91,7 @@ export default createConfig({
 
     SignalsFactory: {
       abi: SignalsFactoryABI,
-      chain: 'anvil',
+      chain: 'baseSepolia',
       address: latestSignalsFactory.address,
       startBlock: latestSignalsFactory.startBlock,
     },

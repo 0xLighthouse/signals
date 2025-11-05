@@ -39,14 +39,34 @@ abstract contract SharedScriptBase is Script {
         for (uint256 i = 0; i < strBytes.length; i++) {
             bytes1 char = strBytes[i];
             if (char == 0x2d) {
-                result[i] = 0x5f; // '-'
+                result[i] = 0x5f; // '-' -> '_'
+            } else if (char == 0x2e) {
+                result[i] = 0x5f; // '.' -> '_'
             } else if (char >= 0x61 && char <= 0x7a) {
-                result[i] = bytes1(uint8(char) - 32);
+                result[i] = bytes1(uint8(char) - 32); // lowercase -> uppercase
             } else {
                 result[i] = char;
             }
         }
         return string(result);
+    }
+
+    /**
+     * @notice Resolves a semantic name (e.g., ENS name) to an Ethereum address
+     * @param network The network to resolve the address for
+     * @param semanticName The semantic name to resolve (e.g., "1a35e1.eth")
+     * @return resolvedAddress The resolved Ethereum address
+     * @dev Reads from environment variable: {NETWORK}_ADDRESS_{SEMANTIC_NAME} where semantic name is uppercased with dots converted to underscores
+     *      Example: network="base-sepolia", semanticName="1a35e1.eth" -> "BASE_SEPOLIA_ADDRESS_1A35E1_ETH"
+     */
+    function _resolveAddress(string memory network, string memory semanticName) internal view returns (address resolvedAddress) {
+        string memory nameUpper = _toUpperWithUnderscore(semanticName);
+        string memory networkUpper = _toUpperWithUnderscore(network);
+        string memory envVarName = string.concat(networkUpper, "_ADDRESS_", nameUpper);
+        if (!vm.envExists(envVarName)) {
+            revert(string.concat("Address for ", semanticName, " on ", network, " not found in environment variables"));
+        }
+        resolvedAddress = vm.envAddress(envVarName);
     }
 
     function _optionalEnvAddress(string memory key, address fallbackValue) internal view returns (address value) {
