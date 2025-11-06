@@ -28,13 +28,13 @@ contract IssueTestTokens is SharedScriptBase {
         }
         _token = IExperimentToken(tokenAddress);
 
-        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, tokenOwner);
+        (uint256 deployerPrivateKey, address deployerAddress) = _loadPrivateKey(network, tokenOwner);
 
         console.log("=== Issue Test Tokens ===");
 
         uint256 totalAmount = 0;
         IExperimentToken.BatchMintRequest[] memory mints =
-            new IExperimentToken.BatchMintRequest[](tokenRecipients.length);
+            new IExperimentToken.BatchMintRequest[](tokenRecipients.length + 1);
 
         for (uint256 i = 0; i < tokenRecipients.length; i++) {
             address recipientAddress = _resolveAddress(network, tokenRecipients[i]);
@@ -43,6 +43,9 @@ contract IssueTestTokens is SharedScriptBase {
             mints[i] = IExperimentToken.BatchMintRequest({to: recipientAddress, amount: amount});
             console.log(string.concat(tokenRecipients[i], ": ", Strings.toString(amount)));
         }
+        // Add tokens for deployer
+        mints[tokenRecipients.length] =
+            IExperimentToken.BatchMintRequest({to: deployerAddress, amount: 5_000_000 ether});
         vm.startBroadcast(deployerPrivateKey);
         _token.batchMint(mints, "Test token distribution");
         vm.stopBroadcast();

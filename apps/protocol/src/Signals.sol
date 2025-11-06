@@ -288,9 +288,7 @@ contract Signals is
         // this is where to change it.
         if (address(incentivesPool) != address(0)) {
             uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
-            incentivesPool.addIncentivesCreditForLock(
-                initiativeId, lockCount, uint128(weight), _incentivesConfig
-            );
+            incentivesPool.addIncentivesCreditForLock(initiativeId, lockCount, uint128(weight));
         }
 
         emit InitiativeSupported(initiativeId, supporter, amount, lockDuration, lockCount);

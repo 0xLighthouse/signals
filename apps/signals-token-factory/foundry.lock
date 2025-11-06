@@ -2,11 +2,11 @@
   "../protocol/lib/forge-std": {
     "rev": "3b20d60d14b343ee4f908cb8079495c07f5e8981"
   },
-  "../protocol/lib/openzeppelin-contracts": {
-    "rev": "932fddf69a699a9a80fd2396fd1a2ab91cdda123"
-  },
   "../protocol/lib/solady": {
     "rev": "66162801e022c268a2a0f621ac5eb0df4986f6eb"
+  },
+  "../protocol/lib/openzeppelin-contracts": {
+    "rev": "932fddf69a699a9a80fd2396fd1a2ab91cdda123"
   },
   "lib/forge-std": {
     "tag": {

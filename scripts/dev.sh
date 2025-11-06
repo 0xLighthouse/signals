@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-CLEAN=false
+CLEAN=true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -77,7 +77,9 @@ export ANVIL_ADDRESS_BOB="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
 export ANVIL_ADDRESS_CHARLIE="0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
 
 cd apps/signals-token-factory
-#forge clean && forge install
+if [[ "$CLEAN" == "true" ]]; then
+  forge clean && forge install
+fi
 
 #####################
 #   Deploy Experiment Token Factory
@@ -131,7 +133,9 @@ cd ../..
 # #####################
 
 cd apps/protocol
-#forge clean && forge install
+if [[ "$CLEAN" == "true" ]]; then
+  forge clean && forge install
+fi
 
 echo "Deploying Signals Factory..."
 run_and_capture signals_factory_address \
@@ -156,6 +160,62 @@ run_and_capture board_address \
     "$signals_factory_address" \
     "$token_address"
 
+
+#####################
+#   Deploy Incentives Pool
+#####################
+
+echo "Deploying Incentives Pool..."
+run_and_capture incentives_pool_address \
+  forge script script/IncentivesPool.s.sol:IncentivesPoolScript \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "deploy(string,address)" \
+    "anvil" \
+    "$token_address"
+
+#####################
+#   Fund Incentives Pool
+#####################
+
+echo "Funding Incentives Pool..."
+run_and_capture transfer_output \
+  forge script script/IncentivesPool.s.sol:IncentivesPoolScript \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "transferTokens(string,address,string,address,uint256)" \
+    "anvil" \
+    "$token_address" \
+    "deployer" \
+    "$incentives_pool_address" \
+    "1000000000000000000000000"
+
+echo "Updating balance..."
+run_and_capture update_balance_output \
+  forge script script/IncentivesPool.s.sol:IncentivesPoolScript \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "updateBalance(string,address,uint256)" \
+    "anvil" \
+    "$incentives_pool_address" \
+    "1000000000000000000000000"
+
+
+#####################
+#   Approve Board
+#####################
+
+echo "Approving Board..."
+run_and_capture approve_board_output \
+  forge script script/IncentivesPool.s.sol:IncentivesPoolScript \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "approveBoard(string,address,address,uint256,uint256)" \
+    "anvil" \
+    "$incentives_pool_address" \
+    "$board_address" \
+    "500000000000000000000000" \
+    "1000000000000000000000" \
 
 # #####################
 # #   Seed test initiatives

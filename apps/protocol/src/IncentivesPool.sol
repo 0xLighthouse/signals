@@ -206,13 +206,9 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     /// @param initiativeId The ID of the initiative
     /// @param lockId The ID of the lock
     /// @param credit The amount of contributions added to the initiative
-    /// @param config The incentives configuration for the board
-    function addIncentivesCreditForLock(
-        uint256 initiativeId,
-        uint256 lockId,
-        uint128 credit,
-        IIncentivizer.IncentivesConfig calldata config
-    ) external {
+    function addIncentivesCreditForLock(uint256 initiativeId, uint256 lockId, uint128 credit)
+        external
+    {
         if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
 
         // Add the lock to the list of supporters
@@ -372,7 +368,8 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         uint256 numberOfBuckets
     ) internal pure returns (uint256[] memory) {
         uint256[] memory configParams = config.incentiveParametersWAD;
-        uint256[] memory multipliers = IncentivesMath.bucketMultipliers(configParams, numberOfBuckets);
+        uint256[] memory multipliers =
+            IncentivesMath.bucketMultipliers(configParams, numberOfBuckets);
         return multipliers;
     }
 
@@ -385,7 +382,6 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         pure
         returns (uint256[] memory)
     {
-        uint256[] memory interpolated = new uint256[](numberOfBuckets);
         return IncentivesMath.scaleParameters(config, numberOfBuckets);
     }
 }

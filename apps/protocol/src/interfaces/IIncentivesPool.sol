@@ -110,14 +110,9 @@ interface IIncentivesPool {
      * @param initiativeId The ID of the initiative
      * @param lockId The ID of the lock
      * @param credit The amount of contributions added to the initiative
-     * @param config The incentives configuration for the board
      */
-    function addIncentivesCreditForLock(
-        uint256 initiativeId,
-        uint256 lockId,
-        uint128 credit,
-        IIncentivizer.IncentivesConfig calldata config
-    ) external;
+    function addIncentivesCreditForLock(uint256 initiativeId, uint256 lockId, uint128 credit)
+        external;
 
     /**
      * @notice Claim incentives for a set of locks
