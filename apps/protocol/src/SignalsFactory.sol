@@ -19,6 +19,8 @@ contract SignalsFactory is ISignalsFactory {
     using SafeERC20 for IERC20;
     using Clones for address;
 
+    uint256 internal constant MAX_ATTACHMENTS = 5;
+
     address public immutable implementation;
 
     constructor(address _implementation) {
@@ -32,7 +34,9 @@ contract SignalsFactory is ISignalsFactory {
     error SignalsFactory_ZeroAddressOwner();
 
     /// @notice Event emitted when a new Signals contract is created
-    event BoardCreated(address indexed board, address indexed owner);
+    event BoardCreated(
+        address indexed board, address indexed owner, ISignals.Metadata boardMetadata
+    );
 
     function version() external pure returns (string memory) {
         return "0.1.0";
@@ -52,12 +56,19 @@ contract SignalsFactory is ISignalsFactory {
         //                Validate: threshold > 0, intervals > 0, valid decay curve params
         //                This prevents deploying boards with invalid configurations
 
+        if (config.boardMetadata.attachments.length > MAX_ATTACHMENTS) {
+            revert ISignals.Signals_AttachmentLimitExceeded();
+        }
+        if (bytes(config.boardMetadata.title).length == 0) {
+            revert ISignals.Signals_EmptyTitleOrBody();
+        }
+
         // Initialize the new Signals contract
         address instance = implementation.clone();
         Signals(instance).initialize(config);
 
         // Emit an event for the creation of the new contract
-        emit BoardCreated(instance, config.owner);
+        emit BoardCreated(instance, config.owner, config.boardMetadata);
 
         return instance;
     }

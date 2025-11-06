@@ -240,26 +240,9 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
-    // function setTitle(string memory _title) external;
-    // function setBody(string memory _body) external;
-    // function setAttachment(uint256 _index, Attachment calldata _attachment) external;
-    // function getBoardMetadata() external view returns (Metadata memory);
-    // function getInitiativeMetadata(uint256 initiativeId) external view returns (Metadata memory);
     function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
-    // function getLocksBySupporterForInitiative(uint256 initiativeId, address supporter)
-    //     external
-    //     view
-    //     returns (uint256[] memory);
-    // function getLocksByOwnerForInitiative(uint256 initiativeId, address owner)
-    //     external
-    //     view
-    //     returns (uint256[] memory);
-    // function getSupportersOfInitiative(uint256 initiativeId)
-    //     external
-    //     view
-    //     returns (address[] memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);
     function getWeightAt(uint256 initiativeId, uint256 timestamp) external view returns (uint256);
     function getWeightForSupporterAt(uint256 initiativeId, address supporter, uint256 timestamp)
