@@ -27,6 +27,17 @@ export const incentivesPoolAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'lockId', internalType: 'uint256', type: 'uint256' },
+      { name: 'credit', internalType: 'uint128', type: 'uint128' },
+    ],
+    name: 'addIncentivesCreditForLock',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'board', internalType: 'address', type: 'address' },
       { name: 'boardBudget_', internalType: 'uint256', type: 'uint256' },
       {
@@ -64,6 +75,34 @@ export const incentivesPoolAbi = [
     type: 'function',
     inputs: [
       { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'lockIds', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'payee', internalType: 'address', type: 'address' },
+      {
+        name: 'config',
+        internalType: 'struct IIncentivizer.IncentivesConfig',
+        type: 'tuple',
+        components: [
+          {
+            name: 'incentiveType',
+            internalType: 'enum IIncentivizer.IncentiveType',
+            type: 'uint8',
+          },
+          {
+            name: 'incentiveParametersWAD',
+            internalType: 'uint256[]',
+            type: 'uint256[]',
+          },
+        ],
+      },
+    ],
+    name: 'claimIncentivesForLocks',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
       { name: 'payee', internalType: 'address', type: 'address' },
       {
         name: 'percentOfInitiativeRewards',
@@ -87,6 +126,20 @@ export const incentivesPoolAbi = [
     inputs: [{ name: 'board', internalType: 'address', type: 'address' }],
     name: 'isBoardApproved',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'lockIncentiveCreditsByInitiative',
+    outputs: [
+      { name: 'amount', internalType: 'uint128', type: 'uint128' },
+      { name: 'timestamp', internalType: 'uint128', type: 'uint128' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -208,6 +261,37 @@ export const incentivesPoolAbi = [
       },
     ],
     name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'initiativeId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'lockId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'claimant',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'percentOfInitiativeRewardsWAD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsClaimed',
   },
   {
     type: 'event',

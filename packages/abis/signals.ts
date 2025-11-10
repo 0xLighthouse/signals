@@ -60,6 +60,13 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'boardCancelled',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'boardClosedAt',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -70,6 +77,20 @@ export const signalsAbi = [
     name: 'boardOpenAt',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'cancelBoard',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'closeBoard',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -147,18 +168,6 @@ export const signalsAbi = [
         internalType: 'struct ISignals.Initiative',
         type: 'tuple',
         components: [
-          { name: 'title', internalType: 'string', type: 'string' },
-          { name: 'body', internalType: 'string', type: 'string' },
-          {
-            name: 'attachments',
-            internalType: 'struct ISignals.Attachment[]',
-            type: 'tuple[]',
-            components: [
-              { name: 'uri', internalType: 'string', type: 'string' },
-              { name: 'mimeType', internalType: 'string', type: 'string' },
-              { name: 'description', internalType: 'string', type: 'string' },
-            ],
-          },
           {
             name: 'state',
             internalType: 'enum ISignals.InitiativeState',
@@ -167,11 +176,6 @@ export const signalsAbi = [
           { name: 'proposer', internalType: 'address', type: 'address' },
           { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
           { name: 'lastActivity', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'underlyingLocked',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
           {
             name: 'acceptanceTimestamp',
             internalType: 'uint256',
@@ -200,26 +204,6 @@ export const signalsAbi = [
         ],
       },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: 'owner', internalType: 'address', type: 'address' },
-    ],
-    name: 'getLocksByOwnerForInitiative',
-    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: 'supporter', internalType: 'address', type: 'address' },
-    ],
-    name: 'getLocksBySupporterForInitiative',
-    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -274,15 +258,6 @@ export const signalsAbi = [
         ],
       },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getSupportersOfInitiative',
-    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
     stateMutability: 'view',
   },
   {
@@ -361,6 +336,29 @@ export const signalsAbi = [
         type: 'tuple',
         components: [
           { name: 'version', internalType: 'string', type: 'string' },
+          {
+            name: 'boardMetadata',
+            internalType: 'struct ISignals.Metadata',
+            type: 'tuple',
+            components: [
+              { name: 'title', internalType: 'string', type: 'string' },
+              { name: 'body', internalType: 'string', type: 'string' },
+              {
+                name: 'attachments',
+                internalType: 'struct ISignals.Attachment[]',
+                type: 'tuple[]',
+                components: [
+                  { name: 'uri', internalType: 'string', type: 'string' },
+                  { name: 'mimeType', internalType: 'string', type: 'string' },
+                  {
+                    name: 'description',
+                    internalType: 'string',
+                    type: 'string',
+                  },
+                ],
+              },
+            ],
+          },
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
@@ -391,7 +389,6 @@ export const signalsAbi = [
             internalType: 'uint256',
             type: 'uint256',
           },
-          { name: 'proposalCap', internalType: 'uint256', type: 'uint256' },
           { name: 'lockInterval', internalType: 'uint256', type: 'uint256' },
           { name: 'decayCurveType', internalType: 'uint256', type: 'uint256' },
           {
@@ -504,19 +501,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'lockIncentiveCreditsByInitiative',
-    outputs: [
-      { name: 'amount', internalType: 'uint128', type: 'uint128' },
-      { name: 'timestamp', internalType: 'uint128', type: 'uint128' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'lockInterval',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -561,24 +545,24 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'proposalCap',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
-      { name: '_title', internalType: 'string', type: 'string' },
-      { name: '_body', internalType: 'string', type: 'string' },
       {
-        name: '_attachments',
-        internalType: 'struct ISignals.Attachment[]',
-        type: 'tuple[]',
+        name: '_metadata',
+        internalType: 'struct ISignals.Metadata',
+        type: 'tuple',
         components: [
-          { name: 'uri', internalType: 'string', type: 'string' },
-          { name: 'mimeType', internalType: 'string', type: 'string' },
-          { name: 'description', internalType: 'string', type: 'string' },
+          { name: 'title', internalType: 'string', type: 'string' },
+          { name: 'body', internalType: 'string', type: 'string' },
+          {
+            name: 'attachments',
+            internalType: 'struct ISignals.Attachment[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'uri', internalType: 'string', type: 'string' },
+              { name: 'mimeType', internalType: 'string', type: 'string' },
+              { name: 'description', internalType: 'string', type: 'string' },
+            ],
+          },
         ],
       },
     ],
@@ -591,16 +575,23 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_title', internalType: 'string', type: 'string' },
-      { name: '_body', internalType: 'string', type: 'string' },
       {
-        name: '_attachments',
-        internalType: 'struct ISignals.Attachment[]',
-        type: 'tuple[]',
+        name: '_metadata',
+        internalType: 'struct ISignals.Metadata',
+        type: 'tuple',
         components: [
-          { name: 'uri', internalType: 'string', type: 'string' },
-          { name: 'mimeType', internalType: 'string', type: 'string' },
-          { name: 'description', internalType: 'string', type: 'string' },
+          { name: 'title', internalType: 'string', type: 'string' },
+          { name: 'body', internalType: 'string', type: 'string' },
+          {
+            name: 'attachments',
+            internalType: 'struct ISignals.Attachment[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'uri', internalType: 'string', type: 'string' },
+              { name: 'mimeType', internalType: 'string', type: 'string' },
+              { name: 'description', internalType: 'string', type: 'string' },
+            ],
+          },
         ],
       },
       { name: '_amount', internalType: 'uint256', type: 'uint256' },
@@ -780,13 +771,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '_title', internalType: 'string', type: 'string' }],
-    name: 'setTitle',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
@@ -823,13 +807,6 @@ export const signalsAbi = [
     type: 'function',
     inputs: [],
     name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'title',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
     stateMutability: 'view',
   },
@@ -946,7 +923,20 @@ export const signalsAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'actor',
+        name: 'sender',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'BoardCancelled',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'sender',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -1040,16 +1030,23 @@ export const signalsAbi = [
         type: 'address',
         indexed: true,
       },
-      { name: 'title', internalType: 'string', type: 'string', indexed: false },
-      { name: 'body', internalType: 'string', type: 'string', indexed: false },
       {
-        name: 'attachments',
-        internalType: 'struct ISignals.Attachment[]',
-        type: 'tuple[]',
+        name: 'metadata',
+        internalType: 'struct ISignals.Metadata',
+        type: 'tuple',
         components: [
-          { name: 'uri', internalType: 'string', type: 'string' },
-          { name: 'mimeType', internalType: 'string', type: 'string' },
-          { name: 'description', internalType: 'string', type: 'string' },
+          { name: 'title', internalType: 'string', type: 'string' },
+          { name: 'body', internalType: 'string', type: 'string' },
+          {
+            name: 'attachments',
+            internalType: 'struct ISignals.Attachment[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'uri', internalType: 'string', type: 'string' },
+              { name: 'mimeType', internalType: 'string', type: 'string' },
+              { name: 'description', internalType: 'string', type: 'string' },
+            ],
+          },
         ],
         indexed: false,
       },
@@ -1305,11 +1302,11 @@ export const signalsAbi = [
 
 export const signalsFactoryAbi = [
   {
-    type: 'function',
-    inputs: [],
-    name: 'VERSION',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
+    type: 'constructor',
+    inputs: [
+      { name: '_implementation', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1320,6 +1317,29 @@ export const signalsFactoryAbi = [
         type: 'tuple',
         components: [
           { name: 'version', internalType: 'string', type: 'string' },
+          {
+            name: 'boardMetadata',
+            internalType: 'struct ISignals.Metadata',
+            type: 'tuple',
+            components: [
+              { name: 'title', internalType: 'string', type: 'string' },
+              { name: 'body', internalType: 'string', type: 'string' },
+              {
+                name: 'attachments',
+                internalType: 'struct ISignals.Attachment[]',
+                type: 'tuple[]',
+                components: [
+                  { name: 'uri', internalType: 'string', type: 'string' },
+                  { name: 'mimeType', internalType: 'string', type: 'string' },
+                  {
+                    name: 'description',
+                    internalType: 'string',
+                    type: 'string',
+                  },
+                ],
+              },
+            ],
+          },
           { name: 'owner', internalType: 'address', type: 'address' },
           { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
@@ -1350,7 +1370,6 @@ export const signalsFactoryAbi = [
             internalType: 'uint256',
             type: 'uint256',
           },
-          { name: 'proposalCap', internalType: 'uint256', type: 'uint256' },
           { name: 'lockInterval', internalType: 'uint256', type: 'uint256' },
           { name: 'decayCurveType', internalType: 'uint256', type: 'uint256' },
           {
@@ -1426,6 +1445,13 @@ export const signalsFactoryAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'implementation',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'version',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
     stateMutability: 'pure',
@@ -1446,9 +1472,32 @@ export const signalsFactoryAbi = [
         type: 'address',
         indexed: true,
       },
+      {
+        name: 'boardMetadata',
+        internalType: 'struct ISignals.Metadata',
+        type: 'tuple',
+        components: [
+          { name: 'title', internalType: 'string', type: 'string' },
+          { name: 'body', internalType: 'string', type: 'string' },
+          {
+            name: 'attachments',
+            internalType: 'struct ISignals.Attachment[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'uri', internalType: 'string', type: 'string' },
+              { name: 'mimeType', internalType: 'string', type: 'string' },
+              { name: 'description', internalType: 'string', type: 'string' },
+            ],
+          },
+        ],
+        indexed: false,
+      },
     ],
     name: 'BoardCreated',
   },
+  { type: 'error', inputs: [], name: 'ERC1167FailedCreateClone' },
   { type: 'error', inputs: [], name: 'SignalsFactory_DeploymentFailed' },
   { type: 'error', inputs: [], name: 'SignalsFactory_ZeroAddressOwner' },
+  { type: 'error', inputs: [], name: 'Signals_AttachmentLimitExceeded' },
+  { type: 'error', inputs: [], name: 'Signals_EmptyTitleOrBody' },
 ] as const
