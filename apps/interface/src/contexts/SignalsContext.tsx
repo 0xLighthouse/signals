@@ -42,7 +42,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const SignalsProvider: React.FC<Props> = ({ children }) => {
+export const SignalsProvider = ({ children }: Props): JSX.Element => {
   const { address: walletAddress } = useAccount()
   // Subscribe to only the specific config fields we need
   const signalsContractAddress = useNetworkStore(

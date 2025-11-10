@@ -1,6 +1,6 @@
 import type { Abi, Chain } from 'viem'
 
-export type SupportedNetworks = 'local' | 'arbitrumSepolia' | 'base'
+export type SupportedNetworks = 'local' | 'arbitrumSepolia' | 'base' | 'baseSepolia'
 
 export interface ContractConfig {
   address: `0x${string}`

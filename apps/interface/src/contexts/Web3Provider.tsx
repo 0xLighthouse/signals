@@ -1,7 +1,7 @@
 'use client'
 
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
-import { base, anvil } from 'viem/chains'
+import { base, anvil, baseSepolia, arbitrumSepolia } from 'viem/chains'
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   createPublicClient,
@@ -140,7 +140,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
         appearance: {
           theme: 'dark',
         },
-        supportedChains: [anvil, base],
+        supportedChains: [anvil, base, baseSepolia, arbitrumSepolia],
         defaultChain: {
           ...chain,
         },

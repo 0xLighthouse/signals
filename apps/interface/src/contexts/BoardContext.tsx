@@ -32,7 +32,7 @@ interface Props {
   children: React.ReactNode
 }
 
-export const BoardProvider: React.FC<Props> = ({ children }) => {
+export const BoardProvider = ({ children }: Props): JSX.Element => {
   const { address: walletAddress } = useAccount()
   const { publicClient } = useWeb3()
   const router = useRouter()

@@ -1,5 +1,6 @@
 import { NETWORKS } from '@/config/networks'
 import type { SupportedNetworks } from '@/config/network-types'
+import { DEFAULT_NETWORK } from '@/config/network-config'
 
 /**
  * Maps network names to URL-friendly slugs
@@ -8,6 +9,7 @@ export const NETWORK_SLUGS: Record<SupportedNetworks, string> = {
   local: 'local',
   arbitrumSepolia: 'arbitrum-sepolia',
   base: 'base',
+  baseSepolia: 'base-sepolia',
 }
 
 /**
@@ -39,7 +41,7 @@ export function getSlugFromNetwork(network: SupportedNetworks): string {
  * Get default network (from env or fallback to base)
  */
 export function getDefaultNetwork(): SupportedNetworks {
-  const envNetwork = process.env.NEXT_PUBLIC_DEFAULT_NETWORK as SupportedNetworks
+  const envNetwork = DEFAULT_NETWORK
   return envNetwork && envNetwork in NETWORKS ? envNetwork : 'base'
 }
 
