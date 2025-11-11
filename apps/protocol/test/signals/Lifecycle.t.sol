@@ -49,13 +49,6 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         signals.proposeInitiative(_metadata(1));
 
-        // Check that the initiative is stored correctly
-        // ISignals.Initiative memory initiative = signals.getInitiative(1);
-        // assertEq(signals.getInitiativeMetadata(1).title, "Initiative 1");
-        // assertEq(signals.getInitiativeMetadata(1).body, "Description 1");
-        // assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Proposed));
-        // assertEq(initiative.proposer, _alice);
-
         vm.stopPrank();
     }
 
@@ -72,13 +65,6 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         emit ISignals.InitiativeSupported(1, _bob, lockAmount, 6, 1);
         signals.proposeInitiativeWithLock(_metadata(2), lockAmount, 6);
         vm.stopPrank();
-
-        // Check that the initiative is stored correctly
-        // ISignals.Initiative memory initiative = signals.getInitiative(1);
-        // assertEq(signals.getInitiativeMetadata(1).title, "Initiative 2");
-        // assertEq(signals.getInitiativeMetadata(1).body, "Description 2");
-        // assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Proposed));
-        // assertEq(initiative.proposer, _bob);
 
         // Check that the lock info is stored
         ISignals.TokenLock memory lock = signals.getTokenLock(1);
@@ -129,15 +115,6 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
 
         // Check that total support is stored correctly
         assertEq(signals.getWeight(1), lockAmount * 2);
-
-        // Test getLocksForSupporter
-        // uint256[] memory aliceLocks = signals.getLocksBySupporterForInitiative(1, _alice);
-        // assertEq(aliceLocks.length, 1);
-        // assertEq(aliceLocks[0], 1);
-
-        // uint256[] memory bobLocks = signals.getLocksBySupporterForInitiative(1, _bob);
-        // assertEq(bobLocks.length, 1);
-        // assertEq(bobLocks[0], 2);
     }
 
     /*//////////////////////////////////////////////////////////////
