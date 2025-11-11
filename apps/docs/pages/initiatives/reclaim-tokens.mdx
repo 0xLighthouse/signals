@@ -13,21 +13,27 @@ Your locks become redeemable when the initiative reaches a terminal state:
 
 ### Accepted Initiatives
 
-If the initiative is **accepted** by the board owner:
-- Wait for the `releaseLockDuration` to pass (if configured)
-- If `releaseLockDuration = 0`, redeem immediately
-- If `releaseLockDuration > 0` (e.g., 7 days), wait until `acceptanceTimestamp + releaseLockDuration`
+If the initiative is **accepted**, all token locks are released early, regardless of their lockup duration. Supporters must wait for the soonest of the following two conditions to be met before redeeming their tokens:
+1. The lockup duration the supporter committed to is already completed
+2. The amount of time specified by the board-level `releaseLockDuration` has passed since the initiative was accepted
+
+If the board has a `releaseLockDuration` of 0, then all tokens are immediately redeemable.
 
 ### Expired Initiatives
 
-If the initiative is **expired** by the board owner:
+If the initiative is **expired**:
 - Redeem immediately - no waiting period
 
-### Board Closure (Emergency)
+### Board Closure
 
-If the **board is closed** by the owner:
+If the board has been closed, all locks must still wait until their lockup duration is completed before they can be redeemed. This enforces the commitment supporters made to the initiatives they supported.
+
+### Board Cancellation (Emergency)
+
+If the **board is cancelled** by the owner:
 - All locks become immediately redeemable regardless of initiative state
-- Release timelock is bypassed
+- The `releaseLockDuration` timelock is bypassed, allowing instant redemption
+- This provides an emergency exit mechanism for all supporters
 
 ## What You Receive
 
@@ -119,9 +125,9 @@ Incentive rewards are automatically claimed during redemption, but bounty reward
 2. Call `redeemLock()` immediately (no waiting)
 3. Receive your original locked tokens only
 
-### Scenario 3: Board Closed
-1. Board owner closes the board
-2. All locks become immediately redeemable
+### Scenario 3: Board Cancelled
+1. Board owner cancels the board
+2. All locks become immediately redeemable (timelock bypassed)
 3. Call `redeemLock()` to receive tokens (+ rewards if accepted)
 
 ### Scenario 4: Multiple Locks (Batch Redemption)
