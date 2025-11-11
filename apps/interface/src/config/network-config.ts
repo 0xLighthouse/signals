@@ -3,7 +3,7 @@ import { erc20Abi } from 'viem'
 import { arbitrumSepolia, base, anvil, baseSepolia } from 'viem/chains'
 
 import type { NetworkConfig, SupportedNetworks } from './network-types'
-import { SignalsFactoryABI } from '../../../../packages/abis'
+import { ExperimentTokenABI, SignalsFactoryABI } from '../../../../packages/abis'
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const
 
@@ -36,7 +36,6 @@ export const NETWORK_CONFIG: Record<SupportedNetworks, NetworkConfig> = {
       SignalsFactory: {
         address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9' as `0x${string}`,
         abi: SignalsFactoryABI,
-
       },
     },
   },
@@ -47,6 +46,12 @@ export const NETWORK_CONFIG: Record<SupportedNetworks, NetworkConfig> = {
     indexerEndpoint: 'http://localhost:42069',
     indexerGraphQLEndpoint: 'http://localhost:42069/graphql',
     contracts: {
+      EdgeExperimentToken: {
+        address: '0x2158818709b478afff21763495f22e33d7cfccb4' as `0x${string}`,
+        abi: ExperimentTokenABI,
+        label: 'Edge Experiment Token',
+        decimals: 18,
+      },
       SignalsFactory: {
         address: ZERO_ADDRESS,
         abi: SignalsFactoryABI,

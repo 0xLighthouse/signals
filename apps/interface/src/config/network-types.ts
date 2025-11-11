@@ -10,6 +10,7 @@ export interface ContractConfig {
 }
 
 export interface ContractsConfig {
+  EdgeExperimentToken?: ContractConfig
   SignalsFactory: ContractConfig
   SignalsProtocol?: ContractConfig
   BoardUnderlyingToken?: ContractConfig

@@ -1,8 +1,5 @@
 import { Abi, erc20Abi } from 'viem'
 
-const EDGE_CITY_ENV = process.env.NEXT_PUBLIC_EDGE_CITY?.toLowerCase() === 'true'
-
-console.log('EDGE_CITY_ENV', EDGE_CITY_ENV)
 
 
 const EDGE_CITY_CUSTOM_ABI: Abi = [
@@ -23,7 +20,7 @@ const EDGE_CITY_CUSTOM_ABI: Abi = [
 ]
 
 export const edgeCityConfig = {
-  enabled: EDGE_CITY_ENV,
+  enabled: true,
   claimFunction: 'claim' as const,
   minCities: 1,
   maxCities: 3,

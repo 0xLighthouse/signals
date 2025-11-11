@@ -48,6 +48,13 @@ const initialState: ClaimState = {
   isLoadingAllowance: false,
 }
 
+const EDGE_CITY_TOKEN_STORAGE_KEY = 'edgeCityAccessToken'
+const EDGE_CITY_PROFILE_STORAGE_KEY = 'edgeCityProfile'
+
+const createInitialClaimState = (): ClaimState => ({
+  ...initialState,
+})
+
 const evaluateEligibility = (profile: EdgeCityProfile) => {
   if (!profile.email_validated) {
     return { eligible: false, reason: 'Primary email is not validated' }
@@ -108,21 +115,75 @@ export const EdgeCityClaimDialog = () => {
     isLoadingAllowance,
   } = state
 
+  const persistEdgeCitySession = useCallback((token: string, profile: EdgeCityProfile) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    try {
+      window.localStorage.setItem(EDGE_CITY_TOKEN_STORAGE_KEY, token)
+      window.localStorage.setItem(EDGE_CITY_PROFILE_STORAGE_KEY, JSON.stringify(profile))
+    } catch (error) {
+      console.error('Failed to persist Edge City session', error)
+    }
+  }, [])
+
+  const clearEdgeCitySession = useCallback((message?: string) => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(EDGE_CITY_TOKEN_STORAGE_KEY)
+        window.localStorage.removeItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+      } catch (error) {
+        console.error('Failed to clear Edge City session', error)
+      }
+    }
+    setState(createInitialClaimState())
+    if (message) {
+      toast(message)
+    }
+  }, [])
+
   const eligibility = useMemo(() => {
     if (!profile) return { eligible: false, reason: '' }
     return evaluateEligibility(profile)
   }, [profile])
 
+  const restoreEdgeCitySession = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const storedToken = window.localStorage.getItem(EDGE_CITY_TOKEN_STORAGE_KEY)
+    const storedProfileRaw = window.localStorage.getItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+
+    if (!storedToken || !storedProfileRaw) {
+      return
+    }
+
+    try {
+      const storedProfile = JSON.parse(storedProfileRaw) as EdgeCityProfile
+      setState((prev) => ({
+        ...prev,
+        accessToken: storedToken,
+        profile: storedProfile,
+        allowance: null,
+        step: 'review',
+      }))
+    } catch (error) {
+      console.error('Failed to parse stored Edge City profile', error)
+      window.localStorage.removeItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+    }
+  }, [])
+
   useEffect(() => {
     if (!open) {
-      setState(initialState)
+      setState(createInitialClaimState())
+      return
     }
-  }, [open])
+    restoreEdgeCitySession()
+  }, [open, restoreEdgeCitySession])
+  // Get the Edge Experiment token address from the active network configuration
+  const edgeExperimentTokenAddress = config.contracts.EdgeExperimentToken?.address
 
-  // Get the underlying token from the board's configuration
-  const underlyingToken = config.contracts.BoardUnderlyingToken?.address
-
-  if (!edgeCityConfig.enabled || !underlyingToken) {
+  if (!edgeCityConfig.enabled || !edgeExperimentTokenAddress) {
     return null
   }
 
@@ -136,12 +197,22 @@ export const EdgeCityClaimDialog = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ address: wallet, tokenAddress: underlyingToken }),
+          body: JSON.stringify({ address: wallet, tokenAddress: edgeExperimentTokenAddress }),
         })
 
         if (!response.ok) {
-          const { error } = (await response.json()) as { error?: string }
-          throw new Error(error ?? 'Unexpected response fetching allowance')
+          if (response.status === 401 || response.status === 403) {
+            clearEdgeCitySession('Edge City session expired. Please log in again.')
+            return
+          }
+          let errorMessage = 'Unexpected response fetching allowance'
+          try {
+            const { error } = (await response.json()) as { error?: string }
+            errorMessage = error ?? errorMessage
+          } catch (parseError) {
+            console.error('Failed to parse allowance error response', parseError)
+          }
+          throw new Error(errorMessage)
         }
 
         const payload = (await response.json()) as EdgeCityAllowance
@@ -154,7 +225,7 @@ export const EdgeCityClaimDialog = () => {
         setState((prev) => ({ ...prev, isLoadingAllowance: false }))
       }
     },
-    [underlyingToken],
+    [clearEdgeCitySession, edgeExperimentTokenAddress],
   )
 
   const handleRequestCode = async () => {
@@ -218,6 +289,7 @@ export const EdgeCityClaimDialog = () => {
         allowance: null,
         step: 'review',
       }))
+      persistEdgeCitySession(payload.accessToken, payload.profile)
 
       // If a wallet is connected, trigger allowance fetch immediately
       if (address) {
@@ -262,7 +334,7 @@ export const EdgeCityClaimDialog = () => {
       const participantId = BigInt(profile.id)
       const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
-      if (!underlyingToken) {
+      if (!edgeExperimentTokenAddress) {
         toast('Token address not available')
         setState((prev) => ({ ...prev, isClaiming: false }))
         return
@@ -271,7 +343,7 @@ export const EdgeCityClaimDialog = () => {
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
         account: address,
-        address: underlyingToken as `0x${string}`,
+        address: edgeExperimentTokenAddress as `0x${string}`,
         abi: edgeCityConfig.abi,
         functionName: edgeCityConfig.claimFunction,
         args: claimArgs as unknown as readonly unknown[],
@@ -461,9 +533,9 @@ export const EdgeCityClaimDialog = () => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edge City Residency Claim</DialogTitle>
+          <DialogTitle>Signals d/acc Governance experiment</DialogTitle>
           <DialogDescription>
-            Authenticate your residency to unlock token rewards from the Edge City program.
+            Authenticate with your Edge city account to claim tokens to participate.
           </DialogDescription>
         </DialogHeader>
         {renderContent()}

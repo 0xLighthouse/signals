@@ -35,7 +35,7 @@ type AllowanceResponse = {
 }
 
 
-const calculateAllowance = async (defaultAlloc: number, additionalCitiesAttended: number) => {
+const calculateAllowance = (defaultAlloc: number, additionalCitiesAttended: number) => {
   const maxAdditionalCities = additionalCitiesAttended >= MAX_ADDITIONAL_CITIES ? MAX_ADDITIONAL_CITIES : additionalCitiesAttended
   return defaultAlloc + (maxAdditionalCities * defaultAlloc)
 }
