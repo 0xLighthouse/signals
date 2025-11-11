@@ -217,6 +217,20 @@ run_and_capture approve_board_output \
     "500000000000000000000000" \
     "1000000000000000000000" \
 
+#####################
+#   Set Incentives Pool and open board
+#####################
+
+echo "Setting Incentives Pool and opening board..."
+run_and_capture set_incentives_pool_and_open_board_output \
+  forge script script/IncentivesPool.s.sol:IncentivesPoolScript \
+    --rpc-url "$ANVIL_RPC" \
+    --broadcast \
+    -s "setIncentivesPool(string,address,address)" \
+    "anvil" \
+    "$board_address" \
+    "$incentives_pool_address" \
+
 # #####################
 # #   Seed test initiatives
 # #####################
