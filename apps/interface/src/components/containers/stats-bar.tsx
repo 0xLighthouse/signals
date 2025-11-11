@@ -1,16 +1,20 @@
 'use client'
 
 import React from 'react'
-import { useSignals } from '@/contexts/SignalsContext'
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
 import { Separator } from '../ui/separator'
 import { normaliseNumber } from '@/lib/utils'
 
 export const StatsBar = () => {
   const { address } = useAccount()
-  const { formatter, board } = useSignals()
-  const { underlyingSymbol, underlyingTotalSupply: totalSupply, underlyingBalance } = useBoard()
+  const {
+    formatter,
+    board,
+    underlyingSymbol,
+    underlyingTotalSupply: totalSupply,
+    underlyingBalance,
+  } = useSignals()
 
   if (!address) return null
 

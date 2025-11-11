@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Web3Provider } from '@/contexts/Web3Provider'
-import { BoardProvider } from '@/contexts/BoardContext'
 import { SignalsProvider } from '@/contexts/SignalsContext'
 // TODO[fixme]: IncentivesProvider refactor
 // import { IncentivesProvider } from '@/contexts/IncentivesContext'
@@ -52,9 +51,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
-            <BoardProvider>
-              <SignalsProvider>{sidebarContent}</SignalsProvider>
-            </BoardProvider>
+            <SignalsProvider>{sidebarContent}</SignalsProvider>
             <Toaster />
           </Web3Provider>
         </ThemeProvider>

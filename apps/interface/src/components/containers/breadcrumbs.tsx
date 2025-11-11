@@ -1,6 +1,6 @@
 'use client'
 
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import React, { useState } from 'react'
 import {
   Breadcrumb,
@@ -16,7 +16,7 @@ import { BaseIcon } from '../icons/base'
 import { FoundryIcon } from '../icons/foundry'
 
 export const Breadcrumbs: React.FC = () => {
-  const { underlyingName: name, underlyingSymbol: symbol, network } = useBoard()
+  const { underlyingName: name, underlyingSymbol: symbol, network } = useSignals()
   const [isDeployDrawerOpen, setIsDeployDrawerOpen] = useState(false)
 
   const Icon = network === 'local' ? FoundryIcon : network === 'base' ? BaseIcon : ArbitrumIcon
