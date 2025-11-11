@@ -109,99 +109,96 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
   )
 
   const fetchBoardMetadata = useCallback(async () => {
-    if (!publicClient || !boardAddress) {
+    if (!network || !boardAddress) {
       setBoardState(initialBoard)
       return
     }
 
+    const config = NETWORKS[network]
+    if (!config?.indexerGraphQLEndpoint) {
+      console.warn('Missing indexer configuration for network', network)
+      setBoardState(initialBoard)
+      return
+    }
+
+    const toNumber = (value?: string | null): number | null => {
+      if (value == null) return null
+      try {
+        return Number(BigInt(value))
+      } catch {
+        return null
+      }
+    }
+
     try {
-      const protocol = getContract({
-        address: boardAddress,
-        abi: SignalsABI,
-        client: publicClient,
+      const query = `
+        query BoardByAddress($chainId: Int!, $contractAddress: String!) {
+          boards(where: { chainId: $chainId, contractAddress: $contractAddress }) {
+            items {
+              title
+              proposerRequirements
+              acceptanceThreshold
+              body
+            }
+          }
+        }
+      `
+
+      const resp = await fetch(config.indexerGraphQLEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            chainId: config.chain.id,
+            contractAddress: boardAddress,
+          },
+        }),
       })
 
-      let proposalThreshold: bigint | null = null
-      try {
-        // @ts-ignore
-        proposalThreshold = await protocol.read.proposalThreshold()
-      } catch {
-        try {
-          // @ts-ignore
-          proposalThreshold = await protocol.read.proposalCap()
-        } catch {
-          proposalThreshold = null
-        }
+      if (!resp.ok) {
+        throw new Error(`GraphQL request failed: ${resp.status} ${resp.statusText}`)
       }
 
-      let acceptanceThreshold: bigint | null = null
-      try {
-        // @ts-ignore
-        acceptanceThreshold = await protocol.read.acceptanceThreshold()
-      } catch {
-        try {
-          // @ts-ignore
-          acceptanceThreshold = await protocol.read.getAcceptanceThreshold()
-        } catch {
-          acceptanceThreshold = null
+      const result: {
+        data?: {
+          boards?: {
+            items?: Array<{
+              title?: string | null
+              proposerRequirements?: {
+                minBalance?: string | null
+              } | null
+              acceptanceThreshold?: string | null
+            }>
+          }
         }
-      }
+      } = await resp.json()
 
-      const [
-        initiativesCount,
-        lockInterval,
-        decayCurveType,
-        decayCurveParametersRaw,
-        name,
-        symbol,
-      ] = await Promise.all([
-        // @ts-ignore
-        protocol.read
-          .initiativeCount?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .lockInterval?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .decayCurveType?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .decayCurveParameters?.([0n])
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .name?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .symbol?.()
-          .catch(() => null),
-      ])
+      const boardFromIndexer = result.data?.boards?.items?.[0]
+      if (!boardFromIndexer) {
+        setBoardState(initialBoard)
+        return
+      }
 
       setBoardState({
-        name: name ? String(name) : null,
-        symbol: symbol ? String(symbol) : null,
-        initiativesCount: initiativesCount != null ? Number(initiativesCount) : null,
-        proposalThreshold: proposalThreshold ? Number(proposalThreshold) : null,
-        acceptanceThreshold: acceptanceThreshold ? Number(acceptanceThreshold) : null,
-        lockInterval: lockInterval != null ? Number(lockInterval) : null,
-        decayCurveType: decayCurveType != null ? Number(decayCurveType) : null,
-        decayCurveParameters:
-          decayCurveParametersRaw != null
-            ? Array.isArray(decayCurveParametersRaw)
-              ? decayCurveParametersRaw.map((value: bigint | number | string) => Number(value))
-              : [Number(decayCurveParametersRaw)]
-            : null,
+        name: boardFromIndexer.title ?? null,
+        symbol: null,
+        initiativesCount: null,
+        proposalThreshold: toNumber(boardFromIndexer.proposerRequirements?.minBalance),
+        acceptanceThreshold: toNumber(boardFromIndexer.acceptanceThreshold),
+        lockInterval: null,
+        decayCurveType: null,
+        decayCurveParameters: null,
         meetsThreshold: false,
       })
     } catch (error) {
-      console.error('Error fetching Signals board metadata:', error)
+      console.error('Error fetching board metadata from indexer:', error)
       setBoardState(initialBoard)
     }
-  }, [publicClient, boardAddress])
+  }, [network, boardAddress])
 
   const fetchUnderlyingMetadata = useCallback(async () => {
     if (!publicClient || !boardAddress) {
