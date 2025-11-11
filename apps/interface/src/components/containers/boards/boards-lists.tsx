@@ -1,26 +1,42 @@
 'use client'
 
+import { useEffect, useMemo } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { PageSection } from '@/components/page-section'
 import { useBoardsStore } from '@/stores/useBoardsStore'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 import { BoardCard } from './board-card'
 
 export const BoardsList = () => {
   const boards = useBoardsStore((state) => state.boards)
-  const isFetchingBoards = useBoardsStore((state) => state.isFetching)
+  const isFetching = useBoardsStore((state) => state.isFetching)
+  const fetchBoards = useBoardsStore((state) => state.fetchBoards)
+  const resetBoards = useBoardsStore((state) => state.reset)
+  const selectedNetwork = useNetworkStore((state) => state.selected)
 
-  console.log(boards)
+  useEffect(() => {
+    // On network change, reset cached results and refetch
+    resetBoards()
+    fetchBoards().catch((err) => {
+      console.error('Failed to fetch boards:', err)
+    })
+  }, [selectedNetwork, fetchBoards, resetBoards])
 
-  // Ensure boards is always an array before filtering
-  const _boardsSorted = boards.sort((a, b) => b.contractAddress.localeCompare(a.contractAddress))
+  const sortedBoards = useMemo(() => {
+    return [...boards].sort((a, b) => {
+      const aTs = a.createdAtTimestamp ?? 0
+      const bTs = b.createdAtTimestamp ?? 0
+      if (bTs !== aTs) return bTs - aTs
+      return b.contractAddress.localeCompare(a.contractAddress)
+    })
+  }, [boards])
 
-  if (isFetchingBoards) {
+  if (isFetching) {
     return <LoadingSpinner />
   }
 
-  // If we have no boards, show empty state
-  if (boards.length === 0) {
+  if (sortedBoards.length === 0) {
     return (
       <ListContainer title="Boards">
         <PageSection>
@@ -37,7 +53,7 @@ export const BoardsList = () => {
 
   return (
     <ListContainer title="Boards">
-      {_boardsSorted.map((board) => (
+      {sortedBoards.map((board) => (
         <BoardCard key={board.contractAddress} board={board} />
       ))}
     </ListContainer>
