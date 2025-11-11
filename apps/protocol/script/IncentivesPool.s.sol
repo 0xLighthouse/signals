@@ -5,7 +5,8 @@ import "forge-std/console.sol";
 import {SharedScriptBase} from "@shared/SharedScriptBase.sol";
 import {IncentivesPool} from "../src/IncentivesPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import {Signals} from "../src/Signals.sol";
+import {IIncentivizer} from "../src/interfaces/IIncentivizer.sol";
 /**
  * Deployment and management script for IncentivesPool
  *
@@ -19,6 +20,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * Approve Board:
  *   forge script script/IncentivesPool.s.sol --sig "approveBoard(string,address,address,uint256,uint256)" base-sepolia <pool> <board> <budget> <perInitiative> --broadcast
  */
+
 contract IncentivesPoolScript is SharedScriptBase {
     /**
      * Deploy a new IncentivesPool
@@ -69,7 +71,7 @@ contract IncentivesPoolScript is SharedScriptBase {
         IERC20(tokenAddress).transfer(to, amount);
         vm.stopBroadcast();
 
-        // console.log("ScriptOutput:", amount);
+        console.log("ScriptOutput:", amount);
     }
 
     /**
@@ -139,5 +141,52 @@ contract IncentivesPoolScript is SharedScriptBase {
         console.log("Is Approved:", pool.isBoardApproved(boardAddress));
 
         console.log("ScriptOutput:", boardAddress);
+    }
+
+    /**
+     * Set the incentives pool for a board, using default values and opening the board afterwards
+     * @param network The network to interact with
+     * @param boardAddress The board contract address to set the incentives pool for
+     * @param poolAddress The IncentivesPool contract address to set
+     */
+    function setIncentivesPool(string memory network, address boardAddress, address poolAddress)
+        external
+    {
+        if (!isSupportedNetwork(network)) {
+            revert(string.concat("Unsupported network [", network, "] provided"));
+        }
+
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
+        Signals board = Signals(boardAddress);
+
+        IIncentivizer.IncentivesConfig memory incentivesConfig = IIncentivizer.IncentivesConfig({
+            incentiveType: IIncentivizer.IncentiveType.Linear,
+            incentiveParametersWAD: new uint256[](2)
+        });
+
+        incentivesConfig.incentiveParametersWAD[0] = 3 * 1e18;
+        incentivesConfig.incentiveParametersWAD[1] = 1 * 1e18;
+
+        vm.startBroadcast(deployerPrivateKey);
+        board.setIncentivesPool(poolAddress, incentivesConfig);
+        vm.stopBroadcast();
+
+        openBoard(network, boardAddress);
+
+        console.log("=== Incentives Pool Set ===");
+        console.log("ScriptOutput:", poolAddress);
+    }
+
+    function openBoard(string memory network, address boardAddress) public {
+        if (!isSupportedNetwork(network)) {
+            revert(string.concat("Unsupported network [", network, "] provided"));
+        }
+
+        (uint256 deployerPrivateKey,) = _loadPrivateKey(network, "deployer");
+        Signals board = Signals(boardAddress);
+
+        vm.startBroadcast(deployerPrivateKey);
+        board.setBoardOpenAt(block.timestamp);
+        vm.stopBroadcast();
     }
 }
