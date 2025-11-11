@@ -46,3 +46,4 @@ yarn-error.log*
 # vercel
 .vercel
 testnet.sh
+scripts/testnet-set-signer.sh

@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     const payload: AllowanceResponse = {
       participantId: profile.id,
       to: recipient,
-      amount: formatUnits(allowanceAmountWei, 18), //
+      amount: allowanceAmountWei.toString(),
       deadline,
       signature,
     }

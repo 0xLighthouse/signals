@@ -68,7 +68,7 @@ export type EdgeCityLoginResponse = {
 export type EdgeCityAllowance = {
   participantId: number
   to: `0x${string}`
-  amount: string
+  amount: string // amount expressed in wei
   deadline: number
   signature: `0x${string}`
 }

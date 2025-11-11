@@ -18,9 +18,11 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
+import { formatUnits } from 'viem'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useNetwork } from '@/hooks/useNetwork'
+import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { CheckCircle2, Clock3, Sparkles, Wallet2 } from 'lucide-react'
 
 type ClaimStep = 'email' | 'code' | 'review' | 'completed'
@@ -166,6 +168,11 @@ export const EdgeCityClaimDialog = () => {
   const allowanceDeadlineLabel = useMemo(() => {
     if (!allowance) return ''
     return new Date(allowance.deadline * 1000).toLocaleString()
+  }, [allowance])
+
+  const allowanceAmountLabel = useMemo(() => {
+    if (!allowance) return ''
+    return formatUnits(BigInt(allowance.amount), 18)
   }, [allowance])
 
   const restoreEdgeCitySession = useCallback(() => {
@@ -352,6 +359,17 @@ export const EdgeCityClaimDialog = () => {
 
     setState((prev) => ({ ...prev, isClaiming: true }))
     try {
+      const ensureResult = await ensureWalletNetwork({
+        walletClient,
+        network: config,
+      })
+      if (!ensureResult.success) {
+        throw new Error(
+          ensureResult.error?.message ??
+            `Switch your wallet to ${config.chain.name} and try again.`,
+        )
+      }
+
       const participantId = BigInt(profile.id)
       const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
@@ -595,9 +613,9 @@ export const EdgeCityClaimDialog = () => {
                   <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Amount (wei)
+                        Amount
                       </p>
-                      <p className="mt-1 font-mono text-sm">{allowance.amount}</p>
+                      <p className="mt-1 font-mono text-sm">{allowanceAmountLabel}</p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">

@@ -47,7 +47,7 @@ export const NETWORK_CONFIG: Record<SupportedNetworks, NetworkConfig> = {
     indexerGraphQLEndpoint: 'http://localhost:42069/graphql',
     contracts: {
       EdgeExperimentToken: {
-        address: '0x2158818709b478afff21763495f22e33d7cfccb4' as `0x${string}`,
+        address: '0x9265E5DF98c2Aa68aB89fbC68ab2404553DFa07b' as `0x${string}`,
         abi: ExperimentTokenABI,
         label: 'Edge Experiment Token',
         decimals: 18,

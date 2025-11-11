@@ -15,6 +15,7 @@ import { useNetwork } from '@/hooks/useNetwork'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import type { SupportedNetworks } from '@/config/network-types'
 import { NETWORKS, ZERO_ADDRESS } from '@/config/web3'
+import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { toast } from 'sonner'
 
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
@@ -110,11 +111,17 @@ export function NetworkSwitcherDialog({
     setNetwork(networkKey)
     resetStoresForNetworkChange()
 
-    try {
-      await walletClient?.switchChain?.({ id: networkConfig.chain.id })
-    } catch (error) {
-      console.warn('Wallet chain switch failed', error)
-      toast(`Please switch your wallet to ${networkConfig.chain.name} in your wallet`)
+    const ensureResult = await ensureWalletNetwork({
+      walletClient,
+      network: networkConfig,
+    })
+
+    if (!ensureResult.success) {
+      console.warn('Wallet chain switch failed', ensureResult.error)
+      toast(
+        ensureResult.error?.message ??
+          `Please switch your wallet to ${networkConfig.chain.name} in your wallet`,
+      )
     }
 
     onOpenChange(false)
