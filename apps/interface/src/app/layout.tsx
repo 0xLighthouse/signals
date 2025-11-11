@@ -13,6 +13,7 @@ import { SignalsProvider } from '@/contexts/SignalsContext'
 // import { IncentivesProvider } from '@/contexts/IncentivesContext'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/containers/app-sidebar'
+import { StickyFooter } from '@/components/sticky-footer'
 import { ReactNode } from 'react'
 
 const geistSans = localFont({
@@ -52,6 +53,7 @@ export default function RootLayout({
         <ThemeProvider initialTheme={theme}>
           <Web3Provider>
             <SignalsProvider>{sidebarContent}</SignalsProvider>
+            <StickyFooter />
             <Toaster />
           </Web3Provider>
         </ThemeProvider>
