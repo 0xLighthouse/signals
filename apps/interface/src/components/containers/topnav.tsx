@@ -1,7 +1,6 @@
 'use client'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectButton } from '@/components/web3/connect-button'
-import { CreateInitiativeDrawer } from '../drawers/create-initiative-drawer'
 import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
 import { Lightbulb } from 'lucide-react'
@@ -22,12 +21,10 @@ export const TopNav = () => {
           />
         </div>
         <div className="flex lg:hidden items-center gap-4">
-          {/* <CreateInitiativeDrawer /> */}
           <EdgeCityClaimDialog />
           <SidebarTrigger />
         </div>
         <div className="hidden lg:flex items-center gap-4">
-          {/* <CreateInitiativeDrawer /> */}
           <EdgeCityClaimDialog />
           <ConnectButton />
           <ThemeToggle className="" />

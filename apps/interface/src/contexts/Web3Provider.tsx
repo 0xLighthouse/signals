@@ -1,7 +1,7 @@
 'use client'
 
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
-import { base, anvil } from 'viem/chains'
+import { base, anvil, baseSepolia, arbitrumSepolia } from 'viem/chains'
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   createPublicClient,
@@ -43,6 +43,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   const { ready: privyReady } = usePrivy()
   const { ready: walletReady, wallets } = useWallets()
   const [isInitialized, setIsInitialized] = useState(false)
+
   // Subscribe to only the fields we need to avoid unnecessary re-renders
   const chain = useNetworkStore((state) => state.config.chain)
   const rpcUrl = useNetworkStore((state) => state.config.rpcUrl)
@@ -140,7 +141,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
         appearance: {
           theme: 'dark',
         },
-        supportedChains: [anvil, base],
+        supportedChains: [anvil, base, baseSepolia, arbitrumSepolia],
         defaultChain: {
           ...chain,
         },

@@ -46,7 +46,6 @@ Review the [Repository Guidelines](AGENTS.md) before proposing changes.
 To enable the Edge City residency claim flow in the interface:
 
 - `NEXT_PUBLIC_EDGE_CITY=true`
-- `NEXT_PUBLIC_EDGE_CITY_TOKEN_ADDRESS=0x...` (newly deployed `ExperimentToken`)
 - `EDGE_OS_API_KEY=...` and optionally `EDGE_OS_BASE_URL=https://api-citizen-portal.simplefi.tech`
 - `EDGE_CITY_SIGNER_PRIVATE_KEY=0x...` (server-side key used to sign claim allowances)
 - `EDGE_CITY_DEFAULT_CLAIM_AMOUNT_WEI=1000000000000000000`

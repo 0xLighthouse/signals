@@ -2,13 +2,11 @@ import { db, publicClients } from 'ponder:api'
 import { Context } from 'hono'
 import { SignalsABI } from '../../../../packages/abis'
 import { transform } from '../utils/transform'
+import { getClientByChainId } from '../utils/get-client-by-chain-id'
 
 export const getInitiatives = async (c: Context) => {
   const chainId = Number(c.req.param('chainId'))
   const address = c.req.param('address').toLowerCase() as `0x${string}`
-
-  console.log('----- chainId ---', chainId)
-  console.log('----- address ---', address)
 
   const board = await db.query.Board.findFirst({
     where: (board, { eq, and }) => and(
@@ -16,9 +14,6 @@ export const getInitiatives = async (c: Context) => {
       eq(board.contractAddress, address),
     ),
   })
-
-
-
 
   if (!board) {
     return c.json(
@@ -29,7 +24,7 @@ export const getInitiatives = async (c: Context) => {
     )
   }
 
-  const client = (publicClients as Record<string, any>)[chainId]
+  const client = getClientByChainId(publicClients, chainId)
   if (!client) {
     return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
   }

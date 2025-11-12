@@ -15,10 +15,15 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
+import { formatUnits } from 'viem'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useNetwork } from '@/hooks/useNetwork'
+import { ensureWalletNetwork } from '@/lib/wallet-network'
+import { CheckCircle2, Clock3, Sparkles, Wallet2 } from 'lucide-react'
 
 type ClaimStep = 'email' | 'code' | 'review' | 'completed'
 
@@ -33,6 +38,8 @@ type ClaimState = {
   isVerifyingCode: boolean
   isClaiming: boolean
   isLoadingAllowance: boolean
+  hasClaimed: boolean | null
+  isCheckingClaimStatus: boolean
 }
 
 const initialState: ClaimState = {
@@ -46,7 +53,16 @@ const initialState: ClaimState = {
   isVerifyingCode: false,
   isClaiming: false,
   isLoadingAllowance: false,
+  hasClaimed: null,
+  isCheckingClaimStatus: false,
 }
+
+const EDGE_CITY_TOKEN_STORAGE_KEY = 'edgeCityAccessToken'
+const EDGE_CITY_PROFILE_STORAGE_KEY = 'edgeCityProfile'
+
+const createInitialClaimState = (): ClaimState => ({
+  ...initialState,
+})
 
 const evaluateEligibility = (profile: EdgeCityProfile) => {
   if (!profile.email_validated) {
@@ -89,7 +105,7 @@ const buildClaimArgs = (
 export const EdgeCityClaimDialog = () => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
-  const { walletClient } = useWeb3()
+  const { publicClient, walletClient } = useWeb3()
   const { config } = useNetwork()
 
   const [open, setOpen] = useState(false)
@@ -106,23 +122,105 @@ export const EdgeCityClaimDialog = () => {
     isVerifyingCode,
     isClaiming,
     isLoadingAllowance,
+    hasClaimed,
+    isCheckingClaimStatus,
   } = state
+
+  const persistEdgeCitySession = useCallback((token: string, profile: EdgeCityProfile) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    try {
+      window.localStorage.setItem(EDGE_CITY_TOKEN_STORAGE_KEY, token)
+      window.localStorage.setItem(EDGE_CITY_PROFILE_STORAGE_KEY, JSON.stringify(profile))
+    } catch (error) {
+      console.error('Failed to persist Edge City session', error)
+    }
+  }, [])
+
+  const clearEdgeCitySession = useCallback((message?: string) => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(EDGE_CITY_TOKEN_STORAGE_KEY)
+        window.localStorage.removeItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+      } catch (error) {
+        console.error('Failed to clear Edge City session', error)
+      }
+    }
+    setState(createInitialClaimState())
+    if (message) {
+      toast(message)
+    }
+  }, [])
 
   const eligibility = useMemo(() => {
     if (!profile) return { eligible: false, reason: '' }
     return evaluateEligibility(profile)
   }, [profile])
 
+  const profileInitials = useMemo(() => {
+    if (!profile) return 'EC'
+    const first = profile.first_name?.[0] ?? ''
+    const last = profile.last_name?.[0] ?? profile.primary_email?.[0] ?? ''
+    const initials = `${first}${last}`.trim()
+    return initials ? initials.toUpperCase() : 'EC'
+  }, [profile])
+
+  const truncatedAddress = useMemo(() => {
+    if (!address) return ''
+    return `${address.slice(0, 6)}…${address.slice(-4)}`
+  }, [address])
+
+  const allowanceDeadlineLabel = useMemo(() => {
+    if (!allowance) return ''
+    return new Date(allowance.deadline * 1000).toLocaleString()
+  }, [allowance])
+
+  const allowanceAmountLabel = useMemo(() => {
+    if (!allowance) return ''
+    return formatUnits(BigInt(allowance.amount), 18)
+  }, [allowance])
+
+  const restoreEdgeCitySession = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const storedToken = window.localStorage.getItem(EDGE_CITY_TOKEN_STORAGE_KEY)
+    const storedProfileRaw = window.localStorage.getItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+
+    if (!storedToken || !storedProfileRaw) {
+      return
+    }
+
+    try {
+      const storedProfile = JSON.parse(storedProfileRaw) as EdgeCityProfile
+      setState((prev) => ({
+        ...prev,
+        accessToken: storedToken,
+        profile: storedProfile,
+        allowance: null,
+        step: 'review',
+        hasClaimed: null,
+        isCheckingClaimStatus: false,
+      }))
+    } catch (error) {
+      console.error('Failed to parse stored Edge City profile', error)
+      window.localStorage.removeItem(EDGE_CITY_PROFILE_STORAGE_KEY)
+    }
+  }, [])
+
   useEffect(() => {
     if (!open) {
-      setState(initialState)
+      setState(createInitialClaimState())
+      return
     }
-  }, [open])
+    restoreEdgeCitySession()
+  }, [open, restoreEdgeCitySession])
+  // Get the Edge Experiment token address from the active network configuration
+  const edgeExperimentTokenAddress = config.contracts.EdgeExperimentToken?.address
+  const edgeExperimentTokenAbi = config.contracts.EdgeExperimentToken?.abi
 
-  // Get the underlying token from the board's configuration
-  const underlyingToken = config.contracts.BoardUnderlyingToken?.address
-
-  if (!edgeCityConfig.enabled || !underlyingToken) {
+  if (!edgeCityConfig.enabled || !edgeExperimentTokenAddress) {
     return null
   }
 
@@ -136,12 +234,22 @@ export const EdgeCityClaimDialog = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ address: wallet, tokenAddress: underlyingToken }),
+          body: JSON.stringify({ address: wallet, tokenAddress: edgeExperimentTokenAddress }),
         })
 
         if (!response.ok) {
-          const { error } = (await response.json()) as { error?: string }
-          throw new Error(error ?? 'Unexpected response fetching allowance')
+          if (response.status === 401 || response.status === 403) {
+            clearEdgeCitySession('Edge City session expired. Please log in again.')
+            return
+          }
+          let errorMessage = 'Unexpected response fetching allowance'
+          try {
+            const { error } = (await response.json()) as { error?: string }
+            errorMessage = error ?? errorMessage
+          } catch (parseError) {
+            console.error('Failed to parse allowance error response', parseError)
+          }
+          throw new Error(errorMessage)
         }
 
         const payload = (await response.json()) as EdgeCityAllowance
@@ -154,7 +262,32 @@ export const EdgeCityClaimDialog = () => {
         setState((prev) => ({ ...prev, isLoadingAllowance: false }))
       }
     },
-    [underlyingToken],
+    [clearEdgeCitySession, edgeExperimentTokenAddress],
+  )
+
+  const checkClaimStatus = useCallback(
+    async (participantId: number) => {
+      if (!edgeExperimentTokenAddress || !edgeExperimentTokenAbi) {
+        return
+      }
+      setState((prev) => ({ ...prev, isCheckingClaimStatus: true }))
+      try {
+        const alreadyClaimed = await publicClient.readContract({
+          address: edgeExperimentTokenAddress,
+          abi: edgeExperimentTokenAbi,
+          functionName: 'hasClaimed',
+          args: [BigInt(participantId)],
+        })
+        setState((prev) => ({ ...prev, hasClaimed: Boolean(alreadyClaimed) }))
+      } catch (error) {
+        console.error('Failed to fetch claim status', error)
+        toast('Unable to verify claim status. Please try again.')
+        setState((prev) => ({ ...prev, hasClaimed: null }))
+      } finally {
+        setState((prev) => ({ ...prev, isCheckingClaimStatus: false }))
+      }
+    },
+    [edgeExperimentTokenAbi, edgeExperimentTokenAddress, publicClient],
   )
 
   const handleRequestCode = async () => {
@@ -217,7 +350,10 @@ export const EdgeCityClaimDialog = () => {
         profile: payload.profile,
         allowance: null,
         step: 'review',
+        hasClaimed: null,
+        isCheckingClaimStatus: false,
       }))
+      persistEdgeCitySession(payload.accessToken, payload.profile)
 
       // If a wallet is connected, trigger allowance fetch immediately
       if (address) {
@@ -257,12 +393,28 @@ export const EdgeCityClaimDialog = () => {
       return
     }
 
+    if (hasClaimed) {
+      toast('Edge City participant has already claimed their allocation')
+      return
+    }
+
     setState((prev) => ({ ...prev, isClaiming: true }))
     try {
+      const ensureResult = await ensureWalletNetwork({
+        walletClient,
+        network: config,
+      })
+      if (!ensureResult.success) {
+        throw new Error(
+          ensureResult.error?.message ??
+            `Switch your wallet to ${config.chain.name} and try again.`,
+        )
+      }
+
       const participantId = BigInt(profile.id)
       const claimArgs = buildClaimArgs(address as `0x${string}`, participantId, allowance!)
 
-      if (!underlyingToken) {
+      if (!edgeExperimentTokenAddress) {
         toast('Token address not available')
         setState((prev) => ({ ...prev, isClaiming: false }))
         return
@@ -271,7 +423,7 @@ export const EdgeCityClaimDialog = () => {
       const txHash = await walletClient.writeContract({
         chain: walletClient.chain,
         account: address,
-        address: underlyingToken as `0x${string}`,
+        address: edgeExperimentTokenAddress as `0x${string}`,
         abi: edgeCityConfig.abi,
         functionName: edgeCityConfig.claimFunction,
         args: claimArgs as unknown as readonly unknown[],
@@ -301,6 +453,12 @@ export const EdgeCityClaimDialog = () => {
       setState((prev) => ({ ...prev, isClaiming: false }))
     }
   }
+
+  useEffect(() => {
+    if (!open || !authenticated) return
+    if (!profile?.id) return
+    void checkClaimStatus(profile.id)
+  }, [authenticated, checkClaimStatus, open, profile?.id])
 
   useEffect(() => {
     if (step !== 'review') return
@@ -380,58 +538,205 @@ export const EdgeCityClaimDialog = () => {
         )
       case 'review':
         return (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 p-4 space-y-2">
-              <p className="text-sm font-semibold">
-                {profile?.first_name} {profile?.last_name}
-              </p>
-              <p className="text-sm text-muted-foreground">{profile?.primary_email}</p>
+          <div className="space-y-5">
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-start gap-4">
+                <Avatar className="h-12 w-12 border border-border">
+                  <AvatarFallback className="bg-muted text-sm font-semibold">
+                    {profileInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                  <p className="text-base font-semibold leading-tight">
+                    {profile?.first_name} {profile?.last_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{profile?.primary_email}</p>
+                </div>
+                {profile?.total_days ? (
+                  <Badge variant="secondary" className="text-[0.65rem] uppercase tracking-wide shrink-0">
+                    {profile.total_days} days in residence
+                  </Badge>
+                ) : null}
+              </div>
               {profile?.popups?.length ? (
-                <div className="text-sm">
-                  <p className="font-medium">Residencies</p>
-                  <ul className="list-disc list-inside text-muted-foreground">
+                <div className="mt-5 space-y-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Residencies
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {profile.popups.map((popup) => (
-                      <li key={popup.id}>
+                      <Badge
+                        key={popup.id}
+                        variant="outline"
+                        className="border-border bg-muted/50 text-[0.75rem] font-medium"
+                      >
                         {popup.popup_name}
-                        {popup.total_days ? ` • ${popup.total_days} days` : ''}
-                      </li>
+                        {popup.total_days ? (
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            • {popup.total_days} days
+                          </span>
+                        ) : null}
+                      </Badge>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : null}
             </div>
-            {!eligibility.eligible && eligibility.reason ? (
-              <p className="text-sm text-red-500">{eligibility.reason}</p>
-            ) : address ? (
-              <p className="text-sm text-muted-foreground">
-                Wallet {address?.slice(0, 6)}…{address?.slice(-4)} is eligible to claim tokens.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Connect a wallet to continue.</p>
-            )}
-            {address ? (
-              allowance ? (
-                <p className="text-sm text-muted-foreground">
-                  Allowance ready for {allowance.to.slice(0, 6)}…{allowance.to.slice(-4)} — amount{' '}
-                  {allowance.amount} wei, expires{' '}
-                  {new Date(allowance.deadline * 1000).toLocaleString()}.
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {isLoadingAllowance
-                    ? 'Loading claim allowance…'
-                    : 'Fetching claim allowance for this wallet'}
-                </p>
-              )
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Connect a wallet to fetch your claim allowance.
-              </p>
-            )}
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                    <Wallet2 className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Connected wallet
+                    </p>
+                    <p className="text-sm font-medium truncate">
+                      {address ? truncatedAddress : 'No wallet connected'}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      address && eligibility.eligible
+                        ? 'secondary'
+                        : !address || eligibility.eligible
+                          ? 'outline'
+                          : 'destructive'
+                    }
+                    className="shrink-0"
+                  >
+                    {address
+                      ? eligibility.eligible
+                        ? 'Eligible'
+                        : 'Action needed'
+                      : 'Connect'}
+                  </Badge>
+                </div>
+                {(address || eligibility.reason) && (
+                  <p
+                    className={`mt-3 text-sm ${
+                      !eligibility.eligible && eligibility.reason ? 'text-destructive' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {!address
+                      ? 'Connect a wallet to continue.'
+                      : !eligibility.eligible && eligibility.reason
+                        ? eligibility.reason
+                        : `Wallet ${truncatedAddress} is eligible to claim tokens.`}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                    <Sparkles className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Claim allowance
+                    </p>
+                    <p className="text-sm font-medium">
+                      {allowance ? 'Ready to claim' : address ? 'Pending signature' : 'Awaiting wallet'}
+                    </p>
+                  </div>
+                  <Badge variant={allowance ? 'secondary' : 'outline'} className="shrink-0">
+                    {allowance ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Ready
+                      </span>
+                    ) : isLoadingAllowance ? (
+                      <span className="flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        Loading
+                      </span>
+                    ) : (
+                      'Not ready'
+                    )}
+                  </Badge>
+                </div>
+                {allowance ? (
+                  <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Amount
+                      </p>
+                      <p className="mt-1 font-mono text-sm">{allowanceAmountLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Expires
+                      </p>
+                      <p className="mt-1 text-sm font-medium">{allowanceDeadlineLabel}</p>
+                    </div>
+                  </div>
+               ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {address
+                      ? isLoadingAllowance
+                        ? 'Loading claim allowance…'
+                        : 'Fetching claim allowance for this wallet.'
+                      : 'Connect a wallet to fetch your claim allowance.'}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Claim status
+                    </p>
+                    <p className="text-sm font-medium">
+                      {isCheckingClaimStatus
+                        ? 'Checking claim status…'
+                        : hasClaimed
+                          ? 'Already claimed'
+                          : 'Not claimed yet'}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      isCheckingClaimStatus ? 'outline' : hasClaimed ? 'destructive' : 'secondary'
+                    }
+                    className="shrink-0"
+                  >
+                    {isCheckingClaimStatus ? (
+                      <span className="flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        Checking
+                      </span>
+                    ) : hasClaimed ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Claimed
+                      </span>
+                    ) : (
+                      'Available'
+                    )}
+                  </Badge>
+                </div>
+                {hasClaimed ? (
+                  <p className="mt-3 text-sm text-destructive">
+                    This Edge City participant has already claimed their allocation.
+                  </p>
+                ) : null}
+              </div>
+            </div>
             <Button
               className="w-full"
               onClick={handleClaim}
-              disabled={!eligibility.eligible || !address || !allowance || isLoadingAllowance}
+              disabled={
+                !eligibility.eligible ||
+                !address ||
+                !allowance ||
+                isLoadingAllowance ||
+                isCheckingClaimStatus ||
+                Boolean(hasClaimed)
+              }
               isLoading={isClaiming}
             >
               Claim tokens
@@ -440,10 +745,16 @@ export const EdgeCityClaimDialog = () => {
         )
       case 'completed':
         return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Claim transaction submitted. Tokens will appear once the transaction confirms.
-            </p>
+          <div className="space-y-5">
+            <div className="rounded-xl border border-border bg-card p-5 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-500" />
+              </div>
+              <p className="text-sm font-medium">Transaction submitted</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Tokens will appear once the transaction confirms.
+              </p>
+            </div>
             <Button className="w-full" onClick={() => setOpen(false)}>
               Close
             </Button>
@@ -461,13 +772,12 @@ export const EdgeCityClaimDialog = () => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edge City Residency Claim</DialogTitle>
+          <DialogTitle>Signals d/acc Governance experiment</DialogTitle>
           <DialogDescription>
-            Authenticate your residency to unlock token rewards from the Edge City program.
+            Authenticate with your Edge city account to claim tokens to participate.
           </DialogDescription>
         </DialogHeader>
         {renderContent()}
-        <DialogFooter />
       </DialogContent>
     </Dialog>
   )

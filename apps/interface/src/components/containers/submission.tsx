@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useNetwork } from '@/hooks/useNetwork'
@@ -17,7 +17,7 @@ export const Submission = () => {
     underlyingSymbol: symbol,
     underlyingTotalSupply: totalSupply,
     underlyingBalance: balance,
-  } = useBoard()
+  } = useSignals()
   const { publicClient, walletClient } = useWeb3()
   const { config } = useNetwork()
 

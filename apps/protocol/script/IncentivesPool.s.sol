@@ -69,7 +69,13 @@ contract IncentivesPoolScript is SharedScriptBase {
         IERC20(tokenAddress).transfer(to, amount);
         vm.stopBroadcast();
 
-        // console.log("ScriptOutput:", amount);
+        console.log("=== Incentives Pool Funded ===");
+        console.log("Token Address:", tokenAddress);
+        console.log("From Label:", from);
+        console.log("Recipient:", to);
+        console.log("Amount:", amount);
+
+        console.log("ScriptOutput:", amount);
     }
 
     /**

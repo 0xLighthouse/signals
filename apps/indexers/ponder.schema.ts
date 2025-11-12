@@ -1,5 +1,6 @@
 import { onchainTable, relations } from 'ponder'
 
+
 /**
  * Notes:
  *  - The variable name eventually becomes the GraphQL type name so prefer PascalCase.
@@ -35,9 +36,25 @@ export const Board = onchainTable('boards', (t) => ({
   // --- attributes
   contractAddress: t.hex().notNull(),
   owner: t.hex().notNull(),
-  proposalThreshold: t.bigint().notNull(),
+  title: t.text().notNull(),
+  body: t.text().notNull(),
+  proposerRequirements: t.json().$type<{
+    eligibilityType: number
+    minBalance: string
+    minHoldingDuration: string
+    minLockAmount: string
+  }>().notNull(),
+  participantRequirements: t.json().$type<{
+    eligibilityType: number
+    minBalance: string
+    minHoldingDuration: string
+    minLockAmount: string
+  }>().notNull(),
   acceptanceThreshold: t.bigint().notNull(),
   underlyingToken: t.hex().notNull(),
+  lockInterval: t.integer().notNull(),
+  decayCurveType: t.integer().notNull(),
+  decayCurveParameters: t.json().$type<string[]>().notNull(),
 }))
 
 export const Transfer = onchainTable('transfers', (t) => ({

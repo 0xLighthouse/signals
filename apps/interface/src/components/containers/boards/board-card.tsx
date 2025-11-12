@@ -9,6 +9,8 @@ import { useNetworkStore } from '@/stores/useNetworkStore'
 type BoardSummary = {
   contractAddress: `0x${string}`
   owner?: `0x${string}`
+  title?: string
+  body?: string
   proposalThreshold?: string
   acceptanceThreshold?: string
   underlyingToken?: `0x${string}`
@@ -29,6 +31,9 @@ export const BoardCard: React.FC<Props> = ({ board }) => {
     router.push(boardUrl)
   }
 
+  const ownerAddr = (board.owner ??
+    ('0x0000000000000000000000000000000000000000' as `0x${string}`)) as `0x${string}`
+
   return (
     <Card
       onClick={handleCardClick}
@@ -38,22 +43,25 @@ export const BoardCard: React.FC<Props> = ({ board }) => {
     >
       <div className="flex flex-col md:flex-row w-full">
         <CardHeader className="md:w-3/5 p-6 pb-0">
-          <CardTitle>Some Board name</CardTitle>
+          <CardTitle>{board.title ? board.title : shortAddress(board.contractAddress)}</CardTitle>
           <CardDescription className="flex items-center text-xs">
             <span className="hidden sm:block">Created by</span>
             <Avatar className="sm:ml-1 mr-1">
-              <AvatarImage src={resolveAvatar(board.owner)} alt={board.owner} />
+              <AvatarImage src={resolveAvatar(ownerAddr)} alt={ownerAddr} />
             </Avatar>
-            {board.owner}, {timeAgoWords(board.createdAtTimestamp ?? 0)}
+            {ownerAddr},{' '}
+            {timeAgoWords(board.createdAtTimestamp ?? 0)}
           </CardDescription>
           <div>
-            <p className="text-body line-clamp-4 break-words">Some board description</p>
+            <p className="text-body line-clamp-4 break-words">
+              {board.body ? board.body : 'No description provided'}
+            </p>
           </div>
         </CardHeader>
       </div>
       <div className="flex justify-between p-6">
         <CardDescription className="text-xs">
-          Last activity,&nbsp;{timeAgoWords(board.updatedAt ?? 0)}
+          Last activity, {timeAgoWords(board.updatedAt ?? board.createdAtTimestamp ?? 0)}
         </CardDescription>
       </div>
     </Card>

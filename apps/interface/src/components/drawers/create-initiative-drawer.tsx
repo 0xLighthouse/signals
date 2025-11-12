@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { CircleAlert, PlusIcon, Trash2 } from 'lucide-react'
 import { useWeb3 } from '@/contexts/Web3Provider'
@@ -17,8 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { useSignals } from '@/contexts/SignalsContext'
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
@@ -42,8 +43,9 @@ export function CreateInitiativeDrawer() {
     underlyingSymbol: symbol,
     fetchUnderlyingMetadata: fetchContractMetadata,
     boardAddress,
-  } = useBoard()
-  const { formatter, board } = useSignals()
+    formatter,
+    board,
+  } = useSignals()
   const { address } = useAccount()
   const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
@@ -158,16 +160,15 @@ export function CreateInitiativeDrawer() {
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
+      const metadata = {
+        title,
+        body: description,
+        attachments: preparedAttachments,
+      }
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount
-        ? [
-            title,
-            description,
-            parseUnits(String(amount), underlyingContract?.decimals ?? 18),
-            duration,
-            preparedAttachments,
-          ]
-        : [title, description, preparedAttachments]
+        ? [metadata, parseUnits(String(amount), underlyingContract?.decimals ?? 18), duration]
+        : [metadata]
 
       const { request } = await publicClient.simulateContract({
         account: address,
@@ -242,9 +243,7 @@ export function CreateInitiativeDrawer() {
         <div className="overflow-y-auto flex p-8 space-x-8">
           <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
-              <DrawerTitle>
-                <Typography variant="h2">Propose a new initiative</Typography>
-              </DrawerTitle>
+              <DrawerTitle>Propose a new initiative</DrawerTitle>
             </DrawerHeader>
 
             {!board.meetsThreshold ? (

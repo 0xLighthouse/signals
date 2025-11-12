@@ -1,6 +1,9 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { SignalsABI } from '../../../packages/abis'
+import { IAuthorizer } from '../../../packages/abis/interfaces'
+import { replaceBigInts } from "@ponder/utils";
+
 
 ponder.on('ExperimentTokenFactory:TokenDeployed', async ({ event, context }) => {
   // Persist newly deployed token metadata
@@ -127,14 +130,22 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
 })
 
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
-  /**
-   * TODO: Patch additional board metadata
-   */
-  const proposalThreshold: bigint = (await context.client.readContract({
+
+  const proposerRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
-    functionName: 'proposalCap',
-  })) as bigint
+    functionName: 'getProposerRequirements',
+  })) as IAuthorizer.ParticipantRequirements
+
+
+  const participantRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'getParticipantRequirements',
+  })) as IAuthorizer.ParticipantRequirements
+
+  console.log('proposerRequirements', proposerRequirements)
+  console.log('participantRequirements', participantRequirements)
 
   const acceptanceThreshold: bigint = (await context.client.readContract({
     address: event.args.board,
@@ -148,6 +159,28 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'underlyingToken',
   })) as `0x${string}`
 
+  const lockInterval: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'lockInterval',
+  })) as unknown as number
+
+  const decayCurveType: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveType',
+  })) as unknown as number
+
+  const decayCurveParameters: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveParameters',
+    args: [0n] as const,
+  })) as unknown as number
+
+
+  console.log('decayCurveParameters', decayCurveParameters)
+
   await context.db.insert(schema.Board).values({
     id: event.id,
     chainId: context.chain.id,
@@ -155,8 +188,14 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
     contractAddress: event.args.board,
     owner: event.args.owner,
-    proposalThreshold: proposalThreshold as bigint,
-    acceptanceThreshold: acceptanceThreshold as bigint,
+    title: event.args.boardMetadata.title,
+    body: event.args.boardMetadata.body,
+    proposerRequirements: replaceBigInts(proposerRequirements, (x) => x.toString()),
+    participantRequirements: replaceBigInts(participantRequirements, (x) => x.toString()),
+    acceptanceThreshold: acceptanceThreshold,
     underlyingToken: underlyingToken as `0x${string}`,
+    lockInterval: lockInterval,
+    decayCurveType: decayCurveType,
+    decayCurveParameters: [decayCurveParameters.toString()],
   })
 })

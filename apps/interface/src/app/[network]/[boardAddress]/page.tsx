@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getNetworkFromSlug } from '@/lib/routing'
 import { PageLayout } from '@/components/containers/page-layout'
-import { StatsBar } from '@/components/containers/stats-bar'
+import { BoardConfig } from '@/components/containers/board-config'
 import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
 
 interface PageProps {
@@ -24,8 +24,8 @@ export default async function BoardPage({ params }: PageProps) {
 
   return (
     <PageLayout>
-      {/* <StatsBar /> */}
-      <InitiativesList boardAddress={boardAddress} />
+      <BoardConfig />
+      <InitiativesList boardAddress={boardAddress as `0x${string}`} />
     </PageLayout>
   )
 }
