@@ -78,15 +78,59 @@ Defines who can support initiatives:
 
 ```solidity
 struct ParticipantRequirements {
-    EligibilityType eligibilityType;  // None, MinBalance, or MinBalanceAndDuration
-    uint256 minBalance;               // Min tokens to hold (if applicable)
-    uint256 minHoldingDuration;       // Min blocks to hold (if applicable)
+    uint256 minBalance;         // User must hold this many tokens right now
+    uint256 minHoldingDuration; // User must have held tokens for this duration (requires ERC20Votes)
+    uint256 minLockAmount;      // Min tokens to lock when supporting (must be ≤ minBalance)
 }
 ```
 
-Same eligibility types as proposers, but no threshold (participants choose lock amount).
+**Field Descriptions:**
+- **minBalance**: User must currently hold this many tokens to be eligible to support
+- **minHoldingDuration**: User must have held ≥ minBalance tokens for this many blocks in the past. Only works with ERC20Votes tokens that support checkpoints.
+- **minLockAmount**: Minimum amount user must lock when supporting. Must be equal to or less than minBalance.
+
+**Eligibility Patterns** (inferred from field values):
+
+#### No Requirements (Most Permissive)
+Anyone can support with any amount:
+
+```solidity
+ParticipantRequirements({
+    minBalance: 0,
+    minHoldingDuration: 0,
+    minLockAmount: 0
+})
+```
+
+#### Balance Requirement Only
+Users must hold a minimum balance:
+
+```solidity
+ParticipantRequirements({
+    minBalance: 10_000 * 1e18,    // Must hold 10k tokens
+    minHoldingDuration: 0,
+    minLockAmount: 1_000 * 1e18   // Must lock at least 1k tokens
+})
+```
 
 **Validations:**
-- If `MinBalance`: `minBalance` must be > 0
-- If `MinBalanceAndDuration`: `minBalance` and `minHoldingDuration` must be > 0, requires ERC20Votes token
+- `minBalance` must be > 0
+- `minLockAmount` must be ≤ minBalance
+
+#### Balance + Duration Requirement (Most Restrictive)
+Users must have held tokens for a minimum duration:
+
+```solidity
+ParticipantRequirements({
+    minBalance: 10_000 * 1e18,
+    minHoldingDuration: 50400,    // blocks (~7 days at 12s/block)
+    minLockAmount: 1_000 * 1e18
+})
+```
+
+**Validations:**
+- `minBalance` must be > 0
+- `minHoldingDuration` must be > 0
+- `minLockAmount` must be ≤ minBalance
+- **Requires ERC20Votes tokens** - Must implement the `IVotes` interface with checkpoint functionality
 
