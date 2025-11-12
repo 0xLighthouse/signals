@@ -160,16 +160,19 @@ export function CreateInitiativeDrawer() {
       setIsSubmitting(true)
       const nonce = await publicClient.getTransactionCount({ address })
 
+      const metadata = {
+        title,
+        body: description,
+        attachments: preparedAttachments,
+      }
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount
         ? [
-            title,
-            description,
+            metadata,
             parseUnits(String(amount), underlyingContract?.decimals ?? 18),
             duration,
-            preparedAttachments,
           ]
-        : [title, description, preparedAttachments]
+        : [metadata]
 
       const { request } = await publicClient.simulateContract({
         account: address,
