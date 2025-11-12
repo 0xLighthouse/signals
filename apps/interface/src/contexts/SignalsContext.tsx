@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getContract } from 'viem'
 
@@ -29,8 +22,46 @@ interface UnderlyingMetadata {
   balance: number | null
 }
 
+type BoardRequirement = {
+  eligibilityType?: number | null
+  minBalance?: string | null
+  minHoldingDuration?: string | null
+  minLockAmount?: string | null
+}
+
+type BoardByAddressQueryItem = {
+  chainId?: number | string | null
+  blockTimestamp?: string | number | null
+  transactionHash?: string | null
+  contractAddress?: string | null
+  owner?: string | null
+  title?: string | null
+  body?: string | null
+  proposerRequirements?: BoardRequirement | null
+  participantRequirements?: BoardRequirement | null
+  acceptanceThreshold?: string | null
+  underlyingToken?: string | null
+  lockInterval?: string | number | null
+  decayCurveType?: string | number | null
+  decayCurveParameters?: Array<string | number | null> | null
+}
+
+type BoardByAddressQueryResponse = {
+  data?: {
+    boards?: {
+      items?: BoardByAddressQueryItem[]
+    }
+  }
+}
+
 export interface BoardMetadata {
+  chainId: number | null
+  blockTimestamp: number | null
+  transactionHash: string | null
+  contractAddress: `0x${string}` | null
+  owner: `0x${string}` | null
   name: string | null
+  body: string | null
   symbol: string | null
   initiativesCount: number | null
   proposalThreshold: number | null
@@ -39,6 +70,9 @@ export interface BoardMetadata {
   lockInterval: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
+  proposerRequirements: BoardRequirement | null
+  participantRequirements: BoardRequirement | null
+  underlyingToken: `0x${string}` | null
 }
 
 export interface SignalsContextValue {
@@ -58,7 +92,13 @@ export interface SignalsContextValue {
 }
 
 const initialBoard: Omit<BoardMetadata, 'meetsThreshold'> = {
+  chainId: null,
+  blockTimestamp: null,
+  transactionHash: null,
+  contractAddress: null,
+  owner: null,
   name: null,
+  body: null,
   symbol: null,
   initiativesCount: null,
   proposalThreshold: null,
@@ -66,6 +106,9 @@ const initialBoard: Omit<BoardMetadata, 'meetsThreshold'> = {
   lockInterval: null,
   decayCurveType: null,
   decayCurveParameters: null,
+  proposerRequirements: null,
+  participantRequirements: null,
+  underlyingToken: null,
 }
 
 const initialUnderlying: UnderlyingMetadata = {
@@ -93,9 +136,7 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
     : (params?.boardAddress as string | undefined)
 
   const network = networkSlug ? getNetworkFromSlug(networkSlug) : null
-  const boardAddress = boardAddressParam
-    ? (boardAddressParam.toLowerCase() as `0x${string}`)
-    : null
+  const boardAddress = boardAddressParam ? (boardAddressParam.toLowerCase() as `0x${string}`) : null
 
   const [boardState, setBoardState] = useState(initialBoard)
   const [underlying, setUnderlying] = useState<UnderlyingMetadata>(initialUnderlying)
@@ -121,7 +162,7 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
-    const toNumber = (value?: string | null): number | null => {
+    const toNumber = (value?: string | number | null): number | null => {
       if (value == null) return null
       try {
         return Number(BigInt(value))
@@ -130,15 +171,43 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    const toNumberArray = (values?: Array<string | number | null> | null): number[] | null => {
+      if (!values || values.length === 0) return null
+
+      const parsed = values
+        .map((value) => {
+          if (value == null) return null
+          try {
+            return Number(BigInt(value))
+          } catch {
+            const asNumber = Number(value)
+            return Number.isNaN(asNumber) ? null : asNumber
+          }
+        })
+        .filter((value): value is number => value != null)
+
+      return parsed.length > 0 ? parsed : null
+    }
+
     try {
       const query = `
         query BoardByAddress($chainId: Int!, $contractAddress: String!) {
           boards(where: { chainId: $chainId, contractAddress: $contractAddress }) {
             items {
+              chainId
+              blockTimestamp
+              transactionHash
+              contractAddress
+              owner
               title
               proposerRequirements
+              participantRequirements
               acceptanceThreshold
+              lockInterval
+              underlyingToken
               body
+              decayCurveType
+              decayCurveParameters
             }
           }
         }
@@ -163,19 +232,7 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(`GraphQL request failed: ${resp.status} ${resp.statusText}`)
       }
 
-      const result: {
-        data?: {
-          boards?: {
-            items?: Array<{
-              title?: string | null
-              proposerRequirements?: {
-                minBalance?: string | null
-              } | null
-              acceptanceThreshold?: string | null
-            }>
-          }
-        }
-      } = await resp.json()
+      const result: BoardByAddressQueryResponse = await resp.json()
 
       const boardFromIndexer = result.data?.boards?.items?.[0]
       if (!boardFromIndexer) {
@@ -184,15 +241,29 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setBoardState({
+        chainId: toNumber(boardFromIndexer.chainId),
+        blockTimestamp: toNumber(boardFromIndexer.blockTimestamp),
+        transactionHash: boardFromIndexer.transactionHash ?? null,
+        contractAddress: boardFromIndexer.contractAddress
+          ? (boardFromIndexer.contractAddress.toLowerCase() as `0x${string}`)
+          : null,
+        owner: boardFromIndexer.owner
+          ? (boardFromIndexer.owner.toLowerCase() as `0x${string}`)
+          : null,
         name: boardFromIndexer.title ?? null,
+        body: boardFromIndexer.body ?? null,
         symbol: null,
         initiativesCount: null,
         proposalThreshold: toNumber(boardFromIndexer.proposerRequirements?.minBalance),
         acceptanceThreshold: toNumber(boardFromIndexer.acceptanceThreshold),
-        lockInterval: null,
-        decayCurveType: null,
-        decayCurveParameters: null,
-        meetsThreshold: false,
+        lockInterval: toNumber(boardFromIndexer.lockInterval),
+        decayCurveType: toNumber(boardFromIndexer.decayCurveType),
+        decayCurveParameters: toNumberArray(boardFromIndexer.decayCurveParameters),
+        proposerRequirements: boardFromIndexer.proposerRequirements ?? null,
+        participantRequirements: boardFromIndexer.participantRequirements ?? null,
+        underlyingToken: boardFromIndexer.underlyingToken
+          ? (boardFromIndexer.underlyingToken.toLowerCase() as `0x${string}`)
+          : null,
       })
     } catch (error) {
       console.error('Error fetching board metadata from indexer:', error)
