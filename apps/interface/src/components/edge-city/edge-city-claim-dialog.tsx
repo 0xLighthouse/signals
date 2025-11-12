@@ -38,6 +38,8 @@ type ClaimState = {
   isVerifyingCode: boolean
   isClaiming: boolean
   isLoadingAllowance: boolean
+  hasClaimed: boolean | null
+  isCheckingClaimStatus: boolean
 }
 
 const initialState: ClaimState = {
@@ -51,6 +53,8 @@ const initialState: ClaimState = {
   isVerifyingCode: false,
   isClaiming: false,
   isLoadingAllowance: false,
+  hasClaimed: null,
+  isCheckingClaimStatus: false,
 }
 
 const EDGE_CITY_TOKEN_STORAGE_KEY = 'edgeCityAccessToken'
@@ -101,7 +105,7 @@ const buildClaimArgs = (
 export const EdgeCityClaimDialog = () => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
-  const { walletClient } = useWeb3()
+  const { publicClient, walletClient } = useWeb3()
   const { config } = useNetwork()
 
   const [open, setOpen] = useState(false)
@@ -118,6 +122,8 @@ export const EdgeCityClaimDialog = () => {
     isVerifyingCode,
     isClaiming,
     isLoadingAllowance,
+    hasClaimed,
+    isCheckingClaimStatus,
   } = state
 
   const persistEdgeCitySession = useCallback((token: string, profile: EdgeCityProfile) => {
@@ -194,6 +200,8 @@ export const EdgeCityClaimDialog = () => {
         profile: storedProfile,
         allowance: null,
         step: 'review',
+        hasClaimed: null,
+        isCheckingClaimStatus: false,
       }))
     } catch (error) {
       console.error('Failed to parse stored Edge City profile', error)
@@ -210,6 +218,7 @@ export const EdgeCityClaimDialog = () => {
   }, [open, restoreEdgeCitySession])
   // Get the Edge Experiment token address from the active network configuration
   const edgeExperimentTokenAddress = config.contracts.EdgeExperimentToken?.address
+  const edgeExperimentTokenAbi = config.contracts.EdgeExperimentToken?.abi
 
   if (!edgeCityConfig.enabled || !edgeExperimentTokenAddress) {
     return null
@@ -254,6 +263,31 @@ export const EdgeCityClaimDialog = () => {
       }
     },
     [clearEdgeCitySession, edgeExperimentTokenAddress],
+  )
+
+  const checkClaimStatus = useCallback(
+    async (participantId: number) => {
+      if (!edgeExperimentTokenAddress || !edgeExperimentTokenAbi) {
+        return
+      }
+      setState((prev) => ({ ...prev, isCheckingClaimStatus: true }))
+      try {
+        const alreadyClaimed = await publicClient.readContract({
+          address: edgeExperimentTokenAddress,
+          abi: edgeExperimentTokenAbi,
+          functionName: 'hasClaimed',
+          args: [BigInt(participantId)],
+        })
+        setState((prev) => ({ ...prev, hasClaimed: Boolean(alreadyClaimed) }))
+      } catch (error) {
+        console.error('Failed to fetch claim status', error)
+        toast('Unable to verify claim status. Please try again.')
+        setState((prev) => ({ ...prev, hasClaimed: null }))
+      } finally {
+        setState((prev) => ({ ...prev, isCheckingClaimStatus: false }))
+      }
+    },
+    [edgeExperimentTokenAbi, edgeExperimentTokenAddress, publicClient],
   )
 
   const handleRequestCode = async () => {
@@ -316,6 +350,8 @@ export const EdgeCityClaimDialog = () => {
         profile: payload.profile,
         allowance: null,
         step: 'review',
+        hasClaimed: null,
+        isCheckingClaimStatus: false,
       }))
       persistEdgeCitySession(payload.accessToken, payload.profile)
 
@@ -354,6 +390,11 @@ export const EdgeCityClaimDialog = () => {
 
     if (!allowance) {
       toast('No claim allowance available for this participant')
+      return
+    }
+
+    if (hasClaimed) {
+      toast('Edge City participant has already claimed their allocation')
       return
     }
 
@@ -412,6 +453,12 @@ export const EdgeCityClaimDialog = () => {
       setState((prev) => ({ ...prev, isClaiming: false }))
     }
   }
+
+  useEffect(() => {
+    if (!open || !authenticated) return
+    if (!profile?.id) return
+    void checkClaimStatus(profile.id)
+  }, [authenticated, checkClaimStatus, open, profile?.id])
 
   useEffect(() => {
     if (step !== 'review') return
@@ -624,7 +671,7 @@ export const EdgeCityClaimDialog = () => {
                       <p className="mt-1 text-sm font-medium">{allowanceDeadlineLabel}</p>
                     </div>
                   </div>
-                ) : (
+               ) : (
                   <p className="mt-3 text-sm text-muted-foreground">
                     {address
                       ? isLoadingAllowance
@@ -634,11 +681,62 @@ export const EdgeCityClaimDialog = () => {
                   </p>
                 )}
               </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Claim status
+                    </p>
+                    <p className="text-sm font-medium">
+                      {isCheckingClaimStatus
+                        ? 'Checking claim status…'
+                        : hasClaimed
+                          ? 'Already claimed'
+                          : 'Not claimed yet'}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      isCheckingClaimStatus ? 'outline' : hasClaimed ? 'destructive' : 'secondary'
+                    }
+                    className="shrink-0"
+                  >
+                    {isCheckingClaimStatus ? (
+                      <span className="flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        Checking
+                      </span>
+                    ) : hasClaimed ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Claimed
+                      </span>
+                    ) : (
+                      'Available'
+                    )}
+                  </Badge>
+                </div>
+                {hasClaimed ? (
+                  <p className="mt-3 text-sm text-destructive">
+                    This Edge City participant has already claimed their allocation.
+                  </p>
+                ) : null}
+              </div>
             </div>
             <Button
               className="w-full"
               onClick={handleClaim}
-              disabled={!eligibility.eligible || !address || !allowance || isLoadingAllowance}
+              disabled={
+                !eligibility.eligible ||
+                !address ||
+                !allowance ||
+                isLoadingAllowance ||
+                isCheckingClaimStatus ||
+                Boolean(hasClaimed)
+              }
               isLoading={isClaiming}
             >
               Claim tokens

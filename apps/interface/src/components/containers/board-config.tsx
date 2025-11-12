@@ -75,13 +75,13 @@ export const BoardConfig = () => {
 
   const boardTitle = board.name ?? 'Untitled board'
   const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
-  const networkLabel = network ? NETWORKS[network]?.chain.name ?? network : 'Unknown network'
+  const networkLabel = network ? (NETWORKS[network]?.chain.name ?? network) : 'Unknown network'
   const proposalThreshold = withSymbol(formatTokenAmount(board.proposalThreshold))
   const acceptanceThreshold = withSymbol(formatTokenAmount(board.acceptanceThreshold))
   const lockInterval = formatLockInterval(board.lockInterval)
   const decayCurve =
     board.decayCurveType != null
-      ? DECAY_CURVE_LABELS[board.decayCurveType] ?? 'Custom curve'
+      ? (DECAY_CURVE_LABELS[board.decayCurveType] ?? 'Custom curve')
       : STUB_DECAY_LABEL
 
   const totalSupply = withSymbol(formatTokenAmount(underlyingTotalSupply))
@@ -141,7 +141,7 @@ export const BoardConfig = () => {
         ))}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      {/* <div className="mt-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Token configuration
         </p>
@@ -155,7 +155,7 @@ export const BoardConfig = () => {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </section>
   )
 }

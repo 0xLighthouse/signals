@@ -5,6 +5,7 @@ import { Context } from 'hono'
 
 import { transform } from '../utils/transform'
 import { SignalsABI } from '../../../../packages/abis'
+import { getClientByChainId } from '../utils/get-client-by-chain-id'
 
 /**
  * @route GET /bonds/:chainId/:address/:supporter
@@ -25,7 +26,7 @@ export const getLocks = async (c: Context) => {
     },
   })
 
-  const client = (publicClients as Record<string, any>)[chainId]
+  const client = getClientByChainId(Number(chainId))
   if (!client) {
     return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
   }

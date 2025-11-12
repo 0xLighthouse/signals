@@ -2,6 +2,7 @@ import { db, publicClients } from 'ponder:api'
 import { Context } from 'hono'
 import { SignalsABI } from '../../../../packages/abis'
 import { transform } from '../utils/transform'
+import { getClientByChainId } from '../utils/get-client-by-chain-id'
 
 export const getInitiatives = async (c: Context) => {
   const chainId = Number(c.req.param('chainId'))
@@ -29,7 +30,7 @@ export const getInitiatives = async (c: Context) => {
     )
   }
 
-  const client = (publicClients as Record<string, any>)[chainId]
+  const client = getClientByChainId(publicClients, chainId)
   if (!client) {
     return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
   }

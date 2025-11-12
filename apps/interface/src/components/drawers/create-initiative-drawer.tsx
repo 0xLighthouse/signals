@@ -168,10 +168,10 @@ export function CreateInitiativeDrawer() {
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount
         ? [
-            metadata,
-            parseUnits(String(amount), underlyingContract?.decimals ?? 18),
-            duration,
-          ]
+          metadata,
+          parseUnits(String(amount), underlyingContract?.decimals ?? 18),
+          duration,
+        ]
         : [metadata]
 
       const { request } = await publicClient.simulateContract({
@@ -248,7 +248,7 @@ export function CreateInitiativeDrawer() {
           <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
               <DrawerTitle>
-                <Typography variant="h2">Propose a new initiative</Typography>
+                <Typography variant="h3">Propose a new initiative</Typography>
               </DrawerTitle>
             </DrawerHeader>
 
