@@ -3,23 +3,18 @@
 pragma solidity ^0.8.24;
 
 interface IAuthorizer {
-    enum EligibilityType {
-        None, // No requirements
-        MinBalance, // Requires minimum token balance
-        MinBalanceAndDuration // Requires min balance held for min duration
-
-    }
-
     /**
      * @notice Requirements for who can participate (support initiatives)
+     * @dev Eligibility type is inferred from field values:
+     *      - minBalance == 0: No balance requirements
+     *      - minBalance > 0 && minHoldingDuration == 0: Balance-only requirement
+     *      - minBalance > 0 && minHoldingDuration > 0: Balance + duration requirement
      *
-     * @param eligibilityType Type of eligibility check (None, MinBalance, MinBalanceAndDuration)
      * @param minBalance Minimum token balance required to be eligible
-     * @param minHoldingDuration Minimum blocks tokens must be held (for MinBalanceAndDuration)
+     * @param minHoldingDuration Minimum blocks tokens must be held
      * @param minLockAmount Minimum tokens that must be locked
      */
     struct ParticipantRequirements {
-        EligibilityType eligibilityType;
         uint256 minBalance;
         uint256 minHoldingDuration;
         uint256 minLockAmount;

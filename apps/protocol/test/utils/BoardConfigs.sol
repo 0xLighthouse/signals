@@ -35,14 +35,12 @@ library BoardConfigs {
             decayCurveParameters: new uint256[](1),
             inactivityTimeout: 60 days, // 60 days
             proposerRequirements: IAuthorizer.ParticipantRequirements({
-                eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                 minBalance: 50_000 ether, // 50k tokens to propose,
-                minHoldingDuration: 0,
+                minHoldingDuration: 0, // Balance-only requirement
                 minLockAmount: 0
             }),
             supporterRequirements: IAuthorizer.ParticipantRequirements({
-                eligibilityType: IAuthorizer.EligibilityType.None,
-                minBalance: 0,
+                minBalance: 0, // No balance requirement
                 minHoldingDuration: 0,
                 minLockAmount: 0
             }),
@@ -78,14 +76,12 @@ library BoardConfigs {
             decayCurveParameters: new uint256[](7e17), // 70% decay rate
             inactivityTimeout: 3 days, // 60 days
             proposerRequirements: IAuthorizer.ParticipantRequirements({
-                eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                 minBalance: 10_000 ether,
-                minHoldingDuration: 0,
+                minHoldingDuration: 0, // Balance-only requirement
                 minLockAmount: 10_000 ether
             }),
             supporterRequirements: IAuthorizer.ParticipantRequirements({
-                eligibilityType: IAuthorizer.EligibilityType.None,
-                minBalance: 0,
+                minBalance: 0, // No balance requirement
                 minHoldingDuration: 0,
                 minLockAmount: 0
             }),
