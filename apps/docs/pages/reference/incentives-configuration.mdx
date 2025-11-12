@@ -163,9 +163,9 @@ ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeploym
         threshold: 50_000 * 1e18
     }),
     participantRequirements: ParticipantRequirements({
-        eligibilityType: EligibilityType.None,
         minBalance: 0,
-        minHoldingDuration: 0
+        minHoldingDuration: 0,
+        minLockAmount: 0
     }),
     releaseLockDuration: 0,
     boardOpenAt: block.timestamp + 1 days  // Opens in 1 day
