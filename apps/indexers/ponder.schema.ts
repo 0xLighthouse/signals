@@ -52,6 +52,9 @@ export const Board = onchainTable('boards', (t) => ({
   }>().notNull(),
   acceptanceThreshold: t.bigint().notNull(),
   underlyingToken: t.hex().notNull(),
+  lockInterval: t.integer().notNull(),
+  decayCurveType: t.integer().notNull(),
+  decayCurveParameters: t.json().$type<string[]>().notNull(),
 }))
 
 export const Transfer = onchainTable('transfers', (t) => ({

@@ -159,6 +159,28 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'underlyingToken',
   })) as `0x${string}`
 
+  const lockInterval: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'lockInterval',
+  })) as unknown as number
+
+  const decayCurveType: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveType',
+  })) as unknown as number
+
+  const decayCurveParameters: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveParameters',
+    args: [0n] as const,
+  })) as unknown as number
+
+
+  console.log('decayCurveParameters', decayCurveParameters)
+
   await context.db.insert(schema.Board).values({
     id: event.id,
     chainId: context.chain.id,
@@ -172,5 +194,8 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     participantRequirements: replaceBigInts(participantRequirements, (x) => x.toString()),
     acceptanceThreshold: acceptanceThreshold,
     underlyingToken: underlyingToken as `0x${string}`,
+    lockInterval: lockInterval,
+    decayCurveType: decayCurveType,
+    decayCurveParameters: [decayCurveParameters.toString()],
   })
 })

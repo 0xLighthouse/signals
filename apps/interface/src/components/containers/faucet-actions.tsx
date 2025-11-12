@@ -10,7 +10,7 @@ import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
 import { useWeb3 } from '@/contexts/Web3Provider'
 import { useRewardsStore } from '@/stores/useRewardsStore'
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import { useNetwork } from '@/hooks/useNetwork'
 
 const handleFaucetClaim = async (
@@ -53,7 +53,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const { walletClient, publicClient } = useWeb3()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const { fetchUnderlyingMetadata: fetchContractMetadata, underlyingSymbol } = useBoard()
+  const { fetchUnderlyingMetadata: fetchContractMetadata, underlyingSymbol } = useSignals()
   const { config } = useNetwork()
   const usdcConfig = config.contracts.USDC
   const underlyingContract = config.contracts.BoardUnderlyingToken

@@ -1,15 +1,67 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { getContract } from 'viem'
 
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from './Web3Provider'
+import { getNetworkFromSlug, getBoardUrl } from '@/lib/routing'
+import type { SupportedNetworks } from '@/config/network-types'
+import { SignalsABI } from '../../../../packages/abis'
+import { ZERO_ADDRESS, ERC20WithFaucetABI } from '@/config/web3'
+import { NETWORKS } from '@/config/networks'
 import { useNetworkStore } from '@/stores/useNetworkStore'
-import { useBoard } from './BoardContext'
+
+interface UnderlyingMetadata {
+  address: `0x${string}` | null
+  name: string | null
+  symbol: string | null
+  decimals: number | null
+  totalSupply: number | null
+  balance: number | null
+}
+
+type BoardRequirement = {
+  eligibilityType?: number | null
+  minBalance?: string | null
+  minHoldingDuration?: string | null
+  minLockAmount?: string | null
+}
+
+type BoardByAddressQueryItem = {
+  chainId?: number | string | null
+  blockTimestamp?: string | number | null
+  transactionHash?: string | null
+  contractAddress?: string | null
+  owner?: string | null
+  title?: string | null
+  body?: string | null
+  proposerRequirements?: BoardRequirement | null
+  participantRequirements?: BoardRequirement | null
+  acceptanceThreshold?: string | null
+  underlyingToken?: string | null
+  lockInterval?: string | number | null
+  decayCurveType?: string | number | null
+  decayCurveParameters?: Array<string | number | null> | null
+}
+
+type BoardByAddressQueryResponse = {
+  data?: {
+    boards?: {
+      items?: BoardByAddressQueryItem[]
+    }
+  }
+}
 
 export interface BoardMetadata {
+  chainId: number | null
+  blockTimestamp: number | null
+  transactionHash: string | null
+  contractAddress: `0x${string}` | null
+  owner: `0x${string}` | null
   name: string | null
+  body: string | null
   symbol: string | null
   initiativesCount: number | null
   proposalThreshold: number | null
@@ -18,184 +70,342 @@ export interface BoardMetadata {
   lockInterval: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
+  proposerRequirements: BoardRequirement | null
+  participantRequirements: BoardRequirement | null
+  underlyingToken: `0x${string}` | null
 }
 
-type ISignalsContext = {
+export interface SignalsContextValue {
+  network: SupportedNetworks | null
+  boardAddress: `0x${string}` | null
   board: BoardMetadata
+  underlyingAddress: `0x${string}` | null
+  underlyingName: string | null
+  underlyingSymbol: string | null
+  underlyingDecimals: number | null
+  underlyingTotalSupply: number | null
+  underlyingBalance: number | null
   formatter: (value?: number | null | undefined) => number
-  refresh: () => Promise<void>
+  fetchBoardMetadata: () => Promise<void>
+  fetchUnderlyingMetadata: () => Promise<void>
+  navigateToBoard: (address: `0x${string}`) => void
 }
 
-// Default values for the context
-export const SignalsContext = createContext<ISignalsContext | undefined>(undefined)
-
-// Custom hook to use the contract context
-export const useSignals = () => {
-  const context = useContext(SignalsContext)
-  if (!context) {
-    throw new Error('useSignals must be used within a SignalsContext')
-  }
-  return context
+const initialBoard: Omit<BoardMetadata, 'meetsThreshold'> = {
+  chainId: null,
+  blockTimestamp: null,
+  transactionHash: null,
+  contractAddress: null,
+  owner: null,
+  name: null,
+  body: null,
+  symbol: null,
+  initiativesCount: null,
+  proposalThreshold: null,
+  acceptanceThreshold: null,
+  lockInterval: null,
+  decayCurveType: null,
+  decayCurveParameters: null,
+  proposerRequirements: null,
+  participantRequirements: null,
+  underlyingToken: null,
 }
 
-interface Props {
-  children: React.ReactNode
+const initialUnderlying: UnderlyingMetadata = {
+  address: null,
+  name: null,
+  symbol: null,
+  decimals: null,
+  totalSupply: null,
+  balance: null,
 }
 
-export const SignalsProvider = ({ children }: Props): JSX.Element => {
-  const { address: walletAddress } = useAccount()
-  // Subscribe to only the specific config fields we need
-  const signalsContractAddress = useNetworkStore(
-    (state) => state.config.contracts.SignalsProtocol?.address,
-  )
-  const signalsContractAbi = useNetworkStore(
-    (state) => state.config.contracts.SignalsProtocol?.abi,
-  )
+export const SignalsContext = createContext<SignalsContextValue | undefined>(undefined)
+
+export const SignalsProvider = ({ children }: { children: ReactNode }) => {
+  const params = useParams()
+  const router = useRouter()
   const { publicClient } = useWeb3()
-  const { formatter, boardAddress } = useBoard()
+  const { address: walletAddress } = useAccount()
 
-  // Board metadata state
-  const [board, setBoard] = useState<BoardMetadata>({
-    name: null,
-    symbol: null,
-    initiativesCount: null,
-    proposalThreshold: null,
-    acceptanceThreshold: null,
-    meetsThreshold: false,
-    lockInterval: null,
-    decayCurveType: null,
-    decayCurveParameters: null,
-  })
+  const networkSlug = Array.isArray(params?.network)
+    ? params?.network[0]
+    : (params?.network as string | undefined)
+  const boardAddressParam = Array.isArray(params?.boardAddress)
+    ? params?.boardAddress[0]
+    : (params?.boardAddress as string | undefined)
+
+  const network = networkSlug ? getNetworkFromSlug(networkSlug) : null
+  const boardAddress = boardAddressParam ? (boardAddressParam.toLowerCase() as `0x${string}`) : null
+
+  const [boardState, setBoardState] = useState(initialBoard)
+  const [underlying, setUnderlying] = useState<UnderlyingMetadata>(initialUnderlying)
+
+  const formatter = useCallback(
+    (value?: number | null | undefined) => {
+      if (value == null || !underlying.decimals) return 0
+      return Math.ceil(value / 10 ** underlying.decimals)
+    },
+    [underlying.decimals],
+  )
 
   const fetchBoardMetadata = useCallback(async () => {
-    if (!publicClient || !signalsContractAddress || !signalsContractAbi) {
-      // If there is no configured board, reset to defaults
-      setBoard({
-        name: null,
+    if (!network || !boardAddress) {
+      setBoardState(initialBoard)
+      return
+    }
+
+    const config = NETWORKS[network]
+    if (!config?.indexerGraphQLEndpoint) {
+      console.warn('Missing indexer configuration for network', network)
+      setBoardState(initialBoard)
+      return
+    }
+
+    const toNumber = (value?: string | number | null): number | null => {
+      if (value == null) return null
+      try {
+        return Number(BigInt(value))
+      } catch {
+        return null
+      }
+    }
+
+    const toNumberArray = (values?: Array<string | number | null> | null): number[] | null => {
+      if (!values || values.length === 0) return null
+
+      const parsed = values
+        .map((value) => {
+          if (value == null) return null
+          try {
+            return Number(BigInt(value))
+          } catch {
+            const asNumber = Number(value)
+            return Number.isNaN(asNumber) ? null : asNumber
+          }
+        })
+        .filter((value): value is number => value != null)
+
+      return parsed.length > 0 ? parsed : null
+    }
+
+    try {
+      const query = `
+        query BoardByAddress($chainId: Int!, $contractAddress: String!) {
+          boards(where: { chainId: $chainId, contractAddress: $contractAddress }) {
+            items {
+              chainId
+              blockTimestamp
+              transactionHash
+              contractAddress
+              owner
+              title
+              proposerRequirements
+              participantRequirements
+              acceptanceThreshold
+              lockInterval
+              underlyingToken
+              body
+              decayCurveType
+              decayCurveParameters
+            }
+          }
+        }
+      `
+
+      const resp = await fetch(config.indexerGraphQLEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            chainId: config.chain.id,
+            contractAddress: boardAddress,
+          },
+        }),
+      })
+
+      if (!resp.ok) {
+        throw new Error(`GraphQL request failed: ${resp.status} ${resp.statusText}`)
+      }
+
+      const result: BoardByAddressQueryResponse = await resp.json()
+
+      const boardFromIndexer = result.data?.boards?.items?.[0]
+      if (!boardFromIndexer) {
+        setBoardState(initialBoard)
+        return
+      }
+
+      setBoardState({
+        chainId: toNumber(boardFromIndexer.chainId),
+        blockTimestamp: toNumber(boardFromIndexer.blockTimestamp),
+        transactionHash: boardFromIndexer.transactionHash ?? null,
+        contractAddress: boardFromIndexer.contractAddress
+          ? (boardFromIndexer.contractAddress.toLowerCase() as `0x${string}`)
+          : null,
+        owner: boardFromIndexer.owner
+          ? (boardFromIndexer.owner.toLowerCase() as `0x${string}`)
+          : null,
+        name: boardFromIndexer.title ?? null,
+        body: boardFromIndexer.body ?? null,
         symbol: null,
         initiativesCount: null,
-        proposalThreshold: null,
-        acceptanceThreshold: null,
-        meetsThreshold: false,
-        lockInterval: null,
-        decayCurveType: null,
-        decayCurveParameters: null,
+        proposalThreshold: toNumber(boardFromIndexer.proposerRequirements?.minBalance),
+        acceptanceThreshold: toNumber(boardFromIndexer.acceptanceThreshold),
+        lockInterval: toNumber(boardFromIndexer.lockInterval),
+        decayCurveType: toNumber(boardFromIndexer.decayCurveType),
+        decayCurveParameters: toNumberArray(boardFromIndexer.decayCurveParameters),
+        proposerRequirements: boardFromIndexer.proposerRequirements ?? null,
+        participantRequirements: boardFromIndexer.participantRequirements ?? null,
+        underlyingToken: boardFromIndexer.underlyingToken
+          ? (boardFromIndexer.underlyingToken.toLowerCase() as `0x${string}`)
+          : null,
       })
+    } catch (error) {
+      console.error('Error fetching board metadata from indexer:', error)
+      setBoardState(initialBoard)
+    }
+  }, [network, boardAddress])
+
+  const fetchUnderlyingMetadata = useCallback(async () => {
+    if (!publicClient || !boardAddress) {
+      setUnderlying(initialUnderlying)
       return
     }
 
     try {
       const protocol = getContract({
-        address: signalsContractAddress,
-        abi: signalsContractAbi,
+        address: boardAddress,
+        abi: SignalsABI,
         client: publicClient,
       })
 
-      // Attempt to read thresholds with compatibility for older ABI variants.
-      let proposalThreshold: bigint | null = null
-      try {
-        // @ts-ignore
-        proposalThreshold = await protocol.read.proposalThreshold()
-      } catch {
-        try {
-          // @ts-ignore
-          proposalThreshold = await protocol.read.proposalCap()
-        } catch {
-          proposalThreshold = null
-        }
+      const underlyingAddress = (await protocol.read.underlyingToken()) as `0x${string}`
+      if (!underlyingAddress) {
+        setUnderlying(initialUnderlying)
+        return
       }
 
-      let acceptanceThreshold: bigint | null = null
-      try {
-        // @ts-ignore
-        acceptanceThreshold = await protocol.read.acceptanceThreshold()
-      } catch {
-        try {
-          // @ts-ignore
-          acceptanceThreshold = await protocol.read.getAcceptanceThreshold()
-        } catch {
-          acceptanceThreshold = null
-        }
-      }
+      const token = getContract({
+        address: underlyingAddress,
+        abi: ERC20WithFaucetABI,
+        client: publicClient,
+      })
 
-      // Fetch remaining metadata (best-effort)
-      const [
-        initiativesCount,
-        lockInterval,
-        decayCurveType,
-        decayCurveParametersRaw,
-        name,
-        symbol,
-      ] = await Promise.all([
-        // @ts-ignore
-        protocol.read
-          .initiativeCount?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .lockInterval?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .decayCurveType?.()
-          .catch(() => null),
-        // Some ABIs expect an index; use 0n as a safe default if required
-        // @ts-ignore
-        protocol.read
-          .decayCurveParameters?.([0n])
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .name?.()
-          .catch(() => null),
-        // @ts-ignore
-        protocol.read
-          .symbol?.()
-          .catch(() => null),
+      const [name, symbol, decimals, totalSupply, balance] = await Promise.all([
+        token.read.name(),
+        token.read.symbol(),
+        token.read.decimals(),
+        token.read.totalSupply(),
+        walletAddress ? token.read.balanceOf([walletAddress]) : 0n,
       ])
 
-      const pt = proposalThreshold ? Number(proposalThreshold) : null
-      const at = acceptanceThreshold ? Number(acceptanceThreshold) : null
+      const decimalsNum = Number(decimals ?? 18)
 
-      // meetsThreshold uses raw units; formatter handles UI conversion
-      const meetsThreshold = pt != null && pt > 0 && walletAddress != null
-
-      setBoard({
+      setUnderlying({
+        address: underlyingAddress.toLowerCase() as `0x${string}`,
         name: name ? String(name) : null,
         symbol: symbol ? String(symbol) : null,
-        initiativesCount: initiativesCount != null ? Number(initiativesCount) : null,
-        proposalThreshold: pt,
-        acceptanceThreshold: at,
-        meetsThreshold,
-        lockInterval: lockInterval != null ? Number(lockInterval) : null,
-        decayCurveType: decayCurveType != null ? Number(decayCurveType) : null,
-        decayCurveParameters:
-          decayCurveParametersRaw != null
-            ? Array.isArray(decayCurveParametersRaw)
-              ? decayCurveParametersRaw.map((x: bigint | number | string) => Number(x))
-              : [Number(decayCurveParametersRaw)]
-            : null,
+        decimals: decimalsNum,
+        totalSupply: Number(totalSupply ?? 0n),
+        balance: Number(balance ?? 0n),
       })
-    } catch (error) {
-      console.error('Error fetching Signals board metadata:', error)
-      // Keep existing state to avoid UI flicker on transient errors
-    }
-  }, [publicClient, signalsContractAddress, signalsContractAbi, walletAddress])
 
-  // Refresh board metadata when board address changes
+      if (network) {
+        const baseConfig = NETWORKS[network]
+        if (baseConfig) {
+          useNetworkStore.setState({
+            selected: network,
+            config: {
+              ...baseConfig,
+              contracts: {
+                ...baseConfig.contracts,
+                SignalsProtocol: {
+                  ...baseConfig.contracts.SignalsProtocol,
+                  address: boardAddress,
+                  abi: SignalsABI,
+                  label: baseConfig.contracts.SignalsProtocol?.label ?? 'Signals Protocol',
+                },
+                BoardUnderlyingToken: {
+                  address: underlyingAddress ?? ZERO_ADDRESS,
+                  abi: baseConfig.contracts.BoardUnderlyingToken?.abi ?? ERC20WithFaucetABI,
+                  label: baseConfig.contracts.BoardUnderlyingToken?.label ?? 'Signals Token',
+                  decimals: decimalsNum,
+                },
+              },
+            },
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching underlying token metadata:', error)
+      setUnderlying(initialUnderlying)
+    }
+  }, [publicClient, boardAddress, walletAddress, network])
+
   useEffect(() => {
     void fetchBoardMetadata()
-  }, [fetchBoardMetadata, boardAddress])
+  }, [fetchBoardMetadata])
 
-  return (
-    <SignalsContext.Provider
-      value={{
-        board,
-        formatter,
-        refresh: fetchBoardMetadata,
-      }}
-    >
-      {children}
-    </SignalsContext.Provider>
+  useEffect(() => {
+    void fetchUnderlyingMetadata()
+  }, [fetchUnderlyingMetadata])
+
+  const navigateToBoard = useCallback(
+    (address: `0x${string}`) => {
+      if (!network) return
+      router.push(getBoardUrl(network, address))
+    },
+    [router, network],
   )
+
+  const boardWithThreshold = useMemo<BoardMetadata>(() => {
+    const meetsThreshold =
+      boardState.proposalThreshold != null &&
+      underlying.balance != null &&
+      underlying.balance >= boardState.proposalThreshold
+    return {
+      ...boardState,
+      meetsThreshold,
+    }
+  }, [boardState, underlying.balance])
+
+  const contextValue = useMemo<SignalsContextValue>(
+    () => ({
+      network,
+      boardAddress,
+      board: boardWithThreshold,
+      underlyingAddress: underlying.address,
+      underlyingName: underlying.name,
+      underlyingSymbol: underlying.symbol,
+      underlyingDecimals: underlying.decimals,
+      underlyingTotalSupply: underlying.totalSupply,
+      underlyingBalance: underlying.balance,
+      formatter,
+      fetchBoardMetadata,
+      fetchUnderlyingMetadata,
+      navigateToBoard,
+    }),
+    [
+      network,
+      boardAddress,
+      boardWithThreshold,
+      underlying.address,
+      underlying.name,
+      underlying.symbol,
+      underlying.decimals,
+      underlying.totalSupply,
+      underlying.balance,
+      formatter,
+      fetchBoardMetadata,
+      fetchUnderlyingMetadata,
+      navigateToBoard,
+    ],
+  )
+
+  return <SignalsContext.Provider value={contextValue}>{children}</SignalsContext.Provider>
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { useBoard } from '@/contexts/BoardContext'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from './initiative-card'
@@ -13,7 +12,6 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
   const isInitialized = useInitiativesStore((state) => state.isInitialized)
-  // const { boardAddress } = useBoard()
 
   useEffect(() => {
     console.log('--- isInitialized', isInitialized)

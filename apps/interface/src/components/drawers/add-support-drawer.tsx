@@ -14,8 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
-import { useSignals } from '@/contexts/SignalsContext'
-import { useBoard } from '@/contexts/BoardContext'
+import { useSignals } from '@/hooks/use-signals'
 import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
@@ -38,8 +37,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     underlyingSymbol: symbol,
     fetchUnderlyingMetadata: fetchContractMetadata,
     boardAddress,
-  } = useBoard()
-  const { formatter, board } = useSignals()
+    formatter,
+    board,
+  } = useSignals()
   const { config } = useNetwork()
   const signalsContract = config.contracts.SignalsProtocol
   const underlyingContract = config.contracts.BoardUnderlyingToken
