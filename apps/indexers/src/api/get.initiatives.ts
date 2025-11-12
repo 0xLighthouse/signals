@@ -8,18 +8,12 @@ export const getInitiatives = async (c: Context) => {
   const chainId = Number(c.req.param('chainId'))
   const address = c.req.param('address').toLowerCase() as `0x${string}`
 
-  console.log('----- chainId ---', chainId)
-  console.log('----- address ---', address)
-
   const board = await db.query.Board.findFirst({
     where: (board, { eq, and }) => and(
       eq(board.chainId, chainId),
       eq(board.contractAddress, address),
     ),
   })
-
-
-
 
   if (!board) {
     return c.json(
