@@ -24,7 +24,7 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
     SignalsFactory _factory;
     IExperimentToken _token;
 
-    uint256 private constant PROPOSER_MIN_BALANCE = 10_000 ether;
+    uint256 private constant PROPOSER_MIN_BALANCE = 20_000 ether;
     uint256 private constant PROPOSER_MIN_LOCK = 20_000 ether;
     uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
     uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
@@ -79,15 +79,13 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                 decayCurveParameters: params,
                 inactivityTimeout: 3 days, // 10 days
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
-                    eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                     minBalance: PROPOSER_MIN_BALANCE, // 10k tokens
-                    minHoldingDuration: 0,
+                    minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: PROPOSER_MIN_LOCK // 20k tokens
                 }),
                 supporterRequirements: IAuthorizer.ParticipantRequirements({
-                    eligibilityType: IAuthorizer.EligibilityType.MinBalance,
                     minBalance: SUPPORTER_MIN_BALANCE,
-                    minHoldingDuration: 0,
+                    minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: SUPPORTER_MIN_LOCK
                 }),
                 releaseLockDuration: 0,

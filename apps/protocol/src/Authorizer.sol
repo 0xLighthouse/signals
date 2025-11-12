@@ -67,15 +67,12 @@ abstract contract SignalsAuthorizer is IAuthorizer {
         uint256 lockAmount,
         ParticipantRequirements memory reqs
     ) internal view returns (EligibilityResult result) {
-        if (reqs.eligibilityType == EligibilityType.None) {
-            return EligibilityResult.Eligible;
-        }
-
         if (lockAmount < reqs.minLockAmount) {
             return EligibilityResult.InsufficientLockAmount;
         }
 
-        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
+        // TODO: This needs to be rechecked
+        if (reqs.minHoldingDuration > 0) {
             // Check historical balance using ERC20Votes checkpoints
             try IVotes(authorizationToken).getPastVotes(
                 account, block.number - reqs.minHoldingDuration
@@ -117,20 +114,17 @@ abstract contract SignalsAuthorizer is IAuthorizer {
     }
 
     /// @notice Internal function to validate participant requirements
+    /// @dev Validates that requirements are logically consistent:
+    ///      - If minHoldingDuration is set, minBalance must also be set
+    ///        (cannot check holding duration without a balance threshold)
     function _validateParticipantRequirements(ParticipantRequirements memory reqs) internal pure {
-        if (
-            reqs.eligibilityType == EligibilityType.MinBalance
-                || reqs.eligibilityType == EligibilityType.MinBalanceAndDuration
-        ) {
-            if (reqs.minBalance == 0) {
-                revert ISignals.Signals_InvalidArguments();
-            }
+        // If holding duration is required, balance must also be required
+        if (reqs.minHoldingDuration > 0 && reqs.minBalance == 0) {
+            revert ISignals.Signals_InvalidArguments();
         }
 
-        if (reqs.eligibilityType == EligibilityType.MinBalanceAndDuration) {
-            if (reqs.minHoldingDuration == 0) {
-                revert ISignals.Signals_InvalidArguments();
-            }
+        if (reqs.minLockAmount > reqs.minBalance) {
+            revert ISignals.Signals_InvalidArguments();
         }
     }
 
