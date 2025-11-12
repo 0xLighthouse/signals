@@ -7,6 +7,5 @@ export const useSignals = () => {
   if (!context) {
     throw new Error('useSignals must be used within a SignalsProvider')
   }
-
   return context
 }

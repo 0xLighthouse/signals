@@ -9,7 +9,7 @@ interface StickyFooterProps {
 
 export function StickyFooter({ stats }: StickyFooterProps) {
   const defaultStats = [
-    { label: 'protocol status', value: 'Active' },
+    { label: 'Circulating Supply', value: 'Active' },
     { label: 'network', value: 'Base Sepolia' },
   ]
 
@@ -47,7 +47,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
             {/* Right section - Stats */}
             <div className="flex items-center px-6 gap-6 border-l border-neutral-200 dark:border-neutral-800">
               {displayStats.map((stat, index) => (
-                <div key={index} className="flex items-center">
+                <div key={`stat-item-${index}`} className="flex items-center">
                   <span className="cursor-default content-center">
                     {stat.value} {stat.label}
                   </span>
