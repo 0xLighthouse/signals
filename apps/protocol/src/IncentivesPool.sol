@@ -68,12 +68,15 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     /// @notice Mapping from board address to initiative ID to the last used bucket
     mapping(address => mapping(uint256 => uint256)) internal _lastUsedBucketByInitiative;
 
-    /// @notice Mapping from board address to initiative ID to total incentive credit
-    mapping(address => mapping(uint256 => uint256)) internal _totalIncentiveCreditByInitiative;
-
     /// @notice Mapping from board address to initiative ID to incentive buckets array
     mapping(address => mapping(uint256 => IncentiveBucket[INCENTIVE_RESOLUTION])) internal
         _incentiveBucketsByInitiative;
+
+    /// @notice Check to make sure the board is approved
+    modifier onlyApprovedBoard(address board) {
+        if (!approvedBoards[board]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
+        _;
+    }
 
     /**
      * @notice Constructor
@@ -147,9 +150,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IIncentivesPool
-    function revokeBoard(address board) external onlyOwner {
-        if (!approvedBoards[board]) revert IIncentivesPool.IncentivesPool_BoardNotApproved();
-
+    function revokeBoard(address board) external onlyOwner onlyApprovedBoard(board) {
         approvedBoards[board] = false;
         totalRewardPerInitiative[board] = 0;
         totalBoardBudgets -= boardRemainingBudget[board];
@@ -158,65 +159,39 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         emit BoardRevoked(board);
     }
 
-    /// @inheritdoc IIncentivesPool
-    function claimRewards(uint256 initiativeId, address payee, uint256 percentOfInitiativeRewards)
-        external
-        nonReentrant
-    {
-        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
-        // If the rewards are bigger than 100%, reject. Shouldn't happen.
-        if (percentOfInitiativeRewards > 1e18) {
-            revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
-        }
-
-        // Calculate the amount of rewards to claim
-        uint256 amount = (totalRewardPerInitiative[msg.sender] * percentOfInitiativeRewards) / 1e18;
-
-        // If the amount is bigger than the board's remaining budget, reduce to the budget
-        if (amount > boardRemainingBudget[msg.sender]) {
-            amount = boardRemainingBudget[msg.sender];
-        }
-
-        emit RewardsPaidOut(
-            msg.sender,
-            initiativeId,
-            payee,
-            percentOfInitiativeRewards,
-            boardRemainingBudget[msg.sender],
-            amount
-        );
-
-        if (amount > 0) {
-            boardRemainingBudget[msg.sender] -= amount;
-            totalBoardBudgets -= amount;
-            availableRewards -= amount;
-            distributedRewards += amount;
-
-            // Transfer rewards
-            IERC20(REWARD_TOKEN).safeTransfer(payee, amount);
-        }
-    }
-
-    /// @inheritdoc IIncentivesPool
-    function isBoardApproved(address board) external view returns (bool) {
-        return approvedBoards[board];
-    }
-
     /// @notice Record how much a user participated so we can calculate incentives later
     /// @param initiativeId The ID of the initiative
     /// @param lockId The ID of the lock
     /// @param credit The amount of contributions added to the initiative
     function addIncentivesCreditForLock(uint256 initiativeId, uint256 lockId, uint128 credit)
         external
+        onlyApprovedBoard(msg.sender)
     {
-        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
-
         // Add the lock to the list of supporters
         lockIncentiveCreditsByInitiative[msg.sender][initiativeId][lockId] =
             LockIncentiveCredit({amount: credit, timestamp: uint128(block.timestamp)});
         // Add the amount to the incentive bucket
-        _addToIncentiveBucket(msg.sender, initiativeId, credit);
-        _totalIncentiveCreditByInitiative[msg.sender][initiativeId] += credit;
+        _addToIncentiveBucket(msg.sender, initiativeId, credit, uint128(block.timestamp));
+    }
+
+    /// @notice Remove the incentive credits for a set of locks
+    /// @param initiativeId The ID of the initiative
+    /// @param lockIds The IDs of the locks
+    function removeIncentivesCreditForLocks(uint256 initiativeId, uint256[] calldata lockIds)
+        external
+        onlyApprovedBoard(msg.sender)
+    {
+        for (uint256 i = 0; i < lockIds.length; i++) {
+            uint256 lockId = lockIds[i];
+            LockIncentiveCredit memory credit =
+                lockIncentiveCreditsByInitiative[msg.sender][initiativeId][lockId];
+            // Remove the amount from the incentive bucket
+            _removeFromIncentiveBucket(msg.sender, initiativeId, credit.amount, credit.timestamp);
+
+            // Remove the lock from the list of supporters
+            lockIncentiveCreditsByInitiative[msg.sender][initiativeId][lockId] =
+                LockIncentiveCredit({amount: 0, timestamp: 0});
+        }
     }
 
     /// @notice Claim incentives for a set of locks
@@ -227,18 +202,17 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     /// @dev The calling board must keep track of whether these locks have already been claimed
     function claimIncentivesForLocks(
         uint256 initiativeId,
-        uint256[] memory lockIds,
+        uint256[] calldata lockIds,
         address payee,
         IIncentivizer.IncentivesConfig calldata config
-    ) external nonReentrant {
-        if (!approvedBoards[msg.sender]) revert IIncentivesPool.IncentivesPool_NotApprovedBoard();
-
+    ) external nonReentrant onlyApprovedBoard(msg.sender) {
         address board = msg.sender;
-        IncentiveBucket[INCENTIVE_RESOLUTION] memory buckets =
-            _incentiveBucketsByInitiative[board][initiativeId];
+
+        IncentiveBucket[] memory buckets =
+            _trimBuckets(_incentiveBucketsByInitiative[board][initiativeId]);
 
         uint256[] memory multipliers =
-            _getBucketMultipliers(config, _lastUsedBucketByInitiative[board][initiativeId] + 1);
+            IncentivesMath.getBucketMultipliers(config.incentiveParametersWAD, buckets.length);
 
         // Total number of credits recorded for this initiative
         uint256 totalCredits = 0;
@@ -273,7 +247,6 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         }
 
         // Payout that percentage of the initiative rewards to the payee
-        // (inline the claimRewards logic)
         if (totalPercentOfInitiativeRewards > 1e18) {
             revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
         }
@@ -310,15 +283,19 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
     /// @param board The board address
     /// @param initiativeId The initiative ID
     /// @param amount The amount of credit to add
-    function _addToIncentiveBucket(address board, uint256 initiativeId, uint256 amount) private {
+    function _addToIncentiveBucket(
+        address board,
+        uint256 initiativeId,
+        uint256 amount,
+        uint256 timestamp
+    ) private {
         IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets =
             _incentiveBucketsByInitiative[board][initiativeId];
         uint256 lastUsedBucket = _lastUsedBucketByInitiative[board][initiativeId];
         if (lastUsedBucket == 0 && buckets[0].endTime == 0) {
             // This is the first addition, so set the end times based on this
             for (uint256 i = 0; i < INCENTIVE_RESOLUTION; i++) {
-                buckets[i].endTime =
-                    uint128(block.timestamp + (i + 1) * INCENTIVE_STARTING_INTERVAL);
+                buckets[i].endTime = uint128(timestamp + (i + 1) * INCENTIVE_STARTING_INTERVAL);
             }
         }
 
@@ -332,12 +309,36 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
                 i = INCENTIVE_RESOLUTION / 2 - 1;
             }
 
-            if (buckets[i].endTime > block.timestamp) {
+            if (buckets[i].endTime > timestamp) {
                 buckets[i].bucketTotalIncentiveCredits += uint128(amount);
                 _lastUsedBucketByInitiative[board][initiativeId] = i;
                 return;
             }
         }
+    }
+
+    /// @notice Remove credit from the appropriate time bucket
+    /// @param board The board address
+    /// @param initiativeId The initiative ID
+    /// @param amount The amount of credit to remove
+    /// @param timestamp The timestamp of the credit
+    function _removeFromIncentiveBucket(
+        address board,
+        uint256 initiativeId,
+        uint256 amount,
+        uint256 timestamp
+    ) private {
+        IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets =
+            _incentiveBucketsByInitiative[board][initiativeId];
+
+        // Find correct bucket
+        for (uint256 i = 0; i <= INCENTIVE_RESOLUTION; i++) {
+            if (buckets[i].endTime > timestamp) {
+                buckets[i].bucketTotalIncentiveCredits -= uint128(amount);
+                return;
+            }
+        }
+        revert IIncentivesPool.IncentivesPool_InvalidConfiguration();
     }
 
     /// @notice Reduce the incentive buckets by half
@@ -359,29 +360,31 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Get the bucket multipliers from the config
-    /// @param config The incentives configuration
-    /// @param numberOfBuckets The number of buckets to get multipliers for
-    /// @return Array of multipliers in WAD format
-    function _getBucketMultipliers(
-        IIncentivizer.IncentivesConfig calldata config,
-        uint256 numberOfBuckets
-    ) internal pure returns (uint256[] memory) {
-        uint256[] memory configParams = config.incentiveParametersWAD;
-        uint256[] memory multipliers =
-            IncentivesMath.bucketMultipliers(configParams, numberOfBuckets);
-        return multipliers;
-    }
-
-    /// @notice Scale incentive config parameters to match bucket count
-    /// @param config The config parameters to scale
-    /// @param numberOfBuckets The target number of buckets
-    /// @return Scaled parameters array
-    function _scaleIncentiveConfigParameters(uint256[] memory config, uint256 numberOfBuckets)
+    /**
+     * @notice Drop empty buckets from the start and end of the array
+     * @param buckets The buckets to trim
+     * @return The trimmed buckets
+     */
+    function _trimBuckets(IncentiveBucket[INCENTIVE_RESOLUTION] storage buckets)
         internal
-        pure
-        returns (uint256[] memory)
+        view
+        returns (IncentiveBucket[] memory)
     {
-        return IncentivesMath.scaleParameters(config, numberOfBuckets);
+        uint256 endIndex = buckets.length - 1;
+        while (endIndex > 0 && buckets[endIndex].bucketTotalIncentiveCredits == 0) {
+            endIndex--;
+        }
+
+        uint256 startIndex = 0;
+        while (startIndex < endIndex && buckets[startIndex].bucketTotalIncentiveCredits == 0) {
+            startIndex++;
+        }
+
+        IncentiveBucket[] memory trimmedBuckets = new IncentiveBucket[](endIndex - startIndex + 1);
+        for (uint256 i = startIndex; i <= endIndex; i++) {
+            trimmedBuckets[i - startIndex] = buckets[i];
+        }
+
+        return trimmedBuckets;
     }
 }

@@ -19,13 +19,11 @@ library IncentivesMath {
      * @param y2 Known y2 value
      * @return Interpolated y value at x
      */
-    function geometricLinearInterpolation(
-        uint256 x,
-        uint256 x1,
-        uint256 y1,
-        uint256 x2,
-        uint256 y2
-    ) internal pure returns (uint256) {
+    function geometricLinearInterpolation(uint256 x, uint256 x1, uint256 y1, uint256 x2, uint256 y2)
+        public
+        pure
+        returns (uint256)
+    {
         return uint256(
             int256(y1)
                 + ((int256(x) - int256(x1)) * (int256(y2) - int256(y1))) / (int256(x2) - int256(x1))
@@ -105,16 +103,16 @@ library IncentivesMath {
 
     /**
      * @notice Generate normalized bucket multipliers (percentages in WAD) for a given config and bucket count
-     * @param config The incentive configuration values (WAD)
+     * @param parametersWAD The incentive configuration values (WAD)
      * @param numberOfBuckets Number of buckets to generate
      * @return multipliers Normalized multipliers per bucket (sum ~= 1e18)
      */
-    function bucketMultipliers(uint256[] memory config, uint256 numberOfBuckets)
-        external
+    function getBucketMultipliers(uint256[] memory parametersWAD, uint256 numberOfBuckets)
+        public
         pure
         returns (uint256[] memory multipliers)
     {
-        multipliers = scaleParameters(config, numberOfBuckets);
+        multipliers = scaleParameters(parametersWAD, numberOfBuckets);
 
         uint256 totalInterpolatedValues = 0;
 

@@ -92,11 +92,11 @@ struct FactoryDeployment {
 ### releaseLockDuration
 
 - **Type:** `uint256` (seconds)
-- **Purpose:** Additional timelock after initiative acceptance before tokens can be redeemed
-- **Values:**
-  - `0` - Immediate release
-  - `7 days` (604800) - 1 week cooldown
-  - `30 days` (2592000) - 1 month vesting
+- **Purpose:** Board-level timelock parameter that prevents immediate token redemption after an initiative is accepted
+- **Mechanism:** Adds an additional commitment period after acceptance, ensuring supporters remain locked even after the initiative reaches the acceptance threshold
+- **Requirement:** Set to `0` for immediate redemption upon acceptance, or specify duration in seconds for delayed release
+- **Redemption Logic:** Tokens can be redeemed when `acceptanceTimestamp + releaseLockDuration <= block.timestamp` or once the supporter's lockup duration is completed
+- **Override:** Board cancellation or initiative expiration bypasses this timelock, allowing immediate redemption regardless of the configured duration
 
 ### boardOpenAt
 
