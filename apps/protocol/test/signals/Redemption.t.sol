@@ -7,6 +7,7 @@ import {SignalsHarness} from "../utils/SignalsHarness.sol";
 
 import {ISignals} from "../../src/interfaces/ISignals.sol";
 import {Signals} from "../../src/Signals.sol";
+import {IncentivesPool} from "../../src/IncentivesPool.sol";
 
 /**
  * @title SignalsRedemptionTest
@@ -102,6 +103,131 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     /*//////////////////////////////////////////////////////////////
                     MULTIPLE REDEMPTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// Test that early redemption (before acceptance) excludes user from incentives
+    /// Alice, Bob, and Charlie all lock support. Alice redeems before acceptance.
+    /// Bob accepts the initiative. Bob and Charlie redeem after acceptance.
+    /// Verify: Alice gets only original tokens (no incentives), Bob and Charlie get tokens + incentives
+    function test_Redeem_EarlyRedemptionExcludedFromIncentives() public {
+        // Deploy board with incentives pool
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.boardOpenAt = block.timestamp + 1;
+        (Signals customSignals,) = deploySignalsWithIncentivesPool(config);
+
+        // Deal tokens to test users
+        dealMockTokens();
+
+        // Ensure all users have enough tokens for the test
+        uint256 supportAmount = 50_000 * 1e18;
+        vm.deal(_alice, 1 ether);
+        vm.deal(_bob, 1 ether);
+        vm.deal(_charlie, 1 ether);
+        _tokenERC20.mint(_alice, supportAmount);
+        _tokenERC20.mint(_bob, supportAmount);
+        _tokenERC20.mint(_charlie, supportAmount);
+
+        // Warp to board open time
+        vm.warp(config.boardOpenAt);
+
+        uint256 lockDuration = 10;
+
+        // Alice proposes initiative with lock
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), supportAmount);
+        (uint256 initiativeId, uint256 aliceLockId) =
+            customSignals.proposeInitiativeWithLock(_metadata(1), supportAmount, lockDuration);
+        vm.stopPrank();
+
+        // Bob adds support
+        vm.startPrank(_bob);
+        _tokenERC20.approve(address(customSignals), supportAmount);
+        uint256 bobLockId = customSignals.supportInitiative(initiativeId, supportAmount, lockDuration);
+        vm.stopPrank();
+
+        // Charlie adds support
+        vm.startPrank(_charlie);
+        _tokenERC20.approve(address(customSignals), supportAmount);
+        uint256 charlieLockId =
+            customSignals.supportInitiative(initiativeId, supportAmount, lockDuration);
+        vm.stopPrank();
+
+        // Warp forward past the lock duration so Alice can redeem
+        vm.warp(block.timestamp + lockDuration * 1 days);
+
+        // Record balances before Alice's redemption
+        uint256 aliceTokensBefore = _tokenERC20.balanceOf(_alice);
+        uint256 aliceUsdcBefore = _usdc.balanceOf(_alice);
+
+        // Alice redeems BEFORE acceptance (but after lock expiry)
+        vm.startPrank(_alice);
+        uint256[] memory aliceLockIds = new uint256[](1);
+        aliceLockIds[0] = aliceLockId;
+        customSignals.redeemLocksForInitiative(initiativeId, aliceLockIds);
+        vm.stopPrank();
+
+        // Verify Alice got her tokens back but NO USDC incentives
+        uint256 aliceTokensAfter = _tokenERC20.balanceOf(_alice);
+        uint256 aliceUsdcAfter = _usdc.balanceOf(_alice);
+        assertEq(aliceTokensAfter - aliceTokensBefore, supportAmount, "Alice should receive her tokens back");
+        assertEq(aliceUsdcAfter - aliceUsdcBefore, 0, "Alice should receive no USDC incentives");
+
+        // Owner accepts the initiative
+        vm.prank(_deployer);
+        customSignals.acceptInitiative(initiativeId);
+
+        // Record balances before Bob's redemption
+        uint256 bobTokensBefore = _tokenERC20.balanceOf(_bob);
+        uint256 bobUsdcBefore = _usdc.balanceOf(_bob);
+
+        // Bob redeems AFTER acceptance
+        vm.startPrank(_bob);
+        uint256[] memory bobLockIds = new uint256[](1);
+        bobLockIds[0] = bobLockId;
+        customSignals.redeemLocksForInitiative(initiativeId, bobLockIds);
+        vm.stopPrank();
+
+        // Record balances before Charlie's redemption
+        uint256 charlieTokensBefore = _tokenERC20.balanceOf(_charlie);
+        uint256 charlieUsdcBefore = _usdc.balanceOf(_charlie);
+
+        // Charlie redeems AFTER acceptance
+        vm.startPrank(_charlie);
+        uint256[] memory charlieLockIds = new uint256[](1);
+        charlieLockIds[0] = charlieLockId;
+        customSignals.redeemLocksForInitiative(initiativeId, charlieLockIds);
+        vm.stopPrank();
+
+        // Verify Bob got his tokens back AND USDC incentives
+        uint256 bobTokensAfter = _tokenERC20.balanceOf(_bob);
+        uint256 bobUsdcAfter = _usdc.balanceOf(_bob);
+        uint256 bobTokensReceived = bobTokensAfter - bobTokensBefore;
+        uint256 bobUsdcReceived = bobUsdcAfter - bobUsdcBefore;
+        assertEq(bobTokensReceived, supportAmount, "Bob should receive his tokens back");
+        assertGt(bobUsdcReceived, 0, "Bob should receive USDC incentives");
+
+        // Verify Charlie got his tokens back AND USDC incentives
+        uint256 charlieTokensAfter = _tokenERC20.balanceOf(_charlie);
+        uint256 charlieUsdcAfter = _usdc.balanceOf(_charlie);
+        uint256 charlieTokensReceived = charlieTokensAfter - charlieTokensBefore;
+        uint256 charlieUsdcReceived = charlieUsdcAfter - charlieUsdcBefore;
+        assertEq(charlieTokensReceived, supportAmount, "Charlie should receive his tokens back");
+        assertGt(charlieUsdcReceived, 0, "Charlie should receive USDC incentives");
+
+        // Verify that Bob and Charlie together received approximately the max reward
+        // (there may be rounding, but they should get close to the 10k USDC max)
+        uint256 totalIncentivesReceived = bobUsdcReceived + charlieUsdcReceived;
+        uint256 maxReward = 10_000 * 1e6; // 10k USDC (6 decimals)
+        assertApproxEqAbs(
+            totalIncentivesReceived, maxReward, maxReward / 100, "Bob and Charlie should split the max reward"
+        );
+
+        // Verify all locks are withdrawn
+        assertEq(customSignals.getTokenLock(aliceLockId).withdrawn, true, "Alice's lock should be withdrawn");
+        assertEq(customSignals.getTokenLock(bobLockId).withdrawn, true, "Bob's lock should be withdrawn");
+        assertEq(
+            customSignals.getTokenLock(charlieLockId).withdrawn, true, "Charlie's lock should be withdrawn"
+        );
+    }
 
     /// Test redeeming multiple escrow locks
     function test_Redeem_MultipleLocks() public {
