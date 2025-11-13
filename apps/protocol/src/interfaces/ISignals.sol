@@ -189,7 +189,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     error Signals_TokenAlreadyRedeemed(uint256 tokenId);
 
     /// @notice Token is still timelocked and cannot be redeemed yet
-    error Signals_StillTimelocked();
+    error Signals_StillTimelocked(uint256 tokenId);
 
     /// @notice The board is in the incorrect state for the requested action (open, closed, unitialized, etc.)
     error Signals_IncorrectBoardState();

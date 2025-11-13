@@ -400,6 +400,9 @@ contract Signals is
 
         uint256 redeemAmount = 0;
 
+        bool releaseTimelockPassed = state == InitiativeState.Accepted
+            && acceptanceTimestamp + releaseLockDuration <= block.timestamp;
+
         for (uint256 i = 0; i < lockIds.length; i++) {
             uint256 lockId = lockIds[i];
             TokenLock storage lock = _locks[lockId];
@@ -421,18 +424,19 @@ contract Signals is
             // 1. The board is cancelled
             // 2. The initiative is expired
             // 3. The lock has expired
+            bool lockExpired = lock.created + lock.lockDuration * lockInterval <= block.timestamp;
             // 4. The initiative has been accepted and the release timelock has passed
             if (
-                boardCancelled || state == InitiativeState.Expired
-                    || lock.created + lock.lockDuration * lockInterval <= block.timestamp
-                    || state == InitiativeState.Accepted
-                        && acceptanceTimestamp + releaseLockDuration <= block.timestamp
+                boardCancelled || state == InitiativeState.Expired || lockExpired
+                    || releaseTimelockPassed
             ) {
                 redeemAmount += lock.tokenAmount;
                 lock.withdrawn = true;
                 _burn(lockId);
 
                 emit Redeemed(initiativeId, lockId, msg.sender, lock.tokenAmount);
+            } else {
+                revert ISignals.Signals_StillTimelocked(lockId);
             }
         }
 
@@ -443,9 +447,14 @@ contract Signals is
 
         // Claim incentives if pool is configured
         if (address(incentivesPool) != address(0)) {
-            incentivesPool.claimIncentivesForLocks(
-                initiativeId, lockIds, msg.sender, _incentivesConfig
-            );
+            if (releaseTimelockPassed) {
+                incentivesPool.claimIncentivesForLocks(
+                    initiativeId, lockIds, msg.sender, _incentivesConfig
+                );
+            } else {
+                // Remove the incentive credits if we are redeeming before acceptance
+                incentivesPool.removeIncentivesCreditForLocks(initiativeId, lockIds);
+            }
         }
     }
 
@@ -480,7 +489,7 @@ contract Signals is
             revert ISignals.Signals_IncentivesPoolAlreadySet();
         }
 
-        if (!IIncentivesPool(incentivesPool_).isBoardApproved(address(this))) {
+        if (!IIncentivesPool(incentivesPool_).approvedBoards(address(this))) {
             revert ISignals.Signals_IncentivesPoolNotApproved();
         }
         incentivesPool = IIncentivesPool(incentivesPool_);
@@ -492,6 +501,9 @@ contract Signals is
             ) {
                 revert ISignals.Signals_InvalidArguments();
             }
+        } else {
+            // We only support linear for now
+            revert ISignals.Signals_InvalidArguments();
         }
         _incentivesConfig = incentivesConfig_;
     }
