@@ -346,6 +346,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         vm.startPrank(_bob);
         uint256[] memory lockIds = new uint256[](1);
         lockIds[0] = 1;
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector, 1));
         signals.redeemLocksForInitiative(1, lockIds);
         vm.stopPrank();
 

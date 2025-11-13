@@ -40,6 +40,7 @@ interface IIncentivesPool {
     /// @notice Thrown when pool configuration is invalid
     error IncentivesPool_InvalidConfiguration();
 
+    function approvedBoards(address board) external view returns (bool);
     /**
      * @notice Add more tokens to the pool
      * @dev Can be called anytime by owner
@@ -76,26 +77,6 @@ interface IIncentivesPool {
     function revokeBoard(address board) external;
 
     /**
-     * @notice Claim allocated rewards for a specific initiative and supporter
-     * @dev Transfers rewards to the supporter and marks as claimed
-     * @dev Can be called by Signals contract (auto-claim on redeem) or by supporter directly
-     *
-     * @param initiativeId ID of the initiative to claim rewards for
-     * @param payee Address of the payee receiving rewards
-     * @param percentOfInitiativeRewards Percentage of the initiative rewards to claim, normalized to 1e18
-     */
-    function claimRewards(uint256 initiativeId, address payee, uint256 percentOfInitiativeRewards)
-        external;
-
-    /**
-     * @notice Check if a board is approved
-     *
-     * @param board Address of the board to check
-     * @return True if board is approved, false otherwise
-     */
-    function isBoardApproved(address board) external view returns (bool);
-
-    /**
      * @notice Get the total reward per initiative for a board
      *
      * @param board Address of the board to get the total reward per initiative for
@@ -113,7 +94,15 @@ interface IIncentivesPool {
      */
     function addIncentivesCreditForLock(uint256 initiativeId, uint256 lockId, uint128 credit)
         external;
-
+    /**
+     * @notice Remove the incentive credits for a set of locks
+     * @dev Called by approved boards to remove lock contributions
+     *
+     * @param initiativeId The ID of the initiative
+     * @param lockIds The IDs of the locks
+     */
+    function removeIncentivesCreditForLocks(uint256 initiativeId, uint256[] calldata lockIds)
+        external;
     /**
      * @notice Claim incentives for a set of locks
      * @dev Called by approved boards to distribute rewards

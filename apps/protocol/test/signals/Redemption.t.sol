@@ -30,8 +30,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
         uint256 beforeBalance = _tokenERC20.balanceOf(_alice);
 
-        (uint256 initiativeId, uint256 tokenId) =
-            proposeAndAccept(signals, _alice, lockAmount, 0);
+        (uint256 initiativeId, uint256 tokenId) = proposeAndAccept(signals, _alice, lockAmount, 0);
 
         // Verify balance was reduced
         assertEq(_tokenERC20.balanceOf(_alice), beforeBalance - lockAmount);
@@ -77,6 +76,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         vm.startPrank(_bob);
         uint256[] memory lockIds = new uint256[](1);
         lockIds[0] = tokenId;
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector, tokenId));
         customSignals.redeemLocksForInitiative(initiativeId, lockIds);
         vm.stopPrank();
 
@@ -173,8 +173,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
         uint256 beforeBalance = _tokenERC20.balanceOf(_alice);
 
-        (uint256 initiativeId, uint256 tokenId) =
-            proposeAndExpire(signals, _alice, lockAmount, 0);
+        (uint256 initiativeId, uint256 tokenId) = proposeAndExpire(signals, _alice, lockAmount, 0);
 
         // Verify balance was reduced
         assertEq(_tokenERC20.balanceOf(_alice), beforeBalance - lockAmount);
@@ -206,8 +205,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_TwiceReverts() public {
         uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
 
-        (uint256 initiativeId, uint256 tokenId) =
-            proposeAndAccept(signals, _alice, lockAmount, 0);
+        (uint256 initiativeId, uint256 tokenId) = proposeAndAccept(signals, _alice, lockAmount, 0);
 
         // Redeem the lock successfully
         vm.startPrank(_alice);
@@ -235,8 +233,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         uint256 aliceBalanceBefore = _tokenERC20.balanceOf(_alice);
         uint256 bobBalanceBefore = _tokenERC20.balanceOf(_bob);
 
-        (uint256 initiativeId, uint256 tokenId) =
-            proposeAndAccept(signals, _alice, lockAmount, 0);
+        (uint256 initiativeId, uint256 tokenId) = proposeAndAccept(signals, _alice, lockAmount, 0);
 
         // Verify alice owns the NFT
         assertEq(signals.ownerOf(tokenId), _alice);
@@ -294,6 +291,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         vm.startPrank(_alice);
         uint256[] memory lockIds = new uint256[](1);
         lockIds[0] = tokenId;
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector, tokenId));
         signals.redeemLocksForInitiative(initiativeId, lockIds);
         vm.stopPrank();
 

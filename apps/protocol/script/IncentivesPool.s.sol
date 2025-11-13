@@ -138,7 +138,7 @@ contract IncentivesPoolScript is SharedScriptBase {
         console.log("Board Address:", boardAddress);
         console.log("Board Budget:", boardBudget);
         console.log("Reward Per Initiative:", rewardPerInitiative);
-        console.log("Is Approved:", pool.isBoardApproved(boardAddress));
+        console.log("Is Approved:", pool.approvedBoards(boardAddress));
 
         console.log("ScriptOutput:", boardAddress);
     }
