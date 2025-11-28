@@ -47,3 +47,6 @@ yarn-error.log*
 .vercel
 testnet.sh
 scripts/testnet-set-signer.sh
+
+# local build caches
+.cache/

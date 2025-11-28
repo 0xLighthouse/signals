@@ -1,0 +1,15 @@
+{
+  "name": "signals-research",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "setup": "./scripts/init.sh",
+    "build": "pnpm run build:paper",
+    "build:paper": "./scripts/build.sh --main main.tex",
+    "build:onepager": "./scripts/build.sh --main onepager.tex",
+    "watch": "pnpm run watch:paper",
+    "watch:paper": "pnpm dlx watchexec --clear --exts tex,bib,sty -- ./scripts/build.sh --main main.tex",
+    "watch:onepager": "pnpm dlx watchexec --clear --exts tex,bib,sty -- ./scripts/build.sh --main onepager.tex",
+    "clean": "OUT_DIR=${OUT_DIR:-published}; rm -f *.pdf *.aux *.log *.toc *.out *.bbl *.blg \"$OUT_DIR\"/*.pdf \"$OUT_DIR\"/*.aux \"$OUT_DIR\"/*.log \"$OUT_DIR\"/*.toc \"$OUT_DIR\"/*.out \"$OUT_DIR\"/*.bbl \"$OUT_DIR\"/*.blg; rm -rf .cache/tectonic"
+  }
+}
