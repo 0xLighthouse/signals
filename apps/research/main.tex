@@ -9,7 +9,7 @@
 \maketitle
 
 \begin{abstract}
-Concise summary of the Signals Protocol research direction. Replace this paragraph with a crisp overview of the problem, approach, and expected outcomes.
+Signals is a board-based on-chain coordination primitive where members lock an ERC-20 for time to express intensity of support on concrete initiatives. Each lock mints a transferable ERC-721 that represents the right to redeem the underlying after expiry or earlier upon initiative acceptance. Boards are immutable configurations at deployment time: lock interval, maximum lock duration (in intervals), decay curve and parameters, acceptance criteria (owner/anyone gating plus fixed and/or percentage thresholds), eligibility requirements for proposers and supporters, inactivity timeout, and optional post-acceptance release timelock. The protocol integrates optional reward mechanisms: a multi-board \texttt{IncentivesPool} that distributes board-wide participation rewards via time-bucketed weighting, and a per-initiative \texttt{Bounties} contract backed by an allow-listed \texttt{TokenRegistry}. Boards are deployed via a minimal-proxy factory and expose a simple lifecycle: propose, support (mint lock NFT), accept or expire, and redeem. This document preserves the system's motivation and design goals while grounding the mechanisms in the shipped contracts and validated behaviors from tests and docs.
 \end{abstract}
 
 \input{tex/sections/introduction}

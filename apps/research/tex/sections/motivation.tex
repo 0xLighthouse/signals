@@ -7,4 +7,6 @@ Token-based voting captures binary preferences on formal proposals but does litt
   \item Social pressure that favors incumbents over fresh ideas.
 \end{itemize}
 
-By leveraging preference intensity through time-lock commitments, \signals{} constructs a dynamic idea board where the most strongly supported initiatives rise naturally, keeping attention on what matters and when.
+By leveraging preference intensity through time-lock commitments, \signals{} constructs a dynamic idea board where the most strongly supported initiatives rise naturally, keeping attention on what matters and when. Concretely, each position requires locking real tokens for time; supporters own an ERC-721 claim on those tokens and must wait for expiry (or success) to redeem, making opportunity cost explicit.
+
+To counteract last-minute pile-ons and apathetic equilibria, the protocol optionally distributes participation rewards. A shared \texttt{IncentivesPool} funds supporters of accepted initiatives based on when they committed support (earlier commitments earn higher weight via time buckets), while a \texttt{Bounties} module lets contributors escrow targeted rewards per initiative. Both mechanisms aim to reward early, accurate signaling and raise the cost of low-conviction behavior without distorting the core lock-and-decay semantics.

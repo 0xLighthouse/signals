@@ -4,9 +4,20 @@ The Signals proof of concept was built during the Arbitrum Collabtech Hackathon 
 We aim to formalize and validate the protocol on:
 \begin{itemize}[leftmargin=*]
   \item Capturing voter preference intensity and opportunity cost as sufficient risk.
-  \item Locking as sybil resistance and its limits.
-  \item Gameable vs. productive patterns for endorsements and reputation.
-  \item Inclusivity: how smaller voting blocks benefit from time-weighted designs.
+  \item Locking as sybil resistance and its limits under heterogeneous token distributions.
+  \item Gameable vs. productive patterns for endorsements and reputation (as an optional module).
+  \item Inclusivity: how smaller voting blocks benefit from time-weighted designs and decay floors.
+  \item Incentive design: robust bucket curves, interpolation strategies, and anti-gaming analysis.
+  \item Bounties lifecycle: finalized refund semantics for expired bounties and contributor UX.
+  \item Factory ergonomics and validation: richer config checks to prevent bricked boards.
+  \item Gas and storage: empirical benchmarks for decay/claim paths and interval sizing.
 \end{itemize}
 
-If interested in collaborating on a whitepaper, please reach out.
+Implementation work in progress:
+\begin{itemize}[leftmargin=*]
+  \item Additional decay and incentive curve variants with formal parameter bounds.
+  \item Extended board state controls and analytics surfaces (weight snapshots, per-supporter queries).
+  \item Documentation alignment and examples reflecting the constructor-based pool and board approval.
+\end{itemize}
+
+If interested in collaborating on a whitepaper or formal verification, please reach out.

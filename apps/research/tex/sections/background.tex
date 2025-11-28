@@ -8,3 +8,6 @@ Voters lock tokens for a period to determine voting power. If their choice wins,
 
 \paragraph{veToken Systems}
 veCRV, Aragon OSx gauges, and Velodrome require duration-based locks to earn voting power. Lock length boosts influence across all votes but does not capture intensity on a specific initiative. See \cite{curve-vecrv-understanding, curve-vecrv-overview, velodrome2022launch, aragon2024mode}.
+
+\paragraph{Signals}
+Signals borrows the idea of time-weighted commitment but applies it to a continuous idea board rather than a binary election. Unlike conviction voting, support decays deterministically at a board-defined interval and is bounded by a maximum lock duration. Unlike veToken systems, voting weight is scoped to a specific initiative via an ERC-721 lock position. Acceptance combines programmable thresholds with access control, and optional rewards are delivered by externalized modules to keep the core trust surface small.
