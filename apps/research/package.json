@@ -5,7 +5,7 @@
   "scripts": {
     "setup": "./scripts/init.sh",
     "build": "pnpm run build:paper",
-    "build:paper": "./scripts/build.sh --main main.tex",
+    "build:paper": "./scripts/build.sh --main main.tex --output SignalsProtocol-litepaper.pdf",
     "build:onepager": "./scripts/build.sh --main onepager.tex",
     "watch": "pnpm run watch:paper",
     "watch:paper": "pnpm dlx watchexec --clear --exts tex,bib,sty -- ./scripts/build.sh --main main.tex",
