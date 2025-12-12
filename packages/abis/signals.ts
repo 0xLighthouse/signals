@@ -216,11 +216,6 @@ export const signalsAbi = [
         internalType: 'struct IAuthorizer.ParticipantRequirements',
         type: 'tuple',
         components: [
-          {
-            name: 'eligibilityType',
-            internalType: 'enum IAuthorizer.EligibilityType',
-            type: 'uint8',
-          },
           { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
           {
             name: 'minHoldingDuration',
@@ -243,11 +238,6 @@ export const signalsAbi = [
         internalType: 'struct IAuthorizer.ParticipantRequirements',
         type: 'tuple',
         components: [
-          {
-            name: 'eligibilityType',
-            internalType: 'enum IAuthorizer.EligibilityType',
-            type: 'uint8',
-          },
           { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
           {
             name: 'minHoldingDuration',
@@ -406,11 +396,6 @@ export const signalsAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
-              {
-                name: 'eligibilityType',
-                internalType: 'enum IAuthorizer.EligibilityType',
-                type: 'uint8',
-              },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -429,11 +414,6 @@ export const signalsAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
-              {
-                name: 'eligibilityType',
-                internalType: 'enum IAuthorizer.EligibilityType',
-                type: 'uint8',
-              },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -609,11 +589,6 @@ export const signalsAbi = [
     inputs: [],
     name: 'proposerRequirements',
     outputs: [
-      {
-        name: 'eligibilityType',
-        internalType: 'enum IAuthorizer.EligibilityType',
-        type: 'uint8',
-      },
       { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
       { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
       { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
@@ -785,11 +760,6 @@ export const signalsAbi = [
     inputs: [],
     name: 'supporterRequirements',
     outputs: [
-      {
-        name: 'eligibilityType',
-        internalType: 'enum IAuthorizer.EligibilityType',
-        type: 'uint8',
-      },
       { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
       { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
       { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
@@ -1286,7 +1256,11 @@ export const signalsAbi = [
   { type: 'error', inputs: [], name: 'Signals_InvalidArguments' },
   { type: 'error', inputs: [], name: 'Signals_InvalidID' },
   { type: 'error', inputs: [], name: 'Signals_NotOwner' },
-  { type: 'error', inputs: [], name: 'Signals_StillTimelocked' },
+  {
+    type: 'error',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'Signals_StillTimelocked',
+  },
   {
     type: 'error',
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
@@ -1387,11 +1361,6 @@ export const signalsFactoryAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
-              {
-                name: 'eligibilityType',
-                internalType: 'enum IAuthorizer.EligibilityType',
-                type: 'uint8',
-              },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -1410,11 +1379,6 @@ export const signalsFactoryAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
-              {
-                name: 'eligibilityType',
-                internalType: 'enum IAuthorizer.EligibilityType',
-                type: 'uint8',
-              },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',

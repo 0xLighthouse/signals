@@ -35,8 +35,8 @@ export default defineConfig([
       foundry({
         project: 'apps/signals-token-factory',
         include: [
-          'ExperimentToken.sol/ExperimentToken.json',
-          'ExperimentTokenFactory.sol/ExperimentTokenFactory.json',
+          'src/ExperimentToken.sol/ExperimentToken.json',
+          'src/ExperimentTokenFactory.sol/ExperimentTokenFactory.json',
         ],
       }),
     ],

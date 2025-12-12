@@ -101,31 +101,9 @@ export const incentivesPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
-      { name: 'payee', internalType: 'address', type: 'address' },
-      {
-        name: 'percentOfInitiativeRewards',
-        internalType: 'uint256',
-        type: 'uint256',
-      },
-    ],
-    name: 'claimRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'distributedRewards',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'board', internalType: 'address', type: 'address' }],
-    name: 'isBoardApproved',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
@@ -148,6 +126,16 @@ export const incentivesPoolAbi = [
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'initiativeId', internalType: 'uint256', type: 'uint256' },
+      { name: 'lockIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'removeIncentivesCreditForLocks',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
