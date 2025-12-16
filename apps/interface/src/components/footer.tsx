@@ -1,5 +1,4 @@
 import { Separator } from '@/components/ui/separator'
-import { HomeLogo } from './ui/home-logo'
 
 export function Footer() {
   return (
@@ -35,12 +34,6 @@ export function Footer() {
             Submit feedback
           </a>
         </div>
-      </div>
-      {/* <Separator className="my-4" /> */}
-      <div className="mt-8 flex justify-end">
-        <a href="https://lighthouse.cx" target="_blank" rel="noreferrer">
-          <HomeLogo />
-        </a>
       </div>
     </div>
   )

@@ -21,7 +21,11 @@ import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edg
 import { formatUnits } from 'viem'
 import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from '@/contexts/WalletProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
+import { usePublicClient } from '@/contexts/ChainProvider'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
+import { useSignals } from '@/hooks/use-signals'
+import { claimsConfig } from '@/config/claims'
 import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { CheckCircle2, Clock3, Sparkles, Wallet2 } from 'lucide-react'
 
@@ -102,11 +106,18 @@ const buildClaimArgs = (
   ] as const
 }
 
-export const EdgeCityClaimDialog = () => {
+interface EdgeCityClaimDialogProps {
+  isVisible?: boolean
+}
+
+export const EdgeCityClaimDialog = ({ isVisible = true }: EdgeCityClaimDialogProps) => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
-  const { walletClient, publicClient } = useWeb3()
+  const { isInitialized } = useWeb3()
+  const walletClient = useWalletClient()
+  const publicClient = usePublicClient()
   const { config } = useNetworkConfig()
+  const { underlyingAddress } = useSignals()
 
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<ClaimState>(initialState)
@@ -219,10 +230,6 @@ export const EdgeCityClaimDialog = () => {
   // Get the Edge Experiment token address from the active network configuration
   const edgeExperimentTokenAddress = config.contracts.EdgeExperimentToken?.address
   const edgeExperimentTokenAbi = config.contracts.EdgeExperimentToken?.abi
-
-  if (!edgeCityConfig.enabled || !edgeExperimentTokenAddress) {
-    return null
-  }
 
   const fetchAllowance = useCallback(
     async (token: string, wallet: `0x${string}`) => {
@@ -474,6 +481,17 @@ export const EdgeCityClaimDialog = () => {
       setState((prev) => ({ ...prev, allowance: null }))
     }
   }, [address])
+
+  const shouldRender =
+    edgeCityConfig.enabled &&
+    edgeExperimentTokenAddress &&
+    isVisible &&
+    underlyingAddress &&
+    underlyingAddress.toLowerCase() === claimsConfig.edgeCityTokenAddress.toLowerCase()
+
+  if (!shouldRender) {
+    return null
+  }
 
   const renderContent = () => {
     if (!ready) {

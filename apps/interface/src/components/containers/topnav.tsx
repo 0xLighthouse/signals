@@ -3,32 +3,27 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
-import { Lightbulb } from 'lucide-react'
-import { NavList } from './nav'
 import { EdgeCityClaimDialog } from '@/components/edge-city/edge-city-claim-dialog'
 import { TokenBalanceButton } from './token-balance-button'
+import { useAccount } from '@/hooks/useAccount'
 
 export const TopNav = () => {
+  const { isConnected } = useAccount()
+
   return (
-    <div className="flex align-center p-4 border-neutral-200 dark:border-neutral-700 border-b">
-      <div className="container mx-auto max-w-7xl flex justify-between relative">
+    <div className="flex align-center py-4 border-neutral-200 dark:border-neutral-700 border-b">
+      <div className="container mx-auto max-w-7xl px-4 flex justify-between">
         <div className="flex items-center">
           <Breadcrumbs />
         </div>
-        <div className="flex items-center absolute left-1/2 transform -translate-x-1/2 sm:top-0 top-[60px]">
-          <NavList
-            items={[{ href: '/', label: 'Initiatives', icon: Lightbulb }]}
-            className="max-w-md"
-          />
-        </div>
         <div className="flex lg:hidden items-center gap-4">
           <TokenBalanceButton />
-          <EdgeCityClaimDialog />
+          <EdgeCityClaimDialog isVisible={isConnected} />
           <SidebarTrigger />
         </div>
         <div className="hidden lg:flex items-center gap-4">
           <TokenBalanceButton />
-          <EdgeCityClaimDialog />
+          <EdgeCityClaimDialog isVisible={isConnected} />
           <ConnectButton />
           <ThemeToggle className="" />
         </div>
