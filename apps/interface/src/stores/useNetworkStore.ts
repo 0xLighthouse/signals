@@ -11,8 +11,14 @@ interface NetworkState {
   hydrateFromEnv: () => void
 }
 
-const resolveInitialKey = (): SupportedNetworks =>
-  (DEFAULT_NETWORK in NETWORKS ? DEFAULT_NETWORK : 'local') as SupportedNetworks
+const resolveInitialKey = (): SupportedNetworks => {
+  if (DEFAULT_NETWORK in NETWORKS) {
+    return DEFAULT_NETWORK as SupportedNetworks
+  }
+  // Fallback to baseSepolia instead of 'local' which no longer exists
+  console.warn('DEFAULT_NETWORK not found in NETWORKS, falling back to baseSepolia')
+  return 'baseSepolia'
+}
 
 const initialKey = resolveInitialKey()
 const initialConfig = NETWORKS[initialKey]

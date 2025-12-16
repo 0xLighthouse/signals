@@ -1,20 +1,16 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useNetworkConfig } from './useNetworkConfig'
 
-import { useNetworkStore } from '@/stores/useNetworkStore'
-
+/**
+ * Hook to get the current network configuration
+ * @deprecated Use useNetworkConfig directly instead
+ */
 export const useNetwork = () => {
-  const selected = useNetworkStore((state) => state.selected)
-  const config = useNetworkStore((state) => state.config)
-  const setNetwork = useNetworkStore((state) => state.setNetwork)
+  const { network: selected, config } = useNetworkConfig()
 
-  return useMemo(
-    () => ({
-      selected,
-      config,
-      setNetwork,
-    }),
-    [selected, config, setNetwork]
-  )
+  return {
+    selected,
+    config,
+  }
 }

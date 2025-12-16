@@ -3,6 +3,7 @@
 import React from 'react'
 
 import { useSignals } from '@/hooks/use-signals'
+import { useAccount } from '@/hooks/useAccount'
 import { normaliseNumber, shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
 
@@ -43,7 +44,9 @@ export const BoardConfig = () => {
     underlyingDecimals,
     underlyingTotalSupply,
     formatter,
+    underlyingBalance,
   } = useSignals()
+  const { isConnected } = useAccount()
 
   const canFormatTokenValues = underlyingDecimals != null
 
@@ -91,10 +94,24 @@ export const BoardConfig = () => {
   const tokenSymbol = underlyingSymbol ?? `${STUB_TOKEN_SYMBOL} (stub)`
   const tokenDecimals = underlyingDecimals?.toString() ?? '18 (stub)'
 
-  const statusLabel = board.meetsThreshold ? 'Ready to propose' : 'Needs more tokens'
-  const statusStyles = board.meetsThreshold
-    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-    : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+  // Determine status badge - only show user-specific status if connected
+  let statusLabel: string | null = null
+  let statusStyles: string = ''
+
+  if (isConnected && underlyingBalance != null && board.proposalThreshold != null) {
+    // User is connected - show their ability to propose
+    if (board.meetsThreshold) {
+      statusLabel = 'You can propose'
+      statusStyles = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+    } else {
+      statusLabel = 'You need more tokens'
+      statusStyles = 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+    }
+  } else if (boardAddress) {
+    // No user connected or balance unknown - show board-level status
+    statusLabel = 'Active'
+    statusStyles = 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+  }
 
   const governanceConfig = [
     { label: 'Proposal threshold', value: proposalThreshold },
@@ -111,7 +128,7 @@ export const BoardConfig = () => {
   ]
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-6 text-neutral-900 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 dark:text-white">
+    <section className="rounded-2xl bg-white text-neutral-900 dark:bg-neutral-950 dark:text-white">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -122,9 +139,11 @@ export const BoardConfig = () => {
             {addressLabel} • {networkLabel}
           </p>
         </div>
-        <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${statusStyles}`}>
-          {statusLabel}
-        </span>
+        {statusLabel && (
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${statusStyles}`}>
+            {statusLabel}
+          </span>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -7,8 +7,11 @@ import localFont from 'next/font/local'
 import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import { Web3Provider } from '@/contexts/Web3Provider'
+import { WalletProvider } from '@/contexts/WalletProvider'
 import { SignalsProvider } from '@/contexts/SignalsContext'
+import { ChainProvider } from '@/contexts/ChainProvider'
+import type { ChainKey } from '@/lib/chains'
+import { DEFAULT_NETWORK } from '@/config/network-config'
 // TODO[fixme]: IncentivesProvider refactor
 // import { IncentivesProvider } from '@/contexts/IncentivesContext'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -47,15 +50,24 @@ export default function RootLayout({
     </SidebarProvider>
   )
 
+  const allowedChainKeys: ChainKey[] = ['base', 'baseSepolia', 'arbitrumSepolia']
+  const initialChainKey = (
+    allowedChainKeys.includes(DEFAULT_NETWORK as ChainKey)
+      ? (DEFAULT_NETWORK as ChainKey)
+      : 'baseSepolia'
+  ) satisfies ChainKey
+
   return (
     <html lang="en" className={theme}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider initialTheme={theme}>
-          <Web3Provider>
-            <SignalsProvider>{sidebarContent}</SignalsProvider>
-            <StickyFooter />
-            <Toaster />
-          </Web3Provider>
+          <ChainProvider initialChainKey={initialChainKey}>
+            <WalletProvider>
+              <SignalsProvider>{sidebarContent}</SignalsProvider>
+              <StickyFooter />
+              <Toaster />
+            </WalletProvider>
+          </ChainProvider>
         </ThemeProvider>
       </body>
     </html>

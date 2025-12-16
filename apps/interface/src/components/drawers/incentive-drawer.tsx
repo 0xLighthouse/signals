@@ -20,19 +20,19 @@ import { TokenSelector } from '../token-selector'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { usePrivy } from '@privy-io/react-auth'
 import { features } from '@/config/features'
-import { useNetwork } from '@/hooks/useNetwork'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 
 interface Props {
   initiative: Initiative
 }
 
 export function IncentiveDrawer({ initiative }: Props) {
-  const { config } = useNetwork()
+  const { config } = useNetworkConfig()
   const incentivesConfig = config.contracts.Incentives
   const usdcConfig = config.contracts.USDC
 

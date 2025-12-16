@@ -20,12 +20,12 @@ import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from 'indexers/src/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
 import { useBondsStore } from '@/stores/useBondsStore'
-import { useNetwork } from '@/hooks/useNetwork'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { parseUnits } from 'viem'
 
 export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
@@ -35,12 +35,11 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const {
     underlyingBalance: balance,
     underlyingSymbol: symbol,
-    fetchUnderlyingMetadata: fetchContractMetadata,
     boardAddress,
     formatter,
     board,
   } = useSignals()
-  const { config } = useNetwork()
+  const { network, config } = useNetworkConfig()
   const signalsContract = config.contracts.SignalsProtocol
   const underlyingContract = config.contracts.BoardUnderlyingToken
   const tokenDecimals = underlyingContract?.decimals ?? 18
@@ -76,6 +75,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     spender: signalsContract?.address,
     tokenAddress: underlyingContract?.address,
     tokenDecimals,
+    enabled: isDrawerOpen,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -117,7 +117,10 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       return
     }
     if (!signalsContract || !underlyingContract) {
-      toast('Network is missing Signals configuration. Please try again later.')
+      const missing = !signalsContract ? 'SignalsProtocol' : 'BoardUnderlyingToken'
+      toast(
+        `Missing ${missing} contract config for ${network}. Update NETWORK_CONFIG and redeploy UI.`,
+      )
       return
     }
 
@@ -138,7 +141,6 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
         ],
       })
 
-      console.log('Request:', request)
       const hash = await walletClient.writeContract(request)
 
       const receipt = await publicClient.waitForTransactionReceipt({
@@ -153,7 +155,6 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       if (boardAddress) {
         fetchInitiatives(boardAddress)
       }
-      fetchContractMetadata()
     } catch (err) {
       console.error(err)
       toast('Error adding support')

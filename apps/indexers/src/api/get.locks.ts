@@ -26,7 +26,7 @@ export const getLocks = async (c: Context) => {
     },
   })
 
-  const client = getClientByChainId(Number(chainId))
+  const client = getClientByChainId(publicClients, Number(chainId))
   if (!client) {
     return c.json({ error: `Unsupported chainId: ${chainId}` }, 400)
   }

@@ -15,7 +15,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 hidden sm:flex justify-center">
       <div className="w-full mx-auto max-w-7xl px-3 sm:px-8">
-        <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-x border-neutral-200 dark:border-neutral-800 rounded-t-xl h-12 shadow-lg">
+        <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-x border-neutral-200 dark:border-neutral-800 rounded-t-xl h-12">
           <div className="flex flex-row w-full justify-between items-center h-full text-body-sm font-medium text-neutral-500 dark:text-neutral-400">
             {/* Left section - Logo and links */}
             <div className="flex items-center justify-start">

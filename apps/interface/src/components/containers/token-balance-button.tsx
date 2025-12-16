@@ -3,29 +3,27 @@
 import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
 import { Button } from '@/components/ui/button'
-import { Wallet } from 'lucide-react'
+import { Loader2, Wallet } from 'lucide-react'
 import { normaliseNumber } from '@/lib/utils'
+import { useBalanceOf } from '@/hooks/useBalanceOf'
 
 export const TokenBalanceButton = () => {
-  const { boardAddress, underlyingAddress, underlyingBalance, underlyingSymbol, formatter } =
-    useSignals()
-  const { isConnected } = useAccount()
+  const { boardAddress, underlyingAddress, underlyingSymbol, formatter } = useSignals()
+  const { isConnected, address } = useAccount()
+  const { balance, isLoading, refetch } = useBalanceOf(address, underlyingAddress)
 
   // Don't show if user is not connected
-  if (!isConnected) {
+  if (!isConnected || !underlyingAddress) {
     return null
   }
 
-  // Show loading state if board or underlying token is not yet loaded
-  const isLoading = !boardAddress || !underlyingAddress
-
   // Format the balance
   const formatBalance = () => {
-    if (isLoading || underlyingBalance == null) {
+    if (isLoading || balance == null) {
       return '—'
     }
 
-    const adjusted = formatter(underlyingBalance)
+    const adjusted = formatter(Number(balance))
     if (!Number.isFinite(adjusted)) {
       return '—'
     }
@@ -48,8 +46,13 @@ export const TokenBalanceButton = () => {
   const displaySymbol = underlyingSymbol ?? 'Tokens'
 
   return (
-    <Button variant="outline" className="gap-2" disabled>
-      <Wallet className="h-4 w-4" />
+    <Button
+      variant="outline"
+      className="gap-2"
+      onClick={() => void refetch()}
+      disabled={!boardAddress || !underlyingAddress || isLoading}
+    >
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
       <span>
         {displayBalance} {displaySymbol}
       </span>

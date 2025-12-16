@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { CircleAlert, PlusIcon, Trash2 } from 'lucide-react'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { CircleAlert, Loader2, PlusIcon, Trash2 } from 'lucide-react'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
 import { parseUnits } from 'viem'
@@ -27,7 +27,12 @@ import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
 import { Typography } from '../ui/typography'
-import { useNetwork } from '@/hooks/useNetwork'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
+import { useRouteStore } from '@/stores/useRouteStore'
+import { SignalsABI } from '../../../../../packages/abis'
+import { useBalanceOf } from '@/hooks/useBalanceOf'
+import { usePublicClient } from '@/contexts/ChainProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
 
 type AttachmentDraft = {
   uri: string
@@ -37,21 +42,24 @@ type AttachmentDraft = {
 
 const MAX_ATTACHMENTS = 5
 
-export function CreateInitiativeDrawer() {
-  const {
-    underlyingBalance: balance,
-    underlyingSymbol: symbol,
-    fetchUnderlyingMetadata: fetchContractMetadata,
-    boardAddress,
-    formatter,
-    board,
-  } = useSignals()
+type CreateInitiativeDrawerProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
+}
+
+export function CreateInitiativeDrawer({
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
+  showTrigger = true,
+}: CreateInitiativeDrawerProps = {}) {
+  const { underlyingSymbol: symbol, formatter, board, meetsProposalThreshold } = useSignals()
+  const boardAddress = useRouteStore((state) => state.boardAddress)
   const { address } = useAccount()
-  const { walletClient, publicClient } = useWeb3()
+  const { isInitialized } = useWeb3()
+  const publicClient = usePublicClient()
+  const walletClient = useWalletClient()
   const { authenticated, login } = usePrivy()
-  const { config } = useNetwork()
-  const signalsContract = config.contracts.SignalsProtocol
-  const underlyingContract = config.contracts.BoardUnderlyingToken
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number>(0)
@@ -59,15 +67,25 @@ export function CreateInitiativeDrawer() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [attachments, setAttachments] = useState<AttachmentDraft[]>([])
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [internalDrawerOpen, setInternalDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isDrawerOpen = externalOpen !== undefined ? externalOpen : internalDrawerOpen
+  const setIsDrawerOpen = externalOnOpenChange || setInternalDrawerOpen
+
+  const { balance, isLoading: isBalanceLoading } = useBalanceOf(
+    address,
+    board?.underlyingToken,
+    isDrawerOpen,
+  )
 
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: signalsContract?.address,
-    tokenAddress: underlyingContract?.address,
-    tokenDecimals: underlyingContract?.decimals ?? 18,
+    spender: board?.contractAddress,
+    tokenAddress: board?.underlyingToken,
+    tokenDecimals: board?.underlyingTokenDecimals ?? 18,
+    enabled: isDrawerOpen,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -148,12 +166,12 @@ export function CreateInitiativeDrawer() {
     const preparedAttachments = trimmedAttachments.filter((attachment) => attachment.uri.length > 0)
 
     try {
-      if (!walletClient) {
-        toast('Wallet not connected')
+      if (!isInitialized || !publicClient) {
+        toast('Web3 is still initializing. Please try again in a moment.')
         return
       }
-      if (!signalsContract) {
-        toast('Network is missing Signals configuration. Please try again later.')
+      if (!walletClient) {
+        toast('Wallet not connected')
         return
       }
 
@@ -167,13 +185,13 @@ export function CreateInitiativeDrawer() {
       }
       const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
       const args = amount
-        ? [metadata, parseUnits(String(amount), underlyingContract?.decimals ?? 18), duration]
+        ? [metadata, parseUnits(String(amount), board?.underlyingTokenDecimals ?? 18), duration]
         : [metadata]
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: signalsContract.address,
-        abi: signalsContract.abi,
+        address: board?.contractAddress,
+        abi: SignalsABI,
         functionName,
         nonce,
         args,
@@ -193,7 +211,6 @@ export function CreateInitiativeDrawer() {
       if (boardAddress) {
         fetchInitiatives(boardAddress)
       }
-      fetchContractMetadata()
     } catch (error) {
       console.error(error)
       if ((error as Error)?.message?.includes('User rejected the request')) {
@@ -206,10 +223,6 @@ export function CreateInitiativeDrawer() {
   }
 
   const resolveAction = () => {
-    if (!board.meetsThreshold) {
-      return <Button disabled>Insufficient tokens</Button>
-    }
-
     if (!hasAllowance && amount) {
       return (
         <Button onClick={() => handleApprove(amount)} isLoading={isApproving}>
@@ -219,7 +232,9 @@ export function CreateInitiativeDrawer() {
     }
     return (
       <Button
-        disabled={(lockTokens && !amount) || !title || !description}
+        disabled={
+          (lockTokens && !amount) || !title || !description || !publicClient || !isInitialized
+        }
         onClick={handleSubmit}
         isLoading={isSubmitting}
       >
@@ -234,11 +249,13 @@ export function CreateInitiativeDrawer() {
       open={isDrawerOpen}
       onOpenChange={handleOnOpenChange}
     >
-      <DrawerTrigger asChild>
-        <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
-          <PlusIcon size={18} />
-        </Button>
-      </DrawerTrigger>
+      {showTrigger && (
+        <DrawerTrigger asChild>
+          <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+            <PlusIcon size={18} />
+          </Button>
+        </DrawerTrigger>
+      )}
       <DrawerContent>
         <div className="overflow-y-auto flex p-8 space-x-8">
           <div className="flex flex-col mx-auto lg:w-3/5">
@@ -246,7 +263,7 @@ export function CreateInitiativeDrawer() {
               <DrawerTitle>Propose a new initiative</DrawerTitle>
             </DrawerHeader>
 
-            {!board.meetsThreshold ? (
+            {!meetsProposalThreshold(Number(balance ?? 0)) ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <CircleAlert className="h-12 w-12 text-orange-500 mb-4" />
                 <Typography variant="h3" className="mb-2">
@@ -256,6 +273,16 @@ export function CreateInitiativeDrawer() {
                   You need at least {formatter(board.proposalThreshold)} {symbol} tokens to propose
                   an initiative. Please acquire more tokens before trying again.
                 </Typography>
+                {isBalanceLoading ? (
+                  <div className="mt-3 flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Typography variant="body-sm">Fetching your balance…</Typography>
+                  </div>
+                ) : (
+                  <Typography variant="body-sm" className="text-muted-foreground mt-3">
+                    Your balance: {formatter(Number(balance ?? 0))} {symbol}
+                  </Typography>
+                )}
               </div>
             ) : (
               <>

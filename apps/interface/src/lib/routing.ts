@@ -6,7 +6,6 @@ import { DEFAULT_NETWORK } from '@/config/network-config'
  * Maps network names to URL-friendly slugs
  */
 export const NETWORK_SLUGS: Record<SupportedNetworks, string> = {
-  local: 'local',
   arbitrumSepolia: 'arbitrum-sepolia',
   base: 'base',
   baseSepolia: 'base-sepolia',

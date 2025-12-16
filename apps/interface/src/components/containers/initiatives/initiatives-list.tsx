@@ -1,67 +1,108 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { PlusIcon } from 'lucide-react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from './initiative-card'
 import { PageSection } from '@/components/page-section'
+import { CreateInitiativeDrawer } from '@/components/drawers/create-initiative-drawer'
+import { Button } from '@/components/ui/button'
+import { useAccount } from '@/hooks/useAccount'
+import { usePrivy } from '@privy-io/react-auth'
+import { toast } from 'sonner'
 
 export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` }) => {
   const initiatives = useInitiativesStore((state) => state.initiatives)
-  const isFetchingInitiatives = useInitiativesStore((state) => state.isFetching)
-  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
+  const isFetching = useInitiativesStore((state) => state.isFetching)
   const isInitialized = useInitiativesStore((state) => state.isInitialized)
+  const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
+  const { address } = useAccount()
+  const { authenticated, login } = usePrivy()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   useEffect(() => {
-    console.log('--- isInitialized', isInitialized)
-    console.log('--- fetching initiatives --- for board', boardAddress)
     if (!isInitialized && boardAddress) {
       void fetchInitiatives(boardAddress)
     }
   }, [isInitialized, fetchInitiatives, boardAddress])
 
-  const [sortBy, setSortBy] = useState('support')
+  const [sortBy, setSortBy] = useState<'support' | 'createdAt'>('support')
 
-  // Ensure initiatives is always an array before filtering
-  const _initiativesSorted = initiatives.sort((a, b) =>
-    sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
-  )
+  const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
+    if (!address) {
+      toast('Please connect a wallet')
+      return
+    }
+    setIsDrawerOpen(true)
+  }
 
-  if (isFetchingInitiatives) {
+  const _initiativesSorted = useMemo(() => {
+    const arr = Array.isArray(initiatives) ? [...initiatives] : []
+    return arr.sort((a, b) =>
+      sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
+    )
+  }, [initiatives, sortBy])
+
+  if (isFetching) {
     return <LoadingSpinner />
   }
 
-  // If we have no initiatives, show empty state
-  if (initiatives.length === 0) {
+  const triggerButton = (
+    <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+      <PlusIcon size={18} />
+    </Button>
+  )
+
+  if (_initiativesSorted.length === 0) {
     return (
-      <ListContainer title="Initiatives">
-        <PageSection>
-          <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
-            <p className="text-neutral-500 dark:text-neutral-400">
-              There are currently no active initiatives.
-            </p>
-          </div>
-        </PageSection>
-        <InformationSection />
-      </ListContainer>
+      <>
+        <CreateInitiativeDrawer
+          open={isDrawerOpen}
+          onOpenChange={setIsDrawerOpen}
+          showTrigger={false}
+        />
+        <ListContainer title="Initiatives" action={triggerButton}>
+          <PageSection>
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
+              <p className="text-neutral-500 dark:text-neutral-400">
+                There are currently no active initiatives.
+              </p>
+            </div>
+          </PageSection>
+          <InformationSection />
+        </ListContainer>
+      </>
     )
   }
 
   return (
-    <ListContainer title="Initiatives">
-      {_initiativesSorted.map((item, index) => (
-        <InitiativeCard
-          key={item.initiativeId}
-          initiative={item}
-          index={index}
-          isFirst={index === 0}
-          isLast={index === _initiativesSorted.length - 1}
-        />
-      ))}
-      <InformationSection />
-    </ListContainer>
+    <>
+      <CreateInitiativeDrawer
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        showTrigger={false}
+      />
+      <ListContainer title="Initiatives" action={triggerButton}>
+        {_initiativesSorted.map((item, index) => (
+          <InitiativeCard
+            key={item.initiativeId}
+            initiative={item}
+            index={index}
+            isFirst={index === 0}
+            isLast={index === _initiativesSorted.length - 1}
+          />
+        ))}
+        <InformationSection />
+      </ListContainer>
+    </>
   )
 }
 

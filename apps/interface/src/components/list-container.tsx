@@ -6,15 +6,19 @@ type ListContainerProps = {
   title?: string | null
   count?: number
   className?: string
+  action?: ReactNode
 }
 
-export const ListContainer = ({ children, title, count, className = '' }: ListContainerProps) => {
+export const ListContainer = ({ children, title, count, className = '', action }: ListContainerProps) => {
   return (
     <div className={className}>
       {title && (
-        <h1 className="text-h2 mb-4">
-          {title} {count !== undefined && `(${count})`}
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-h2">
+            {title} {count !== undefined && `(${count})`}
+          </h1>
+          {action && <div>{action}</div>}
+        </div>
       )}
       <ScrollArea className="w-full mb-24">
         <div>{children}</div>

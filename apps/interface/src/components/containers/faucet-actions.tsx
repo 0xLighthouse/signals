@@ -8,10 +8,10 @@ import { PublicClient, WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useSignals } from '@/hooks/use-signals'
-import { useNetwork } from '@/hooks/useNetwork'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 
 const handleFaucetClaim = async (
   { token, address, symbol }: { token: `0x${string}`; address: `0x${string}`; symbol: string },
@@ -53,8 +53,8 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const { walletClient, publicClient } = useWeb3()
   const { fetch: fetchUSDC } = useRewardsStore()
-  const { fetchUnderlyingMetadata: fetchContractMetadata, underlyingSymbol } = useSignals()
-  const { config } = useNetwork()
+  const { underlyingSymbol } = useSignals()
+  const { config } = useNetworkConfig()
   const usdcConfig = config.contracts.USDC
   const underlyingContract = config.contracts.BoardUnderlyingToken
 
@@ -120,7 +120,6 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
         >
           Get USDC
         </Button>
-        {/* <Separator orientation="vertical" /> */}
         <Button
           variant="outline"
           disabled={!underlyingContract}
@@ -135,7 +134,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
               symbol: underlyingContract.label ?? 'Token',
               isLoadingHandler: setIsLoadingTokens,
             })
-            await fetchContractMetadata()
+            // Leave metadata refetch to the caller if needed
           }}
           isLoading={isLoadingTokens}
         >

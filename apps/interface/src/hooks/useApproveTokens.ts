@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { useCallback, useEffect, useState } from 'react'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import { ERC20WithFaucetABI } from '@/config/web3'
 import { toast } from 'sonner'
+import { useWalletClient } from './use-wallet-client'
+import { usePublicClient } from '@/contexts/ChainProvider'
 
 interface Props {
   actor?: `0x${string}`
@@ -9,15 +11,24 @@ interface Props {
   spender?: `0x${string}`
   tokenAddress?: `0x${string}`
   tokenDecimals: number
+  enabled?: boolean
 }
 
-export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenAddress }: Props) {
+export function useApproveTokens({
+  amount,
+  actor,
+  tokenDecimals,
+  spender,
+  tokenAddress,
+  enabled = true,
+}: Props) {
   const [isApproving, setIsApproving] = useState(false)
   const [allowance, setAllowance] = useState(0n)
   const [formattedAllowance, setFormattedAllowance] = useState(0)
   const [hasAllowance, setHasAllowance] = useState(false)
-  const { walletClient, publicClient } = useWeb3()
-
+  // const { walletClient, publicClient } = useWeb3()
+  const publicClient = usePublicClient()
+  const walletClient = useWalletClient()
   const handleRevokeAllowance = async () => {
     toast('TOOD: Revoking allowance...')
   }
@@ -56,8 +67,6 @@ export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenA
       })
 
       const hash = await walletClient.writeContract(request)
-      console.log('Transaction Hash:', hash)
-      console.log('Waiting for txn to be mined...')
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: hash,
         confirmations: 2,
@@ -68,7 +77,7 @@ export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenA
       toast('Tokens approved!')
       setHasAllowance(true)
       // Refetch allowance
-      memoizedFetchAllowance()
+      void memoizedFetchAllowance()
     } catch (error) {
       console.error('Error during approval process:', error)
       // @ts-ignore
@@ -87,15 +96,22 @@ export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenA
     spender: `0x${string}`,
     tokenAddress: `0x${string}`,
   ) => {
-    const allowance = await publicClient.readContract({
-      address: tokenAddress,
-      abi: ERC20WithFaucetABI,
-      functionName: 'allowance',
-      args: [actor, spender],
-    })
-
-    setAllowance(allowance)
-    setFormattedAllowance(Number(allowance) / 10 ** (tokenDecimals || 18))
+    try {
+      const value = await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20WithFaucetABI,
+        functionName: 'allowance',
+        args: [actor, spender],
+      })
+      const next = BigInt(value as bigint)
+      setAllowance(next)
+      setFormattedAllowance(Number(next) / 10 ** (tokenDecimals || 18))
+    } catch (e) {
+      console.error('Failed to read allowance', e)
+      setAllowance(0n)
+      setFormattedAllowance(0)
+      setHasAllowance(false)
+    }
   }
 
   const calculateHasAllowance = (allowance: bigint, amount: number, tokenDecimals: number) => {
@@ -110,15 +126,16 @@ export function useApproveTokens({ amount, actor, tokenDecimals, spender, tokenA
     }
   }, [amount, allowance, tokenDecimals])
 
-  // Re-fetch allowance when actor, spender, or tokenAddress changes
+  // Re-fetch allowance when actor, spender, or tokenAddress changes (only when enabled)
   const memoizedFetchAllowance = useCallback(async () => {
+    if (!enabled) return
     if (actor && spender && tokenAddress) {
       await fetchAllowance(actor, spender, tokenAddress)
     }
-  }, [actor, spender, tokenAddress])
+  }, [actor, spender, tokenAddress, enabled])
 
   useEffect(() => {
-    memoizedFetchAllowance()
+    void memoizedFetchAllowance()
   }, [memoizedFetchAllowance])
 
   return {

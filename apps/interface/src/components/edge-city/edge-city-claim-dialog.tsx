@@ -20,8 +20,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { edgeCityConfig, EdgeCityProfile, EdgeCityAllowance } from '@/config/edge-city'
 import { formatUnits } from 'viem'
 import { useAccount } from '@/hooks/useAccount'
-import { useWeb3 } from '@/contexts/Web3Provider'
-import { useNetwork } from '@/hooks/useNetwork'
+import { useWeb3 } from '@/contexts/WalletProvider'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { CheckCircle2, Clock3, Sparkles, Wallet2 } from 'lucide-react'
 
@@ -105,8 +105,8 @@ const buildClaimArgs = (
 export const EdgeCityClaimDialog = () => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
-  const { publicClient, walletClient } = useWeb3()
-  const { config } = useNetwork()
+  const { walletClient, publicClient } = useWeb3()
+  const { config } = useNetworkConfig()
 
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<ClaimState>(initialState)
@@ -553,7 +553,10 @@ export const EdgeCityClaimDialog = () => {
                   <p className="text-sm text-muted-foreground">{profile?.primary_email}</p>
                 </div>
                 {profile?.total_days ? (
-                  <Badge variant="secondary" className="text-[0.65rem] uppercase tracking-wide shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="text-[0.65rem] uppercase tracking-wide shrink-0"
+                  >
                     {profile.total_days} days in residence
                   </Badge>
                 ) : null}
@@ -606,17 +609,15 @@ export const EdgeCityClaimDialog = () => {
                     }
                     className="shrink-0"
                   >
-                    {address
-                      ? eligibility.eligible
-                        ? 'Eligible'
-                        : 'Action needed'
-                      : 'Connect'}
+                    {address ? (eligibility.eligible ? 'Eligible' : 'Action needed') : 'Connect'}
                   </Badge>
                 </div>
                 {(address || eligibility.reason) && (
                   <p
                     className={`mt-3 text-sm ${
-                      !eligibility.eligible && eligibility.reason ? 'text-destructive' : 'text-muted-foreground'
+                      !eligibility.eligible && eligibility.reason
+                        ? 'text-destructive'
+                        : 'text-muted-foreground'
                     }`}
                   >
                     {!address
@@ -637,7 +638,11 @@ export const EdgeCityClaimDialog = () => {
                       Claim allowance
                     </p>
                     <p className="text-sm font-medium">
-                      {allowance ? 'Ready to claim' : address ? 'Pending signature' : 'Awaiting wallet'}
+                      {allowance
+                        ? 'Ready to claim'
+                        : address
+                          ? 'Pending signature'
+                          : 'Awaiting wallet'}
                     </p>
                   </div>
                   <Badge variant={allowance ? 'secondary' : 'outline'} className="shrink-0">
@@ -671,7 +676,7 @@ export const EdgeCityClaimDialog = () => {
                       <p className="mt-1 text-sm font-medium">{allowanceDeadlineLabel}</p>
                     </div>
                   </div>
-               ) : (
+                ) : (
                   <p className="mt-3 text-sm text-muted-foreground">
                     {address
                       ? isLoadingAllowance

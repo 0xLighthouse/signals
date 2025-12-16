@@ -1,6 +1,6 @@
 import type { Abi } from 'viem'
 import { erc20Abi } from 'viem'
-import { arbitrumSepolia, base, anvil, baseSepolia } from 'viem/chains'
+import { arbitrumSepolia, base, baseSepolia } from 'viem/chains'
 
 import type { NetworkConfig, SupportedNetworks } from './network-types'
 import { ExperimentTokenABI, SignalsFactoryABI } from '../../../../packages/abis'
@@ -19,32 +19,15 @@ export const ERC20WithFaucetABI = [
 ] as const satisfies Abi
 
 // TODO[fixme]: Move to constants.ts
-export const DEFAULT_NETWORK: SupportedNetworks = process.env.NEXT_PUBLIC_DEFAULT_NETWORK as SupportedNetworks || 'arbitrumSepolia'
-
-if (!DEFAULT_NETWORK) {
-  throw new Error('NEXT_PUBLIC_DEFAULT_NETWORK environment variable is required')
-}
+export const DEFAULT_NETWORK: SupportedNetworks = 'baseSepolia'
 
 export const NETWORK_CONFIG: Record<SupportedNetworks, NetworkConfig> = {
-  local: {
-    chain: anvil,
-    rpcUrl: anvil.rpcUrls.default.http[0]!,
-    explorerUrl: anvil.blockExplorers?.default.url,
-    indexerEndpoint: 'http://localhost:42069',
-    indexerGraphQLEndpoint: 'http://localhost:42069/graphql',
-    contracts: {
-      SignalsFactory: {
-        address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9' as `0x${string}`,
-        abi: SignalsFactoryABI,
-      },
-    },
-  },
   baseSepolia: {
     chain: baseSepolia,
-    rpcUrl: baseSepolia.rpcUrls.default.http[0]!,
+    rpcUrl: 'https://small-twilight-market.base-sepolia.quiknode.pro/f58c26c114caf9887d370a568617b5dd80f8852d/',
     explorerUrl: baseSepolia.blockExplorers?.default.url,
-    indexerEndpoint: 'http://localhost:42069',
-    indexerGraphQLEndpoint: 'http://localhost:42069/graphql',
+    indexerEndpoint: process.env.NEXT_PUBLIC_INDEXER_ENDPOINT || 'http://localhost:42069',
+    indexerGraphQLEndpoint: `${process.env.NEXT_PUBLIC_INDEXER_ENDPOINT || 'http://localhost:42069'}/graphql`,
     contracts: {
       EdgeExperimentToken: {
         address: '0x9265E5DF98c2Aa68aB89fbC68ab2404553DFa07b' as `0x${string}`,

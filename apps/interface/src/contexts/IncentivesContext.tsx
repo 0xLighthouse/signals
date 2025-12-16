@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
 
 import { useNetworkStore } from '@/stores/useNetworkStore'
-import { useWeb3 } from './Web3Provider'
+import { useWeb3 } from './WalletProvider'
 
 interface ContextValues {
   address: string
@@ -23,9 +23,7 @@ interface Props {
 export const IncentivesProvider: React.FC<Props> = ({ children }) => {
   const { publicClient } = useWeb3()
   // Subscribe to only the specific config fields we need
-  const incentivesAddress = useNetworkStore(
-    (state) => state.config.contracts.Incentives?.address,
-  )
+  const incentivesAddress = useNetworkStore((state) => state.config.contracts.Incentives?.address)
   const incentivesAbi = useNetworkStore((state) => state.config.contracts.Incentives?.abi)
 
   if (!features.enableContributions || !incentivesAddress || !incentivesAbi) {
@@ -62,7 +60,7 @@ export const IncentivesProvider: React.FC<Props> = ({ children }) => {
     }
 
     // Fetch contract metadata when the address changes
-    fetchMetadata()
+    void fetchMetadata()
   }, [address, incentivesAddress, incentivesAbi, publicClient])
 
   // Provide contract data to children

@@ -1,5 +1,4 @@
 import type { Initiative, InitiativeResponse } from '../../../indexers/src/api/types'
-import { client, schema } from '@/config/ponder'
 import { create } from 'zustand'
 import { useNetworkStore } from '@/stores/useNetworkStore'
 
@@ -16,13 +15,6 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
   isFetching: false,
   isInitialized: false,
   fetchInitiatives: async (signalsBoardAddress?: `0x${string}`) => {
-
-    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
-    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
-    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
-    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
-    console.log('----- signalsBoardAddress ---', signalsBoardAddress)
-
     try {
       set({ isFetching: true })
 
@@ -36,19 +28,20 @@ export const useInitiativesStore = create<InitiativesState>((set) => ({
       }
 
       const resp = await fetch(`${indexerEndpoint}/initiatives/${chain.id}/${boardAddress}`)
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch initiatives: ${resp.status} ${resp.statusText}`)
+      }
       const { initiatives }: InitiativeResponse = await resp.json()
-
-
-      console.log('----- RESP ---', initiatives)
-
 
       if (Array.isArray(initiatives)) {
         set({ initiatives })
       } else {
         console.error('Fetched data is not an array:', initiatives)
+        set({ initiatives: [] })
       }
     } catch (error) {
       console.error('Error fetching initiatives:', error)
+      set({ initiatives: [] })
     } finally {
       set({ isFetching: false, isInitialized: true })
     }

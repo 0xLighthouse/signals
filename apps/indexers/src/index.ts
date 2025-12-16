@@ -1,6 +1,6 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
-import { SignalsABI } from '../../../packages/abis'
+import { SignalsABI, Erc20ABI } from '../../../packages/abis'
 import { IAuthorizer } from '../../../packages/abis/interfaces'
 import { replaceBigInts } from "@ponder/utils";
 
@@ -178,6 +178,23 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     args: [0n] as const,
   })) as unknown as number
 
+  const underlyingTokenSymbol: string = (await context.client.readContract({
+    address: underlyingToken,
+    abi: Erc20ABI,
+    functionName: 'symbol',
+  })) as string
+
+  const underlyingTokenDecimals: number = (await context.client.readContract({
+    address: underlyingToken,
+    abi: Erc20ABI,
+    functionName: 'decimals',
+  })) as number
+
+  const underlyingTokenName: string = (await context.client.readContract({
+    address: underlyingToken,
+    abi: Erc20ABI,
+    functionName: 'name',
+  })) as string
 
   console.log('decayCurveParameters', decayCurveParameters)
 
@@ -194,6 +211,9 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     participantRequirements: replaceBigInts(participantRequirements, (x) => x.toString()),
     acceptanceThreshold: acceptanceThreshold,
     underlyingToken: underlyingToken as `0x${string}`,
+    underlyingTokenSymbol: underlyingTokenSymbol,
+    underlyingTokenDecimals: underlyingTokenDecimals,
+    underlyingTokenName: underlyingTokenName,
     lockInterval: lockInterval,
     decayCurveType: decayCurveType,
     decayCurveParameters: [decayCurveParameters.toString()],

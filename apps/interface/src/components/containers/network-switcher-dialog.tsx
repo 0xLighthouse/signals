@@ -11,8 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useNetwork } from '@/hooks/useNetwork'
-import { useWeb3 } from '@/contexts/Web3Provider'
+import { useWeb3 } from '@/contexts/WalletProvider'
 import type { SupportedNetworks } from '@/config/network-types'
 import { NETWORKS, ZERO_ADDRESS } from '@/config/web3'
 import { ensureWalletNetwork } from '@/lib/wallet-network'
@@ -21,6 +20,10 @@ import { toast } from 'sonner'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useBondsStore } from '@/stores/useBondsStore'
 import { useRewardsStore } from '@/stores/useRewardsStore'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useRouter } from 'next/navigation'
+import { getNetworkUrl } from '@/lib/routing'
 
 const OptimismIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -85,7 +88,9 @@ export function NetworkSwitcherDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { selected, setNetwork } = useNetwork()
+  const { network: selected } = useNetworkConfig()
+  const setNetwork = useNetworkStore((state) => state.setNetwork)
+  const router = useRouter()
   const { walletClient } = useWeb3()
 
   const handleSelectBase = async () => {
@@ -110,6 +115,7 @@ export function NetworkSwitcherDialog({
 
     setNetwork(networkKey)
     resetStoresForNetworkChange()
+    router.push(getNetworkUrl(networkKey))
 
     const ensureResult = await ensureWalletNetwork({
       walletClient,
