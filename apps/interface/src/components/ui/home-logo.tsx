@@ -11,13 +11,18 @@ import { useTheme } from '@/contexts/ThemeContext'
 export const HomeLogo: React.FC = (props) => {
   const { theme } = useTheme()
   return (
-    <div className="flex">
+    <div className="flex items-center">
       <Image
         src={theme === UITheme.LIGHT ? logoDark : logoOrange}
-        alt="logo"
+        alt="Lighthouse"
         width={100}
         height={25}
-        className=""
+        className="transition-opacity duration-200 hover:opacity-80"
+        style={{
+          imageRendering: 'crisp-edges',
+          filter: 'contrast(1.05)',
+        }}
+        priority
       />
     </div>
   )

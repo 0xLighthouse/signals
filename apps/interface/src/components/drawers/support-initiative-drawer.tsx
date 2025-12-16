@@ -17,20 +17,20 @@ import { Card } from '@/components/ui/card'
 import { useSignals } from '@/hooks/use-signals'
 import { useState, useEffect } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { Initiative } from 'indexers/src/api/types'
+import type { Initiative } from '@/types/initiative'
 import { Alert, AlertDescription } from '../ui/alert'
 import { SubmissionLockDetails } from '../containers/submission-lock-details'
-import { useWeb3 } from '@/contexts/WalletProvider'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
 import { usePrivy } from '@privy-io/react-auth'
 import { useBondsStore } from '@/stores/useBondsStore'
-import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { parseUnits } from 'viem'
+import { SignalsABI } from '../../../../../packages/abis'
+import { usePublicClient } from '@/contexts/ChainProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
 
-export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
+export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
-  const { walletClient, publicClient } = useWeb3()
   const { authenticated, login } = usePrivy()
   const {
     underlyingBalance: balance,
@@ -39,10 +39,9 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
     formatter,
     board,
   } = useSignals()
-  const { network, config } = useNetworkConfig()
-  const signalsContract = config.contracts.SignalsProtocol
-  const underlyingContract = config.contracts.BoardUnderlyingToken
-  const tokenDecimals = underlyingContract?.decimals ?? 18
+  const publicClient = usePublicClient()
+  const walletClient = useWalletClient()
+  const tokenDecimals = board?.underlyingTokenDecimals ?? 18
 
   const [amountValue, setAmount] = useState('0')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -72,8 +71,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   } = useApproveTokens({
     amount,
     actor: address,
-    spender: signalsContract?.address,
-    tokenAddress: underlyingContract?.address,
+    spender: board?.contractAddress ?? undefined,
+    tokenAddress: board?.underlyingToken ?? undefined,
     tokenDecimals,
     enabled: isDrawerOpen,
   })
@@ -83,6 +82,7 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
   const resetFormState = () => {
     setAmount('0')
     setDuration(1)
+    setIsSubmitting(false)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -116,11 +116,12 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
       toast('Wallet not connected')
       return
     }
-    if (!signalsContract || !underlyingContract) {
-      const missing = !signalsContract ? 'SignalsProtocol' : 'BoardUnderlyingToken'
-      toast(
-        `Missing ${missing} contract config for ${network}. Update NETWORK_CONFIG and redeploy UI.`,
-      )
+    if (!publicClient) {
+      toast('Web3 is still initializing. Please try again in a moment.')
+      return
+    }
+    if (!board?.contractAddress || !board?.underlyingToken) {
+      toast('Missing board contract info. Please refresh and try again.')
       return
     }
 
@@ -130,8 +131,8 @@ export function AddSupportDrawer({ initiative }: { initiative: Initiative }) {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: signalsContract.address,
-        abi: signalsContract.abi,
+        address: board.contractAddress,
+        abi: SignalsABI,
         functionName: 'supportInitiative',
         nonce,
         args: [
