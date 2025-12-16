@@ -464,32 +464,34 @@ export function ProposeInitiativeDrawer({
                       <Label className="w-1/5 flex items-center" htmlFor="amount">
                         Amount
                       </Label>
-                    <div className="w-4/5 flex flex-col">
-                      <Input
-                        id="amount"
-                        type="number"
-                        value={amount ?? ''}
-                        onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
-                        min={minProposerLockAmount ?? 0}
-                      />
-                      {lockTokens && !amount && (
-                        <Label className="text-red-500 mt-2">
-                          Please enter an amount to lock
-                        </Label>
-                      )}
-                      {lockTokens && minProposerLockAmount != null && minProposerLockAmount > 0 && (
-                        <Label className="text-sm text-muted-foreground mt-2">
-                          Minimum to propose: {minProposerLockAmount.toLocaleString()} {symbol}
-                        </Label>
-                      )}
-                      {lockAmountBelowMinimum && minProposerLockAmount != null && (
-                        <Label className="text-red-500 mt-2">
-                          Enter at least {minProposerLockAmount.toLocaleString()} {symbol} to meet
-                          proposer requirements
-                        </Label>
-                      )}
+                      <div className="w-4/5 flex flex-col">
+                        <Input
+                          id="amount"
+                          type="number"
+                          value={amount ?? ''}
+                          onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
+                          min={minProposerLockAmount ?? 0}
+                        />
+                        {lockTokens && !amount && (
+                          <Label className="text-red-500 mt-2">
+                            Please enter an amount to lock
+                          </Label>
+                        )}
+                        {lockTokens &&
+                          minProposerLockAmount != null &&
+                          minProposerLockAmount > 0 && (
+                            <Label className="text-sm text-muted-foreground mt-2">
+                              Minimum to propose: {minProposerLockAmount.toLocaleString()} {symbol}
+                            </Label>
+                          )}
+                        {lockAmountBelowMinimum && minProposerLockAmount != null && (
+                          <Label className="text-red-500 mt-2">
+                            Enter at least {minProposerLockAmount.toLocaleString()} {symbol} to meet
+                            proposer requirements
+                          </Label>
+                        )}
+                      </div>
                     </div>
-                  </div>
                     <div className="flex items-center">
                       <Label className="w-1/5 flex items-center" htmlFor="duration">
                         Duration

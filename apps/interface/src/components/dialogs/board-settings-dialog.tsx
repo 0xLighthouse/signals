@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,9 @@ import {
 import { useSignals } from '@/hooks/use-signals'
 import { normaliseNumber, shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
+import { Button } from '@/components/ui/button'
+import { Copy, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const DECAY_CURVE_LABELS: Record<number, string> = {
   0: 'Linear decay',
@@ -158,105 +162,217 @@ export function BoardSettingsDialog({ open, onOpenChange }: BoardSettingsDialogP
     participantRequirementsValues.push({ label: 'Min lock', value: participantMinLockAmount })
   }
 
-  const governanceConfig = [
-    { label: 'Proposal threshold', value: proposalThreshold, values: undefined },
-    { label: 'Acceptance threshold', value: acceptanceThreshold, values: undefined },
-    {
-      label: 'Lock interval',
-      value: lockInterval,
-      values: lockIntervalValues.length > 0 ? lockIntervalValues : undefined,
-    },
-    { label: 'Decay curve', value: decayCurve, values: undefined },
-  ]
+  const commitmentWindow =
+    lockIntervalValues.length === 2
+      ? `Support can be locked for ${lockIntervalValues[0].value} to ${lockIntervalValues[1].value}.`
+      : lockInterval
+        ? `Support can be locked for ${lockInterval}.`
+        : 'Lock duration not set.'
 
-  // Add requirement cards if they have values
-  if (proposerRequirementsValues.length > 0) {
-    governanceConfig.push({
-      label: 'Proposer requirements',
-      value: '—',
-      values: proposerRequirementsValues,
-    })
-  }
-
-  if (participantRequirementsValues.length > 0) {
-    governanceConfig.push({
-      label: 'Supporter requirements',
-      value: '—',
-      values: participantRequirementsValues,
-    })
-  }
+  const handleCopyAddress = useCallback(() => {
+    if (!boardAddress || !navigator?.clipboard?.writeText) return
+    void navigator.clipboard.writeText(boardAddress)
+  }, [boardAddress])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Board Settings</DialogTitle>
-          <DialogDescription>View and manage settings for {boardTitle}</DialogDescription>
+          <DialogTitle>How this board works</DialogTitle>
+          <DialogDescription>
+            These settings define how initiatives are proposed, supported, and accepted.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Board Information</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-neutral-500 dark:text-neutral-400">Address</span>
-                <span className="font-mono">{addressLabel}</span>
+        <TooltipProvider delayDuration={50}>
+        <div className="space-y-8">
+          <section className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <h3 className="text-sm font-medium mb-2">Board overview</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+              <div className="space-y-1">
+                <p className="text-neutral-500 dark:text-neutral-400">Network</p>
+                <p className="font-medium text-neutral-900 dark:text-white">{networkLabel}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500 dark:text-neutral-400">Network</span>
-                <span>{networkLabel}</span>
+              <div className="space-y-1">
+                <p className="text-neutral-500 dark:text-neutral-400">Board contract</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono">{addressLabel}</span>
+                  {boardAddress && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleCopyAddress}
+                      aria-label="Copy board address"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
-              {board.opensAt && (
-                <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Opens</span>
-                  <span>{opensAtLabel}</span>
-                </div>
-              )}
-              {board.closesAt && (
-                <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Closes</span>
-                  <span>{closesAtLabel}</span>
-                </div>
-              )}
+              <div className="space-y-1">
+                <p className="text-neutral-500 dark:text-neutral-400">Active period</p>
+                <p className="text-neutral-900 dark:text-white">
+                  {board.opensAt ? `Opens ${opensAtLabel}` : 'Opens —'}
+                  {board.closesAt ? ` · Closes ${closesAtLabel}` : ''}
+                </p>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <h3 className="text-sm font-medium mb-4">Governance Configuration</h3>
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Decision rules</h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                These parameters shape how ideas gain traction and move forward.
+              </p>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {governanceConfig.map(({ label, value, values }) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
-                >
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    {label}
+                    Who can propose
                   </p>
-                  {values && values.length > 0 ? (
-                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      {values.map(({ label: valueLabel, value: valueValue }, index) => (
-                        <div key={valueLabel} className="flex items-baseline gap-1.5">
-                          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                            {valueLabel}
-                          </span>
-                          <span className="text-lg font-semibold text-neutral-900 dark:text-white">
-                            {valueValue}
-                          </span>
-                          {index < values.length - 1 && (
-                            <span className="text-neutral-300 dark:text-neutral-600">•</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Proposers lock this amount to submit. Discourages spam; signals commitment.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  {proposalThreshold}
+                </p>
+              </div>
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    What it takes to pass
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Total support needed for acceptance. Support adds up as members lock tokens and time.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  {acceptanceThreshold}
+                </p>
+              </div>
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    Commitment window
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Range of time supporters can lock. Longer locks = stronger signals, less flexibility.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  {lockInterval}
+                </p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{commitmentWindow}</p>
+              </div>
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    How support changes over time
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Influence decays unless participants renew or reinforce their commitment.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  {decayCurve}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Participation rules</h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                What’s expected from proposers and supporters.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    To propose an initiative
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Proposers must hold and lock to keep submissions meaningful.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-neutral-900 dark:text-white">
+                  {proposerRequirementsValues.length > 0 ? (
+                    proposerRequirementsValues.map(({ label, value }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-neutral-600 dark:text-neutral-400">{label}:</span>
+                        <span className="font-medium">{value}</span>
+                      </div>
+                    ))
                   ) : (
-                    <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
-                      {value}
+                    <p className="text-neutral-500 dark:text-neutral-400">
+                      No additional requirements.
                     </p>
                   )}
                 </div>
-              ))}
+              </div>
+              <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    To support an initiative
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-neutral-400" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Supporters commit balance and a minimum lock so every signal carries weight.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-neutral-900 dark:text-white">
+                  {participantRequirementsValues.length > 0 ? (
+                    participantRequirementsValues.map(({ label, value }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-neutral-600 dark:text-neutral-400">{label}:</span>
+                        <span className="font-medium">{value}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-neutral-500 dark:text-neutral-400">
+                      No additional requirements.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
         </div>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   )
