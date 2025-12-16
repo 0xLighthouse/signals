@@ -29,9 +29,19 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
     uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
     uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
     uint256 private constant ACCEPTANCE_THRESHOLD = 1_000_000 ether;
-    uint256 private constant ACCEPTANCE_PERCENTAGE_THRESHOLD = 25e16; // 25%
+    uint256 private constant ACCEPTANCE_PERCENTAGE_THRESHOLD = 10e16; // 10%
 
     /**
+     *
+     * @notice Usage:
+     * forge script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
+     *     --rpc-url "$ANVIL_RPC" \
+     *     --broadcast \
+     *     -s "run(string,address,address)" \
+     *     "anvil" \
+     *     "$signals_factory_address" \
+     *     "$token_address"
+     *
      * @param network The network to deploy the contracts to
      * @param factoryAddress The address of the deployed SignalsFactory
      * @param underlyingToken The address of the underlying token
@@ -61,8 +71,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
             ISignals.BoardConfig({
                 version: _factory.version(),
                 boardMetadata: ISignals.Metadata({
-                    title: "Edge Experiment Signals Board",
-                    body: "Default board deployed via script for the Edge Experiment environment.",
+                    title: "Default Board",
+                    body: "Default board deployed via script.",
                     attachments: new ISignals.Attachment[](0)
                 }),
                 owner: deployerAddress,
@@ -89,8 +99,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                     minLockAmount: SUPPORTER_MIN_LOCK
                 }),
                 releaseLockDuration: 0,
-                boardOpenAt: block.timestamp + 1 days,
-                boardClosedAt: block.timestamp + 30 days
+                boardOpenAt: block.timestamp - 1 days,
+                boardClosedAt: block.timestamp + 90 days
             })
         );
 

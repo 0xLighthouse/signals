@@ -20,12 +20,15 @@ Populate private keys via your .envrc file, or use these defaults.
 Roles used by `dev.sh`:
 
 ### Deployer
-Will own the `ExperimentTokenFactory`, `ExperimentToken`, and any Signals boards created. 
+
+Will own the `ExperimentTokenFactory`, `ExperimentToken`, and any Signals boards created.
 
 ### Signer
+
 Will be registered as the `allowanceSigner` for the token contract. Load the private key into our api to issue allowances.
 
 ### Alice, Bob, Charlie
+
 Issued tokens for testing.
 
 ## Default keys
@@ -51,10 +54,3 @@ Private key: 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
 Charlie
 Address: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
 Private key: 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a
-
-
-
-
-
-
-
