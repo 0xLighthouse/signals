@@ -173,6 +173,12 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'lockInterval',
   })) as unknown as number
 
+  const maxLockIntervals: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'maxLockIntervals',
+  })) as unknown as number
+
   const decayCurveType: number = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
@@ -238,6 +244,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     underlyingTokenDecimals: underlyingTokenDecimals,
     underlyingTokenName: underlyingTokenName,
     lockInterval: lockInterval,
+    maxLockIntervals: maxLockIntervals,
     decayCurveType: decayCurveType,
     decayCurveParameters: [decayCurveParameters.toString()],
   })

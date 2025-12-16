@@ -58,6 +58,7 @@ export const Board = onchainTable('boards', (t) => ({
   underlyingTokenDecimals: t.integer().notNull(),
   underlyingTokenName: t.text().notNull(),
   lockInterval: t.integer().notNull(),
+  maxLockIntervals: t.integer().notNull(),
   decayCurveType: t.integer().notNull(),
   decayCurveParameters: t.json().$type<string[]>().notNull(),
 }))
