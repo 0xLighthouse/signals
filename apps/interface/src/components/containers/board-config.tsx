@@ -1,102 +1,27 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 
 import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
-import { normaliseNumber, shortAddress } from '@/lib/utils'
+import { shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
-
-const DECAY_CURVE_LABELS: Record<number, string> = {
-  0: 'Linear decay',
-  1: 'Exponential decay',
-}
-
-const STUB_LOCK_INTERVAL_SECONDS = 7 * 24 * 60 * 60 // 7 days
-const STUB_TOKEN_NAME = 'Signals Token'
-const STUB_TOKEN_SYMBOL = 'SIG'
-const STUB_DECAY_LABEL = `${DECAY_CURVE_LABELS[0]} (stub)`
-
-const formatLockInterval = (seconds?: number | null) => {
-  const value = seconds ?? STUB_LOCK_INTERVAL_SECONDS
-  if (!value) return '—'
-
-  const days = Math.round(value / 86400)
-  if (seconds == null) {
-    return `${days} ${days === 1 ? 'day' : 'days'} (stub)`
-  }
-
-  if (days >= 1) {
-    return `${days} ${days === 1 ? 'day' : 'days'}`
-  }
-
-  const hours = Math.round(value / 3600)
-  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
-}
+import { Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { BoardSettingsDialog } from '@/components/dialogs/board-settings-dialog'
 
 export const BoardConfig = () => {
-  const {
-    board,
-    boardAddress,
-    network,
-    underlyingName,
-    underlyingSymbol,
-    underlyingDecimals,
-    underlyingTotalSupply,
-    formatter,
-    underlyingBalance,
-  } = useSignals()
+  const { board, boardAddress, network, underlyingBalance } = useSignals()
   const { isConnected } = useAccount()
-
-  const canFormatTokenValues = underlyingDecimals != null
-
-  const formatTokenAmount = (value?: number | null) => {
-    if (value == null || !canFormatTokenValues) {
-      return '—'
-    }
-
-    const adjusted = formatter(value)
-    if (!Number.isFinite(adjusted)) {
-      return '—'
-    }
-
-    if (adjusted === 0) {
-      return '0'
-    }
-
-    if (adjusted >= 1000) {
-      return normaliseNumber(adjusted)
-    }
-
-    return adjusted.toLocaleString('en-US')
-  }
-
-  const withSymbol = (value: string) => {
-    if (value === '—' || !underlyingSymbol) return value
-    return `${value} ${underlyingSymbol}`
-  }
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const boardTitle = board.name ?? 'Untitled board'
   const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
   const networkLabel = network ? (NETWORKS[network]?.chain.name ?? network) : 'Unknown network'
-  const proposalThreshold = withSymbol(formatTokenAmount(board.proposalThreshold))
-  const acceptanceThreshold = withSymbol(formatTokenAmount(board.acceptanceThreshold))
-  const lockInterval = formatLockInterval(board.lockInterval)
-  const decayCurve =
-    board.decayCurveType != null
-      ? (DECAY_CURVE_LABELS[board.decayCurveType] ?? 'Custom curve')
-      : STUB_DECAY_LABEL
-
-  const totalSupply = withSymbol(formatTokenAmount(underlyingTotalSupply))
-  const tokenName =
-    underlyingName ??
-    (underlyingSymbol ? `${underlyingSymbol} Token (stub)` : `${STUB_TOKEN_NAME} (stub)`)
-  const tokenSymbol = underlyingSymbol ?? `${STUB_TOKEN_SYMBOL} (stub)`
-  const tokenDecimals = underlyingDecimals?.toString() ?? '18 (stub)'
 
   // Determine status badge - only show user-specific status if connected
   let statusLabel: string | null = null
-  let statusStyles: string = ''
+  let statusStyles = ''
 
   if (isConnected && underlyingBalance != null && board.proposalThreshold != null) {
     // User is connected - show their ability to propose
@@ -113,31 +38,28 @@ export const BoardConfig = () => {
     statusStyles = 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
   }
 
-  const governanceConfig = [
-    { label: 'Proposal threshold', value: proposalThreshold },
-    { label: 'Acceptance threshold', value: acceptanceThreshold },
-    { label: 'Lock interval', value: lockInterval },
-    { label: 'Decay curve', value: decayCurve },
-  ]
-
-  const tokenConfig = [
-    { label: 'Underlying token', value: tokenName },
-    { label: 'Symbol', value: tokenSymbol },
-    { label: 'Total supply', value: totalSupply },
-    { label: 'Decimals', value: tokenDecimals },
-  ]
-
   return (
     <section className="rounded-2xl bg-white text-neutral-900 dark:bg-neutral-950 dark:text-white">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            Board overview
-          </p>
-          <h2 className="text-2xl font-semibold">{boardTitle}</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            {addressLabel} • {networkLabel}
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Board overview
+            </p>
+            <h2 className="text-2xl font-semibold">{boardTitle}</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              {addressLabel} • {networkLabel}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            className="h-8 w-8"
+            aria-label="Board settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
         {statusLabel && (
           <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${statusStyles}`}>
@@ -145,36 +67,7 @@ export const BoardConfig = () => {
           </span>
         )}
       </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {governanceConfig.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
-          >
-            <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              {label}
-            </p>
-            <p className="text-lg font-semibold text-neutral-900 dark:text-white">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* <div className="mt-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          Token configuration
-        </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {tokenConfig.map(({ label, value }) => (
-            <div key={label}>
-              <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                {label}
-              </p>
-              <p className="text-base font-semibold text-neutral-900 dark:text-white">{value}</p>
-            </div>
-          ))}
-        </div>
-      </div> */}
+      <BoardSettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </section>
   )
 }

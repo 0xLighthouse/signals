@@ -44,10 +44,13 @@ export default function RootLayout({
   const theme = getThemeCookie()
 
   const sidebarContent = (
-    <SidebarProvider defaultOpen={false}>
-      <AppSidebar />
-      {children}
-    </SidebarProvider>
+    <>
+      <SidebarProvider defaultOpen={false}>
+        <AppSidebar />
+        {children}
+      </SidebarProvider>
+      <StickyFooter />
+    </>
   )
 
   const allowedChainKeys: ChainKey[] = ['base', 'baseSepolia', 'arbitrumSepolia']
@@ -64,7 +67,6 @@ export default function RootLayout({
           <ChainProvider initialChainKey={initialChainKey}>
             <WalletProvider>
               <SignalsProvider>{sidebarContent}</SignalsProvider>
-              <StickyFooter />
               <Toaster />
             </WalletProvider>
           </ChainProvider>
