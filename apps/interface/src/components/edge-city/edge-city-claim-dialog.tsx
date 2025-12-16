@@ -791,7 +791,7 @@ export const EdgeCityClaimDialog = ({ isVisible = true }: EdgeCityClaimDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Edge City Claim</Button>
+        <Button variant="outline">⛰️ Edge City Claim</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

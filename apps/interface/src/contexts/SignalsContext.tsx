@@ -3,7 +3,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
-import { useAccount } from '@/hooks/useAccount'
 import { useWeb3 } from './WalletProvider'
 import { getNetworkFromSlug, getBoardUrl } from '@/lib/routing'
 import type { SupportedNetworks } from '@/config/network-types'
@@ -11,32 +10,32 @@ import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { useRouteStore } from '@/stores/useRouteStore'
 
 type BoardRequirement = {
-  minBalance?: string | null
-  minHoldingDuration?: string | null
-  minLockAmount?: string | null
+  minBalance: string
+  minHoldingDuration: string
+  minLockAmount: string
 }
 
 type BoardByAddressQueryItem = {
-  chainId?: number | string | null
-  blockTimestamp?: string | number | null
-  transactionHash?: string | null
-  contractAddress?: string | null
-  owner?: string | null
-  title?: string | null
-  body?: string | null
-  opensAt?: string | number | null
-  closesAt?: string | number | null
-  proposerRequirements?: BoardRequirement | null
-  participantRequirements?: BoardRequirement | null
-  acceptanceThreshold?: string | null
-  underlyingToken?: string | null
-  underlyingTokenSymbol?: string | null
-  underlyingTokenDecimals?: number | null
-  underlyingTokenName?: string | null
-  lockInterval?: string | number | null
-  maxLockIntervals?: string | number | null
-  decayCurveType?: string | number | null
-  decayCurveParameters?: Array<string | number | null> | null
+  chainId: number | string
+  blockTimestamp: string | number
+  transactionHash: string
+  contractAddress: string
+  owner: string
+  title: string
+  body: string
+  opensAt: string | number
+  closesAt: string | number
+  proposerRequirements: BoardRequirement
+  participantRequirements: BoardRequirement
+  acceptanceThreshold: string | number
+  underlyingToken: string
+  underlyingTokenSymbol: string
+  underlyingTokenDecimals: number
+  underlyingTokenName: string
+  lockInterval: string | number
+  maxLockIntervals: string | number
+  decayCurveType: string | number
+  decayCurveParameters: Array<string | number>
 }
 
 type BoardByAddressQueryResponse = {
@@ -47,7 +46,7 @@ type BoardByAddressQueryResponse = {
   }
 }
 
-export interface BoardMetadata {
+export interface IndexedBoardMetadata {
   chainId: number | null
   blockTimestamp: number | null
   transactionHash: string | null
@@ -76,7 +75,7 @@ export interface BoardMetadata {
 export interface SignalsContextValue {
   network: SupportedNetworks | null
   boardAddress: `0x${string}` | null
-  board: BoardMetadata
+  board: IndexedBoardMetadata
   underlyingAddress: `0x${string}` | undefined
   underlyingName: string | null
   underlyingSymbol: string | null
@@ -89,7 +88,7 @@ export interface SignalsContextValue {
   navigateToBoard: (address: `0x${string}`) => void
 }
 
-const initialBoard: Omit<BoardMetadata, 'meetsThreshold'> = {
+const initialBoard: IndexedBoardMetadata = {
   chainId: null,
   blockTimestamp: null,
   transactionHash: null,
@@ -275,14 +274,14 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         closesAt: toNumber(indexedBoard.closesAt),
         symbol: null,
         initiativesCount: null,
-        proposalThreshold: toNumber(indexedBoard.proposerRequirements?.minBalance),
+        proposalThreshold: toNumber(indexedBoard.proposerRequirements.minBalance),
         acceptanceThreshold: toNumber(indexedBoard.acceptanceThreshold),
         lockInterval: toNumber(indexedBoard.lockInterval),
         maxLockIntervals: toNumber(indexedBoard.maxLockIntervals),
         decayCurveType: toNumber(indexedBoard.decayCurveType),
         decayCurveParameters: toNumberArray(indexedBoard.decayCurveParameters),
-        proposerRequirements: indexedBoard.proposerRequirements ?? null,
-        participantRequirements: indexedBoard.participantRequirements ?? null,
+        proposerRequirements: indexedBoard.proposerRequirements,
+        participantRequirements: indexedBoard.participantRequirements,
         underlyingToken: indexedBoard.underlyingToken
           ? (indexedBoard.underlyingToken.toLowerCase() as `0x${string}`)
           : undefined,

@@ -28,6 +28,12 @@ import { parseUnits } from 'viem'
 import { SignalsABI } from '../../../../../packages/abis'
 import { usePublicClient } from '@/contexts/ChainProvider'
 import { useWalletClient } from '@/hooks/use-wallet-client'
+import { formatUnits } from 'viem'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
+import { resolveName } from '@/lib/resolveName'
+import { useAsyncProp } from '@/lib/useAsyncProp'
 
 export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative }) {
   const { address } = useAccount()
@@ -58,6 +64,29 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
       fetchInitiativeLocks(initiative.initiativeId.toString())
     }
   }, [initiative.initiativeId, isInitiativeLocksInitialized, fetchInitiativeLocks])
+
+  const formatTokenAmount = (value?: string | number | bigint | null) => {
+    if (value == null || board?.underlyingTokenDecimals == null) return null
+    try {
+      const asBigInt = BigInt(value)
+      const formatted = Number(formatUnits(asBigInt, board.underlyingTokenDecimals))
+      if (!Number.isFinite(formatted)) return null
+      if (formatted >= 1) {
+        return formatted.toLocaleString('en-US', { maximumFractionDigits: 2 })
+      }
+      return formatted.toLocaleString('en-US', { maximumFractionDigits: 6 })
+    } catch {
+      return null
+    }
+  }
+
+  const participantMinBalance = formatTokenAmount(board?.participantRequirements?.minBalance)
+  const participantMinLock = formatTokenAmount(board?.participantRequirements?.minLockAmount)
+  const formattedBalance = formatTokenAmount(balance)
+  const proposerName = useAsyncProp(
+    resolveName(initiative.proposer),
+    shortAddress(initiative.proposer),
+  )
 
   const amount = amountValue ? Number(amountValue) : 0
 
@@ -203,46 +232,83 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
           <div className="flex flex-col mx-auto lg:w-3/5 lg:pr-8">
             <DrawerHeader>
               <DrawerTitle>Support initiative</DrawerTitle>
+              <Alert className="bg-amber-50 dark:bg-neutral-800">
+                <AlertDescription>
+                  Signals is not a vote system. Lock only if you care enough to trade time or tokens
+                  for the outcome.
+                </AlertDescription>
+              </Alert>
+              <Card className="mt-3 border-neutral-200/80 dark:border-neutral-800 bg-gradient-to-r from-orange-50 via-white to-amber-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 shadow-sm">
+                <div className="flex items-start gap-4 p-4">
+                  <Avatar className="h-12 w-12 ring-2 ring-white shadow-sm">
+                    <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="uppercase text-[10px] tracking-wide">
+                        Proposer
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {proposerName} • {timeAgoWords(initiative.createdAtTimestamp)}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-white">
+                      {initiative.title}
+                    </h3>
+                    <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed">
+                      {initiative.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
               <Alert className="bg-blue-50 dark:bg-neutral-800">
                 <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
                 <AlertDescription>
-                  You have{' '}
-                  <strong>
-                    {formatter(balance)} {symbol}
-                  </strong>{' '}
-                  tokens which can be used to support this initiative.{' '}
+                  {participantMinBalance || participantMinLock ? (
+                    <div className="space-y-1">
+                      {participantMinBalance ? (
+                        <div>
+                          Requires at least{' '}
+                          <strong>
+                            {participantMinBalance} {symbol}
+                          </strong>{' '}
+                          balance to support.
+                        </div>
+                      ) : (
+                        <div>No minimum balance required to support.</div>
+                      )}
+                      {participantMinLock ? (
+                        <div>
+                          Requires locking at least{' '}
+                          <strong>
+                            {participantMinLock} {symbol}
+                          </strong>
+                          .
+                        </div>
+                      ) : (
+                        <div>No minimum lock amount required.</div>
+                      )}
+                      <div>
+                        You have{' '}
+                        <strong>
+                          {formattedBalance ?? '—'} {symbol}
+                        </strong>{' '}
+                        available.
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      You have{' '}
+                      <strong>
+                        {formattedBalance ?? '—'} {symbol}
+                      </strong>{' '}
+                      available to support this initiative.
+                    </>
+                  )}
                 </AlertDescription>
               </Alert>
             </DrawerHeader>
             <div className="flex flex-col my-4 gap-4">
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center" htmlFor="title">
-                  Title
-                </Label>
-                <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
-                    <div className="my-2">
-                      <p className="line-clamp break-words">
-                        {initiative.title || 'No title provided.'}
-                      </p>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <Label className="w-1/5 flex items-center" htmlFor="description">
-                  Description
-                </Label>
-                <div className="w-4/5">
-                  <Card className="p-4 dark:bg-neutral-900 border-none shadow-none">
-                    <div className="my-2">
-                      <p className="line-clamp break-words">
-                        {initiative.description || 'No description provided.'}
-                      </p>
-                    </div>
-                  </Card>
-                </div>
-              </div>
             </div>
             <div className="flex flex-col gap-8">
               <div className="flex items-center">

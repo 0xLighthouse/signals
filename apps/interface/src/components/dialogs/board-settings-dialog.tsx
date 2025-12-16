@@ -123,12 +123,14 @@ export function BoardSettingsDialog({ open, onOpenChange }: BoardSettingsDialogP
   }
 
   // Format proposer requirements
-  const proposerMinBalance = board.proposerRequirements?.minBalance
-    ? withSymbol(formatTokenAmount(parseToNumber(board.proposerRequirements.minBalance)))
+  const proposerMinBalanceRaw = board.proposerRequirements
+    ? parseToNumber(board.proposerRequirements.minBalance)
     : null
-  const proposerMinLockAmount = board.proposerRequirements?.minLockAmount
-    ? withSymbol(formatTokenAmount(parseToNumber(board.proposerRequirements.minLockAmount)))
+  const proposerMinLockRaw = board.proposerRequirements
+    ? parseToNumber(board.proposerRequirements.minLockAmount)
     : null
+  const proposerMinBalance = withSymbol(formatTokenAmount(proposerMinBalanceRaw))
+  const proposerMinLockAmount = withSymbol(formatTokenAmount(proposerMinLockRaw))
 
   const proposerRequirementsValues: Array<{ label: string; value: string }> = []
   if (proposerMinBalance && proposerMinBalance !== '0') {
@@ -139,12 +141,14 @@ export function BoardSettingsDialog({ open, onOpenChange }: BoardSettingsDialogP
   }
 
   // Format participant/supporter requirements
-  const participantMinBalance = board.participantRequirements?.minBalance
-    ? withSymbol(formatTokenAmount(parseToNumber(board.participantRequirements.minBalance)))
+  const participantMinBalanceRaw = board.participantRequirements
+    ? parseToNumber(board.participantRequirements.minBalance)
     : null
-  const participantMinLockAmount = board.participantRequirements?.minLockAmount
-    ? withSymbol(formatTokenAmount(parseToNumber(board.participantRequirements.minLockAmount)))
+  const participantMinLockRaw = board.participantRequirements
+    ? parseToNumber(board.participantRequirements.minLockAmount)
     : null
+  const participantMinBalance = withSymbol(formatTokenAmount(participantMinBalanceRaw))
+  const participantMinLockAmount = withSymbol(formatTokenAmount(participantMinLockRaw))
 
   const participantRequirementsValues: Array<{ label: string; value: string }> = []
   if (participantMinBalance && participantMinBalance !== '0') {

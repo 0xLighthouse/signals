@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
+import { Drawer, DrawerContent } from '@/components/ui/drawer'
 import { useAccount } from '@/hooks/useAccount'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -15,10 +15,10 @@ import {
 import { DrawerClose } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 
-export function DeploySignalsDrawer({
+export function CreateBoardFromFactoryDrawer({
   isOpen,
   onOpenChange,
-  hideTrigger,
+  hideTrigger: _hideTrigger,
 }: { isOpen: boolean; onOpenChange: (open: boolean) => void; hideTrigger: boolean }) {
   const { address, isConnected } = useAccount()
   const [isLoading, setIsLoading] = useState(false)
@@ -51,7 +51,7 @@ export function DeploySignalsDrawer({
       // TODO: Implement contract deployment using viem
       // This will be implemented when we have the factory contract address and ABI
 
-      toast.success('Contract successfully deployed!')
+      toast.success('Board successfully created from factory!')
       onOpenChange(false)
       // Reset form after successful deployment
       setFormData({
@@ -82,7 +82,7 @@ export function DeploySignalsDrawer({
       </DrawerTrigger> */}
       <DrawerContent className="h-[90vh] max-h-[90vh] overflow-hidden">
         <DrawerHeader>
-          <DrawerTitle>Deploy Signals Contract</DrawerTitle>
+          <DrawerTitle>Create board from factory</DrawerTitle>
         </DrawerHeader>
         <form onSubmit={handleSubmit} className="p-4 md:p-8 overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
@@ -200,7 +200,7 @@ export function DeploySignalsDrawer({
               <Button variant="outline">Cancel</Button>
             </DrawerClose>
             <Button type="submit" disabled={!isConnected || isLoading}>
-              {isLoading ? 'Deploying...' : 'Deploy Contract'}
+              {isLoading ? 'Creating...' : 'Create board'}
             </Button>
           </div>
         </form>

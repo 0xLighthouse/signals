@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CircleAlert, Loader2, PlusIcon, Trash2 } from 'lucide-react'
 import { useWeb3 } from '@/contexts/WalletProvider'
 import { toast } from 'sonner'
@@ -27,12 +27,12 @@ import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
 import { Typography } from '../ui/typography'
-import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { useRouteStore } from '@/stores/useRouteStore'
 import { SignalsABI } from '../../../../../packages/abis'
 import { useBalanceOf } from '@/hooks/useBalanceOf'
 import { usePublicClient } from '@/contexts/ChainProvider'
 import { useWalletClient } from '@/hooks/use-wallet-client'
+import { Alert, AlertDescription } from '../ui/alert'
 
 type AttachmentDraft = {
   uri: string
@@ -42,17 +42,17 @@ type AttachmentDraft = {
 
 const MAX_ATTACHMENTS = 5
 
-type CreateInitiativeDrawerProps = {
+type ProposeInitiativeDrawerProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   showTrigger?: boolean
 }
 
-export function CreateInitiativeDrawer({
+export function ProposeInitiativeDrawer({
   open: externalOpen,
   onOpenChange: externalOnOpenChange,
   showTrigger = true,
-}: CreateInitiativeDrawerProps = {}) {
+}: ProposeInitiativeDrawerProps = {}) {
   const { underlyingSymbol: symbol, formatter, board, meetsProposalThreshold } = useSignals()
   const boardAddress = useRouteStore((state) => state.boardAddress)
   const { address } = useAccount()
@@ -72,6 +72,49 @@ export function CreateInitiativeDrawer({
 
   const isDrawerOpen = externalOpen !== undefined ? externalOpen : internalDrawerOpen
   const setIsDrawerOpen = externalOnOpenChange || setInternalDrawerOpen
+
+  const maxLockIntervals = useMemo(() => {
+    if (board?.maxLockIntervals && board.maxLockIntervals > 0) return board.maxLockIntervals
+    return 30
+  }, [board?.maxLockIntervals])
+
+  const formatDurationLabel = (seconds: number) => {
+    if (!seconds || seconds < 60) return `${seconds}s`
+    const days = seconds / 86400
+    if (days >= 1) {
+      const rounded = Math.round(days * 10) / 10
+      return `${rounded} day${rounded !== 1 ? 's' : ''}`
+    }
+    const hours = seconds / 3600
+    const rounded = Math.round(hours * 10) / 10
+    return `${rounded} hour${rounded !== 1 ? 's' : ''}`
+  }
+
+  const parseRequirement = (value?: string | null): number | null => {
+    if (!value) return null
+    try {
+      return Number(BigInt(value))
+    } catch {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+  }
+
+  const minProposerLockAmountRaw = useMemo(
+    () => parseRequirement(board?.proposerRequirements?.minLockAmount),
+    [board?.proposerRequirements?.minLockAmount],
+  )
+
+  const minProposerLockAmount = useMemo(() => {
+    if (minProposerLockAmountRaw == null) return null
+    return formatter(minProposerLockAmountRaw)
+  }, [formatter, minProposerLockAmountRaw])
+
+  const requiresMinLockAmount =
+    lockTokens && minProposerLockAmount != null && minProposerLockAmount > 0
+
+  const lockAmountBelowMinimum =
+    requiresMinLockAmount && (amount == null || amount < minProposerLockAmount)
 
   const { balance, isLoading: isBalanceLoading } = useBalanceOf(
     address,
@@ -118,6 +161,25 @@ export function CreateInitiativeDrawer({
     setIsDrawerOpen(open)
   }
 
+  const handleToggleLockTokens = () => {
+    const nextValue = !lockTokens
+    setLockTokens(nextValue)
+    if (nextValue) {
+      setAmount(minProposerLockAmount ?? 0)
+    } else {
+      setAmount(0)
+      setDuration(1)
+    }
+  }
+
+  useEffect(() => {
+    if (lockTokens && minProposerLockAmount != null && amount < minProposerLockAmount) {
+      setAmount(minProposerLockAmount)
+    }
+    // We intentionally omit `amount` to avoid loops; this only reacts to new requirements/toggle state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockTokens, minProposerLockAmount])
+
   const handleAddAttachment = () => {
     if (attachments.length >= MAX_ATTACHMENTS) {
       toast(`You can add up to ${MAX_ATTACHMENTS} attachments`)
@@ -141,9 +203,17 @@ export function CreateInitiativeDrawer({
 
   const handleSubmit = async () => {
     if (!address) throw new Error('Address not available.')
-    if (lockTokens && !amount) {
-      toast('Please enter an amount to lock')
-      return
+    if (lockTokens) {
+      if (!amount) {
+        toast('Please enter an amount to lock')
+        return
+      }
+      if (lockAmountBelowMinimum && minProposerLockAmount != null) {
+        toast(
+          `This board requires at least ${minProposerLockAmount.toLocaleString()} ${symbol ?? ''} to propose.`,
+        )
+        return
+      }
     }
 
     const trimmedAttachments = attachments.map((attachment) => ({
@@ -233,7 +303,11 @@ export function CreateInitiativeDrawer({
     return (
       <Button
         disabled={
-          (lockTokens && !amount) || !title || !description || !publicClient || !isInitialized
+          (lockTokens && (!amount || lockAmountBelowMinimum)) ||
+          !title ||
+          !description ||
+          !publicClient ||
+          !isInitialized
         }
         onClick={handleSubmit}
         isLoading={isSubmitting}
@@ -261,6 +335,12 @@ export function CreateInitiativeDrawer({
           <div className="flex flex-col mx-auto lg:w-3/5">
             <DrawerHeader>
               <DrawerTitle>Propose a new initiative</DrawerTitle>
+              <Alert className="bg-amber-50 dark:bg-neutral-800">
+                <AlertDescription>
+                  Signals is not a vote system. Lock only if you care enough to trade time or tokens
+                  for the outcome.
+                </AlertDescription>
+              </Alert>
             </DrawerHeader>
 
             {!meetsProposalThreshold(Number(balance ?? 0)) ? (
@@ -374,11 +454,7 @@ export function CreateInitiativeDrawer({
                   <Switch
                     id="lock-tokens"
                     checked={lockTokens}
-                    onCheckedChange={() => {
-                      setLockTokens(!lockTokens)
-                      setAmount(0)
-                      setDuration(1)
-                    }}
+                    onCheckedChange={handleToggleLockTokens}
                   />
                   <Label htmlFor="lock-tokens">Also lock tokens to add support</Label>
                 </SwitchContainer>
@@ -388,34 +464,50 @@ export function CreateInitiativeDrawer({
                       <Label className="w-1/5 flex items-center" htmlFor="amount">
                         Amount
                       </Label>
-                      <div className="w-4/5 flex flex-col">
-                        <Input
-                          id="amount"
-                          type="number"
-                          value={amount ?? ''}
-                          onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
-                          min="0"
-                        />
-                        {lockTokens && !amount && (
-                          <Label className="text-red-500 mt-2">
-                            Please enter an amount to lock
-                          </Label>
-                        )}
-                      </div>
+                    <div className="w-4/5 flex flex-col">
+                      <Input
+                        id="amount"
+                        type="number"
+                        value={amount ?? ''}
+                        onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
+                        min={minProposerLockAmount ?? 0}
+                      />
+                      {lockTokens && !amount && (
+                        <Label className="text-red-500 mt-2">
+                          Please enter an amount to lock
+                        </Label>
+                      )}
+                      {lockTokens && minProposerLockAmount != null && minProposerLockAmount > 0 && (
+                        <Label className="text-sm text-muted-foreground mt-2">
+                          Minimum to propose: {minProposerLockAmount.toLocaleString()} {symbol}
+                        </Label>
+                      )}
+                      {lockAmountBelowMinimum && minProposerLockAmount != null && (
+                        <Label className="text-red-500 mt-2">
+                          Enter at least {minProposerLockAmount.toLocaleString()} {symbol} to meet
+                          proposer requirements
+                        </Label>
+                      )}
                     </div>
+                  </div>
                     <div className="flex items-center">
                       <Label className="w-1/5 flex items-center" htmlFor="duration">
                         Duration
                       </Label>
                       <div className="w-4/5 flex items-center justify-center whitespace-nowrap">
                         <Slider
-                          defaultValue={[1]}
+                          value={[duration]}
                           step={1}
                           min={1}
-                          max={30}
+                          max={maxLockIntervals}
                           onValueChange={(value) => setDuration(value[0])}
                         />
-                        <p className="ml-4">{`${duration} day${duration !== 1 ? 's' : ''}`}</p>
+                        <p className="ml-4">
+                          {`${duration} interval${duration !== 1 ? 's' : ''}`}
+                          {board.lockInterval
+                            ? ` (${formatDurationLabel(duration * board.lockInterval)})`
+                            : ''}
+                        </p>
                       </div>
                     </div>
                     <div className="block lg:hidden">

@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from '@/components/containers/initiatives/initiative-card'
 import { PageSection } from '@/components/page-section'
-import { CreateInitiativeDrawer } from '@/components/drawers/create-initiative-drawer'
+import { ProposeInitiativeDrawer } from '@/components/drawers/propose-initiative-drawer'
 import { Button } from '@/components/ui/button'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
@@ -63,7 +63,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   if (_initiativesSorted.length === 0) {
     return (
       <>
-        <CreateInitiativeDrawer
+        <ProposeInitiativeDrawer
           open={isDrawerOpen}
           onOpenChange={setIsDrawerOpen}
           showTrigger={false}
@@ -85,7 +85,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
 
   return (
     <>
-      <CreateInitiativeDrawer
+      <ProposeInitiativeDrawer
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         showTrigger={false}
