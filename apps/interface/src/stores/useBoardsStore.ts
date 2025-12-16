@@ -9,6 +9,8 @@ type Requirements = {
 }
 
 export type BoardSummary = {
+  opensAt: number | null
+  closesAt: number | null
   contractAddress: `0x${string}`
   owner?: `0x${string}`
   title: string
@@ -39,6 +41,8 @@ interface GraphQLResponse {
         owner: `0x${string}`
         title: string
         body: string
+        opensAt: number
+        closesAt: number
         proposerRequirements: Requirements
         participantRequirements: Requirements
         acceptanceThreshold: string
@@ -75,6 +79,8 @@ export const useBoardsStore = create<BoardsState>((set) => ({
               owner
               title
               body
+              opensAt
+              closesAt
               proposerRequirements
               participantRequirements
               acceptanceThreshold
@@ -116,6 +122,8 @@ export const useBoardsStore = create<BoardsState>((set) => ({
             owner: item.owner?.toLowerCase() as `0x${string}`,
             title: item.title,
             body: item.body,
+            opensAt: Number(item.opensAt),
+            closesAt: Number(item.closesAt),
             proposerRequirements: item.proposerRequirements,
             participantRequirements: item.participantRequirements,
             acceptanceThreshold: item.acceptanceThreshold,

@@ -24,6 +24,8 @@ type BoardByAddressQueryItem = {
   owner?: string | null
   title?: string | null
   body?: string | null
+  opensAt?: string | number | null
+  closesAt?: string | number | null
   proposerRequirements?: BoardRequirement | null
   participantRequirements?: BoardRequirement | null
   acceptanceThreshold?: string | null
@@ -32,6 +34,7 @@ type BoardByAddressQueryItem = {
   underlyingTokenDecimals?: number | null
   underlyingTokenName?: string | null
   lockInterval?: string | number | null
+  maxLockIntervals?: string | number | null
   decayCurveType?: string | number | null
   decayCurveParameters?: Array<string | number | null> | null
 }
@@ -52,11 +55,14 @@ export interface BoardMetadata {
   owner: `0x${string}` | null
   name: string | null
   body: string | null
+  opensAt: number | null
+  closesAt: number | null
   symbol: string | null
   initiativesCount: number | null
   proposalThreshold: number | null
   acceptanceThreshold: number | null
   lockInterval: number | null
+  maxLockIntervals: number | null
   decayCurveType: number | null
   decayCurveParameters: number[] | null
   proposerRequirements: BoardRequirement | null
@@ -91,11 +97,14 @@ const initialBoard: Omit<BoardMetadata, 'meetsThreshold'> = {
   owner: null,
   name: null,
   body: null,
+  opensAt: null,
+  closesAt: null,
   symbol: null,
   initiativesCount: null,
   proposalThreshold: null,
   acceptanceThreshold: null,
   lockInterval: null,
+  maxLockIntervals: null,
   decayCurveType: null,
   decayCurveParameters: null,
   proposerRequirements: null,
@@ -118,8 +127,7 @@ export const SignalsContext = createContext<SignalsContextValue | undefined>(und
 export const SignalsProvider = ({ children }: { children: ReactNode }) => {
   const params = useParams()
   const router = useRouter()
-  const { publicClient, isInitialized } = useWeb3()
-  const { address: walletAddress } = useAccount()
+  const { isInitialized } = useWeb3()
 
   const [balances, setBalances] = useState<BoardBalances>({
     walletBalance: null,
@@ -206,10 +214,13 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
               contractAddress
               owner
               title
+              opensAt
+              closesAt
               proposerRequirements
               participantRequirements
               acceptanceThreshold
               lockInterval
+              maxLockIntervals
               underlyingToken
               underlyingTokenSymbol
               underlyingTokenDecimals
@@ -260,11 +271,14 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         owner: indexedBoard.owner ? (indexedBoard.owner.toLowerCase() as `0x${string}`) : null,
         name: indexedBoard.title ?? null,
         body: indexedBoard.body ?? null,
+        opensAt: toNumber(indexedBoard.opensAt),
+        closesAt: toNumber(indexedBoard.closesAt),
         symbol: null,
         initiativesCount: null,
         proposalThreshold: toNumber(indexedBoard.proposerRequirements?.minBalance),
         acceptanceThreshold: toNumber(indexedBoard.acceptanceThreshold),
         lockInterval: toNumber(indexedBoard.lockInterval),
+        maxLockIntervals: toNumber(indexedBoard.maxLockIntervals),
         decayCurveType: toNumber(indexedBoard.decayCurveType),
         decayCurveParameters: toNumberArray(indexedBoard.decayCurveParameters),
         proposerRequirements: indexedBoard.proposerRequirements ?? null,

@@ -53,8 +53,13 @@ export const BoardsList = () => {
 
   return (
     <ListContainer title="Boards">
-      {sortedBoards.map((board) => (
-        <BoardCard key={board.contractAddress} board={board} />
+      {sortedBoards.map((board, index) => (
+        <BoardCard
+          key={board.contractAddress}
+          board={board}
+          isFirst={index === 0}
+          isLast={index === sortedBoards.length - 1}
+        />
       ))}
     </ListContainer>
   )

@@ -2,7 +2,7 @@ import React from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
 import { IncentiveDrawer } from '@/components/drawers/incentive-drawer'
-import { AddSupportDrawer } from '@/components/drawers/add-support-drawer'
+import { SupportInitiativeDrawer } from '@/components/drawers/support-initiative-drawer'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
@@ -29,11 +29,13 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
     <Card
       className={cn(
         'flex flex-col',
-        isFirst
-          ? 'rounded-t-lg rounded-b-none border-b-0 '
-          : isLast
-            ? 'rounded-b-lg rounded-t-none'
-            : 'rounded-none border-b-0',
+        isFirst && isLast
+          ? 'rounded-lg'
+          : isFirst
+            ? 'rounded-t-lg rounded-b-none border-b-0'
+            : isLast
+              ? 'rounded-b-lg rounded-t-none'
+              : 'rounded-none border-b-0',
       )}
     >
       <div className="flex flex-col md:flex-row w-full">
@@ -84,7 +86,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-1 h-[80px]">
             <IncentiveDrawer initiative={initiative} />
-            <AddSupportDrawer initiative={initiative} />
+            <SupportInitiativeDrawer initiative={initiative} />
           </div>
         </div>
       </div>

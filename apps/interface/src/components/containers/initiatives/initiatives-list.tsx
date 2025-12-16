@@ -5,7 +5,7 @@ import { PlusIcon } from 'lucide-react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
-import { InitiativeCard } from './initiative-card'
+import { InitiativeCard } from '@/components/containers/initiatives/initiative-card'
 import { PageSection } from '@/components/page-section'
 import { CreateInitiativeDrawer } from '@/components/drawers/create-initiative-drawer'
 import { Button } from '@/components/ui/button'
@@ -108,7 +108,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
 
 // Extract the information section into its own component for reuse
 const InformationSection = () => (
-  <PageSection className="bg-neutral-50 dark:bg-neutral-900 mt-5">
+  <PageSection className="bg-neutral-50 dark:bg-neutral-900 mt-5 border-0 shadow-none">
     <h3 className="text-lg font-medium mb-4">About Initiatives</h3>
     <ul className="list-disc pl-5 space-y-2">
       <li>Initiatives are community proposals that need support</li>
