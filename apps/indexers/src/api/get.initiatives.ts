@@ -45,13 +45,11 @@ export const getInitiatives = async (c: Context) => {
         args: [BigInt(initiative.initiativeId)],
       })) as {
         state: number
-        attachments: { uri: string; mimeType: string; description: string }[]
+        proposer: `0x${string}`
+        timestamp: bigint
+        lastActivity: bigint
+        acceptanceTimestamp: bigint
       }
-
-      const onchainAttachments = initiativeState.attachments ?? []
-      const attachments = onchainAttachments.length
-        ? onchainAttachments
-        : (initiative.attachments as { uri: string; mimeType: string; description: string }[])
 
       const status = (() => {
         switch (initiativeState.state) {
@@ -71,11 +69,14 @@ export const getInitiatives = async (c: Context) => {
         args: [BigInt(initiative.initiativeId)],
       })
 
-      const supporters = await client.readContract({
-        address: initiative.contractAddress,
-        abi: SignalsABI,
-        functionName: 'getSupporters',
-        args: [BigInt(initiative.initiativeId)],
+      const locks = await db.query.Lock.findMany({
+        where: (lock, { and, eq }) =>
+          and(
+            eq(lock.chainId, chainId),
+            eq(lock.contractAddress, address),
+            eq(lock.initiativeId, BigInt(initiative.initiativeId)),
+            eq(lock.isActive, true),
+          ),
       })
 
       const _incentives = await db.query.Incentive.findMany({
@@ -93,12 +94,12 @@ export const getInitiatives = async (c: Context) => {
         description: initiative.body,
         weight: Number(weight) / 1e18,
         support: Number(weight) / Number(board.acceptanceThreshold),
-        proposer: initiative.proposer,
+        proposer: initiativeState.proposer ?? initiative.proposer,
         rewards: Number(rewards) / 1e6,
-        supporters,
-        createdAtTimestamp: Number(initiative.blockTimestamp),
-        updatedAtTimestamp: Number(initiative.blockTimestamp),
-        attachments,
+        supporters: Array.from(new Set(locks.map((lock) => lock.owner))),
+        createdAtTimestamp: Number(initiativeState.timestamp ?? initiative.blockTimestamp),
+        updatedAtTimestamp: Number(initiativeState.lastActivity ?? initiative.blockTimestamp),
+        attachments: initiative.attachments as { uri: string; mimeType: string; description: string }[],
         status,
       }
     }),

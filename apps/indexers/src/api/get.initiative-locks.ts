@@ -11,11 +11,11 @@ export const getInitiativeLocks = async (c: Context) => {
   const address = c.req.param('address').toLowerCase() as `0x${string}`
   const initiativeId = c.req.param('initiativeId')
 
-  const locks = await db.query.Bond.findMany({
+  const locks = await db.query.Lock.findMany({
     where: and(
-      eq(schema.Bond.chainId, Number(chainId)),
-      eq(schema.Bond.contractAddress, address),
-      eq(schema.Bond.initiativeId, BigInt(initiativeId)),
+      eq(schema.Lock.chainId, Number(chainId)),
+      eq(schema.Lock.contractAddress, address),
+      eq(schema.Lock.initiativeId, BigInt(initiativeId)),
     ),
   })
 

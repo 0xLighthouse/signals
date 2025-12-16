@@ -7,7 +7,7 @@ import {
   ExperimentTokenABI,
   ExperimentTokenFactoryABI,
 } from '../../packages/abis'
-import { anvil, base, baseSepolia } from 'viem/chains'
+import { baseSepolia } from 'viem/chains'
 
 // Note: This should hot-reload when the file is changed
 
@@ -81,7 +81,7 @@ export default createConfig({
       address: factory({
         address: latestSignalsFactory.address,
         event: parseAbiItem(
-          'event BoardCreated(address indexed board, address indexed owner)',
+          'event BoardCreated(address indexed board, address indexed owner, (string title, string body, (string uri, string mimeType, string description)[] attachments) boardMetadata)',
         ),
         parameter: 'board',
       }),

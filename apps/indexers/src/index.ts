@@ -19,6 +19,14 @@ ponder.on('ExperimentTokenFactory:TokenDeployed', async ({ event, context }) => 
 })
 
 ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
+
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()')
+  console.log('SignalsBoard:InitiativeProposed()', event)
   await context.db.insert(schema.Initiative).values({
     id: event.id,
     chainId: context.chain.id,
@@ -27,10 +35,10 @@ ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
     initiativeId: Number(event.args.initiativeId),
     proposer: event.args.proposer,
-    title: event.args.title,
-    body: event.args.body,
+    title: event.args.metadata.title,
+    body: event.args.metadata.body,
     attachments:
-      event.args.attachments?.map((attachment) => ({
+      event.args.metadata.attachments?.map((attachment) => ({
         uri: attachment.uri,
         mimeType: attachment.mimeType,
         description: attachment.description,
@@ -81,7 +89,7 @@ ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
   }
   // Handle burn (to zero address)
   else if (to === '0x0000000000000000000000000000000000000000') {
-    await context.db.update(schema.Bond, { id: key }).set({
+    await context.db.update(schema.Lock, { id: key }).set({
       burnedAt: event.block.timestamp,
       isActive: false,
     })
@@ -89,7 +97,7 @@ ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
   // Handle regular transfer
   else {
     // Update NFT owner
-    await context.db.update(schema.Bond, { id: key }).set({
+    await context.db.update(schema.Lock, { id: key }).set({
       owner: to as `0x${string}`,
     })
   }
@@ -114,7 +122,7 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
   const key = `${context.chain.id}:${event.log.address}:${event.args.tokenId}`
 
   // Register the bond NFT separately, so we can track ownership
-  await context.db.insert(schema.Bond).values({
+  await context.db.insert(schema.Lock).values({
     id: key,
     chainId: context.chain.id,
     contractAddress: event.log.address,
@@ -196,6 +204,19 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'name',
   })) as string
 
+
+  const opensAt: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'boardOpenAt',
+  })) as bigint
+
+  const closesAt: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'boardClosedAt',
+  })) as bigint
+
   console.log('decayCurveParameters', decayCurveParameters)
 
   await context.db.insert(schema.Board).values({
@@ -207,6 +228,8 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     owner: event.args.owner,
     title: event.args.boardMetadata.title,
     body: event.args.boardMetadata.body,
+    opensAt: opensAt,
+    closesAt: closesAt,
     proposerRequirements: replaceBigInts(proposerRequirements, (x) => x.toString()),
     participantRequirements: replaceBigInts(participantRequirements, (x) => x.toString()),
     acceptanceThreshold: acceptanceThreshold,

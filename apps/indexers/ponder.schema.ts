@@ -50,6 +50,8 @@ export const Board = onchainTable('boards', (t) => ({
     minHoldingDuration: string
     minLockAmount: string
   }>().notNull(),
+  opensAt: t.bigint().notNull(),
+  closesAt: t.bigint().notNull(),
   acceptanceThreshold: t.bigint().notNull(),
   underlyingToken: t.hex().notNull(),
   underlyingTokenSymbol: t.text().notNull(),
@@ -72,7 +74,7 @@ export const Transfer = onchainTable('transfers', (t) => ({
   tokenId: t.bigint().notNull(),
 }))
 
-export const Bond = onchainTable('bonds', (t) => ({
+export const Lock = onchainTable('locks', (t) => ({
   id: t.text().primaryKey(),
   chainId: t.integer().notNull(),
   contractAddress: t.hex().notNull(),
@@ -156,13 +158,13 @@ export const boardRelations = relations(Board, ({ many }) => ({
 
 export const initiativeRelations = relations(Initiative, ({ one, many }) => ({
   board: one(Board),
-  bonds: many(Bond),
+  locks: many(Lock),
   weights: many(InitiativeWeight),
 }))
 
-export const bondRelations = relations(Bond, ({ one }) => ({
+export const lockRelations = relations(Lock, ({ one }) => ({
   initiative: one(Initiative, {
-    fields: [Bond.initiativeId, Bond.contractAddress, Bond.chainId],
+    fields: [Lock.initiativeId, Lock.contractAddress, Lock.chainId],
     references: [Initiative.initiativeId, Initiative.contractAddress, Initiative.chainId],
   }),
 }))
