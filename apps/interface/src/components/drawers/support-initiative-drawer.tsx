@@ -7,7 +7,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,15 +14,14 @@ import { Slider } from '@/components/ui/slider'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useSignals } from '@/hooks/use-signals'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import type { Initiative } from '@/types/initiative'
 import { Alert, AlertDescription } from '../ui/alert'
-import { SubmissionLockDetails } from '../containers/submission-lock-details'
+import { AcceptanceProgressChart } from '../acceptance-progress-chart'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 
-import { usePrivy } from '@privy-io/react-auth'
-import { useBondsStore } from '@/stores/useBondsStore'
+import { useLocksStore } from '@/stores/useLocksStore'
 import { parseUnits } from 'viem'
 import { SignalsABI } from '../../../../../packages/abis'
 import { usePublicClient } from '@/contexts/ChainProvider'
@@ -36,9 +34,14 @@ import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative }) {
+interface Props {
+  initiative: Initiative
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Props) {
   const { address } = useAccount()
-  const { authenticated, login } = usePrivy()
   const {
     underlyingBalance: balance,
     underlyingSymbol: symbol,
@@ -48,25 +51,38 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
   } = useSignals()
   const publicClient = usePublicClient()
   const walletClient = useWalletClient()
-  const tokenDecimals = board?.underlyingTokenDecimals ?? 18
+  const underlyingTokenDecimals = board?.underlyingTokenDecimals ?? 18
 
   const [amountValue, setAmount] = useState('0')
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedTier, setSelectedTier] = useState<'mild' | 'strong' | 'conviction'>('strong')
   const [showAllowanceDetails, setShowAllowanceDetails] = useState(false)
 
-  const initiativeLocks = useBondsStore((s) => s.initiativeLocks)
-  const fetchInitiativeLocks = useBondsStore((s) => s.fetchInitiativeLocks)
-  const isInitiativeLocksInitialized = useBondsStore((s) => s.isInitiativeLocksInitialized)
+  // Memoize as a primitive to avoid effect loops when initiativeId is a BigInt/object
+  const initiativeId = useMemo(() => initiative.initiativeId.toString(), [initiative.initiativeId])
+
+  // Access store Maps directly with stable selectors
+  const locksByInitiative = useLocksStore((s) => s.locksByInitiative)
+  const initializedStates = useLocksStore((s) => s.initializedStates)
+  const fetchInitiativeLocks = useLocksStore((s) => s.fetchInitiativeLocks)
+
+  // Derive values outside the selector to avoid infinite loops
+  const initiativeLocks = useMemo(
+    () => locksByInitiative.get(initiativeId) ?? [],
+    [locksByInitiative, initiativeId],
+  )
+  const initiativeInitialized = useMemo(
+    () => initializedStates.get(initiativeId) ?? false,
+    [initializedStates, initiativeId],
+  )
 
   useEffect(() => {
-    if (!isInitiativeLocksInitialized) {
-      console.log(`Fetching locks for [initiativeId:${initiative.initiativeId}]`)
-      fetchInitiativeLocks(initiative.initiativeId.toString())
-    }
-  }, [initiative.initiativeId, isInitiativeLocksInitialized, fetchInitiativeLocks])
+    if (!initiativeId) return
+    if (!open) return
+    if (initiativeInitialized) return
+    fetchInitiativeLocks(initiativeId)
+  }, [initiativeId, initiativeInitialized, fetchInitiativeLocks, open])
 
   const formatTokenAmount = (value?: string | number | bigint | null) => {
     if (value == null || board?.underlyingTokenDecimals == null) return null
@@ -94,27 +110,33 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
   const parsedAmount = Number(amountValue)
   const amount = Number.isFinite(parsedAmount) ? parsedAmount : 0
 
-  const parseNumericValue = (value: unknown) => {
-    if (typeof value === 'bigint') return Number(formatUnits(value, tokenDecimals))
-    if (typeof value === 'number') return value
-    if (typeof value === 'string') {
-      try {
-        return Number(formatUnits(BigInt(value), tokenDecimals))
-      } catch {
-        const parsed = Number(value)
-        return Number.isFinite(parsed) ? parsed : 0
+  const parseNumericValue = useCallback(
+    (value: unknown) => {
+      if (typeof value === 'bigint') return Number(formatUnits(value, underlyingTokenDecimals))
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        try {
+          return Number(formatUnits(BigInt(value), underlyingTokenDecimals))
+        } catch {
+          const parsed = Number(value)
+          return Number.isFinite(parsed) ? parsed : 0
+        }
       }
-    }
-    return 0
-  }
+      return 0
+    },
+    [underlyingTokenDecimals],
+  )
 
-  const numericBalance = useMemo(() => parseNumericValue(balance), [balance, tokenDecimals])
+  const numericBalance = useMemo(
+    () => parseNumericValue(balance),
+    [balance, parseNumericValue],
+  )
   const participantMinLockNumber = useMemo(() => {
     const raw = board?.participantRequirements?.minLockAmount
     if (raw == null) return 0
     try {
       if (typeof raw === 'bigint' || typeof raw === 'string') {
-        return Number(formatUnits(BigInt(raw), tokenDecimals))
+        return Number(formatUnits(BigInt(raw), underlyingTokenDecimals))
       }
       if (typeof raw === 'number') {
         return raw
@@ -124,7 +146,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
       const fallback = Number(raw as unknown as string)
       return Number.isFinite(fallback) ? fallback : 0
     }
-  }, [board?.participantRequirements?.minLockAmount, tokenDecimals])
+  }, [board?.participantRequirements?.minLockAmount, underlyingTokenDecimals])
 
   const ensureDisplayAmount = (value: number) => {
     if (!Number.isFinite(value) || value <= 0) return ''
@@ -177,45 +199,51 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
     return 30
   }, [board?.maxLockIntervals])
 
-  const clampAmountForTier = (desired: number) => {
-    const minFloor = participantMinLockNumber > 0 ? participantMinLockNumber : 1
-    if (!Number.isFinite(desired)) return minFloor
-    if (numericBalance > 0) {
-      return Math.max(minFloor, Math.min(desired, numericBalance))
-    }
-    return Math.max(minFloor, desired)
-  }
+  const clampAmountForTier = useCallback(
+    (desired: number) => {
+      const minFloor = participantMinLockNumber > 0 ? participantMinLockNumber : 1
+      if (!Number.isFinite(desired)) return minFloor
+      if (numericBalance > 0) {
+        return Math.max(minFloor, Math.min(desired, numericBalance))
+      }
+      return Math.max(minFloor, desired)
+    },
+    [numericBalance, participantMinLockNumber],
+  )
 
-  const getTierDefaults = (tierId: typeof selectedTier) => {
-    const baseMin = participantMinLockNumber || 0
-    const quarterBalance = numericBalance * 0.25
-    const halfBalance = numericBalance * 0.5
-    const threeQuarterBalance = numericBalance * 0.75
+  const getTierDefaults = useCallback(
+    (tierId: typeof selectedTier) => {
+      const baseMin = participantMinLockNumber || 0
+      const quarterBalance = numericBalance * 0.25
+      const halfBalance = numericBalance * 0.5
+      const threeQuarterBalance = numericBalance * 0.75
 
-    switch (tierId) {
-      case 'minimum':
-        return {
-          amount: clampAmountForTier(Math.max(1, baseMin)),
-          duration: 1,
-        }
-      case 'strong':
-        return {
-          amount: clampAmountForTier(Math.max(baseMin, Math.floor(quarterBalance), 1)),
-          duration: Math.max(1, Math.round(maxLockIntervals * 0.25)),
-        }
-      case 'deep':
-        return {
-          amount: clampAmountForTier(Math.max(baseMin, Math.floor(halfBalance), 1)),
-          duration: Math.max(1, Math.round(maxLockIntervals * 0.5)),
-        }
-      case 'all-in':
-      default:
-        return {
-          amount: clampAmountForTier(Math.max(baseMin, Math.floor(threeQuarterBalance), 1)),
-          duration: Math.max(1, maxLockIntervals),
-        }
-    }
-  }
+      switch (tierId) {
+        case 'minimum':
+          return {
+            amount: clampAmountForTier(Math.max(1, baseMin)),
+            duration: 1,
+          }
+        case 'strong':
+          return {
+            amount: clampAmountForTier(Math.max(baseMin, Math.floor(quarterBalance), 1)),
+            duration: Math.max(1, Math.round(maxLockIntervals * 0.25)),
+          }
+        case 'deep':
+          return {
+            amount: clampAmountForTier(Math.max(baseMin, Math.floor(halfBalance), 1)),
+            duration: Math.max(1, Math.round(maxLockIntervals * 0.5)),
+          }
+        case 'all-in':
+        default:
+          return {
+            amount: clampAmountForTier(Math.max(baseMin, Math.floor(threeQuarterBalance), 1)),
+            duration: Math.max(1, maxLockIntervals),
+          }
+      }
+    },
+    [clampAmountForTier, maxLockIntervals, numericBalance, participantMinLockNumber],
+  )
 
   const formatDurationLabel = (seconds: number) => {
     if (!seconds || seconds < 60) return `${seconds}s`
@@ -237,13 +265,13 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
 
   useEffect(() => {
     // When drawer opens, seed defaults for the initial tier
-    if (isDrawerOpen) {
+    if (open) {
       const defaults = getTierDefaults(selectedTier)
       setAmount(ensureDisplayAmount(defaults.amount))
       setDuration(defaults.duration)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDrawerOpen])
+  }, [open])
 
   useEffect(() => {
     // Keep amount above tier minimum when data changes
@@ -265,8 +293,8 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
     actor: address,
     spender: board?.contractAddress ?? undefined,
     tokenAddress: board?.underlyingToken ?? undefined,
-    tokenDecimals,
-    enabled: isDrawerOpen,
+    tokenDecimals: underlyingTokenDecimals,
+    enabled: open,
   })
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -279,26 +307,13 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
     setShowAllowanceDetails(false)
   }
 
-  const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
-    ev.preventDefault()
-    if (!authenticated) {
-      login()
-      return
-    }
+  const handleOnOpenChange = (nextOpen: boolean) => {
     if (!address) {
-      toast('Please connect a wallet')
+      onOpenChange(false)
       return
     }
-    setIsDrawerOpen(true)
-  }
-
-  const handleOnOpenChange = (open: boolean) => {
-    if (!address) {
-      setIsDrawerOpen(false)
-      return
-    }
-    if (!open) resetFormState()
-    setIsDrawerOpen(open)
+    if (!nextOpen) resetFormState()
+    onOpenChange(nextOpen)
   }
 
   const handleSubmit = async () => {
@@ -331,7 +346,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
         nonce,
         args: [
           BigInt(initiative.initiativeId),
-          parseUnits(String(amount), tokenDecimals),
+          parseUnits(String(amount), underlyingTokenDecimals),
           BigInt(duration),
         ],
       })
@@ -344,7 +359,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
         pollingInterval: 2000,
       })
       console.log('Receipt:', receipt)
-      setIsDrawerOpen(false)
+      onOpenChange(false)
       resetFormState()
       toast('Upvote submitted!')
       if (boardAddress) {
@@ -391,37 +406,19 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
       : null
   const insufficientBalance = amount > 0 && numericBalance < amount
 
-  console.log('amount', amount)
-  console.log('numericBalance', numericBalance)
-  console.log('balance', balance)
-
   return (
     <Drawer
       dismissible={!isSubmitting && !isApproving}
-      open={isDrawerOpen}
+      open={open}
       onOpenChange={handleOnOpenChange}
     >
-      <DrawerTrigger asChild>
-        <Button
-          variant="outline"
-          full
-          size="md"
-          onClick={handleTriggerDrawer}
-          className="flex flex-col items-center min-w-[80px]"
-        >
-          <ChevronUp className="h-6 w-6 -mt-1" />
-          <span className="text-xs">
-            {Number.parseFloat(String(initiative.support * 100)).toFixed(2)}%
-          </span>
-        </Button>
-      </DrawerTrigger>
       <DrawerContent>
         <div className="overflow-y-auto flex flex-col lg:flex-row p-8 gap-8">
           <div className="lg:w-2/5 space-y-4">
             <DrawerHeader className="px-0">
               <DrawerTitle className="text-2xl">Support initiative</DrawerTitle>
               <p className="text-sm text-muted-foreground">
-                Signals measures conviction, not opinion. Support only if you’re willing to accept
+                Signals measures conviction, not opinion. Support only if you're willing to accept
                 real opportunity cost.
               </p>
             </DrawerHeader>
@@ -570,7 +567,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
                 )}
                 {insufficientBalance && (
                   <p className="text-sm text-muted-foreground">
-                    You don’t currently have enough {symbol} to make this commitment.
+                    You don't currently have enough {symbol} to make this commitment.
                   </p>
                 )}
               </div>
@@ -651,7 +648,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
                 </Card>
               </div>
             </section>
-            <SubmissionLockDetails
+            <AcceptanceProgressChart
               initiative={{
                 createdAt: initiative.createdAtTimestamp,
                 lockInterval: board.lockInterval,
@@ -692,7 +689,7 @@ export function SupportInitiativeDrawer({ initiative }: { initiative: Initiative
                 </Card>
               </div>
             </section>
-            <SubmissionLockDetails
+            <AcceptanceProgressChart
               initiative={{
                 createdAt: initiative.createdAtTimestamp,
                 lockInterval: board.lockInterval,

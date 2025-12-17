@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PlusIcon } from 'lucide-react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
+import { useSupportDrawerStore } from '@/stores/useSupportDrawerStore'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { InitiativeCard } from '@/components/containers/initiatives/initiative-card'
 import { PageSection } from '@/components/page-section'
 import { ProposeInitiativeDrawer } from '@/components/drawers/propose-initiative-drawer'
+import { SupportInitiativeDrawer } from '@/components/drawers/support-initiative-drawer'
 import { Button } from '@/components/ui/button'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
@@ -21,6 +23,11 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   const { address } = useAccount()
   const { authenticated, login } = usePrivy()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+  // Global support drawer state
+  const selectedInitiative = useSupportDrawerStore((state) => state.selectedInitiative)
+  const isSupportDrawerOpen = useSupportDrawerStore((state) => state.isOpen)
+  const closeDrawer = useSupportDrawerStore((state) => state.closeDrawer)
 
   useEffect(() => {
     if (!isInitialized && boardAddress) {
@@ -41,6 +48,12 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
       return
     }
     setIsDrawerOpen(true)
+  }
+
+  const handleSupportDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      closeDrawer()
+    }
   }
 
   const _initiativesSorted = useMemo(() => {
@@ -68,6 +81,13 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
           onOpenChange={setIsDrawerOpen}
           showTrigger={false}
         />
+        {selectedInitiative && (
+          <SupportInitiativeDrawer
+            initiative={selectedInitiative}
+            open={isSupportDrawerOpen}
+            onOpenChange={handleSupportDrawerOpenChange}
+          />
+        )}
         <ListContainer title="Initiatives" action={triggerButton}>
           <PageSection>
             <div className="text-center py-8">
@@ -90,6 +110,13 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
         onOpenChange={setIsDrawerOpen}
         showTrigger={false}
       />
+      {selectedInitiative && (
+        <SupportInitiativeDrawer
+          initiative={selectedInitiative}
+          open={isSupportDrawerOpen}
+          onOpenChange={handleSupportDrawerOpenChange}
+        />
+      )}
       <ListContainer title="Initiatives" action={triggerButton}>
         {_initiativesSorted.map((item, index) => (
           <InitiativeCard

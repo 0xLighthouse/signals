@@ -18,8 +18,9 @@ import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { toast } from 'sonner'
 
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
-import { useBondsStore } from '@/stores/useBondsStore'
+import { useLocksStore } from '@/stores/useLocksStore'
 import { useRewardsStore } from '@/stores/useRewardsStore'
+import { useSupportDrawerStore } from '@/stores/useSupportDrawerStore'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { useNetworkStore } from '@/stores/useNetworkStore'
 import { useRouter } from 'next/navigation'
@@ -77,8 +78,9 @@ const disabledNetworks = [
 
 const resetStoresForNetworkChange = () => {
   useInitiativesStore.getState().reset()
-  useBondsStore.getState().reset()
+  useLocksStore.getState().reset()
   useRewardsStore.getState().reset()
+  useSupportDrawerStore.getState().reset()
 }
 
 export function NetworkSwitcherDialog({

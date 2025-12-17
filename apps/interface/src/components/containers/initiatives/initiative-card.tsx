@@ -1,13 +1,18 @@
 import React from 'react'
+import { ChevronUp } from 'lucide-react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
 import { IncentiveDrawer } from '@/components/drawers/incentive-drawer'
-import { SupportInitiativeDrawer } from '@/components/drawers/support-initiative-drawer'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
 import { AvatarGroup } from '@/components/ui/avatar-group'
 import { ExternalLink, Paperclip } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useSupportDrawerStore } from '@/stores/useSupportDrawerStore'
+import { useAccount } from '@/hooks/useAccount'
+import { usePrivy } from '@privy-io/react-auth'
+import { toast } from 'sonner'
 
 import type { Initiative } from 'indexers/src/api/types'
 
@@ -24,6 +29,23 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
     shortAddress(initiative.proposer),
   )
   const hasAttachments = initiative.attachments && initiative.attachments.length > 0
+
+  const openDrawer = useSupportDrawerStore((state) => state.openDrawer)
+  const { address } = useAccount()
+  const { authenticated, login } = usePrivy()
+
+  const handleSupportClick = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    ev.preventDefault()
+    if (!authenticated) {
+      login()
+      return
+    }
+    if (!address) {
+      toast('Please connect a wallet')
+      return
+    }
+    openDrawer(initiative)
+  }
 
   return (
     <Card
@@ -86,7 +108,18 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
         <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
           <div className="flex gap-1 h-[80px]">
             <IncentiveDrawer initiative={initiative} />
-            <SupportInitiativeDrawer initiative={initiative} />
+            <Button
+              variant="outline"
+              full
+              size="md"
+              onClick={handleSupportClick}
+              className="flex flex-col items-center min-w-[80px]"
+            >
+              <ChevronUp className="h-6 w-6 -mt-1" />
+              <span className="text-xs">
+                {Number.parseFloat(String(initiative.support * 100)).toFixed(2)}%
+              </span>
+            </Button>
           </div>
         </div>
       </div>
@@ -99,7 +132,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
           }
         />
         <CardDescription className="text-xs">
-          Last activity,&nbsp;{timeAgoWords(initiative.updatedAtTimestamp)}
+          Last activity, {timeAgoWords(initiative.updatedAtTimestamp)}
         </CardDescription>
       </div>
     </Card>

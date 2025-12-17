@@ -22,7 +22,7 @@ import { Slider } from '@/components/ui/slider'
 import { useSignals } from '@/hooks/use-signals'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import { SubmissionLockDetails } from '../containers/submission-lock-details'
+import { AcceptanceProgressChart } from '../acceptance-progress-chart'
 import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
@@ -172,6 +172,7 @@ export function ProposeInitiativeDrawer({
     }
   }
 
+  // This is used to set the amount to the minimum proposer lock amount when the lock tokens toggle is enabled
   useEffect(() => {
     if (lockTokens && minProposerLockAmount != null && amount < minProposerLockAmount) {
       setAmount(minProposerLockAmount)
@@ -513,7 +514,7 @@ export function ProposeInitiativeDrawer({
                       </div>
                     </div>
                     <div className="block lg:hidden">
-                      <SubmissionLockDetails
+                      <AcceptanceProgressChart
                         amount={amount}
                         duration={duration}
                         threshold={formatter(board.acceptanceThreshold)}
@@ -536,7 +537,7 @@ export function ProposeInitiativeDrawer({
             <div className="flex justify-end py-8">{resolveAction()}</div>
           </div>
           <div className="hidden lg:block w-2/5 lg:mt-6">
-            <SubmissionLockDetails
+            <AcceptanceProgressChart
               amount={amount}
               duration={duration}
               threshold={formatter(board.acceptanceThreshold)}

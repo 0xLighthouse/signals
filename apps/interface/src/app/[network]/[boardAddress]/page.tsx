@@ -5,6 +5,7 @@ import { BoardConfig } from '@/components/containers/board-config'
 import { InitiativesList } from '@/components/containers/initiatives/initiatives-list'
 import { StatsDisplay } from '@/components/stats-display'
 import { NETWORKS } from '@/config/networks'
+import { RouteSync } from '@/components/route-sync'
 
 interface PageProps {
   params: Promise<{
@@ -16,9 +17,6 @@ interface PageProps {
 export default async function BoardPage({ params }: PageProps) {
   const { network, boardAddress } = await params
   const networkKey = getNetworkFromSlug(network)
-
-  console.log('networkKey', networkKey)
-  console.log('boardAddress', boardAddress)
 
   if (!networkKey) {
     notFound()
@@ -56,14 +54,13 @@ export default async function BoardPage({ params }: PageProps) {
     {
       label: 'Total locked',
       value:
-        statsData?.totalLocked !== undefined
-          ? Number(statsData.totalLocked).toLocaleString()
-          : '—',
+        statsData?.totalLocked !== undefined ? Number(statsData.totalLocked).toLocaleString() : '—',
     },
   ]
 
   return (
     <PageLayout>
+      <RouteSync />
       <BoardConfig />
       <StatsDisplay stats={stats} className="mb-6" />
       <InitiativesList boardAddress={boardAddress as `0x${string}`} />

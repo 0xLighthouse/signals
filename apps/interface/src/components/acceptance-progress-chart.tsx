@@ -1,12 +1,12 @@
 import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Chart } from './initiatives/chart'
-import { Alert, AlertTitle } from '../ui/alert'
+import { Chart } from './containers/initiatives/chart'
+import { Alert, AlertTitle } from './ui/alert'
 import { CircleAlert } from 'lucide-react'
 import { InitiativeDetails } from '@/lib/curves'
 import { useSignals } from '@/hooks/use-signals'
 
-import { AvatarGroup } from '../ui/avatar-group'
+import { AvatarGroup } from './ui/avatar-group'
 import { resolveAvatar } from '@/lib/utils'
 import { InitiativeLock } from '@/indexers/api/types'
 
@@ -21,7 +21,7 @@ interface Props {
   supportInitiative?: boolean
 }
 
-export const SubmissionLockDetails: React.FC<Props> = ({
+export const AcceptanceProgressChart: React.FC<Props> = ({
   initiative,
   amount,
   duration,
