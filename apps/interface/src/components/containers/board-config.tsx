@@ -6,18 +6,29 @@ import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
 import { shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
-import { Settings } from 'lucide-react'
+import { Settings, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BoardSettingsDialog } from '@/components/dialogs/board-settings-dialog'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 
 export const BoardConfig = () => {
   const { board, boardAddress, network, underlyingBalance } = useSignals()
   const { isConnected } = useAccount()
+  const { config: networkConfig } = useNetworkConfig()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const boardTitle = board.name ?? 'Untitled board'
   const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
   const networkLabel = network ? (NETWORKS[network]?.chain.name ?? network) : 'Unknown network'
+
+  // Build explorer URL for the board contract
+  const getExplorerUrl = (address: `0x${string}`) => {
+    const explorerUrl = networkConfig.explorerUrl
+    if (!explorerUrl) return null
+    return `${explorerUrl}/address/${address}`
+  }
+
+  const explorerUrl = boardAddress ? getExplorerUrl(boardAddress) : null
 
   // Determine status badge - only show user-specific status if connected
   let statusLabel: string | null = null
@@ -47,9 +58,24 @@ export const BoardConfig = () => {
               Board overview
             </p>
             <h2 className="text-2xl font-semibold">{boardTitle}</h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {addressLabel} • {networkLabel}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+              <span>Contract</span>
+              {explorerUrl && boardAddress ? (
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-neutral-900 dark:text-white hover:underline"
+                >
+                  {addressLabel}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <span>{addressLabel}</span>
+              )}
+              <span>•</span>
+              <span>{networkLabel}</span>
+            </div>
           </div>
           <Button
             variant="ghost"
