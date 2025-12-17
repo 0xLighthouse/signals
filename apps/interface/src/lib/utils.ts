@@ -35,6 +35,7 @@ export const normaliseNumber = (value: number) => {
   const suffix = suffixes[suffixIndex]
   // biome-ignore lint/style/useExponentiationOperator: <explanation>
   const normalisedValue = value / Math.pow(10, suffixIndex * 3)
+
   if (!normalisedValue) return ''
   return `${normalisedValue}${suffix}`
 }
@@ -61,12 +62,12 @@ type FormatNumberOptions = {
 }
 
 export const formatNumber = (
-  value: number, 
+  value: number,
   options: FormatNumberOptions = {}
 ): string => {
-  const { 
-    decimals, 
-    currency = false, 
+  const {
+    decimals,
+    currency = false,
     abbreviate = false,
     symbol = 'USDC',
     wad = 1 // Wei Adjusted Decimal => divide by 1e18, etc

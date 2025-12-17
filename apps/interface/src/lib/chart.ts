@@ -45,7 +45,6 @@ export function generateTicks(
   if (!initiative.lockInterval || initiative.lockInterval === 0) {
     throw new Error('Lock interval is not set')
   }
-
   console.log('generateTicks()', existingData)
 
   const startTime: number = DateTime.now().toUnixInteger()

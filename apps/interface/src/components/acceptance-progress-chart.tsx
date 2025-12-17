@@ -33,8 +33,6 @@ export const AcceptanceProgressChart: React.FC<Props> = ({
 }) => {
   const { underlyingSymbol: symbol, underlyingDecimals: decimals } = useSignals()
 
-  const weight = amount ? amount * (duration || 1) : 0
-
   return (
     <Card className="dark:bg-neutral-800">
       <CardHeader>
@@ -70,18 +68,6 @@ export const AcceptanceProgressChart: React.FC<Props> = ({
               </div>
             </div>
           )}
-          <div className="flex items-center mb-2">
-            <Label className="w-3/4 flex items-center">Weight to contribute:</Label>
-            <div className="w-3/4 flex items-center">
-              <p>{weight}</p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <Label className="w-3/4 flex items-center">Progress towards acceptance:</Label>
-            <div className="w-3/4 flex items-center">
-              <p>+{((weight / (threshold || 1)) * 100).toFixed(2)}%</p>
-            </div>
-          </div>
           <Chart
             initiative={initiative}
             acceptanceThreshold={threshold}

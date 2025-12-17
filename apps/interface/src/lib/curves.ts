@@ -68,7 +68,7 @@ export function calculateWeight(
           )
           break
         default:
-          break
+          throw new Error('Invalid decay curve type')
       }
       yvals[i] += weightAtInterval
     }

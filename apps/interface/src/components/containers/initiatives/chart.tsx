@@ -51,7 +51,11 @@ export const Chart: React.FC<Props> = ({
     if (!initiative || !acceptanceThreshold) return
 
     const options: ChartOptions = {
-      initiative,
+      initiative: {
+        ...initiative,
+        decayCurveParameters:
+          initiative.decayCurveParameters?.map((param) => Number(param) / 10 ** 18) ?? [],
+      },
       acceptanceThreshold,
       chartInterval: initiative.lockInterval || 60 * 60,
       maxTimeWindow: 60 * 60 * 24 * 60,
@@ -60,7 +64,7 @@ export const Chart: React.FC<Props> = ({
 
     const existingChartLocks = InitiativeLocksToChartLocks(existingLocks, decimals)
 
-    // Update chart if input data is provided
+    // Compute chart data with the new lock if input data is provided
     const chartData =
       amountInput && durationInput
         ? generateTicks(existingChartLocks, options, [
@@ -73,11 +77,12 @@ export const Chart: React.FC<Props> = ({
             },
           ])
         : generateTicks(existingChartLocks, options)
+
     setData(chartData)
   }, [initiative, existingLocks, amountInput, durationInput, acceptanceThreshold])
 
   return (
-    <ChartContainer config={chartConfig}>
+    <ChartContainer config={chartConfig} className="h-48 w-full min-h-[180px]">
       <AreaChart accessibilityLayer data={data}>
         <ChartTooltip
           cursor={false}
