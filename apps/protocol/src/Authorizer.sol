@@ -8,8 +8,6 @@ import {ISignals} from "./interfaces/ISignals.sol";
 import {IVotes} from "./interfaces/IVotes.sol";
 
 abstract contract SignalsAuthorizer is IAuthorizer {
-    address public authorizationToken;
-
     /// @notice Configuration for proposer requirements (immutable after initialization)
     ParticipantRequirements public proposerRequirements;
 
@@ -74,7 +72,7 @@ abstract contract SignalsAuthorizer is IAuthorizer {
         // TODO: This needs to be rechecked
         if (reqs.minHoldingDuration > 0) {
             // Check historical balance using ERC20Votes checkpoints
-            try IVotes(authorizationToken).getPastVotes(
+            try IVotes(reqs.token).getPastVotes(
                 account, block.number - reqs.minHoldingDuration
             ) returns (uint256 pastBalance) {
                 // Verify they held the minimum balance for the required duration
@@ -88,7 +86,7 @@ abstract contract SignalsAuthorizer is IAuthorizer {
         }
 
         // Check current balance
-        uint256 balance = IERC20(authorizationToken).balanceOf(account);
+        uint256 balance = IERC20(reqs.token).balanceOf(account);
         if (balance < reqs.minBalance) {
             return EligibilityResult.InsufficientCurrentBalance;
         }

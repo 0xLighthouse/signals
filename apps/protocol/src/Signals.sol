@@ -153,18 +153,14 @@ contract Signals is
 
         lockInterval = config.lockingConfig.lockInterval;
         maxLockIntervals = config.lockingConfig.maxLockIntervals;
+        inactivityTimeout = config.lockingConfig.inactivityTimeout;
+        releaseLockDuration = config.lockingConfig.releaseLockDuration;
 
         decayCurveType = config.decayConfig.curveType;
         decayCurveParameters = config.decayConfig.params;
 
-        inactivityTimeout = config.lockingConfig.inactivityTimeout;
-
         proposerRequirements = config.proposerRequirements;
         supporterRequirements = config.supporterRequirements;
-        releaseLockDuration = config.lockingConfig.releaseLockDuration;
-
-        // Set which token the authorizer uses to check eligibility
-        authorizationToken = config.underlyingToken;
 
         _transferOwnership(config.owner);
     }
@@ -496,13 +492,6 @@ contract Signals is
             revert ISignals.Signals_InvalidArguments();
         }
         _incentivesConfig = incentivesConfig_;
-    }
-
-    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria)
-        external
-        onlyOwner
-    {
-        _setAcceptanceCriteria(acceptanceCriteria);
     }
 
     function _setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) internal {

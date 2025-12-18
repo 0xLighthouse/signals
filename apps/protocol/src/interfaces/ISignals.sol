@@ -302,7 +302,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function expireInitiative(uint256 initiativeId) external payable;
     function redeemLock(uint256 lockId) external;
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
-    function setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);
     function getInitiative(uint256 initiativeId) external view returns (Initiative memory);
     function getWeight(uint256 initiativeId) external view returns (uint256);

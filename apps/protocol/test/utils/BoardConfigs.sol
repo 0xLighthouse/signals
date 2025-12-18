@@ -32,11 +32,13 @@ library BoardConfigs {
                 minThreshold: 100_000 ether // 100k
             }),
             proposerRequirements: IAuthorizer.ParticipantRequirements({
+                token: _underlyingToken,
                 minBalance: 50_000 ether, // 50k tokens to propose,
                 minHoldingDuration: 0, // Balance-only requirement
                 minLockAmount: 0
             }),
             supporterRequirements: IAuthorizer.ParticipantRequirements({
+                token: _underlyingToken,
                 minBalance: 0, // No balance requirement
                 minHoldingDuration: 0,
                 minLockAmount: 0
@@ -77,11 +79,13 @@ library BoardConfigs {
                 minThreshold: 5_000_000 ether // 5M tokens
             }),
             proposerRequirements: IAuthorizer.ParticipantRequirements({
+                token: _underlyingToken,
                 minBalance: 10_000 ether,
                 minHoldingDuration: 0, // Balance-only requirement
                 minLockAmount: 10_000 ether
             }),
             supporterRequirements: IAuthorizer.ParticipantRequirements({
+                token: _underlyingToken,
                 minBalance: 0, // No balance requirement
                 minHoldingDuration: 0,
                 minLockAmount: 0

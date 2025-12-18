@@ -10,11 +10,13 @@ interface IAuthorizer {
      *      - minBalance > 0 && minHoldingDuration == 0: Balance-only requirement
      *      - minBalance > 0 && minHoldingDuration > 0: Balance + duration requirement
      *
+     * @param token The token to check eligibility for
      * @param minBalance Minimum token balance required to be eligible
      * @param minHoldingDuration Minimum blocks tokens must be held
      * @param minLockAmount Minimum tokens that must be locked
      */
     struct ParticipantRequirements {
+        address token;
         uint256 minBalance;
         uint256 minHoldingDuration;
         uint256 minLockAmount;
