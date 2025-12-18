@@ -15,27 +15,56 @@ type BoardRequirement = {
   minLockAmount: string
 }
 
+type BoardAttachment = {
+  uri: string
+  mimeType: string
+  description: string
+}
+
+type BoardMetadata = {
+  title: string
+  body: string
+  attachments: BoardAttachment[]
+}
+
+type AcceptanceCriteria = {
+  permissions: number
+  thresholdOverride: number
+  thresholdPercentTotalSupplyWAD: string
+  minThreshold: string
+}
+
+type LockingConfig = {
+  lockInterval: string
+  maxLockIntervals: string
+  releaseLockDuration: string
+  inactivityTimeout: string
+}
+
+type DecayConfig = {
+  curveType: number
+  params: string[]
+}
+
 type BoardByAddressQueryItem = {
   chainId: number | string
   blockTimestamp: string | number
   transactionHash: string
   contractAddress: string
+  version: string
   owner: string
-  title: string
-  body: string
-  opensAt: string | number
-  closesAt: string | number
-  proposerRequirements: BoardRequirement
-  participantRequirements: BoardRequirement
-  acceptanceThreshold: string | number
   underlyingToken: string
   underlyingTokenSymbol: string
   underlyingTokenDecimals: number
   underlyingTokenName: string
-  lockInterval: string | number
-  maxLockIntervals: string | number
-  decayCurveType: string | number
-  decayCurveParameters: Array<string | number>
+  opensAt: string | number
+  closesAt: string | number
+  boardMetadata: BoardMetadata
+  acceptanceCriteria: AcceptanceCriteria
+  proposerRequirements: BoardRequirement
+  supporterRequirements: BoardRequirement
+  lockingConfig: LockingConfig
+  decayConfig: DecayConfig
 }
 
 type BoardByAddressQueryResponse = {
@@ -211,22 +240,20 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
               blockTimestamp
               transactionHash
               contractAddress
+              version
               owner
-              title
-              opensAt
-              closesAt
-              proposerRequirements
-              participantRequirements
-              acceptanceThreshold
-              lockInterval
-              maxLockIntervals
               underlyingToken
               underlyingTokenSymbol
               underlyingTokenDecimals
               underlyingTokenName
-              body
-              decayCurveType
-              decayCurveParameters
+              opensAt
+              closesAt
+              boardMetadata
+              acceptanceCriteria
+              proposerRequirements
+              supporterRequirements
+              lockingConfig
+              decayConfig
             }
           }
         }
@@ -268,20 +295,20 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
           ? (indexedBoard.contractAddress.toLowerCase() as `0x${string}`)
           : null,
         owner: indexedBoard.owner ? (indexedBoard.owner.toLowerCase() as `0x${string}`) : null,
-        name: indexedBoard.title ?? null,
-        body: indexedBoard.body ?? null,
+        name: indexedBoard.boardMetadata?.title ?? null,
+        body: indexedBoard.boardMetadata?.body ?? null,
         opensAt: toNumber(indexedBoard.opensAt),
         closesAt: toNumber(indexedBoard.closesAt),
         symbol: null,
         initiativesCount: null,
-        proposalThreshold: toNumber(indexedBoard.proposerRequirements.minBalance),
-        acceptanceThreshold: toNumber(indexedBoard.acceptanceThreshold),
-        lockInterval: toNumber(indexedBoard.lockInterval),
-        maxLockIntervals: toNumber(indexedBoard.maxLockIntervals),
-        decayCurveType: toNumber(indexedBoard.decayCurveType),
-        decayCurveParameters: toNumberArray(indexedBoard.decayCurveParameters),
-        proposerRequirements: indexedBoard.proposerRequirements,
-        participantRequirements: indexedBoard.participantRequirements,
+        proposalThreshold: toNumber(indexedBoard.proposerRequirements?.minBalance),
+        acceptanceThreshold: toNumber(indexedBoard.acceptanceCriteria?.minThreshold),
+        lockInterval: toNumber(indexedBoard.lockingConfig?.lockInterval),
+        maxLockIntervals: toNumber(indexedBoard.lockingConfig?.maxLockIntervals),
+        decayCurveType: toNumber(indexedBoard.decayConfig?.curveType),
+        decayCurveParameters: toNumberArray(indexedBoard.decayConfig?.params),
+        proposerRequirements: indexedBoard.proposerRequirements ?? null,
+        participantRequirements: indexedBoard.supporterRequirements ?? null,
         underlyingToken: indexedBoard.underlyingToken
           ? (indexedBoard.underlyingToken.toLowerCase() as `0x${string}`)
           : undefined,

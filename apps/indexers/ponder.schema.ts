@@ -33,34 +33,53 @@ export const Board = onchainTable('boards', (t) => ({
   chainId: t.integer().notNull(),
   blockTimestamp: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
-  // --- attributes
   contractAddress: t.hex().notNull(),
+  // --- BoardConfig fields (matching the struct)
+  version: t.text().notNull(),
   owner: t.hex().notNull(),
-  title: t.text().notNull(),
-  body: t.text().notNull(),
-  proposerRequirements: t.json().$type<{
-    eligibilityType: number
-    minBalance: string
-    minHoldingDuration: string
-    minLockAmount: string
-  }>().notNull(),
-  participantRequirements: t.json().$type<{
-    eligibilityType: number
-    minBalance: string
-    minHoldingDuration: string
-    minLockAmount: string
-  }>().notNull(),
-  opensAt: t.bigint().notNull(),
-  closesAt: t.bigint().notNull(),
-  acceptanceThreshold: t.bigint().notNull(),
   underlyingToken: t.hex().notNull(),
   underlyingTokenSymbol: t.text().notNull(),
   underlyingTokenDecimals: t.integer().notNull(),
   underlyingTokenName: t.text().notNull(),
-  lockInterval: t.integer().notNull(),
-  maxLockIntervals: t.integer().notNull(),
-  decayCurveType: t.integer().notNull(),
-  decayCurveParameters: t.json().$type<string[]>().notNull(),
+  opensAt: t.bigint().notNull(),
+  closesAt: t.bigint().notNull(),
+  // boardMetadata
+  boardMetadata: t.json().$type<{
+    title: string
+    body: string
+    attachments: InitiativeAttachment[]
+  }>().notNull(),
+  // acceptanceCriteria
+  acceptanceCriteria: t.json().$type<{
+    permissions: number
+    thresholdOverride: number
+    thresholdPercentTotalSupplyWAD: string
+    minThreshold: string
+  }>().notNull(),
+  // proposerRequirements
+  proposerRequirements: t.json().$type<{
+    minBalance: string
+    minHoldingDuration: string
+    minLockAmount: string
+  }>().notNull(),
+  // supporterRequirements
+  supporterRequirements: t.json().$type<{
+    minBalance: string
+    minHoldingDuration: string
+    minLockAmount: string
+  }>().notNull(),
+  // lockingConfig
+  lockingConfig: t.json().$type<{
+    lockInterval: string
+    maxLockIntervals: string
+    releaseLockDuration: string
+    inactivityTimeout: string
+  }>().notNull(),
+  // decayConfig
+  decayConfig: t.json().$type<{
+    curveType: number
+    params: string[]
+  }>().notNull(),
 }))
 
 export const Transfer = onchainTable('transfers', (t) => ({

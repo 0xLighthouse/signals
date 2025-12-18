@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { useNetworkStore } from '@/stores/useNetworkStore'
 
 type Requirements = {
-  eligibilityType: number
   minBalance: string
   minHoldingDuration: string
   minLockAmount: string

@@ -139,59 +139,21 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
 
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 
-  const proposerRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+  // Read version
+  const version: string = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
-    functionName: 'getProposerRequirements',
-  })) as IAuthorizer.ParticipantRequirements
+    functionName: 'version',
+  })) as string
 
-
-  const participantRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'getParticipantRequirements',
-  })) as IAuthorizer.ParticipantRequirements
-
-  console.log('proposerRequirements', proposerRequirements)
-  console.log('participantRequirements', participantRequirements)
-
-  const acceptanceThreshold: bigint = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'getAcceptanceThreshold',
-  })) as bigint
-
+  // Read underlyingToken
   const underlyingToken: `0x${string}` = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'underlyingToken',
   })) as `0x${string}`
 
-  const lockInterval: number = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'lockInterval',
-  })) as unknown as number
-
-  const maxLockIntervals: number = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'maxLockIntervals',
-  })) as unknown as number
-
-  const decayCurveType: number = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'decayCurveType',
-  })) as unknown as number
-
-  const decayCurveParameters: number = (await context.client.readContract({
-    address: event.args.board,
-    abi: SignalsABI,
-    functionName: 'decayCurveParameters',
-    args: [0n] as const,
-  })) as unknown as number
-
+  // Read underlyingToken metadata
   const underlyingTokenSymbol: string = (await context.client.readContract({
     address: underlyingToken,
     abi: Erc20ABI,
@@ -210,7 +172,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'name',
   })) as string
 
-
+  // Read opensAt and closesAt
   const opensAt: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
@@ -223,29 +185,103 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
     functionName: 'closesAt',
   })) as bigint
 
-  console.log('decayCurveParameters', decayCurveParameters)
+  // Read acceptanceCriteria (full struct)
+  const acceptanceCriteria = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'getAcceptanceCriteria',
+  })) as any
 
+  // Read proposerRequirements
+  const proposerRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'getProposerRequirements',
+  })) as IAuthorizer.ParticipantRequirements
+
+  // Read supporterRequirements (was called participantRequirements)
+  const supporterRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'getParticipantRequirements',
+  })) as IAuthorizer.ParticipantRequirements
+
+  // Read lockingConfig fields
+  const lockInterval: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'lockInterval',
+  })) as bigint
+
+  const maxLockIntervals: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'maxLockIntervals',
+  })) as bigint
+
+  const releaseLockDuration: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'releaseLockDuration',
+  })) as bigint
+
+  const inactivityTimeout: bigint = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'inactivityTimeout',
+  })) as bigint
+
+  // Read decayConfig fields
+  const decayCurveType: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveType',
+  })) as unknown as number
+
+  const decayCurveParameters: number = (await context.client.readContract({
+    address: event.args.board,
+    abi: SignalsABI,
+    functionName: 'decayCurveParameters',
+    args: [0n] as const,
+  })) as unknown as number
+
+  // Insert board record with full BoardConfig
   await context.db.insert(schema.Board).values({
     id: event.id,
     chainId: context.chain.id,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
     contractAddress: event.args.board,
+    // BoardConfig fields
+    version: version,
     owner: event.args.owner,
-    title: event.args.boardMetadata.title,
-    body: event.args.boardMetadata.body,
-    opensAt: opensAt,
-    closesAt: closesAt,
-    proposerRequirements: replaceBigInts(proposerRequirements, (x) => x.toString()),
-    participantRequirements: replaceBigInts(participantRequirements, (x) => x.toString()),
-    acceptanceThreshold: acceptanceThreshold,
-    underlyingToken: underlyingToken as `0x${string}`,
+    underlyingToken: underlyingToken,
     underlyingTokenSymbol: underlyingTokenSymbol,
     underlyingTokenDecimals: underlyingTokenDecimals,
     underlyingTokenName: underlyingTokenName,
-    lockInterval: lockInterval,
-    maxLockIntervals: maxLockIntervals,
-    decayCurveType: decayCurveType,
-    decayCurveParameters: [decayCurveParameters.toString()],
+    opensAt: opensAt,
+    closesAt: closesAt,
+    boardMetadata: {
+      title: event.args.boardMetadata.title,
+      body: event.args.boardMetadata.body,
+      attachments: event.args.boardMetadata.attachments?.map((attachment) => ({
+        uri: attachment.uri,
+        mimeType: attachment.mimeType,
+        description: attachment.description,
+      })) ?? [],
+    },
+    acceptanceCriteria: replaceBigInts(acceptanceCriteria, (x) => x.toString()),
+    proposerRequirements: replaceBigInts(proposerRequirements, (x) => x.toString()),
+    supporterRequirements: replaceBigInts(supporterRequirements, (x) => x.toString()),
+    lockingConfig: {
+      lockInterval: lockInterval.toString(),
+      maxLockIntervals: maxLockIntervals.toString(),
+      releaseLockDuration: releaseLockDuration.toString(),
+      inactivityTimeout: inactivityTimeout.toString(),
+    },
+    decayConfig: {
+      curveType: decayCurveType,
+      params: [decayCurveParameters.toString()],
+    },
   })
 })
