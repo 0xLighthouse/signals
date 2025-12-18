@@ -96,7 +96,9 @@ export const signalsAbi = [
     type: 'function',
     inputs: [],
     name: 'decayCurveType',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    outputs: [
+      { name: '', internalType: 'enum ISignals.DecayCurveType', type: 'uint8' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -323,6 +325,10 @@ export const signalsAbi = [
         type: 'tuple',
         components: [
           { name: 'version', internalType: 'string', type: 'string' },
+          { name: 'owner', internalType: 'address', type: 'address' },
+          { name: 'underlyingToken', internalType: 'address', type: 'address' },
+          { name: 'opensAt', internalType: 'uint256', type: 'uint256' },
+          { name: 'closesAt', internalType: 'uint256', type: 'uint256' },
           {
             name: 'boardMetadata',
             internalType: 'struct ISignals.Metadata',
@@ -409,32 +415,46 @@ export const signalsAbi = [
               },
             ],
           },
-          { name: 'owner', internalType: 'address', type: 'address' },
-          { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'maxLockIntervals',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'lockingConfig',
+            internalType: 'struct ISignals.LockingConfig',
+            type: 'tuple',
+            components: [
+              {
+                name: 'lockInterval',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'maxLockIntervals',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'releaseLockDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'inactivityTimeout',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
-          { name: 'lockInterval', internalType: 'uint256', type: 'uint256' },
-          { name: 'decayCurveType', internalType: 'uint256', type: 'uint256' },
           {
-            name: 'decayCurveParameters',
-            internalType: 'uint256[]',
-            type: 'uint256[]',
+            name: 'decayConfig',
+            internalType: 'struct ISignals.DecayConfig',
+            type: 'tuple',
+            components: [
+              {
+                name: 'curveType',
+                internalType: 'enum ISignals.DecayCurveType',
+                type: 'uint8',
+              },
+              { name: 'params', internalType: 'uint256[]', type: 'uint256[]' },
+            ],
           },
-          {
-            name: 'inactivityTimeout',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-          {
-            name: 'releaseLockDuration',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-          { name: 'opensAt', internalType: 'uint256', type: 'uint256' },
-          { name: 'closesAt', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -708,20 +728,6 @@ export const signalsAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_decayCurveType', internalType: 'uint256', type: 'uint256' },
-      {
-        name: '_decayCurveParameters',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-      },
-    ],
-    name: 'setDecayCurve',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'incentivesPool_', internalType: 'address', type: 'address' },
       {
         name: 'incentivesConfig_',
@@ -927,13 +933,13 @@ export const signalsAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'decayCurveType',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'curveType',
+        internalType: 'enum ISignals.DecayCurveType',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'decayCurveParameters',
+        name: 'params',
         internalType: 'uint256[]',
         type: 'uint256[]',
         indexed: false,
@@ -1299,6 +1305,10 @@ export const signalsFactoryAbi = [
         type: 'tuple',
         components: [
           { name: 'version', internalType: 'string', type: 'string' },
+          { name: 'owner', internalType: 'address', type: 'address' },
+          { name: 'underlyingToken', internalType: 'address', type: 'address' },
+          { name: 'opensAt', internalType: 'uint256', type: 'uint256' },
+          { name: 'closesAt', internalType: 'uint256', type: 'uint256' },
           {
             name: 'boardMetadata',
             internalType: 'struct ISignals.Metadata',
@@ -1385,32 +1395,46 @@ export const signalsFactoryAbi = [
               },
             ],
           },
-          { name: 'owner', internalType: 'address', type: 'address' },
-          { name: 'underlyingToken', internalType: 'address', type: 'address' },
           {
-            name: 'maxLockIntervals',
-            internalType: 'uint256',
-            type: 'uint256',
+            name: 'lockingConfig',
+            internalType: 'struct ISignals.LockingConfig',
+            type: 'tuple',
+            components: [
+              {
+                name: 'lockInterval',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'maxLockIntervals',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'releaseLockDuration',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+              {
+                name: 'inactivityTimeout',
+                internalType: 'uint256',
+                type: 'uint256',
+              },
+            ],
           },
-          { name: 'lockInterval', internalType: 'uint256', type: 'uint256' },
-          { name: 'decayCurveType', internalType: 'uint256', type: 'uint256' },
           {
-            name: 'decayCurveParameters',
-            internalType: 'uint256[]',
-            type: 'uint256[]',
+            name: 'decayConfig',
+            internalType: 'struct ISignals.DecayConfig',
+            type: 'tuple',
+            components: [
+              {
+                name: 'curveType',
+                internalType: 'enum ISignals.DecayCurveType',
+                type: 'uint8',
+              },
+              { name: 'params', internalType: 'uint256[]', type: 'uint256[]' },
+            ],
           },
-          {
-            name: 'inactivityTimeout',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-          {
-            name: 'releaseLockDuration',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-          { name: 'opensAt', internalType: 'uint256', type: 'uint256' },
-          { name: 'closesAt', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],

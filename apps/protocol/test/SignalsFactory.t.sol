@@ -20,7 +20,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Version_Correct() public {
-        assertEq(factory.version(), "0.2.0");
+        assertEq(factory.version(), "0.3.0");
     }
 
     function test_Create_DeploysSignalsContract() public {
@@ -55,9 +55,9 @@ contract SignalsFactoryTest is Test, SignalsHarness {
             _instance.getAcceptanceCriteria().minThreshold,
             defaultConfig.acceptanceCriteria.minThreshold
         );
-        assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
-        assertEq(_instance.lockInterval(), defaultConfig.lockInterval);
-        assertEq(_instance.decayCurveType(), defaultConfig.decayCurveType);
+        assertEq(_instance.maxLockIntervals(), defaultConfig.lockingConfig.maxLockIntervals);
+        assertEq(_instance.lockInterval(), defaultConfig.lockingConfig.lockInterval);
+        assertEq(uint256(_instance.decayCurveType()), uint256(defaultConfig.decayConfig.curveType));
         assertEq(_instance.version(), defaultConfig.version);
     }
 

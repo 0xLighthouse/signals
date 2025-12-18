@@ -55,7 +55,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_Accepted_TimelockedRelease() public {
         // Create a config with 7 day release lock duration
         ISignals.BoardConfig memory config = defaultConfig;
-        config.releaseLockDuration = 7 days;
+        config.lockingConfig.releaseLockDuration = 7 days;
 
         Signals customSignals = deploySignals(config);
 

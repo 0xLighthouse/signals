@@ -101,7 +101,6 @@ Once the contract is deploywed, the following public methods are available:
  | totalInitiatives() | uint256 | Returns the total number of initiatives that have been submitted |
  | totalSupporters(uint256 initiativeId) | uint256 | Returns the total number of supporters for the specified initiative |
  | setInactivityThreshold(uint256 newThreshold) | | Allows the owner to update the inactivity threshold (default: 60 days) |
- | setDecayCurve(uint256 decayCurveType, uint256[]  decayCurveParameters) | | Allows the owner to update the decay curve and parameters (see below) |
 
 ### Decay curves
 

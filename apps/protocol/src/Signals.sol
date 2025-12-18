@@ -17,7 +17,6 @@ import {ISignals} from "./interfaces/ISignals.sol";
 import {IIncentivizer} from "./interfaces/IIncentivizer.sol";
 import {IIncentivesPool} from "./interfaces/IIncentivesPool.sol";
 import "./DecayCurves.sol";
-import {SignalsConstants} from "./utils/Constants.sol";
 
 /**
  * @title Signals by Lighthouse Labs <https://lighthouse.cx>
@@ -63,8 +62,8 @@ contract Signals is
     /// @notice Criteria for accepting an initiative
     AcceptanceCriteria internal _acceptanceCriteria;
 
-    /// @notice Specifies which decay function to use. 0 = linear, 1 = exponential, more to come
-    uint256 public decayCurveType;
+    /// @notice Specifies which decay function to use (Linear or Exponential)
+    DecayCurveType public decayCurveType;
 
     /// @notice Parameters for the decay curve (the requirements of which depend on which curve is chosen)
     uint256[] public decayCurveParameters;
@@ -123,9 +122,9 @@ contract Signals is
         // Immutable parameters - TODO: Break out functions for things that can be updated
         if (config.underlyingToken == address(0)) revert ISignals.Signals_InvalidArguments();
         if (config.owner == address(0)) revert ISignals.Signals_InvalidArguments();
-        if (config.maxLockIntervals == 0) revert ISignals.Signals_InvalidArguments();
-        if (config.lockInterval == 0) revert ISignals.Signals_InvalidArguments();
-        if (config.decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
+        if (config.lockingConfig.maxLockIntervals == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.lockingConfig.lockInterval == 0) revert ISignals.Signals_InvalidArguments();
+        if (config.decayConfig.curveType > type(ISignals.DecayCurveType).max) {
             revert ISignals.Signals_InvalidArguments();
         }
 
@@ -152,17 +151,17 @@ contract Signals is
         version = config.version;
         underlyingToken = config.underlyingToken;
 
-        lockInterval = config.lockInterval;
-        maxLockIntervals = config.maxLockIntervals;
+        lockInterval = config.lockingConfig.lockInterval;
+        maxLockIntervals = config.lockingConfig.maxLockIntervals;
 
-        decayCurveType = config.decayCurveType;
-        decayCurveParameters = config.decayCurveParameters;
+        decayCurveType = config.decayConfig.curveType;
+        decayCurveParameters = config.decayConfig.params;
 
-        inactivityTimeout = config.inactivityTimeout;
+        inactivityTimeout = config.lockingConfig.inactivityTimeout;
 
         proposerRequirements = config.proposerRequirements;
         supporterRequirements = config.supporterRequirements;
-        releaseLockDuration = config.releaseLockDuration;
+        releaseLockDuration = config.lockingConfig.releaseLockDuration;
 
         // Set which token the authorizer uses to check eligibility
         authorizationToken = config.underlyingToken;
@@ -467,23 +466,6 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
-        external
-        onlyOwner
-    {
-        if (_decayCurveType >= SignalsConstants.MAX_DECAY_CURVE_TYPES) {
-            revert ISignals.Signals_InvalidArguments();
-        }
-        if (_decayCurveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
-            revert ISignals.Signals_InvalidArguments();
-        }
-
-        decayCurveType = _decayCurveType;
-        decayCurveParameters = _decayCurveParameters;
-        emit DecayCurveUpdated(_decayCurveType, _decayCurveParameters);
-    }
-
-    /// @inheritdoc ISignals
     function setIncentivesPool(
         address incentivesPool_,
         IIncentivizer.IncentivesConfig calldata incentivesConfig_
@@ -671,7 +653,7 @@ contract Signals is
         // Apply the configured decay curve to calculate time-weighted value
         // Linear: weight decreases steadily over time
         // Exponential: weight decreases at an accelerating rate
-        if (decayCurveType == SignalsConstants.DECAY_LINEAR) {
+        if (decayCurveType == DecayCurveType.Linear) {
             return DecayCurves.linear(
                 lock.lockDuration, lock.tokenAmount, elapsedIntervals, decayCurveParameters
             );

@@ -389,7 +389,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.expireInitiative(1);
 
         // Fast forward time beyond inactivity threshold
-        vm.warp(block.timestamp + defaultConfig.inactivityTimeout + 1 days);
+        vm.warp(block.timestamp + defaultConfig.lockingConfig.inactivityTimeout + 1 days);
 
         // Non-owner cannot expire the initiative
         vm.startPrank(_bob);

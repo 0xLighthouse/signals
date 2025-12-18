@@ -70,24 +70,21 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
         address protocolAddress = _factory.create(
             ISignals.BoardConfig({
                 version: _factory.version(),
+                owner: deployerAddress,
+                underlyingToken: underlyingToken,
+                opensAt: block.timestamp - 1 days,
+                closesAt: block.timestamp + 90 days,
                 boardMetadata: ISignals.Metadata({
                     title: "Default Board",
                     body: "Default board deployed via script.",
                     attachments: new ISignals.Attachment[](0)
                 }),
-                owner: deployerAddress,
-                underlyingToken: underlyingToken,
                 acceptanceCriteria: ISignals.AcceptanceCriteria({
                     permissions: ISignals.AcceptancePermissions.OnlyOwner,
                     thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
                     thresholdPercentTotalSupplyWAD: THRESHOLD_PERCENT_WAD,
                     minThreshold: MIN_THRESHOLD
                 }),
-                lockInterval: 1 days,
-                maxLockIntervals: 7,
-                decayCurveType: 1, // exponential
-                decayCurveParameters: params,
-                inactivityTimeout: 3 days, // 3 days
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
                     minBalance: PROPOSER_MIN_BALANCE, // 20k tokens
                     minHoldingDuration: 0, // Balance-only requirement
@@ -98,9 +95,16 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                     minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: SUPPORTER_MIN_LOCK
                 }),
-                releaseLockDuration: 0,
-                opensAt: block.timestamp - 1 days,
-                closesAt: block.timestamp + 90 days
+                lockingConfig: ISignals.LockingConfig({
+                    lockInterval: 1 days,
+                    maxLockIntervals: 7,
+                    releaseLockDuration: 0,
+                    inactivityTimeout: 3 days // 3 days
+                }),
+                decayConfig: ISignals.DecayConfig({
+                    curveType: ISignals.DecayCurveType.Exponential,
+                    params: params
+                })
             })
         );
 

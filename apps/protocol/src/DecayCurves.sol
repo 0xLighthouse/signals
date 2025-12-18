@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {SignalsConstants} from "./utils/Constants.sol";
-
 library DecayCurves {
     /// @notice Thrown when curve parameters length is invalid
     error DecayCurves_InvalidCurveParameters();
@@ -23,7 +21,7 @@ library DecayCurves {
         returns (uint256)
     {
         // Validate curve parameters - linear decay requires exactly one parameter
-        if (curveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
+        if (curveParameters.length != 1) {
             revert DecayCurves_InvalidCurveParameters();
         }
 
@@ -36,7 +34,7 @@ library DecayCurves {
         // Example: 100 tokens, 10 intervals, decay rate 1e18 (1:1), at interval 5:
         //   weight = 100 * 10 - (100 * 5 * 1e18) / 1e18 = 1000 - 500 = 500
         // The weight starts at lockAmount * lockDuration and decreases linearly
-        uint256 weight = lockAmount * lockDuration - (lockAmount * currentInterval * curveParameters[0]) / SignalsConstants.PRECISION;
+        uint256 weight = lockAmount * lockDuration - (lockAmount * currentInterval * curveParameters[0]) / 1e18;
 
         // Floor the weight at the original lock amount
         // This ensures early supporters always have at least their nominal value as weight
@@ -62,7 +60,7 @@ library DecayCurves {
         uint256[] memory curveParameters
     ) internal pure returns (uint256) {
         // Validate curve parameters - exponential decay requires exactly one parameter (decay multiplier)
-        if (curveParameters.length != SignalsConstants.DECAY_CURVE_PARAM_LENGTH) {
+        if (curveParameters.length != 1) {
             revert DecayCurves_InvalidCurveParameters();
         }
 
@@ -82,7 +80,7 @@ library DecayCurves {
         //   After interval 3: 810 * 0.9 = 729
         // This creates an accelerating decay curve (faster decay over time)
         for (uint256 i = 0; i < currentInterval; i++) {
-            weight = (weight * curveParameters[0]) / SignalsConstants.PRECISION;
+            weight = (weight * curveParameters[0]) / 1e18;
         }
 
         // Floor the weight at the original lock amount

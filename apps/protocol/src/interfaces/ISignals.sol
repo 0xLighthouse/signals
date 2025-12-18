@@ -31,38 +31,69 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     }
 
     /**
+     * @notice Defines the type of decay curve for vote weight calculations
+     *
+     * @dev Linear: Vote weight decreases linearly over time
+     * @dev Exponential: Vote weight decreases exponentially over time
+     */
+    enum DecayCurveType {
+        Linear,
+        Exponential
+    }
+
+    /**
+     * @notice Configuration for token locking parameters
+     *
+     * @param lockInterval Time interval for lockup duration and decay calculations
+     * @param maxLockIntervals Maximum lock intervals allowed
+     * @param releaseLockDuration Duration tokens remain locked after acceptance (in seconds)
+     * @param inactivityTimeout Time after which an initiative becomes inactive
+     */
+    struct LockingConfig {
+        uint256 lockInterval;
+        uint256 maxLockIntervals;
+        uint256 releaseLockDuration;
+        uint256 inactivityTimeout;
+    }
+
+    /**
+     * @notice Configuration for vote weight decay calculations
+     *
+     * @param curveType Which decay curve to use (Linear or Exponential)
+     * @param params Parameters to control the decay curve behavior
+     */
+    struct DecayConfig {
+        DecayCurveType curveType;
+        uint256[] params;
+    }
+
+    /**
      * @notice All configuration parameters for initializing the Signals contract
      *
      * @param version The version of the Signals contract
      * @param owner The address which will own the contract
-     * @param acceptanceCriteria Criteria for accepting initiatives (permissions and thresholds)
      * @param underlyingToken The address of the underlying ERC20 token
-     * @param maxLockIntervals Maximum lock intervals allowed
-     * @param lockInterval Time interval for lockup duration and decay calculations
-     * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
-     * @param decayCurveParameters Parameters to control the decay curve behavior
-     * @param proposerRequirements Requirements for who can propose (immutable)
-     * @param supporterRequirements Requirements for who can support initiatives (immutable)
-     * @param releaseLockDuration Duration tokens remain locked after acceptance (in seconds)
      * @param opensAt Timestamp when board opens for participation (0 = doesn't open until updated)
      * @param closesAt Timestamp when board closes for participation (0 = never closes)
+     * @param boardMetadata Metadata for the board (title, body, attachments)
+     * @param acceptanceCriteria Criteria for accepting initiatives (permissions and thresholds)
+     * @param proposerRequirements Requirements for who can propose (immutable)
+     * @param supporterRequirements Requirements for who can support initiatives (immutable)
+     * @param lockingConfig Configuration for token locking parameters
+     * @param decayConfig Configuration for vote weight decay
      */
     struct BoardConfig {
         string version;
+        address owner;
+        address underlyingToken;
+        uint256 opensAt;
+        uint256 closesAt;
         Metadata boardMetadata;
         AcceptanceCriteria acceptanceCriteria;
         IAuthorizer.ParticipantRequirements proposerRequirements;
         IAuthorizer.ParticipantRequirements supporterRequirements;
-        address owner;
-        address underlyingToken;
-        uint256 maxLockIntervals;
-        uint256 lockInterval;
-        uint256 decayCurveType;
-        uint256[] decayCurveParameters;
-        uint256 inactivityTimeout;
-        uint256 releaseLockDuration;
-        uint256 opensAt;
-        uint256 closesAt;
+        LockingConfig lockingConfig;
+        DecayConfig decayConfig;
     }
 
     /**
@@ -181,7 +212,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     event Redeemed(
         uint256 indexed initiativeId, uint256 indexed tokenId, address indexed payee, uint256 amount
     );
-    event DecayCurveUpdated(uint256 decayCurveType, uint256[] decayCurveParameters);
+    event DecayCurveUpdated(DecayCurveType curveType, uint256[] params);
     event BoardClosed(address indexed sender);
     event BoardCancelled(address indexed sender);
     // Errors
@@ -243,7 +274,7 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function getAcceptanceThreshold() external view returns (uint256);
     function maxLockIntervals() external view returns (uint256);
     function lockInterval() external view returns (uint256);
-    function decayCurveType() external view returns (uint256);
+    function decayCurveType() external view returns (DecayCurveType);
     function decayCurveParameters(uint256) external view returns (uint256);
     function underlyingToken() external view returns (address);
     function inactivityTimeout() external view returns (uint256);
@@ -280,8 +311,6 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         external
         view
         returns (uint256);
-    function setDecayCurve(uint256 _decayCurveType, uint256[] calldata _decayCurveParameters)
-        external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
         external;
     function setOpensAt(uint256 _opensAt) external;

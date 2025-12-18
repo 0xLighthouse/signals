@@ -12,7 +12,7 @@ import "./interfaces/IBounties.sol";
 
 import "./Signals.sol";
 import "./TokenRegistry.sol";
-import {SignalsConstants} from "./utils/Constants.sol";
+
 
 /**
  * @title Bounties
@@ -21,6 +21,8 @@ import {SignalsConstants} from "./utils/Constants.sol";
  */
 contract Bounties is IBounties, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
+    uint256 internal constant BASIS_POINTS = 100;
 
     ISignals public immutable SIGNALS_CONTRACT;
     TokenRegistry public immutable REGISTRY;
@@ -111,7 +113,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
      * @param _receivers Array of addresses to receive each allocation
      */
     function _updateShares(uint256[3] memory _allocations, address[3] memory _receivers) internal {
-        if (_allocations[0] + _allocations[1] + _allocations[2] != SignalsConstants.BASIS_POINTS) {
+        if (_allocations[0] + _allocations[1] + _allocations[2] != BASIS_POINTS) {
             revert IBounties.Bounties_InvalidAllocation();
         }
         version++;
@@ -202,9 +204,9 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
             address token = tokens[i];
             uint256 amount = amounts[i];
 
-            uint256 protocolAmount = (amount * _allocations[0]) / SignalsConstants.BASIS_POINTS;
-            uint256 voterAmount = (amount * _allocations[1]) / SignalsConstants.BASIS_POINTS;
-            uint256 treasuryAmount = (amount * _allocations[2]) / SignalsConstants.BASIS_POINTS;
+            uint256 protocolAmount = (amount * _allocations[0]) / BASIS_POINTS;
+            uint256 voterAmount = (amount * _allocations[1]) / BASIS_POINTS;
+            uint256 treasuryAmount = (amount * _allocations[2]) / BASIS_POINTS;
 
             balances[_receivers[0]][token] += protocolAmount;
             balances[_receivers[1]][token] += voterAmount;
@@ -306,7 +308,7 @@ contract Bounties is IBounties, Ownable, ReentrancyGuard {
         // // Calculate voter rewards
         // uint256 underlyingLocked = SIGNALS_CONTRACT.getInitiative(_initiativeId).underlyingLocked;
         // uint256 shareOfPool = bond.tokenAmount / underlyingLocked;
-        // uint256 voterRewards = (totalRewards * allocations[version][1]) / SignalsConstants.BASIS_POINTS;
+        // uint256 voterRewards = (totalRewards * allocations[version][1]) / BASIS_POINTS;
         // uint256 tokenRewards = (voterRewards * shareOfPool);
 
         // console.log("Share of pool", shareOfPool);
