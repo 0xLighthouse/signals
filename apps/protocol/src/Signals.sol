@@ -158,6 +158,8 @@ contract Signals is
         decayCurveType = config.decayCurveType;
         decayCurveParameters = config.decayCurveParameters;
 
+        inactivityTimeout = config.inactivityTimeout;
+
         proposerRequirements = config.proposerRequirements;
         supporterRequirements = config.supporterRequirements;
         releaseLockDuration = config.releaseLockDuration;
@@ -309,6 +311,11 @@ contract Signals is
 
     /**
      * @notice Mark an initiative as accepted
+     * @dev Access control and threshold enforcement based on AcceptanceCriteria:
+     *      - OnlyOwner: Only owner can accept
+     *      - Permissionless: Owner can always accept; others need threshold met
+     *      - ThresholdOverride.None: Caller must meet threshold
+     *      - ThresholdOverride.OnlyOwner: Owner can bypass threshold
      * @param initiativeId ID of the initiative to accept
      */
     function acceptInitiative(uint256 initiativeId)
@@ -316,12 +323,13 @@ contract Signals is
         payable
         initiativeMustExist(initiativeId)
     {
-        if (!_acceptanceCriteria.anyoneCanAccept) {
-            // Inherited from Ownable
+         if (_acceptanceCriteria.permissions == AcceptancePermissions.OnlyOwner) {
+            // This will revert with OwnableUnauthorizedAccount when the sender is not the owner
             _checkOwner();
         }
 
-        if (_acceptanceCriteria.ownerMustFollowThreshold || msg.sender != owner()) {
+        // When thresholdOverride is None or the sender is not the owner, check threshold requirements
+        if (_acceptanceCriteria.thresholdOverride == ThresholdOverride.None || msg.sender != owner()) {
             uint256 acceptanceThreshold = getAcceptanceThreshold();
             uint256 weight = _calculateWeightAt(initiativeId, block.timestamp);
             if (weight < acceptanceThreshold) {
@@ -516,12 +524,15 @@ contract Signals is
     }
 
     function _setAcceptanceCriteria(AcceptanceCriteria calldata acceptanceCriteria) internal {
+        // At least one threshold must be non-zero
         if (
-            acceptanceCriteria.percentageThresholdWAD == 0 && acceptanceCriteria.fixedThreshold == 0
+            acceptanceCriteria.thresholdPercentTotalSupplyWAD == 0
+                && acceptanceCriteria.minThreshold == 0
         ) {
             revert ISignals.Signals_InvalidArguments();
         }
-        if (acceptanceCriteria.percentageThresholdWAD >= 1 ether) {
+        // Percentage threshold must be less than 100% (1e18)
+        if (acceptanceCriteria.thresholdPercentTotalSupplyWAD >= 1 ether) {
             revert ISignals.Signals_InvalidArguments();
         }
         _acceptanceCriteria = acceptanceCriteria;
@@ -729,15 +740,15 @@ contract Signals is
     }
 
     function getAcceptanceThreshold() public view returns (uint256) {
-        if (_acceptanceCriteria.percentageThresholdWAD == 0) {
-            return _acceptanceCriteria.fixedThreshold;
+        if (_acceptanceCriteria.thresholdPercentTotalSupplyWAD == 0) {
+            return _acceptanceCriteria.minThreshold;
         }
 
         uint256 percentThreshold = IERC20(underlyingToken).totalSupply()
-            * _acceptanceCriteria.percentageThresholdWAD / 1 ether;
-        return percentThreshold > _acceptanceCriteria.fixedThreshold
+            * _acceptanceCriteria.thresholdPercentTotalSupplyWAD / 1 ether;
+        return percentThreshold > _acceptanceCriteria.minThreshold
             ? percentThreshold
-            : _acceptanceCriteria.fixedThreshold;
+            : _acceptanceCriteria.minThreshold;
     }
 
     /// @inheritdoc ISignals

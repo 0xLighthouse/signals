@@ -28,8 +28,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
     uint256 private constant PROPOSER_MIN_LOCK = 20_000 ether;
     uint256 private constant SUPPORTER_MIN_BALANCE = 10_000 ether;
     uint256 private constant SUPPORTER_MIN_LOCK = 5_000 ether;
-    uint256 private constant ACCEPTANCE_THRESHOLD = 1_000_000 ether;
-    uint256 private constant ACCEPTANCE_PERCENTAGE_THRESHOLD = 10e16; // 10%
+    uint256 private constant MIN_THRESHOLD = 1_000_000 ether;
+    uint256 private constant THRESHOLD_PERCENT_WAD = 10e16; // 10%
 
     /**
      *
@@ -78,18 +78,18 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                 owner: deployerAddress,
                 underlyingToken: underlyingToken,
                 acceptanceCriteria: ISignals.AcceptanceCriteria({
-                    anyoneCanAccept: false,
-                    ownerMustFollowThreshold: false,
-                    percentageThresholdWAD: ACCEPTANCE_PERCENTAGE_THRESHOLD,
-                    fixedThreshold: ACCEPTANCE_THRESHOLD
+                    permissions: ISignals.AcceptancePermissions.OnlyOwner,
+                    thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
+                    thresholdPercentTotalSupplyWAD: THRESHOLD_PERCENT_WAD,
+                    minThreshold: MIN_THRESHOLD
                 }),
                 lockInterval: 1 days,
                 maxLockIntervals: 7,
                 decayCurveType: 1, // exponential
                 decayCurveParameters: params,
-                inactivityTimeout: 3 days, // 10 days
+                inactivityTimeout: 3 days, // 3 days
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
-                    minBalance: PROPOSER_MIN_BALANCE, // 10k tokens
+                    minBalance: PROPOSER_MIN_BALANCE, // 20k tokens
                     minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: PROPOSER_MIN_LOCK // 20k tokens
                 }),
@@ -111,31 +111,6 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
         console.log("Deployer: ", protocol.owner());
         console.log("Underlying Token: ", protocol.underlyingToken());
         console.log("Signals Contract Address: ", protocolAddress);
-
-        // // Deploy a mock USDC and initialize
-        // vm.startBroadcast(deployerPrivateKey);
-        // MockStable usdc = new MockStable("Mocked USDC", "USDC");
-        // usdc.initialize(1_000_000 * 1e6);
-        // vm.stopBroadcast();
-        // console.log("USDCContract", address(usdc));
-
-        // // Initialize and configure a TokenRegistry
-        // vm.startBroadcast(deployerPrivateKey);
-        // TokenRegistry registry = new TokenRegistry();
-        // registry.allow(address(_token));
-        // registry.allow(address(usdc));
-        // vm.stopBroadcast();
-        // console.log("RegistryContract", address(registry));
-
-        // // Create bounties and wire into protocol
-        // uint256[3] memory _allocations = [uint256(5), uint256(20), uint256(75)];
-        // address[3] memory _receivers = [address(_alice), address(_bob), address(_charlie)];
-
-        // vm.startBroadcast(deployerPrivateKey);
-        // _bounties = new Bounties(address(protocolAddress), address(registry), _allocations, _receivers);
-        // Signals(protocolAddress).setBounties(address(_bounties));
-        // vm.stopBroadcast();
-        // console.log("BountiesContract", address(_bounties));
 
         console.log("ScriptOutput:", protocolAddress);
     }

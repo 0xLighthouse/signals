@@ -20,7 +20,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Version_Correct() public {
-        assertEq(factory.version(), "0.1.0");
+        assertEq(factory.version(), "0.2.0");
     }
 
     function test_Create_DeploysSignalsContract() public {
@@ -40,20 +40,20 @@ contract SignalsFactoryTest is Test, SignalsHarness {
         assertEq(_instance.owner(), defaultConfig.owner);
         assertEq(_instance.underlyingToken(), defaultConfig.underlyingToken);
         assertEq(
-            _instance.getAcceptanceCriteria().anyoneCanAccept,
-            defaultConfig.acceptanceCriteria.anyoneCanAccept
+            uint256(_instance.getAcceptanceCriteria().permissions),
+            uint256(defaultConfig.acceptanceCriteria.permissions)
         );
         assertEq(
-            _instance.getAcceptanceCriteria().ownerMustFollowThreshold,
-            defaultConfig.acceptanceCriteria.ownerMustFollowThreshold
+            uint256(_instance.getAcceptanceCriteria().thresholdOverride),
+            uint256(defaultConfig.acceptanceCriteria.thresholdOverride)
         );
         assertEq(
-            _instance.getAcceptanceCriteria().percentageThresholdWAD,
-            defaultConfig.acceptanceCriteria.percentageThresholdWAD
+            _instance.getAcceptanceCriteria().thresholdPercentTotalSupplyWAD,
+            defaultConfig.acceptanceCriteria.thresholdPercentTotalSupplyWAD
         );
         assertEq(
-            _instance.getAcceptanceCriteria().fixedThreshold,
-            defaultConfig.acceptanceCriteria.fixedThreshold
+            _instance.getAcceptanceCriteria().minThreshold,
+            defaultConfig.acceptanceCriteria.minThreshold
         );
         assertEq(_instance.maxLockIntervals(), defaultConfig.maxLockIntervals);
         assertEq(_instance.lockInterval(), defaultConfig.lockInterval);

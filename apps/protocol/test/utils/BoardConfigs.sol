@@ -24,10 +24,10 @@ library BoardConfigs {
             owner: _owner,
             underlyingToken: _underlyingToken,
             acceptanceCriteria: ISignals.AcceptanceCriteria({
-                anyoneCanAccept: false,
-                ownerMustFollowThreshold: false,
-                percentageThresholdWAD: 0,
-                fixedThreshold: 100_000 ether // 100k
+                permissions: ISignals.AcceptancePermissions.OnlyOwner,
+                thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
+                thresholdPercentTotalSupplyWAD: 0,
+                minThreshold: 100_000 ether // 100k
             }),
             maxLockIntervals: 365 days, // 1 year
             lockInterval: 1 days, // 1 day
@@ -65,16 +65,16 @@ library BoardConfigs {
             owner: _owner,
             underlyingToken: _underlyingToken,
             acceptanceCriteria: ISignals.AcceptanceCriteria({
-                anyoneCanAccept: true,
-                ownerMustFollowThreshold: true,
-                percentageThresholdWAD: 3e17, // 30%
-                fixedThreshold: 5_000_000 ether // 5M tokens
+                permissions: ISignals.AcceptancePermissions.Permissionless,
+                thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
+                thresholdPercentTotalSupplyWAD: 3e17, // 30%
+                minThreshold: 5_000_000 ether // 5M tokens
             }),
             lockInterval: 1 days, // 1 day
             maxLockIntervals: 14 days,
             decayCurveType: 0, // Linear
             decayCurveParameters: new uint256[](7e17), // 70% decay rate
-            inactivityTimeout: 3 days, // 60 days
+            inactivityTimeout: 3 days, // 3 days
             proposerRequirements: IAuthorizer.ParticipantRequirements({
                 minBalance: 10_000 ether,
                 minHoldingDuration: 0, // Balance-only requirement

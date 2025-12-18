@@ -121,21 +121,21 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
                         ACCEPTANCE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    /// Test accepting an initiative
+    /// Test accepting an initiative (default config: OnlyOwner + OnlyOwner)
     function test_Accept_Success() public {
-        uint256 lockAmount = defaultConfig.acceptanceCriteria.fixedThreshold / 5;
+        uint256 lockAmount = defaultConfig.acceptanceCriteria.minThreshold / 5;
         // Propose an initiative
         vm.startPrank(_alice);
         _tokenERC20.approve(address(signals), lockAmount);
         signals.proposeInitiativeWithLock(_metadata(1), lockAmount, 6);
 
-        // Non-owner cannot accept the initiative
+        // Non-owner cannot accept the initiative (OnlyOwner permissions)
         vm.startPrank(_bob);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _bob));
         signals.acceptInitiative(1);
         vm.stopPrank();
 
-        // Accept the initiative
+        // Owner can accept without meeting threshold (OnlyOwner)
         vm.startPrank(_deployer);
         signals.acceptInitiative(1);
 
@@ -149,12 +149,13 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.supportInitiative(1, lockAmount, 6);
     }
 
-    /// Test that non-owner can accept after support is added when anyoneCanAccept is enabled
-    function test_Accept_AnyoneCanAccept_AddSupportThenAccept() public {
-        // Create config with anyoneCanAccept enabled
+    /// Test that non-owner can accept after support is added when Permissionless is enabled
+    function test_Accept_Permissionless_AddSupportThenAccept() public {
+        // Create config with Permissionless permissions + OnlyOwner
         ISignals.BoardConfig memory config = defaultConfig;
-        config.acceptanceCriteria.anyoneCanAccept = true;
-        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+        config.acceptanceCriteria.permissions = ISignals.AcceptancePermissions.Permissionless;
+        config.acceptanceCriteria.thresholdOverride = ISignals.ThresholdOverride.OnlyOwner;
+        config.acceptanceCriteria.minThreshold = 100_000 ether;
 
         ISignals customSignals = deploySignals(config);
 
@@ -194,13 +195,13 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
     }
 
-    /// Test that owner can bypass threshold even when non-owner cannot
-    function test_Accept_AnyoneCanAccept_OwnerBypassThreshold() public {
-        // Create config with anyoneCanAccept enabled, ownerMustFollowThreshold disabled (default)
+    /// Test that owner can bypass threshold when ThresholdOverride.OnlyOwner is set
+    function test_Accept_Permissionless_OnlyOwnerThreshold() public {
+        // Create config with Permissionless permissions + OnlyOwner
         ISignals.BoardConfig memory config = defaultConfig;
-        config.acceptanceCriteria.anyoneCanAccept = true;
-        config.acceptanceCriteria.ownerMustFollowThreshold = false;
-        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+        config.acceptanceCriteria.permissions = ISignals.AcceptancePermissions.Permissionless;
+        config.acceptanceCriteria.thresholdOverride = ISignals.ThresholdOverride.OnlyOwner;
+        config.acceptanceCriteria.minThreshold = 100_000 ether;
 
         ISignals customSignals = deploySignals(config);
 
@@ -220,7 +221,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         customSignals.acceptInitiative(1);
         vm.stopPrank();
 
-        // Owner CAN accept despite insufficient support (bypasses threshold)
+        // Owner CAN accept despite insufficient support (OnlyOwner)
         vm.startPrank(_deployer);
         customSignals.acceptInitiative(1);
         vm.stopPrank();
@@ -230,13 +231,13 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
     }
 
-    /// Test that owner must follow threshold when enabled, then can accept after support added
+    /// Test that owner must follow threshold when ThresholdOverride.None is set
     function test_Accept_OwnerMustFollowThreshold_AddSupportThenOwnerAccepts() public {
-        // Create config with anyoneCanAccept disabled (default), ownerMustFollowThreshold enabled
+        // Create config with OnlyOwner permissions + ThresholdOverride.None
         ISignals.BoardConfig memory config = defaultConfig;
-        config.acceptanceCriteria.anyoneCanAccept = false;
-        config.acceptanceCriteria.ownerMustFollowThreshold = true;
-        config.acceptanceCriteria.fixedThreshold = 100_000 ether;
+        config.acceptanceCriteria.permissions = ISignals.AcceptancePermissions.OnlyOwner;
+        config.acceptanceCriteria.thresholdOverride = ISignals.ThresholdOverride.None;
+        config.acceptanceCriteria.minThreshold = 100_000 ether;
 
         ISignals customSignals = deploySignals(config);
 
@@ -250,7 +251,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Verify threshold is NOT met (weight = 50k * 1 = 50k)
         assertLt(customSignals.getWeight(1), 100_000 ether);
 
-        // Owner cannot accept due to insufficient support (must follow threshold)
+        // Owner cannot accept due to insufficient support (ThresholdOverride.None)
         vm.startPrank(_deployer);
         vm.expectRevert(ISignals.Signals_InsufficientSupport.selector);
         customSignals.acceptInitiative(1);
@@ -266,7 +267,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         // Verify threshold is now met
         assertGe(customSignals.getWeight(1), 100_000 ether);
 
-        // Non-owner still cannot accept (access control)
+        // Non-owner still cannot accept (OnlyOwner permissions)
         vm.startPrank(_bob);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _bob));
         customSignals.acceptInitiative(1);
@@ -388,7 +389,7 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.expireInitiative(1);
 
         // Fast forward time beyond inactivity threshold
-        vm.warp(block.timestamp + defaultConfig.inactivityTimeout);
+        vm.warp(block.timestamp + defaultConfig.inactivityTimeout + 1 days);
 
         // Non-owner cannot expire the initiative
         vm.startPrank(_bob);

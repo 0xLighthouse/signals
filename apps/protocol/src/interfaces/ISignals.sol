@@ -9,18 +9,40 @@ import {IIncentivizer} from "./IIncentivizer.sol";
 
 interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivizer {
     /**
+     * @notice Defines who is permitted to accept initiatives
+     *
+     * @dev Permissionless: Anyone can accept; anyone else can accept if threshold is met
+     * @dev OnlyOwner: Only the board owner can accept initiatives
+     */
+    enum AcceptancePermissions {
+        Permissionless,
+        OnlyOwner
+    }
+
+    /**
+     * @notice Defines whether the owner can bypass threshold requirements
+     *
+     * @dev None: Owner must meet threshold to accept (same rules as everyone)
+     * @dev OnlyOwner: Owner can accept regardless of threshold
+     */
+    enum ThresholdOverride {
+        None,
+        OnlyOwner
+    }
+
+    /**
      * @notice All configuration parameters for initializing the Signals contract
      *
      * @param owner The address which will own the contract
      * @param underlyingToken The address of the underlying ERC20 token
      * @param version The version of the Signals contract
-     * @param acceptanceThreshold Weight required for an initiative to be accepted
+     * @param acceptanceCriteria Criteria for accepting initiatives (permissions and thresholds)
      * @param maxLockIntervals Maximum lock intervals allowed
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
      * @param decayCurveParameters Parameters to control the decay curve behavior
      * @param proposerRequirements Requirements for who can propose (immutable)
-     * @param participantRequirements Requirements for who can support initiatives (immutable)
+     * @param supporterRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (in seconds)
      * @param boardOpenAt Timestamp when board opens for participation (0 = doesn't open until updated)
      * @param boardClosedAt Timestamp when board closes for participation (0 = never closes)
@@ -68,16 +90,25 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /**
      * @notice Criteria for accepting an initiative
      *
-     * @param anyoneCanAccept If true, anyone can accept an initiative (otherwise, only owner)
-     * @param ownerMustFollowThreshold If true, the owner must follow the threshold (otherwise, owner can accept any initiative)
-     * @param percentageThresholdWAD Support must exceed this percentage (in WAD) of total underlying token supply
-     * @param fixedThreshold Support must also exceed this fixed threshold for accepting an initiative
+     * @param permissions Who can accept initiatives (OnlyOwner or Permissionless)
+     * @param thresholdOverride Whether owner can bypass threshold (None or OnlyOwner)
+     * @param thresholdPercentTotalSupplyWAD Support must exceed this percentage (in WAD) of total underlying token supply
+     * @param minThreshold Support must also exceed this minimum fixed threshold for accepting an initiative
+     *
+     * @dev The effective acceptance threshold is: max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
+     * @dev At least one of thresholdPercentTotalSupplyWAD or minThreshold must be non-zero
+     *
+     * Permission combinations:
+     * - OnlyOwner + None: Only owner can accept, and owner must meet threshold
+     * - OnlyOwner + OnlyOwner: Only owner can accept, owner can bypass threshold
+     * - Permissionless + None: Owner must meet threshold; anyone can accept if threshold met
+     * - Permissionless + OnlyOwner: Owner can always accept; others need threshold met
      */
     struct AcceptanceCriteria {
-        bool anyoneCanAccept;
-        bool ownerMustFollowThreshold;
-        uint256 percentageThresholdWAD;
-        uint256 fixedThreshold;
+        AcceptancePermissions permissions;
+        ThresholdOverride thresholdOverride;
+        uint256 thresholdPercentTotalSupplyWAD;
+        uint256 minThreshold;
     }
 
     /**

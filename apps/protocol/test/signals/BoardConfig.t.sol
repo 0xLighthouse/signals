@@ -40,10 +40,10 @@ contract BoardConfigTest is Test, SignalsHarness {
         vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
-        // Reset and test zero acceptanceThreshold
+        // Reset and test zero thresholds (both thresholdPercentTotalSupplyWAD and minThreshold)
         config = defaultConfig;
-        config.acceptanceCriteria.percentageThresholdWAD = 0;
-        config.acceptanceCriteria.fixedThreshold = 0;
+        config.acceptanceCriteria.thresholdPercentTotalSupplyWAD = 0;
+        config.acceptanceCriteria.minThreshold = 0;
         vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
         board.initialize(config);
 
