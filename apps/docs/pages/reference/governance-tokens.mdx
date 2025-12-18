@@ -71,7 +71,7 @@ contract MyGovernanceToken is ERC20, ERC20Permit, ERC20Votes {
 
 ## Board Configuration
 
-Configure your board to require a `minHoldingDuration` in `proposerRequirements`.
+Configure your board to require a `minHoldingDuration` in `proposerRequirements` and set the `token` field to your governance token (it can differ from the underlying lock token).
 
 ## How It Works
 
@@ -85,7 +85,7 @@ function meetsProposalRequirements() internal view returns (bool) {
     if (reqs.minHoldingDuration > 0) {
         // Check balance from N blocks ago
         uint256 pastBlock = block.number - reqs.minHoldingDuration;
-        uint256 pastBalance = IVotes(underlyingToken).getPastVotes(
+        uint256 pastBalance = IVotes(reqs.token).getPastVotes(
             msg.sender,
             pastBlock
         );

@@ -7,7 +7,7 @@ weight: 1
 
 A Signals board can be created around a specific theme or purpose, allowing participants to submit initiatives in line with the chosen objective. The board will have an owner who has additional rights and responsibilities to administer the board. It is possible for a DAO to enact ownership functions as the result of a DAO vote, enabling decentralized and permissionless operation of the board.
 
-The board is first deployed via the `SignalsFactory` contract, and additional configurations can be applied later. 
+The board is first deployed via the `SignalsFactory` contract, and additional timing/incentives configuration can be applied later.
 
 ## Factory Deployment
 
@@ -36,69 +36,69 @@ event BoardCreated(
 
 ## Configuration Structure
 
-The complete configuration is defined in the `BoardConfig` struct:
-
 ```solidity
 struct BoardConfig {
     string version;
+    address owner;
+    address underlyingToken;
+    uint256 opensAt;
+    uint256 closesAt;
     Metadata boardMetadata;
-    address owner;                                      // Board owner address
-    address underlyingToken;                           // ERC20 token address
-    AcceptanceCriteria acceptanceCriteria;             // Who can accept and threshold rules
-    uint256 maxLockIntervals;                          // Max lock duration in intervals
-    uint256 lockInterval;                              // Time unit for locks (seconds)
-    uint256 decayCurveType;                           // 0=linear, 1=exponential
-    uint256[] decayCurveParameters;                    // Curve params
-    uint256 inactivityTimeout;                         // Seconds before initiative can expire
-    ParticipantRequirements proposerRequirements;      // Who can propose
-    ParticipantRequirements supporterRequirements;     // Who can support
-    uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 opensAt;                              // Unix timestamp for opening
-    uint256 closesAt;                            // Unix timestamp for closing
+    AcceptanceCriteria acceptanceCriteria;
+    ParticipantRequirements proposerRequirements;
+    ParticipantRequirements supporterRequirements;
+    LockingConfig lockingConfig;
+    DecayConfig decayConfig;
 }
 ```
 
-## Acceptance Criteria
-
-The `AcceptanceCriteria` struct controls who can accept initiatives:
+Supporting structs:
 
 ```solidity
-struct AcceptanceCriteria {
-    AcceptancePermissions permissions;    // Permissionless or OnlyOwner
-    ThresholdOverride thresholdOverride;  // None or OnlyOwner
-    uint256 thresholdPercentTotalSupplyWAD;  // % of total supply (in WAD)
-    uint256 minThreshold;                    // Minimum fixed threshold
+struct ParticipantRequirements {
+    address token;            // Token used for eligibility checks
+    uint256 minBalance;
+    uint256 minHoldingDuration;
+    uint256 minLockAmount;
+}
+
+struct LockingConfig {
+    uint256 lockInterval;         // Time unit for locks (seconds)
+    uint256 maxLockIntervals;     // Max lock duration in intervals
+    uint256 releaseLockDuration;  // Timelock after acceptance
+    uint256 inactivityTimeout;    // Seconds before initiative can expire
+}
+
+struct DecayConfig {
+    DecayCurveType curveType; // 0=linear, 1=exponential
+    uint256[] params;         // Curve params
 }
 ```
 
-Choose `AcceptanceCriteria` values based on whether acceptance should be owner-gated or permissionless, and whether owners can bypass the threshold.
+Acceptance criteria follow the same structure described in [Board Deployment Parameters](/reference/board-configuration/config-parameters).
 
 ## Deployment Process
 
 1. Deploy (or reuse) a `SignalsFactory`.
-2. Build a `BoardConfig` with metadata, token, criteria, and timing.
+2. Build a `BoardConfig` with metadata, tokens, acceptance criteria, eligibility, locking, and decay settings.
 3. Call `create(config)` to deploy the board.
-4. Optionally link an incentives pool **before** `opensAt`.
+4. Optionally link an incentives pool **before** opening the board.
 
-## Post-Deployment Configuration
+## Post-Deployment Controls
 
 After deployment, the board owner can:
 
 ```solidity
-// Update acceptance criteria
-board.setAcceptanceCriteria(newCriteria)
-
-// Update decay curve
-board.setDecayCurve(curveType, parameters)
-
-// Update board timing
+// Timing controls
 board.setOpensAt(newOpenTime)
 board.setClosesAt(newCloseTime)
 
-// Set incentives (only before board opens)
+// Incentives (only while the board is closed)
 board.setIncentivesPool(poolAddress, config)
 
 // Emergency actions
 board.closeBoard()   // Close board normally
 board.cancelBoard()  // Cancel board (immediate redemption for all)
 ```
+
+Acceptance criteria, eligibility tokens, locking, and decay parameters are fixed at deployment.

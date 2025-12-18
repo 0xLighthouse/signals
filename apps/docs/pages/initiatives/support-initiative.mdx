@@ -43,7 +43,7 @@ You must approve the Signals contract to spend your tokens before calling `suppo
 
 ## Participant Eligibility
 
-Boards configure participant requirements using three fields (`minBalance`, `minHoldingDuration`, `minLockAmount`). Different patterns emerge based on which fields are set:
+Boards configure participant requirements using four fields (`token`, `minBalance`, `minHoldingDuration`, `minLockAmount`). The `token` controls which ERC20/IVotes balance is checked—it can be the underlying lock token or a separate governance token. Different patterns emerge based on which fields are set:
 
 ### 1. None (Most Permissive)
 
@@ -51,6 +51,7 @@ Anyone can participate - just need tokens to lock.
 
 ```solidity
 ParticipantRequirements({
+    token: UNDERLYING_TOKEN,
     minBalance: 0,
     minHoldingDuration: 0,
     minLockAmount: 0
@@ -63,6 +64,7 @@ Participants must hold a minimum token balance at support time. Optionally, a mi
 
 ```solidity
 ParticipantRequirements({
+    token: UNDERLYING_TOKEN,
     minBalance: 10_000 * 1e18,    // Must hold 10k tokens
     minHoldingDuration: 0,
     minLockAmount: 1_000 * 1e18   // Must lock at least 1k tokens
@@ -82,6 +84,7 @@ Participants must:
 
 ```solidity
 ParticipantRequirements({
+    token: GOVERNANCE_TOKEN,      // Can differ from the locking token
     minBalance: 10_000 * 1e18,
     minHoldingDuration: 50400,    // ~7 days at 12s/block
     minLockAmount: 1_000 * 1e18

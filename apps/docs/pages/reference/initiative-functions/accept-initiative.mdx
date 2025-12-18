@@ -123,10 +123,9 @@ function releaseLockDuration() external view returns (uint256)
 function acceptInitiative(uint256 initiativeId) external payable
 function expireInitiative(uint256 initiativeId) external payable
 
-// Owner functions for updating criteria
-function setAcceptanceCriteria(AcceptanceCriteria calldata) external
-
 // Emergency actions
 function closeBoard() external  // Closes board, locks remain timelocked
 function cancelBoard() external // Cancels board, all locks immediately redeemable
 ```
+
+Acceptance criteria are set at deployment time and cannot be changed post-deploy.

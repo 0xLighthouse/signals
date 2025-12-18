@@ -7,31 +7,52 @@ weight: 1
 
 ## Configuration Structure
 
-The complete configuration is defined in the `BoardConfig` struct:
+BoardConfig bundles addresses, metadata, eligibility, locking, and decay settings:
 
 ```solidity
 struct BoardConfig {
     string version;
+    address owner;
+    address underlyingToken;
+    uint256 opensAt;
+    uint256 closesAt;
     Metadata boardMetadata;
-    address owner;                                      // Board owner address
-    address underlyingToken;                           // ERC20 token address
-    AcceptanceCriteria acceptanceCriteria;             // Who can accept and threshold rules
-    uint256 maxLockIntervals;                          // Max lock duration in intervals
-    uint256 lockInterval;                              // Time unit for locks (seconds)
-    uint256 decayCurveType;                           // 0=linear, 1=exponential
-    uint256[] decayCurveParameters;                    // Curve params (must be length 1)
-    uint256 inactivityTimeout;                         // Seconds before initiative can expire
-    ParticipantRequirements proposerRequirements;      // Who can propose
-    ParticipantRequirements supporterRequirements;     // Who can support
-    uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 opensAt;                              // Unix timestamp for opening
-    uint256 closesAt;                            // Unix timestamp for closing (0 = never)
+    AcceptanceCriteria acceptanceCriteria;
+    ParticipantRequirements proposerRequirements;
+    ParticipantRequirements supporterRequirements;
+    LockingConfig lockingConfig;
+    DecayConfig decayConfig;
+}
+
+struct LockingConfig {
+    uint256 lockInterval;
+    uint256 maxLockIntervals;
+    uint256 releaseLockDuration;
+    uint256 inactivityTimeout;
+}
+
+struct DecayConfig {
+    DecayCurveType curveType; // 0=linear, 1=exponential
+    uint256[] params;         // Curve params (length depends on type)
+}
+
+struct ParticipantRequirements {
+    address token;
+    uint256 minBalance;
+    uint256 minHoldingDuration;
+    uint256 minLockAmount;
 }
 ```
 
-## Acceptance Criteria
+## Core Parameters
 
-The `AcceptanceCriteria` struct controls who can accept initiatives and under what conditions:
+- **owner:** Board controller (accept, close/cancel, set timings). Use multisig/DAO when possible.
+- **underlyingToken:** ERC20 used for locking and weight; must be set. Eligibility checks can point to a different token via `ParticipantRequirements.token`.
+- **boardMetadata:** Title, body, attachments (emitted in `BoardCreated`, not stored on-chain).
+- **version:** Off-chain compatibility marker for the board configuration.
+- **opensAt / closesAt:** Timestamps gating participation; `closesAt` must be ≥ `opensAt` (or `0`).
+
+## Acceptance Criteria
 
 ```solidity
 enum AcceptancePermissions {
@@ -52,123 +73,55 @@ struct AcceptanceCriteria {
 }
 ```
 
-### Permission Combinations
-
-| permissions | thresholdOverride | Behavior |
-|-------------|-------------------|----------|
-| `OnlyOwner` | `None` | Only owner can accept, owner must meet threshold |
-| `OnlyOwner` | `OnlyOwner` | Only owner can accept, owner can bypass threshold |
-| `Permissionless` | `None` | Anyone can accept if threshold met, owner also needs threshold |
-| `Permissionless` | `OnlyOwner` | Owner can always accept; others need threshold met |
-
-### Threshold Calculation
-
-The effective acceptance threshold is calculated as:
+Threshold calculation:
 
 ```solidity
-threshold = max(
-    totalSupply * thresholdPercentTotalSupplyWAD / 1e18,
-    minThreshold
-)
+threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
 ```
 
-**Requirements:**
+Requirements:
+- At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero.
+- `thresholdPercentTotalSupplyWAD` must be < 1e18 (100%).
 
-- At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero
-- `thresholdPercentTotalSupplyWAD` must be less than 100% (< 1e18)
+## Participant Requirements
 
-## Core Parameters
+`proposerRequirements` and `supporterRequirements` share the same structure:
 
-### owner
+- `token`: ERC20/IVotes token checked for eligibility (can differ from `underlyingToken`).
+- `minBalance == 0` and `minHoldingDuration == 0`: no balance requirement.
+- `minBalance > 0` and `minHoldingDuration == 0`: current balance check.
+- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes` support on `token`).
+- `minLockAmount` sets a minimum lock size for supporting or proposing with a lock.
 
-- **Type:** `address`
-- **Purpose:** Address that controls the board (can accept initiatives, close board, etc.)
-- **Requirement:** Must not be `address(0)` (i.e. ownerless boards are not allowed)
-- **Suggestion:** Use a multisig or DAO-controlled address for trustless operation
+Constraints:
+- `token` cannot be `address(0)`.
+- `minHoldingDuration > 0` requires `minBalance > 0`.
+- `minLockAmount` must be ≤ `minBalance`.
 
-### underlyingToken
+## Locking Configuration
 
-- **Type:** `address`
-- **Purpose:** The token used for signaling and voting weight
-- **Requirement:** Must be a valid ERC20 token address
-- **Token Types:**
-  - Standard ERC20: Works with all eligibility types except `MinBalanceAndDuration`
-  - ERC20Votes: Required for `MinBalanceAndDuration` eligibility (checkpoint support)
+- **lockInterval:** Time unit for locks and decay calculations (seconds, must be > 0).
+- **maxLockIntervals:** Maximum number of intervals a lock can span (> 0).
+- **releaseLockDuration:** Additional timelock after acceptance before redemption. `0` allows immediate redemption after acceptance; expiration/cancellation bypasses it.
+- **inactivityTimeout:** Inactivity window after which an initiative can be expired (tracked via `lastActivity` updates on creation/support).
 
-### lockInterval
+## Decay Configuration
 
-- **Type:** `uint256` (seconds)
-- **Purpose:** Time unit for lock durations and decay calculations
-- **Requirement:** Must be > 0
-
-### maxLockIntervals
-
-- **Type:** `uint256` (number of intervals)
-- **Purpose:** Maximum duration users can lock tokens, represented as a number of intervals
-- **Requirement:** Must be > 0
-- **Note:** For example, if `lockInterval` is set to 86400 (1 day), then a `maxLockIntervals` of 365 would allow for a maximum lock duration of 365 days
-
-### decayCurveType
-
-- **Type:** `uint256`
-- **Purpose:** How weight decays over time
-- **Requirement:** Must be a valid option (currently only 2 types are supported):
-- **Options:**
-  - `0` - Linear decay: Weight decreases steadily
-  - `1` - Exponential decay: Weight decreases at accelerating rate
-
-### decayCurveParameters
-
-- **Type:** `uint256[]`
-- **Purpose:** Parameters for the decay curve
-- **Requirement:** Array length must match what is expected based on the chosen decay curve type
-- **Linear Decay (Type 0):**
-  - Parameter: Decay rate (1e18 = 1:1 linear)
-- **Exponential Decay (Type 1):**
-  - Parameter: Decay multiplier per interval
-
-### inactivityTimeout
-
-- **Type:** `uint256` (seconds)
-- **Purpose:** Duration of inactivity after which an initiative can be expired by the owner
-- **Default:** 60 days (5,184,000 seconds)
-- **Note:** Activity is tracked via the `lastActivity` timestamp, which updates when the initiative is created or when any supporter locks tokens
-
-### releaseLockDuration
-
-- **Type:** `uint256` (seconds)
-- **Purpose:** Board-level timelock parameter that prevents immediate token redemption after an initiative is accepted
-- **Mechanism:** Adds an additional commitment period after acceptance, ensuring supporters remain locked even after the initiative reaches the acceptance threshold
-- **Requirement:** Set to `0` for immediate redemption upon acceptance, or specify duration in seconds for delayed release
-- **Redemption Logic:** Tokens can be redeemed when `acceptanceTimestamp + releaseLockDuration <= block.timestamp` or once the supporter's lockup duration is completed
-- **Override:** Board cancellation or initiative expiration bypasses this timelock, allowing immediate redemption regardless of the configured duration
-
-### opensAt
-
-- **Type:** `uint256` (Unix timestamp)
-- **Purpose:** Fair launch mechanism - board doesn't accept proposals until this time
-- **Values:**
-  - `0` - Board stays closed until explicitly opened via `setOpensAt`
-  - `block.timestamp + 1 hours` - Opens 1 hour from deployment
-  - Specific timestamp for scheduled launch
-
-### closesAt
-
-- **Type:** `uint256` (Unix timestamp)
-- **Purpose:** Timestamp when the board closes for new activity
-- **Values:**
-  - `0` - Board never closes automatically
-  - Specific timestamp for scheduled closure
+- **curveType:** `0` = linear, `1` = exponential.
+- **params:** Curve parameters; length must match curve type.
+  - Linear: `[decayRate]` where `1e18 = 1:1` linear decay per interval.
+  - Exponential: `[decayMultiplier]` per interval.
 
 ## Validation & Errors
 
 | Error | Condition | Fix |
 |-------|-----------|-----|
 | `SignalsFactory_ZeroAddressOwner` | Owner is address(0) | Provide valid owner address |
-| `Signals_InvalidArguments` | Token is address(0) | Provide valid token address |
+| `Signals_InvalidArguments` | `underlyingToken` or participant `token` is address(0) | Provide valid token address |
 | `Signals_InvalidArguments` | Both thresholds are 0 | Set at least one threshold > 0 |
-| `Signals_InvalidArguments` | Percentage threshold >= 100% | Set thresholdPercentTotalSupplyWAD < 1e18 |
-| `Signals_InvalidArguments` | Max intervals is 0 | Set max intervals > 0 |
-| `Signals_InvalidArguments` | Lock interval is 0 | Set lock interval > 0 |
+| `Signals_InvalidArguments` | Percentage threshold >= 100% | Set `thresholdPercentTotalSupplyWAD < 1e18` |
+| `Signals_InvalidArguments` | Max intervals is 0 | Set `maxLockIntervals > 0` |
+| `Signals_InvalidArguments` | Lock interval is 0 | Set `lockInterval > 0` |
 | `Signals_InvalidArguments` | Invalid decay curve type | Use type 0 or 1 |
-| `Signals_InvalidArguments` | closesAt < opensAt | Ensure close time is after open time |
+| `Signals_InvalidArguments` | closesAt < opensAt | Ensure close time is after or equal to open time |
+| `Signals_InvalidArguments` | `minLockAmount > minBalance` or `minHoldingDuration > 0` with `minBalance == 0` | Adjust participant requirements |

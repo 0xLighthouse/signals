@@ -1,14 +1,8 @@
 ---
-title: "setDecayCurve Function"
+title: "Decay Curve"
 weight: 2
 ---
 
-### Update Decay Curve
+### Decay Curve
 
-```solidity
-function setDecayCurve(uint256 _type, uint256[] memory _parameters) external onlyOwner
-```
-
-**Requirements:**
-- Same validation as initialization
-- Can be changed at any time
+Decay configuration is supplied at deployment via `BoardConfig.decayConfig` (curve type and parameters) and is not updatable in the current protocol.

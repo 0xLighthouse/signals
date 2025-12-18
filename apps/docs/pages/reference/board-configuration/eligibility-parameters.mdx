@@ -9,6 +9,7 @@ Signals uses the same `ParticipantRequirements` structure for both `proposerRequ
 
 ```solidity
 struct ParticipantRequirements {
+    address token;            // Token used for eligibility checks
     uint256 minBalance;         // Minimum current balance required
     uint256 minHoldingDuration; // Minimum blocks tokens must be held (requires IVotes)
     uint256 minLockAmount;      // Minimum tokens that must be locked
@@ -19,10 +20,11 @@ struct ParticipantRequirements {
 
 - `minBalance == 0` and `minHoldingDuration == 0`: no balance requirement.
 - `minBalance > 0` and `minHoldingDuration == 0`: current balance check only.
-- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes`).
+- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes` on the configured token).
 - `minLockAmount` enforces a minimum lock amount when proposing with a lock or supporting.
 
 ## Constraints
 
-- `minHoldingDuration > 0` requires `minBalance > 0`.
+- `token` must be set (cannot be `address(0)`).
+- `minHoldingDuration > 0` requires `minBalance > 0` and an `IVotes`-compatible token.
 - `minLockAmount` must be ≤ `minBalance`.

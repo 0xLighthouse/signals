@@ -33,6 +33,7 @@ function supportInitiative(
 
 ```solidity
 struct ParticipantRequirements {
+    address token;            // Token used for eligibility checks
     uint256 minBalance;         // User must hold this many tokens right now
     uint256 minHoldingDuration; // User must have held tokens for this duration (requires ERC20Votes)
     uint256 minLockAmount;      // Min tokens to lock when supporting (must be ≤ minBalance)
@@ -40,14 +41,16 @@ struct ParticipantRequirements {
 ```
 
 **Field Descriptions:**
+- **token**: ERC20/IVotes token checked for eligibility (can differ from the underlying lock token).
 - **minBalance**: User must currently hold this many tokens to be eligible to support
 - **minHoldingDuration**: User must have held ≥ minBalance tokens for this many blocks in the past. Only works with ERC20Votes tokens that support checkpoints.
 - **minLockAmount**: Minimum amount user must lock when supporting. Must be equal to or less than minBalance.
 
 **Eligibility rules derived from fields:**
+- `token` must be set (cannot be `address(0)`).
 - `minBalance` enforces a current balance requirement.
-- `minHoldingDuration` enforces a historical balance check (requires ERC20Votes checkpoints).
-- `minLockAmount` enforces a minimum lock size.
+- `minHoldingDuration` enforces a historical balance check (requires ERC20Votes checkpoints on `token`).
+- `minLockAmount` enforces a minimum lock size and must be ≤ `minBalance`.
 
 **Note:** Requires ERC20Votes tokens with checkpoint support for duration-based requirements.
 

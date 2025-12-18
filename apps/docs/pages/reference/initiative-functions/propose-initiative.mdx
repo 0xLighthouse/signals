@@ -94,6 +94,7 @@ enum InitiativeState {
 
 ```solidity
 struct ParticipantRequirements {
+    address token;
     uint256 minBalance;
     uint256 minHoldingDuration;
     uint256 minLockAmount;
@@ -101,10 +102,16 @@ struct ParticipantRequirements {
 ```
 
 **Eligibility rules derived from fields:**
+- `token` is the ERC20/IVotes token used for eligibility checks (can differ from the underlying lock token).
 - `minBalance == 0` and `minHoldingDuration == 0`: no balance requirement.
 - `minBalance > 0` and `minHoldingDuration == 0`: current balance check only.
-- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes`).
+- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes` on `token`).
 - `minLockAmount` enforces a minimum lock amount for `proposeInitiativeWithLock`.
+
+**Constraints:**
+- `token` cannot be `address(0)`.
+- `minHoldingDuration > 0` requires `minBalance > 0` and an IVotes-compatible token.
+- `minLockAmount` must be ≤ `minBalance`.
 
 ## Events Emitted
 
