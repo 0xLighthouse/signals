@@ -7,37 +7,19 @@ weight: 3
 
 Complete technical reference for configuring and deploying the IncentivesPool system.
 
-#### Setting Up Incentives
+## Setup Summary
 
-```solidity
-// 1. Deploy IncentivesPool
-IncentivesPool pool = new IncentivesPool()
-
-// 2. Initialize with DAO funds
-daoToken.approve(address(pool), 1_000_000e18)
-pool.initializePool(
-    address(daoToken),      // Reward token
-    1_000_000e18,           // Total pool
-    10_000e18               // Max per initiative
-)
-
-// 3. Approve board
-pool.approveBoard(address(signalsBoard), 100_000e18, 10_000e18)
-
-// 4. Link to board (BEFORE board opens) with config
-IncentivesConfig memory config = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)] // 12% decay
-});
-signalsBoard.setIncentivesPool(address(pool), config)
-```
+1. Deploy `IncentivesPool` with the reward token address.
+2. Fund the pool via `addFundsToPool`.
+3. Approve each board with a budget and per-initiative cap.
+4. Link the pool to the board via `setIncentivesPool` **before** `boardOpenAt`.
 
 ## IncentivesConfig Structure
 
 ```solidity
 struct IncentivesConfig {
-    IncentiveType incentiveType;        // Linear or Exponential
-    uint256[] incentiveParametersWAD;   // 2-24 parameters for curve
+    IncentiveType incentiveType;        // Linear only (exponential reserved)
+    uint256[] incentiveParametersWAD;   // 2-24 values defining the curve
 }
 
 enum IncentiveType {
@@ -46,83 +28,42 @@ enum IncentiveType {
 }
 ```
 
-### Configuration Example
+**Note:** `Exponential` is not implemented yet; only `Linear` is supported.
 
-```solidity
-IncentivesConfig memory incentives = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)] // Decay rate
-})
-```
-
-## Pool Deployment & Initialization
+## Pool Deployment & Funding
 
 ### Deploy IncentivesPool
 
 ```solidity
-IncentivesPool pool = new IncentivesPool()
+constructor(address rewardToken)
 ```
 
-### Initialize Pool
+### Fund the Pool
 
 ```solidity
-function initializePool(
-    address _rewardToken,
-    uint256 _totalRewards,
-    uint256 _maxRewardPerInitiative
-) external
+function addFundsToPool(uint256 amount) external
 ```
 
-#### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `_rewardToken` | `address` | ERC20 token used for rewards (typically DAO token) |
-| `_totalRewards` | `uint256` | Total tokens available for rewards across all initiatives |
-| `_maxRewardPerInitiative` | `uint256` | Maximum tokens that can be allocated to a single initiative |
-
-#### Example
+If tokens are transferred in externally, the owner can sync the balance:
 
 ```solidity
-// Approve reward tokens
-IERC20 rewardToken = IERC20(daoTokenAddress)
-rewardToken.approve(address(pool), 1_000_000 * 1e18)
-
-// Initialize pool
-pool.initializePool(
-    address(rewardToken),    // DAO token address
-    1_000_000 * 1e18,       // Total pool: 1M tokens
-    10_000 * 1e18           // Max per initiative: 10k tokens
-)
+function updateAvailableRewards(uint256 newBalance) external onlyOwner
 ```
 
-### Approve Board
+## Approve Board
 
 ```solidity
 function approveBoard(
     address board,
-    uint256 boardBudget_,
+    uint256 boardMaxBudget_,
     uint256 totalRewardPerInitiative_
 ) external onlyOwner
 ```
 
-Whitelist a Signals board to use this pool with allocated budget.
+- `boardMaxBudget_`: total budget allocated to this board
+- `totalRewardPerInitiative_`: max reward per initiative for this board
 
-**Parameters:**
-- `board`: Board contract address
-- `boardBudget_`: Total budget allocated to this board
-- `totalRewardPerInitiative_`: Max reward per initiative for this board
-
-**Example:**
-```solidity
-pool.approveBoard(
-    address(signalsBoard),
-    100_000 * 1e18,  // 100k total budget
-    10_000 * 1e18    // 10k max per initiative
-)
-```
-
-### Link Pool to Board
+## Link Pool to Board
 
 ```solidity
 // In Signals.sol
@@ -132,234 +73,60 @@ function setIncentivesPool(
 ) external onlyOwner
 ```
 
-**Critical:** Must be called BEFORE `boardOpenAt` timestamp.
+**Critical:** Must be called before `boardOpenAt`.
 
-**Example:**
-```solidity
-IncentivesConfig memory config = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)]
-});
-signalsBoard.setIncentivesPool(address(pool), config)
+## Incentive Weighting (Bucket Model)
+
+- Signals credits each lock into a time bucket when the lock is created.
+- `incentiveParametersWAD` is interpolated and normalized into per-bucket multipliers.
+- On claim, each lock’s reward share is proportional to its credit and bucket multiplier.
+
+Simplified flow:
+
 ```
-
-## Complete Deployment Example
-
-```solidity
-// 1. Deploy board
-ISignals.BoardConfig memory config = ISignals.BoardConfig({
-    version: "1.0.0",
-    boardMetadata: ISignals.Metadata({
-        title: "Incentivized Board",
-        body: "Board with supporter rewards",
-        attachments: new ISignals.Attachment[](0)
-    }),
-    owner: daoMultisig,
-    underlyingToken: governanceToken,
-    acceptanceCriteria: ISignals.AcceptanceCriteria({
-        permissions: ISignals.AcceptancePermissions.OnlyOwner,
-        thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
-        thresholdPercentTotalSupplyWAD: 0,
-        minThreshold: 500_000 * 1e18
-    }),
-    maxLockIntervals: 365,
-    lockInterval: 1 days,
-    decayCurveType: 0,
-    decayCurveParameters: new uint256[](1),
-    inactivityTimeout: 60 days,
-    proposerRequirements: IAuthorizer.ParticipantRequirements({
-        minBalance: 50_000 * 1e18,
-        minHoldingDuration: 0,
-        minLockAmount: 0
-    }),
-    supporterRequirements: IAuthorizer.ParticipantRequirements({
-        minBalance: 0,
-        minHoldingDuration: 0,
-        minLockAmount: 0
-    }),
-    releaseLockDuration: 0,
-    boardOpenAt: block.timestamp + 1 days,  // Opens in 1 day
-    boardClosedAt: 0
-});
-
-address boardAddress = factory.create(config);
-Signals signalsBoard = Signals(boardAddress);
-
-// 2. Deploy IncentivesPool
-IncentivesPool pool = new IncentivesPool();
-
-// 3. Initialize pool with 1M tokens
-IERC20 daoToken = IERC20(daoTokenAddress);
-daoToken.approve(address(pool), 1_000_000 * 1e18);
-
-pool.initializePool(
-    address(daoToken),
-    1_000_000 * 1e18,    // 1M total
-    10_000 * 1e18        // 10k max per initiative
-);
-
-// 4. Approve board with budget
-pool.approveBoard(address(signalsBoard), 100_000 * 1e18, 10_000 * 1e18);
-
-// 5. Link to board (before it opens!)
-IncentivesConfig memory incentivesConfig = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)]
-});
-signalsBoard.setIncentivesPool(address(pool), incentivesConfig);
-```
-
-## Time-Weighted Calculation
-
-### Formula
-
-```solidity
-// Calculate time factor
-t = (lockCreatedAt - boardOpenAt) / (acceptanceTime - boardOpenAt)
-
-// Apply linear decay curve
-weight = lockAmount * (1 - k * t)
-
-// Where:
-// t = time factor (0 to 1)
-// k = decay rate parameter (e.g., 0.12e18)
-// lockAmount = tokens locked
-```
-
-### Time Factor Calculation
-
-```solidity
-// t ranges from 0 to 1
-// t = 0: locked at board open (maximum weight)
-// t = 1: locked at acceptance (minimum weight)
-
-timeFactor = (lockCreation - boardOpens) / (acceptance - boardOpens)
-```
-
-### Weight Examples
-
-**Example with k=0.12 (12% decay):**
-
-Board opens Day 0, initiative accepted Day 10
-
-```solidity
-// Alice locks 100 tokens on Day 0
-t = (0 - 0) / (10 - 0) = 0.0
-weight = 100 * (1 - 0.12 * 0.0) = 100.0
-
-// Bob locks 100 tokens on Day 5
-t = (5 - 0) / (10 - 0) = 0.5
-weight = 100 * (1 - 0.12 * 0.5) = 94.0
-
-// Charlie locks 100 tokens on Day 9
-t = (9 - 0) / (10 - 0) = 0.9
-weight = 100 * (1 - 0.12 * 0.9) = 89.2
-
-// Total weight = 283.2
-
-// If pool allocates 1,000 tokens:
-Alice:   (100.0 / 283.2) * 1,000 = 353.1 tokens
-Bob:     (94.0 / 283.2) * 1,000 = 331.9 tokens
-Charlie: (89.2 / 283.2) * 1,000 = 315.0 tokens
-```
-
-### Reward Share Formula
-
-```solidity
-// For each supporter
-supporterTotalWeight = sum of all lock weights
-
-// Calculate share
-supporterReward = (supporterWeight / totalWeightAllSupporters) * poolAllocation
+multipliers = normalize(interpolate(parameters, buckets))
+lockPercent = credit * multipliers[bucketIndex] / totalCredits
+reward = totalRewardPerInitiative * lockPercent
 ```
 
 ## Distribution Mechanics
 
-### Automatic Calculation on Lock
-
-```solidity
-// Called automatically when supporter locks tokens
-if (address(incentivesPool) != address(0)) {
-    uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
-    incentivesPool.addIncentivesCreditForLock(initiativeId, lockCount, uint128(weight));
-}
-```
-
-### Claim Rewards on Redemption
-
-```solidity
-// Inside Signals.redeemLocksForInitiative()
-if (address(incentivesPool) != address(0)) {
-    if (releaseTimelockPassed) {
-        incentivesPool.claimIncentivesForLocks(
-            initiativeId, lockIds, msg.sender, _incentivesConfig
-        );
-    } else {
-        // Remove credits if redeeming before acceptance
-        incentivesPool.removeIncentivesCreditForLocks(initiativeId, lockIds);
-    }
-}
-```
+- On lock, Signals calls `addIncentivesCreditForLock` on the pool.
+- On redemption, Signals calls `claimIncentivesForLocks` if the release timelock has passed.
+- If redeeming before acceptance, Signals calls `removeIncentivesCreditForLocks`.
 
 ## Query Functions
 
-### Get Pool Information
-
 ```solidity
-function poolInfo() external view returns (
-    address rewardToken,
-    uint256 totalRewards,
-    uint256 maxRewardPerInitiative
-)
-```
-
-### Check Board Approval
-
-```solidity
-function approvedBoards(address _board) external view returns (bool)
-```
-
-### Get Board Budget Info
-
-```solidity
+function approvedBoards(address board) external view returns (bool)
 function totalRewardPerInitiative(address board) external view returns (uint256)
 function boardRemainingBudget(address board) external view returns (uint256)
-```
-
-### Get Pool Stats
-
-```solidity
 function availableRewards() external view returns (uint256)
 function totalBoardBudgets() external view returns (uint256)
 function distributedRewards() external view returns (uint256)
+function REWARD_TOKEN() external view returns (address)
 ```
 
 ## Events
 
-### PoolInitialized
-
 ```solidity
-event PoolInitialized(
-    address indexed rewardToken,
-    uint256 totalRewards,
-    uint256 maxRewardPerInitiative
-)
-```
-
-### BoardApproved
-
-```solidity
+event FundsAddedToPool(uint256 amount)
+event AvailableRewardsUpdated(uint256 newBalance)
 event BoardApproved(address indexed board)
-```
-
-### RewardsClaimed
-
-```solidity
-event RewardsClaimed(
+event BoardRevoked(address indexed board)
+event RewardsPaidOut(
     address indexed board,
     uint256 indexed initiativeId,
     address indexed supporter,
-    uint256 amount
+    uint256 percentOfInitiativeRewards,
+    uint256 remainingBoardBudget,
+    uint256 amountPaid
+)
+event RewardsClaimed(
+    uint256 indexed initiativeId,
+    uint256 indexed lockId,
+    address indexed claimant,
+    uint256 percentOfInitiativeRewardsWAD
 )
 ```
 
@@ -367,55 +134,11 @@ event RewardsClaimed(
 
 | Error | Condition | Solution |
 |-------|-----------|----------|
-| `IncentivesPool_PoolAlreadyInitialized` | Pool already initialized | Deploy new pool |
-| `IncentivesPool_BoardNotApproved` | Board not approved | Call `approveBoard()` |
-| `IncentivesPool_InsufficientBalance` | Not enough tokens approved | Approve more tokens |
-| `Signals_IncorrectBoardState` | Trying to set pool after opening | Must set before `boardOpenAt` |
-| `Signals_IncentivesPoolAlreadySet` | Pool already configured | Cannot change pool once set |
-| `Signals_IncentivesPoolNotApproved` | Pool hasn't approved this board | Call pool's `approveBoard()` |
-
-## Frontend Integration
-
-### Check Pool Status
-
-```typescript
-// Check if board has incentives
-const poolAddress = await signalsBoard.read.incentivesPool()
-const hasIncentives = poolAddress !== '0x0000000000000000000000000000000000000000'
-
-if (hasIncentives) {
-  // Get pool info
-  const [token, total, maxPerInit] = await pool.read.poolInfo()
-  const remaining = await rewardToken.read.balanceOf([poolAddress])
-
-  console.log(`Reward Token: ${token}`)
-  console.log(`Total Pool: ${formatEther(total)}`)
-  console.log(`Max Per Initiative: ${formatEther(maxPerInit)}`)
-  console.log(`Remaining: ${formatEther(remaining)}`)
-}
-```
-
-## Advanced: Multi-Board Configuration
-
-### Shared Pool Across Multiple Boards
-
-```solidity
-// Deploy one pool
-IncentivesPool sharedPool = new IncentivesPool()
-daoToken.approve(address(sharedPool), 10_000_000e18)
-sharedPool.initializePool(
-    address(daoToken),
-    10_000_000e18,  // 10M total
-    10_000e18       // 10k max per initiative
-)
-
-// Approve multiple boards with individual budgets
-sharedPool.approveBoard(address(board1), 1_000_000e18, 10_000e18)
-sharedPool.approveBoard(address(board2), 500_000e18, 5_000e18)
-sharedPool.approveBoard(address(board3), 250_000e18, 2_500e18)
-
-// Each board uses same pool
-board1.setIncentivesPool(address(sharedPool), config)
-board2.setIncentivesPool(address(sharedPool), config)
-board3.setIncentivesPool(address(sharedPool), config)
-```
+| `IncentivesPool_InvalidConfiguration` | Invalid token, budget, or amounts | Fix parameters before deployment or approval |
+| `IncentivesPool_InsufficientFunds` | Budget exceeds available rewards | Fund the pool or reduce budgets |
+| `IncentivesPool_BoardAlreadyApproved` | Board already approved | Use `revokeBoard` then re-approve if needed |
+| `IncentivesPool_NotApprovedBoard` | Unauthorized board call | Approve the board first |
+| `Signals_IncorrectBoardState` | Pool set after board opens | Call `setIncentivesPool` before `boardOpenAt` |
+| `Signals_IncentivesPoolAlreadySet` | Pool already configured | Pool can be set only once |
+| `Signals_IncentivesPoolNotApproved` | Pool has not approved the board | Call `approveBoard` on the pool |
+| `Signals_InvalidArguments` | Invalid incentives config parameters | Use 2-24 values for linear curve |

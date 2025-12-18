@@ -5,7 +5,7 @@ weight: 5
 
 # Adding Bounties to Initiatives
 
-Bounties allow anyone to contribute external ERC20 token rewards to specific initiatives. When an initiative is accepted, bounties are automatically distributed according to configurable splits between protocol fees, supporter rewards, and treasury.
+Bounties allow anyone to contribute external ERC20 token rewards to specific initiatives. When Signals integration is wired, accepted initiatives will distribute bounties according to configurable splits between protocol fees, supporter rewards, and treasury. (Distribution is not triggered on-chain yet.)
 
 ## Overview
 
@@ -46,7 +46,7 @@ Check if a token is whitelisted before attempting to add a bounty.
 
 ### When Bounties Are Distributed
 
-Bounties are automatically distributed when the board owner accepts an initiative. The Signals contract notifies the Bounties contract, which calculates and allocates rewards according to the configured split percentages.
+Intended behavior: on acceptance, Signals notifies the Bounties contract to calculate and allocate rewards according to configured split percentages. This integration is not wired yet in the current protocol.
 
 ### Distribution Formula
 
@@ -94,16 +94,12 @@ Board owners can update the distribution split percentages using the `updateSpli
 
 Allocations must always sum to 100 when updating splits.
 
-## Complete Example Flow
+## Typical Flow
 
-Here's the typical flow for adding and distributing bounties:
-
-1. **Deploy Bounties system** - Owner deploys TokenRegistry and Bounties contracts with initial split configuration
-2. **Whitelist tokens** - Token manager adds approved ERC20 tokens to the registry
-3. **Contributor adds bounty** - External contributor approves tokens and calls addBounty
-4. **Initiative gets accepted** - Board owner accepts the initiative
-5. **Bounties distributed** - Protocol fees, supporter rewards, and treasury allocations are calculated and tracked
-6. **Supporters claim** - (Future) Supporters withdraw their allocated rewards
+1. Deploy TokenRegistry and Bounties with initial splits.
+2. Whitelist tokens.
+3. Contributors add bounties.
+4. Acceptance triggers distribution and balance tracking.
 
 ## Best Practices
 
@@ -134,7 +130,7 @@ Here's the typical flow for adding and distributing bounties:
 **Current Limitations:**
 1. No claim/withdrawal function - Rewards accumulate but can't be claimed
 2. No refund mechanism - Expired bounties can't be reclaimed by contributors
-3. Mixed token denominations in preview - Estimates combine different tokens
+3. Reward preview is not implemented yet (currently returns 0)
 4. No storage optimization - Expired bounties remain in storage
 
 **Planned Features:**

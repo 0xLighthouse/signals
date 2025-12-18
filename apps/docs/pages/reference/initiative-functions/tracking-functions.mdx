@@ -107,12 +107,7 @@ Returns the complete acceptance criteria including permissions, threshold overri
 
 ### Check if Threshold Reached
 
-```typescript
-const currentWeight = await signals.read.getWeight([initiativeId])
-const threshold = await signals.read.getAcceptanceThreshold()
-const meetsThreshold = currentWeight >= threshold
-const progress = (Number(currentWeight) / Number(threshold)) * 100
-```
+Compare `getWeight(initiativeId)` to `getAcceptanceThreshold()` to determine progress toward acceptance.
 
 ## Weight Decay Configuration
 

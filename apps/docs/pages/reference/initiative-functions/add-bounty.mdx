@@ -25,23 +25,9 @@ function addBounty(
 | `_token` | `address` | ERC20 token address (must be whitelisted) |
 | `_amount` | `uint256` | Amount of tokens to contribute |
 | `_expiresAt` | `uint256` | Unix timestamp when bounty expires (0 = never) |
-| `_terms` | `Conditions` | Distribution conditions (currently only `NONE` implemented) |
+| `_terms` | `Conditions` | Distribution conditions (stored but not enforced yet) |
 
-### Example
-
-```solidity
-// 1. Approve tokens
-IERC20(usdcToken).approve(address(bounties), 10_000e6)
-
-// 2. Add bounty
-bounties.addBounty(
-    5,                              // initiativeId
-    address(usdcToken),             // token
-    10_000e6,                       // 10,000 USDC
-    block.timestamp + 30 days,      // expires in 30 days
-    IBounties.Conditions.NONE       // no special conditions
-)
-```
+**Token approval:** callers must approve the Bounties contract for `_amount` on the bounty token before calling `addBounty`.
 
 ## TokenRegistry Functions
 
@@ -65,17 +51,7 @@ voterAmount = (totalAmount * voterAllocation) / 100
 treasuryAmount = (totalAmount * treasuryAllocation) / 100
 ```
 
-### Default Split Configuration
-
-```solidity
-// Example configuration
-uint256[3] memory allocations = [5, 20, 75]
-// 5% to protocol fees
-// 20% to voter/supporter rewards
-// 75% to treasury
-```
-
-**Note:** Basis is 100 (not 10,000), so values are direct percentages.
+**Note:** Allocations are percentages that must sum to 100.
 
 ### Supporter Share Calculation
 
@@ -120,9 +96,7 @@ function previewRewards(uint256 _initiativeId, uint256 _tokenId)
     external view returns (uint256)
 ```
 
-Estimates rewards for a specific lock position (NFT token).
-
-**⚠️ Known Limitation:** Mixes different token denominations into single number - only an approximation.
+**Current status:** reward preview is not implemented yet and currently returns 0.
 
 ## Configuration & Versioning
 
@@ -139,14 +113,6 @@ function updateSplits(
 - Only owner can call
 - Allocations must sum to 100
 - Creates new version (doesn't affect existing bounties)
-
-**Example:**
-```solidity
-bounties.updateSplits(
-    [uint256(10), uint256(60), uint256(30)],
-    [protocolAddr, votersAddr, treasuryAddr]
-)
-```
 
 ### Versioning Structure
 
@@ -182,79 +148,10 @@ event BountiesUpdated(uint256 version)
 | `Bounties_InvalidAllocation` | Allocations don't sum to 100 | Fix split configuration |
 | `Bounties_NotAuthorized` | Caller not authorized | Must be Signals contract or owner |
 
-## Integration with Signals
+## Integration Status
 
-### Setting Bounties Contract
-
-```solidity
-// In Signals.sol (owner only)
-function setBounties(address _bounties) external onlyOwner
-```
-
-### Automatic Calls
-
-**On Acceptance:**
-```solidity
-// In Signals.acceptInitiative()
-if (address(bounties) != address(0)) {
-    bounties.handleInitiativeAccepted(initiativeId)
-}
-```
-
-**On Expiration:**
-```solidity
-bounties.handleInitiativeExpired(initiativeId)  // Refund logic TODO
-```
-
-## Complete Example Flow
-
-```solidity
-// 1. Deploy Bounties system
-TokenRegistry registry = new TokenRegistry()
-registry.allow(address(usdcToken))
-
-uint256[3] memory allocations = [5, 20, 75]
-address[3] memory receivers = [protocolAddr, votersAddr, treasuryAddr]
-
-Bounties bounties = new Bounties(
-    address(signals),
-    address(registry),
-    allocations,
-    receivers
-)
-
-signals.setBounties(address(bounties))
-
-// 2. Contributor adds bounty
-usdcToken.approve(address(bounties), 10_000e6)
-bounties.addBounty(
-    initiativeId,
-    address(usdcToken),
-    10_000e6,
-    0,  // Never expires
-    IBounties.Conditions.NONE
-)
-
-// 3. Initiative gets accepted
-signals.acceptInitiative(initiativeId)
-// Bounties automatically distributed:
-// - Protocol: 500 USDC (5%)
-// - Voters: 2,000 USDC (20%)
-// - Treasury: 7,500 USDC (75%)
-
-// 4. Supporters would claim (when implemented)
-// bounties.claimRewards(address(usdcToken))
-```
+Signals does not currently invoke the Bounties contract on acceptance or expiration. Distribution and refunds are not triggered on-chain yet.
 
 ## Frontend Integration
 
-```typescript
-// Check if bounties exist
-const { tokens, amounts, expiredCount } = await bounties.read.getBounties([initiativeId])
-
-// Preview potential rewards for a lock position
-const estimated = await bounties.read.previewRewards([initiativeId, nftTokenId])
-
-// Check balance (after acceptance)
-const balance = await bounties.read.balances([userAddress, tokenAddress])
-```
+Use `getBounties` and `balances` to surface bounty totals and supporter balances. `previewRewards` currently returns 0.

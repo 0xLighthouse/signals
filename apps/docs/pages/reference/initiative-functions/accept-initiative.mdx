@@ -72,14 +72,13 @@ When an initiative is accepted:
 
 1. **State changes** to `Accepted` (irreversible)
 2. **Acceptance timestamp** is recorded (`acceptanceTimestamp = block.timestamp`)
-3. **Incentive rewards are calculated** (if configured)
-4. **Supporters can redeem** their locked tokens (after release timelock)
+3. **Supporters can redeem** their locked tokens (after release timelock)
 
 ### Automatic Integrations
 
-#### Incentives Calculation
+#### Incentives
 
-If an incentives pool is configured, rewards are tracked and become claimable when supporters redeem their locks.
+Incentive credits are recorded when locks are created, and rewards are paid during redemption after acceptance.
 
 ## Impact on Token Locks
 
@@ -108,64 +107,7 @@ event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
 | `OwnableUnauthorizedAccount` | Caller not owner (when OnlyOwner) | Must be board owner |
 | `Signals_InsufficientSupport` | Weight below threshold | Wait for more support or use owner bypass |
 
-## Integration Examples
-
-### Check Acceptance Criteria
-
-```typescript
-// Get current acceptance criteria
-const criteria = await signals.read.getAcceptanceCriteria()
-
-console.log('Permissions:', criteria.permissions) // 0 = Permissionless, 1 = OnlyOwner
-console.log('Threshold Override:', criteria.thresholdOverride) // 0 = None, 1 = OnlyOwner
-console.log('Percent Threshold (WAD):', criteria.thresholdPercentTotalSupplyWAD)
-console.log('Min Threshold:', criteria.minThreshold)
-```
-
-### Check if Initiative Can Be Accepted
-
-```typescript
-async function canAccept(initiativeId: bigint, caller: address) {
-  const initiative = await signals.read.getInitiative([initiativeId])
-  const criteria = await signals.read.getAcceptanceCriteria()
-  const owner = await signals.read.owner()
-  const isOwner = caller.toLowerCase() === owner.toLowerCase()
-
-  // Must be proposed
-  if (initiative.state !== 0) return { canAccept: false, reason: 'Not in Proposed state' }
-
-  // Check permissions
-  if (criteria.permissions === 1 && !isOwner) { // OnlyOwner
-    return { canAccept: false, reason: 'Only owner can accept' }
-  }
-
-  // Check threshold (unless owner with bypass)
-  if (!(isOwner && criteria.thresholdOverride === 1)) {
-    const weight = await signals.read.getWeight([initiativeId])
-    const threshold = await signals.read.getAcceptanceThreshold()
-
-    if (weight < threshold) {
-      return {
-        canAccept: false,
-        reason: `Insufficient support: ${weight} / ${threshold}`
-      }
-    }
-  }
-
-  return { canAccept: true, reason: 'Ready for acceptance' }
-}
-```
-
-### Accept Initiative
-
-```typescript
-async function accept(initiativeId: bigint) {
-  const tx = await signals.write.acceptInitiative([initiativeId])
-  await tx.wait()
-
-  console.log(`Initiative ${initiativeId} accepted`)
-}
-```
+**Client-side checks:** Use `getAcceptanceCriteria`, `getWeight`, `getAcceptanceThreshold`, and `getInitiative` to surface eligibility and threshold status in UIs.
 
 ## Related Functions
 

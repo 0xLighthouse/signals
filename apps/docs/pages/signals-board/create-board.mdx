@@ -71,79 +71,14 @@ struct AcceptanceCriteria {
 }
 ```
 
-### Example Configurations
-
-**Owner-controlled (default):**
-```solidity
-AcceptanceCriteria({
-    permissions: AcceptancePermissions.OnlyOwner,
-    thresholdOverride: ThresholdOverride.OnlyOwner,
-    thresholdPercentTotalSupplyWAD: 0,
-    minThreshold: 100_000 * 1e18
-})
-```
-
-**Community-driven:**
-```solidity
-AcceptanceCriteria({
-    permissions: AcceptancePermissions.Permissionless,
-    thresholdOverride: ThresholdOverride.None,
-    thresholdPercentTotalSupplyWAD: 5e16,  // 5%
-    minThreshold: 50_000 * 1e18
-})
-```
+Choose `AcceptanceCriteria` values based on whether acceptance should be owner-gated or permissionless, and whether owners can bypass the threshold.
 
 ## Deployment Process
 
-```solidity
-// 1. Deploy factory (or use existing)
-SignalsFactory factory = new SignalsFactory(implementationAddress)
-
-// 2. Create board configuration
-ISignals.BoardConfig memory config = ISignals.BoardConfig({
-    version: "1.0.0",
-    boardMetadata: ISignals.Metadata({
-        title: "Community Initiatives",
-        body: "A board for community-driven proposals",
-        attachments: new ISignals.Attachment[](0)
-    }),
-    owner: msg.sender,
-    underlyingToken: governanceTokenAddress,
-    acceptanceCriteria: ISignals.AcceptanceCriteria({
-        permissions: ISignals.AcceptancePermissions.OnlyOwner,
-        thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
-        thresholdPercentTotalSupplyWAD: 0,
-        minThreshold: 100_000 * 1e18
-    }),
-    maxLockIntervals: 365,
-    lockInterval: 1 days,
-    decayCurveType: 0,
-    decayCurveParameters: new uint256[](1),
-    inactivityTimeout: 60 days,
-    proposerRequirements: IAuthorizer.ParticipantRequirements({
-        minBalance: 10_000 * 1e18,
-        minHoldingDuration: 0,
-        minLockAmount: 0
-    }),
-    supporterRequirements: IAuthorizer.ParticipantRequirements({
-        minBalance: 0,
-        minHoldingDuration: 0,
-        minLockAmount: 0
-    }),
-    releaseLockDuration: 0,
-    boardOpenAt: block.timestamp,
-    boardClosedAt: 0
-});
-
-// 3. Deploy board via factory
-address boardAddress = factory.create(config)
-
-// 4. Cast to Signals contract
-Signals board = Signals(boardAddress)
-
-// 5. Optional: Set incentives pool (BEFORE boardOpenAt)
-board.setIncentivesPool(poolAddress, incentivesConfig)
-```
+1. Deploy (or reuse) a `SignalsFactory`.
+2. Build a `BoardConfig` with metadata, token, criteria, and timing.
+3. Call `create(config)` to deploy the board.
+4. Optionally link an incentives pool **before** `boardOpenAt`.
 
 ## Post-Deployment Configuration
 

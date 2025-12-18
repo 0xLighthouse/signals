@@ -1,43 +1,26 @@
 ---
-title: "EligibilityType"
+title: "Eligibility Requirements"
 weight: 3
 ---
 
-### Eligibility Types
+### Eligibility Requirements
 
-Eligibility types need to be specified for `ProposerRequirements` and `
-
-#### None
-
-No restrictions - anyone with sufficient tokens to meet the `threshold` can propose initiatives.
-
-**Use case:** Open, permissionless boards where you want maximum participation.
+Signals uses the same `ParticipantRequirements` structure for both proposers and supporters:
 
 ```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.None,
-    minBalance: 0,
-    minHoldingDuration: 0,
-    threshold: 1_000 * 1e18  // Amount locked when proposing
-})
+struct ParticipantRequirements {
+    uint256 minBalance;
+    uint256 minHoldingDuration;
+    uint256 minLockAmount;
+}
 ```
 
-#### MinBalance
+**Rules derived from fields:**
+- `minBalance == 0` and `minHoldingDuration == 0`: no balance requirement.
+- `minBalance > 0` and `minHoldingDuration == 0`: current balance check only.
+- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes`).
+- `minLockAmount` enforces a minimum lock amount for support or `proposeInitiativeWithLock`.
 
-Users must hold a minimum token balance to propose initiatives. The balance check happens at the time of proposal.
-
-**Use case:** Boards that want to ensure proposers have skin in the game.
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalance,
-    minBalance: 10_000 * 1e18,  // 10,000 tokens
-    minHoldingDuration: 0,
-    threshold: 1_000 * 1e18
-})
-```
-
-**Notes:**
-
-* Works with any ERC20 token
-* Balance check is separate from `threshold` (the amount locked)
+**Constraints:**
+- `minHoldingDuration > 0` requires `minBalance > 0`.
+- `minLockAmount` must be ≤ `minBalance`.

@@ -97,43 +97,9 @@ function meetsProposalRequirements() internal view returns (bool) {
 }
 ```
 
-## Example Timeline
-
-```
-Block 1000: Alice receives 100,000 GOV tokens
-            Alice delegates to self
-            ✅ getVotes(alice) = 100,000
-
-Block 1500: Alice tries to propose (needs 7-day holding period)
-            Board checks getPastVotes(alice, 1500 - 50400)
-            ❌ Reverts: "Tokens not held long enough"
-
-Block 51400: Alice tries to propose again
-             Board checks getPastVotes(alice, 51400 - 50400) = block 1000
-             ✅ getPastVotes(alice, 1000) = 100,000
-             ✅ Proposal succeeds
-
-Block 52000: Alice transfers 50,000 to Bob
-             ✅ getVotes(alice) = 50,000
-             ✅ getVotes(bob) = 0 (Bob hasn't delegated)
-
-Block 52001: Bob delegates to self
-             ✅ getVotes(bob) = 50,000
-```
-
 ## Delegation Requirement
 
 **Critical:** Users must delegate their tokens to activate checkpoints, even if delegating to themselves.
-
-```solidity
-// Without delegation - NO voting power
-governanceToken.mint(alice, 100_000 * 1e18);
-governanceToken.getVotes(alice); // Returns 0
-
-// With delegation - voting power activated
-governanceToken.delegate(alice); // Alice delegates to herself
-governanceToken.getVotes(alice); // Returns 100,000 * 1e18
-```
 
 ## Block Time Calculations
 
@@ -148,46 +114,9 @@ Configure `minHoldingDuration` based on your chain's block time:
 
 ## Use Cases
 
-### Conservative DAO Governance
-
-Require 30-day holding periods to ensure only committed members propose major initiatives:
-
-```solidity
-ParticipantRequirements({
-    minBalance: 500_000 * 1e18,
-    minHoldingDuration: 216_000,  // 30 days on Ethereum
-    minLockAmount: 0
-})
-```
-
-### Anti-Flash-Loan Protection
-
-Require modest holdings for a short period to prevent borrowed-token attacks:
-
-```solidity
-ParticipantRequirements({
-    minBalance: 10_000 * 1e18,
-    minHoldingDuration: 100,  // ~20 minutes on Ethereum
-    minLockAmount: 0
-})
-```
-
-### Tiered Access
-
-Combine with minimum lock amount for dual requirements:
-
-```solidity
-BoardConfig({
-    // ... other config
-    proposerRequirements: ParticipantRequirements({
-        minBalance: 100_000 * 1e18,    // Must hold 100k tokens
-        minHoldingDuration: 50_400,     // For 7 days
-        minLockAmount: 10_000 * 1e18   // Must lock at least 10k
-    })
-})
-```
-
-Users must hold 100k tokens for 7 days AND lock at least 10k tokens to propose.
+- Long-holding requirements for conservative governance.
+- Short holding windows to prevent flash-loan proposals.
+- Combined balance + lock requirements for tiered access.
 
 ## Token Compatibility
 
@@ -210,37 +139,11 @@ If you configure `minHoldingDuration > 0` with a non-IVotes token, proposals wil
 
 ### Delegation UX
 
-Always prompt users to delegate after receiving tokens:
-
-```typescript
-// Frontend example
-const activateVotingPower = async (token: Contract, user: string) => {
-  // Check if already delegated
-  const currentDelegate = await token.delegates(user)
-
-  if (currentDelegate === ethers.constants.AddressZero) {
-    // Delegate to self
-    await token.delegate(user)
-  }
-}
-```
+Always prompt users to delegate after receiving tokens; without delegation, checkpoints report zero voting power.
 
 ### Block Time Variations
 
-Account for block time instability:
-
-```solidity
-// Add 10% buffer for variable block times
-uint256 targetDays = 7;
-uint256 expectedBlocks = (targetDays * 24 * 60 * 60) / 12; // Ethereum
-uint256 bufferBlocks = expectedBlocks * 110 / 100;         // +10%
-
-ParticipantRequirements({
-    minBalance: 100_000 * 1e18,
-    minHoldingDuration: bufferBlocks,
-    minLockAmount: 0
-})
-```
+Account for block time instability by adding a small buffer to `minHoldingDuration`.
 
 ## References
 

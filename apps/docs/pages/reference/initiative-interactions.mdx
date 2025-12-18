@@ -5,7 +5,7 @@ weight: 2
 
 # Initiative Interactions Reference
 
-This section provides comprehensive technical documentation for interacting with initiatives in the Signals protocol. Each function reference includes signatures, parameters, validation rules, events, errors, and integration examples.
+This section provides comprehensive technical documentation for interacting with initiatives in the Signals protocol. Each function reference includes signatures, parameters, validation rules, events, and errors.
 
 ## Function Categories
 
@@ -19,7 +19,7 @@ This section provides comprehensive technical documentation for interacting with
 - `supportInitiative()` - Lock tokens to signal support for an initiative
 
 **[Redeeming Locks](/reference/initiative-functions/redeem)**
-- `redeem()` - Withdraw locked tokens after initiative acceptance or expiration
+- `redeemLock()` / `redeemLocksForInitiative()` - Withdraw locked tokens after initiative acceptance or expiration
 
 ### Owner Functions
 
@@ -45,108 +45,27 @@ This section provides comprehensive technical documentation for interacting with
 - ERC721 position management
 - Configuration queries
 
-## Quick Reference
-
-### For Initiative Proposers
-
-```solidity
-// Check eligibility
-bool canPropose = signals.canPropose(msg.sender)
-
-ISignals.Attachment[] memory attachments = new ISignals.Attachment[](0);
-
-// Create initiative
-signals.proposeInitiative(title, body, attachments)
-
-// Or create with initial support
-uint256 tokenId = signals.proposeInitiativeWithLock(
-    title,
-    body,
-    amount,
-    lockDuration,
-    attachments
-)
-```
-
-### For Supporters
-
-```solidity
-// Check eligibility
-bool canParticipate = signals.canParticipate(msg.sender)
-
-// Support an initiative
-uint256 tokenId = signals.supportInitiative(
-    initiativeId,
-    amount,
-    lockDuration
-)
-
-// Later: Redeem after acceptance/expiration
-signals.redeemLock(tokenId)
-```
-
-### For Board Owners
-
-```solidity
-// Accept an initiative
-signals.acceptInitiative(initiativeId)
-
-// Or expire an inactive initiative
-signals.expireInitiative(initiativeId)
-```
-
-### For Bounty Contributors
-
-```solidity
-// Add a bounty to an initiative
-token.approve(address(bounties), amount)
-bounties.addBounty(
-    initiativeId,
-    address(token),
-    amount,
-    expiresAt,
-    IBounties.Conditions.NONE
-)
-```
-
-### For Tracking Support
-
-```solidity
-// Get initiative details
-Initiative memory init = signals.getInitiative(initiativeId)
-
-// Get current weight
-uint256 weight = signals.getWeight(initiativeId)
-
-// Get all supporters
-address[] memory supporters = signals.getSupporters(initiativeId)
-
-// Get your lock positions
-uint256[] memory myLocks = signals.listPositions(msg.sender)
-```
-
 ## Common Data Structures
 
 ### Initiative
 
 ```solidity
 struct Initiative {
-    string title;
-    string body;
     InitiativeState state;
     address proposer;
     uint256 timestamp;
     uint256 lastActivity;
-    uint256 underlyingLocked;
     uint256 acceptanceTimestamp;
 }
 ```
+Metadata is emitted in `InitiativeProposed` and not stored on-chain.
 
 ### TokenLock
 
 ```solidity
 struct TokenLock {
     uint256 initiativeId;
+    address supporter;
     uint256 tokenAmount;
     uint256 lockDuration;
     uint256 created;
@@ -161,30 +80,9 @@ enum InitiativeState {
     Proposed,    // Initial state, can receive support
     Accepted,    // Board owner accepted the initiative
     Cancelled,   // Reserved for future use
-    Expired      // No activity for > activityTimeout
+    Expired      // No activity for > inactivityTimeout
 }
 ```
-
-## Integration Patterns
-
-### Frontend Integration
-
-See individual function pages for detailed TypeScript examples. Common patterns include:
-
-- Checking eligibility before transactions
-- Querying weight and progress
-- Listing user positions
-- Calculating historical data for charts
-- Monitoring events for real-time updates
-
-### Contract Integration
-
-For contracts integrating with Signals:
-
-- Implement `ISignalsLock` interface for compatibility
-- Use weight queries for governance decisions
-- Subscribe to events for state changes
-- Query lock positions for reward calculations
 
 ## Related Guides
 

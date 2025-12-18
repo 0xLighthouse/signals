@@ -15,7 +15,7 @@ The Signals protocol offers two distinct reward mechanisms: **Bounties** (initia
 | **Who funds** | Anyone (external contributors) | DAO/Board owner |
 | **When added** | Anytime before acceptance | Before board opens |
 | **Token types** | Multiple ERC20s (whitelisted) | Single ERC20 (reward token) |
-| **Distribution** | On initiative acceptance | On initiative acceptance |
+| **Distribution** | On initiative acceptance (when wired) | On initiative acceptance |
 | **Reward basis** | Proportional to lock amount | Time-weighted (early supporters favored) |
 | **Configuration** | Per-bounty expiration | Board-level pool |
 | **Claiming** | Manual (when implemented) | Auto-claimed on redemption |
@@ -25,7 +25,7 @@ The Signals protocol offers two distinct reward mechanisms: **Bounties** (initia
 
 ## Bounties: Initiative-Specific External Rewards
 
-Bounties are externally funded rewards attached to specific initiatives, allowing anyone to incentivize particular proposals.
+Bounties are externally funded rewards attached to specific initiatives, allowing anyone to incentivize particular proposals. The current Signals protocol does not yet invoke the Bounties contract on acceptance or expiration.
 
 ### Key Characteristics
 
@@ -65,38 +65,11 @@ Bounties are externally funded rewards attached to specific initiatives, allowin
 
 #### Adding a Bounty
 
-```solidity
-// Anyone can add a bounty
-IERC20(usdcToken).approve(address(bounties), 10_000e6)
-
-bounties.addBounty(
-    initiativeId,                   // Which initiative
-    address(usdcToken),             // Which token
-    10_000e6,                       // Amount
-    block.timestamp + 30 days,      // Optional expiration
-    IBounties.Conditions.NONE       // Terms
-)
-```
+Contributors approve the bounty token and call `addBounty` with the initiative ID, token, amount, optional expiration, and terms.
 
 #### Distribution on Acceptance
 
-When the initiative is accepted:
-
-```solidity
-// Automatic call from Signals contract
-bounties.handleInitiativeAccepted(initiativeId)
-
-// Internal distribution
-totalBounty = 10,000 USDC
-protocolFee = 10,000 * 5% = 500 USDC
-voterPool = 10,000 * 20% = 2,000 USDC
-treasury = 10,000 * 75% = 7,500 USDC
-
-// Each supporter gets proportional share
-supporter1Share = (50k / 200k) * 2,000 = 500 USDC
-supporter2Share = (100k / 200k) * 2,000 = 1,000 USDC
-supporter3Share = (50k / 200k) * 2,000 = 500 USDC
-```
+When the initiative is accepted, Signals triggers distribution; the Bounties contract applies the configured splits and allocates supporter shares proportionally to locked amount.
 
 ### Bounties Use Cases
 
@@ -106,11 +79,6 @@ supporter3Share = (50k / 200k) * 2,000 = 500 USDC
 - 🏆 **Competition prizes** - Reward best proposals in a category
 - 🤝 **Community contributions** - Anyone can boost proposals they care about
 - 📊 **Focused incentivization** - Target specific outcomes
-
-**Example scenarios:**
-- Protocol wants dark mode → Add 5,000 USDC bounty to dark mode initiative
-- DAO member wants specific integration → Add tokens to that proposal
-- Multiple parties interested → Each adds their own bounty
 
 ---
 
@@ -153,52 +121,13 @@ Incentives are DAO-funded reward pools that incentivize early support across all
 ### How Incentives Work
 
 #### Time-Weighted Calculation
+Incentives use time buckets derived from `boardOpenAt` and the incentives curve parameters. Earlier buckets receive higher multipliers, so early supporters earn more.
 
-```solidity
-// Formula for time-weighted rewards
-weight(supporter) = lockAmount * (1 - k * t)
-
-// Where:
-// t = (lockCreationTime - boardOpenAt) / (acceptanceTime - boardOpenAt)
-// k = decay rate parameter (e.g., 0.12)
-// t ranges from 0 (locked at board open) to 1 (locked at acceptance)
-```
-
-**Example:** Board opens Day 0, initiative accepted Day 10, k=0.12
-
-```
-Alice locks 100 tokens on Day 0:
-  t = 0/10 = 0.0
-  weight = 100 * (1 - 0.12 * 0.0) = 100.0
-
-Bob locks 100 tokens on Day 5:
-  t = 5/10 = 0.5
-  weight = 100 * (1 - 0.12 * 0.5) = 94.0
-
-Charlie locks 100 tokens on Day 9:
-  t = 9/10 = 0.9
-  weight = 100 * (1 - 0.12 * 0.9) = 89.2
-
-Total weight = 283.2
-
-If pool allocates 1,000 tokens to initiative:
-  Alice: (100.0 / 283.2) * 1,000 = 353.1 tokens
-  Bob: (94.0 / 283.2) * 1,000 = 331.9 tokens
-  Charlie: (89.2 / 283.2) * 1,000 = 315.0 tokens
-```
+Earlier locks receive a higher weight share because `t` is smaller closer to board open.
 
 #### Distribution on Acceptance
 
-When initiative accepted:
-
-```solidity
-// Rewards tracked internally by board using bucket system
-// Pool is called when supporters redeem to pay rewards
-
-// Rewards auto-claimed when supporter redeems
-signals.redeemLock(tokenId)
-// → Automatically claims all incentive rewards
-```
+On acceptance, rewards are calculated and become claimable; redemption auto-claims incentives.
 
 ### Incentives Use Cases
 
@@ -209,38 +138,12 @@ signals.redeemLock(tokenId)
 - **Quality discovery** - Reward scouts who find good proposals
 - **Momentum building** - Kickstart initiative support with rewards
 
-**Example scenarios:**
-- DAO wants active Season 1 → Fund 1M token incentives pool
-- Encourage early evaluation → Use high decay rate (k=0.2)
-- Reward initiative scouts → Early supporters get 2x rewards
-- Bootstrap new board → Large pool attracts early participation
-
 ---
 
 ### Reward Calculation
 
-**Bounties:**
-```solidity
-// Simple proportional split
-supporterReward = (supporterLocked / totalLocked) * voterPoolAmount
-
-// Example:
-// Supporter locked 50k out of 200k total
-// Voter pool = 2,000 USDC
-// Reward = (50k / 200k) * 2,000 = 500 USDC
-```
-
-**Incentives:**
-```solidity
-// Time-weighted calculation
-timeWeight = lockAmount * (1 - decayRate * timeFactor)
-supporterReward = (supporterWeight / totalWeight) * poolAllocation
-
-// Example:
-// Early supporter: 100 tokens, t=0.1 → weight = 98.8
-// Late supporter: 100 tokens, t=0.9 → weight = 89.2
-// Early gets ~10% more rewards for same lock
-```
+**Bounties:** `supporterReward = (supporterLocked / totalLocked) * voterPoolAmount`  
+**Incentives:** `supporterReward = (supporterWeight / totalWeight) * poolAllocation`, where weights are derived from time buckets and curve parameters
 
 ### Token Management
 
@@ -260,28 +163,8 @@ supporterReward = (supporterWeight / totalWeight) * poolAllocation
 
 ### Distribution Control
 
-**Bounties:**
-```solidity
-// Configured by Bounties contract owner
-allocations = [5%, 20%, 75%]  // Protocol, Voters, Treasury
-receivers = [protocolAddr, votersAddr, treasuryAddr]
-
-// Versioned - can update but doesn't affect existing bounties
-bounties.updateSplits(newAllocations, newReceivers)
-```
-
-**Incentives:**
-```solidity
-// Configuration provided when setting pool (before board opens)
-IncentivesConfig memory config = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)]  // Decay rate
-});
-
-board.setIncentivesPool(poolAddress, config);
-
-// Cannot change after board opens
-```
+**Bounties:** split allocations and receivers are configurable and versioned by the Bounties owner.  
+**Incentives:** configuration is provided when linking the pool before board open and cannot be changed afterward.
 
 ### Timing Constraints
 
@@ -293,53 +176,20 @@ board.setIncentivesPool(poolAddress, config);
 
 **Incentives:**
 - Must set up BEFORE board opens
-- Cannot add to pool after opening
-- Fixed pool size for board lifetime
+- Pool must be linked before opening; pool funding can happen anytime
+- Board budgets are fixed at approval time
 - Requires upfront commitment
 
 ### Claiming Process
 
-**Bounties:**
-```solidity
-// Manual claiming (when implemented)
-// After initiative accepted:
-bounties.claimRewards(tokenAddress)  // Per token
-bounties.claimRewards(usdcAddress)   // Claim USDC
-bounties.claimRewards(daiAddress)    // Claim DAI
-```
-
-**Incentives:**
-```solidity
-// Auto-claimed on redemption
-// No separate transaction needed:
-signals.redeemLock(tokenId)
-// → Burns NFT
-// → Returns locked tokens
-// → Automatically claims ALL incentive rewards
-```
+**Bounties:** balances are tracked, but claim/withdrawal is not implemented yet.  
+**Incentives:** auto-claimed on redemption after acceptance/timelock.
 
 ---
 
 ## Can You Use Both?
 
-**Yes!** Bounties and Incentives work together:
-
-```solidity
-// Board configured with incentives
-IncentivesConfig memory config = IncentivesConfig({
-    incentiveType: IncentiveType.Linear,
-    incentiveParametersWAD: [uint256(0.12e18)]
-});
-board.setIncentivesPool(poolAddress, config);
-
-// Anyone can still add bounties
-bounties.addBounty(initiativeId, usdcToken, amount, expiry, terms)
-
-// On acceptance, supporter gets:
-// 1. Their locked tokens back
-// 2. Time-weighted incentive rewards (auto-claimed)
-// 3. Proportional bounty rewards (manual claim)
-```
+**Yes.** Incentives are board-wide and bounties are initiative-specific. Supporters receive incentives on redemption, and bounty balances (when distribution/claims are wired) separately.
 
 ---
 

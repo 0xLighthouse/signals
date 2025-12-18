@@ -24,6 +24,10 @@ If the board has a `releaseLockDuration` of 0, then all tokens are immediately r
 If the initiative is **expired**:
 - Redeem immediately - no waiting period
 
+### Lock Expiry (Before Acceptance)
+
+If your lock duration ends before the initiative is accepted, you can redeem once the lock expires even while the initiative remains Proposed.
+
 ### Board Closure
 
 If the board has been closed, all locks must still wait until their lockup duration is completed before they can be redeemed. This enforces the commitment supporters made to the initiatives they supported.
@@ -42,9 +46,9 @@ When you redeem, you get:
 **From Accepted Initiatives:**
 - ✅ Your original locked tokens
 - ✅ Incentive rewards (automatically claimed if configured)
-- ✅ Bounty rewards available to claim separately
+- ✅ Bounty rewards tracked in the Bounties contract (claim/withdraw not implemented yet)
 
-**From Expired Initiatives:**
+**From Expired Initiatives or Lock Expiry Before Acceptance:**
 - ✅ Your original locked tokens only
 - ❌ No incentive rewards
 - ❌ No bounty rewards
@@ -76,7 +80,7 @@ See the [Initiative Functions Reference](/reference/initiative-functions/redeem)
 
 ### Find Your Token IDs
 
-Use `listPositions(address)` to get all your lock NFT token IDs, or `getLocksForSupporter(address)` to find locks you've created.
+Use ERC721Enumerable functions (`balanceOf`, `tokenOfOwnerByIndex`) to enumerate your lock NFT token IDs.
 
 ## Multiple Positions on Same Initiative
 
@@ -100,9 +104,7 @@ The redemption process:
 
 ## Claiming Bounty Rewards
 
-Incentive rewards are automatically claimed during redemption, but bounty rewards must be claimed separately from the Bounties contract.
-
-**Note:** The bounty claiming function is defined but not yet implemented in the current version.
+Incentive rewards are automatically claimed during redemption. Bounty balances are tracked in the Bounties contract, but claim/withdrawal is not implemented in the current version.
 
 ## Best Practices
 

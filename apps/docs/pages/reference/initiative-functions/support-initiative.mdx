@@ -27,27 +27,7 @@ function supportInitiative(
 
 - `tokenId` - An ERC721 NFT token ID representing your lock position
 
-### Example
-
-```solidity
-// Support initiative #5 with 100k tokens for 30 days
-// Assumes lockInterval = 1 day
-uint256 tokenId = signals.supportInitiative(
-    5,                  // initiativeId
-    100_000 * 1e18,    // 100k tokens
-    30                  // 30 intervals (30 days)
-)
-```
-
-## Token Approval
-
-```solidity
-// 1. Approve tokens
-IERC20(underlyingToken).approve(signalsContractAddress, amount)
-
-// 2. Support initiative
-signals.supportInitiative(initiativeId, amount, lockDuration)
-```
+**Token approval:** callers must approve the Signals contract for `amount` on the underlying ERC20 before calling `supportInitiative`.
 
 ## Participant Requirements
 
@@ -64,37 +44,10 @@ struct ParticipantRequirements {
 - **minHoldingDuration**: User must have held ≥ minBalance tokens for this many blocks in the past. Only works with ERC20Votes tokens that support checkpoints.
 - **minLockAmount**: Minimum amount user must lock when supporting. Must be equal to or less than minBalance.
 
-**Eligibility patterns are inferred from field values:**
-
-### No Requirements (Most Permissive)
-
-```solidity
-ParticipantRequirements({
-    minBalance: 0,
-    minHoldingDuration: 0,
-    minLockAmount: 0
-})
-```
-
-### Balance Requirement Only
-
-```solidity
-ParticipantRequirements({
-    minBalance: 75_000 * 1e18,  // Must hold 75k tokens
-    minHoldingDuration: 0,
-    minLockAmount: 10_000 * 1e18  // Must lock at least 10k tokens
-})
-```
-
-### Balance + Duration Requirement (Most Restrictive)
-
-```solidity
-ParticipantRequirements({
-    minBalance: 40_000 * 1e18,
-    minHoldingDuration: 50400,  // blocks (~7 days at 12s/block)
-    minLockAmount: 10_000 * 1e18
-})
-```
+**Eligibility rules derived from fields:**
+- `minBalance` enforces a current balance requirement.
+- `minHoldingDuration` enforces a historical balance check (requires ERC20Votes checkpoints).
+- `minLockAmount` enforces a minimum lock size.
 
 **Note:** Requires ERC20Votes tokens with checkpoint support for duration-based requirements.
 
@@ -106,10 +59,6 @@ ParticipantRequirements({
 initialWeight = amount * lockDuration
 ```
 
-**Example:**
-- Lock 100 tokens for 10 intervals
-- Initial weight = 100 × 10 = **1,000**
-
 ### Weight Decay
 
 #### Linear Decay (Type 0)
@@ -119,23 +68,12 @@ weight = lockAmount * lockDuration - (lockAmount * elapsedIntervals * decayRate)
 // Floored at lockAmount minimum
 ```
 
-**Example with decayRate = 1e18:**
-- Interval 0: 100 × 10 = 1,000
-- Interval 5: 1,000 - (100 × 5) = 500
-- Interval 10: Weight = 0 (expired)
-
 #### Exponential Decay (Type 1)
 
 ```solidity
 weight = initialWeight * (decayMultiplier ^ elapsedIntervals)
 // Floored at lockAmount minimum
 ```
-
-**Example with multiplier = 0.9:**
-- Interval 0: 1,000
-- Interval 1: 1,000 × 0.9 = 900
-- Interval 2: 900 × 0.9 = 810
-- Interval 3: 810 × 0.9 = 729
 
 ### Weight Floor
 
@@ -170,13 +108,8 @@ struct LockData {
 
 ### Query Lock Data
 
-```solidity
-// Get detailed lock information
-TokenLock memory lock = signals.getTokenLock(tokenId)
-
-// Get standardized lock data (ISignalsLock interface)
-LockData memory data = signals.getLockData(tokenId)
-```
+- `getTokenLock(tokenId)` returns the full lock record.
+- `getLockData(tokenId)` returns the standardized `ISignalsLock` view.
 
 ## Events Emitted
 
@@ -206,55 +139,10 @@ event InitiativeSupported(
 | `Signals_IncorrectInitiativeState` | Initiative not in Proposed state | Only support Proposed initiatives |
 | `Signals_InvalidArguments` | Duration > `maxLockIntervals` | Use valid duration |
 | `Signals_InsufficientTokens` | Balance < required | Acquire more tokens |
+| `Signals_InsufficientLockAmount` | Amount < `minLockAmount` | Increase lock amount |
 | `Signals_TokenTransferFailed` | Transfer failed | Check approval and balance |
 | `Signals_InsufficientTokenDuration` | Haven't held tokens long enough | Wait or use different account |
 | `Signals_TokenHasNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
-
-## Complete Example Flow
-
-```solidity
-// Setup
-address supporter = 0x1111
-uint256 initiativeId = 5
-IERC20 token = IERC20(signals.underlyingToken())
-
-// 1. Check initiative state
-Initiative memory init = signals.getInitiative(initiativeId)
-require(init.state == InitiativeState.Proposed, 'Not proposed')
-
-// 2. Approve tokens
-uint256 amount = 150 * 1e18
-token.approve(address(signals), amount)
-
-// 3. Support initiative
-uint256 lockDuration = 6  // 6 intervals
-uint256 tokenId = signals.supportInitiative(initiativeId, amount, lockDuration)
-
-// 4. Verify NFT received
-require(signals.ownerOf(tokenId) == supporter, 'NFT not received')
-
-// 5. Check lock details
-TokenLock memory lock = signals.getTokenLock(tokenId)
-assert(lock.tokenAmount == amount)
-assert(lock.lockDuration == lockDuration)
-
-// 6. Check weight contribution
-uint256 myWeight = signals.getWeightForSupporterAt(
-    initiativeId,
-    supporter,
-    block.timestamp
-)
-// Initial: myWeight = 150 * 6 = 900 (decays over time)
-
-// 7. Check total initiative weight
-uint256 totalWeight = signals.getWeight(initiativeId)
-uint256 threshold = signals.getAcceptanceThreshold()
-bool meetsThreshold = totalWeight >= threshold
-
-// 8. Later: Redeem after acceptance/expiration
-// ... wait for acceptance/expiration ...
-signals.redeemLock(tokenId)  // Receive original tokens back + incentives
-```
 
 ## Helper Functions
 
@@ -271,11 +159,4 @@ function getAcceptanceCriteria() external view returns (AcceptanceCriteria memor
 
 ## Incentive Rewards
 
-```solidity
-// Preview rewards before acceptance (if IncentivesPool configured)
-uint256 rewards = incentivesPool.getSupporterRewards(
-    address(signals),
-    initiativeId,
-    supporter
-)
-```
+If an incentives pool is configured, credits are recorded on lock creation and rewards are paid during redemption after acceptance. The pool does not expose per-supporter previews.

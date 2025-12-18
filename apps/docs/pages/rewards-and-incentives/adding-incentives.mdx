@@ -22,20 +22,11 @@ Before adding incentives:
 
 1. **Deploy your Signals board** via SignalsFactory
 2. **Have reward tokens** ready (typically DAO governance token)
-3. **Configure board with incentives enabled** during deployment
-4. **Set up BEFORE board opens** - cannot add after `boardOpenAt`
+3. **Plan to link incentives before the board opens** - you cannot set the pool after `boardOpenAt`
 
 ## Setup Workflow
 
-### Step 1: Enable Incentives During Board Creation
-
-When deploying your board through the SignalsFactory, configure the `BoardIncentives` struct with `enabled: true`. If you set this to false, you cannot add incentives later.
-
-Choose your incentive curve type and parameters:
-- **Curve Type 0:** Linear decay (currently the only implemented option)
-- **Curve Parameters:** Decay rate (e.g., `0.12e18` = 12% decay)
-
-### Step 2: Deploy IncentivesPool Contract
+### Step 1: Deploy IncentivesPool Contract
 
 Deploy a new IncentivesPool contract. This contract manages:
 - Reward token storage
@@ -43,20 +34,20 @@ Deploy a new IncentivesPool contract. This contract manages:
 - Board approvals
 - Reward claiming
 
-### Step 3: Initialize the Pool with Funds
+### Step 2: Fund the Pool
 
-Initialize the pool with your reward token and funding parameters:
+Fund the pool with your reward token using `addFundsToPool`:
 - **Reward Token:** Typically your DAO's governance token
 - **Total Pool Amount:** Total tokens available for rewards (e.g., 1M tokens)
-- **Max Per Initiative:** Maximum tokens allocated per initiative (e.g., 10k tokens)
+- **Max Per Initiative:** Set later when approving boards
 
 The total pool amount is transferred immediately to the pool and shared across all accepted initiatives on the board.
 
-### Step 4: Approve the Board
+### Step 3: Approve the Board
 
 The pool must explicitly approve which boards can use it. This is a security feature that prevents unauthorized boards from accessing the pool.
 
-### Step 5: Link Pool to Board
+### Step 4: Link Pool to Board
 
 Finally, connect the pool to your board using `setIncentivesPool()`.
 
@@ -68,32 +59,17 @@ For detailed code examples and function signatures, see the [Incentives Configur
 
 ### Decay Curve: How Early Support is Rewarded
 
-The decay curve determines how early supporter bonuses are calculated. The `curveType` and `curveParameters` control this behavior.
+The incentive curve determines how early supporter bonuses are calculated. Parameters are interpolated across time buckets from `boardOpenAt` to acceptance.
 
 #### Linear Decay (Type 0)
 
-Currently, only linear decay is implemented. With linear decay:
-- Early supporters (at board open) get maximum weight
-- Weight gradually decreases as time passes
-- Late supporters (near acceptance) get minimum weight
-- The decay parameter `k` controls how steep this decline is
-
-**Formula:** `weight = lockAmount * (1 - k * t)`
-
-Where `t` ranges from 0 (locked at board open) to 1 (locked at acceptance).
+Only linear curves are supported. With a linear curve:
+- Early supporters (near board open) receive higher multipliers
+- Multipliers decrease over time until acceptance
 
 #### Choosing Decay Rate
 
-The decay parameter `k` controls how much early supporters are rewarded:
-
-| Decay Rate | Early Bonus | Use Case |
-|------------|-------------|----------|
-| `0.05e18` (5%) | Low | Reward all supporters fairly equally |
-| `0.12e18` (12%) | Medium | Standard early supporter advantage |
-| `0.20e18` (20%) | High | Strong incentive to evaluate early |
-| `0.30e18` (30%) | Very High | Maximum urgency for early support |
-
-**Recommendation:** Start with 0.12 (12%) for balanced incentives.
+Provide at least two values in `incentiveParametersWAD` (start and end). More values allow shaping the curve with intermediate points.
 
 ### Pool Sizing Guidelines
 
@@ -107,23 +83,15 @@ Aggressive: 5-10% of circulating supply
 **Max Per Initiative:**
 ```
 Typical formula: totalPool / (expected initiatives * 2)
-Example: 1M total / (50 expected * 2) = 10k per initiative
 ```
 
 This allows approximately 50 initiatives with buffer for multiple acceptances.
 
 ## How Incentives Are Distributed
 
-### Automatic Calculation on Acceptance
+### Reward Calculation and Claiming
 
-When the board owner accepts an initiative, the IncentivesPool automatically:
-1. Fetches all supporters and their locks
-2. Calculates time-weighted weight for each supporter
-3. Allocates rewards proportionally
-4. Caps allocation at `maxRewardPerInitiative`
-5. Stores individual allocations
-
-If the pool runs out of funds or calculation fails, **initiative acceptance still succeeds**. The system is non-blocking by design.
+Signals records incentive credits when locks are created. Rewards are calculated and paid when supporters redeem after acceptance (and any release timelock) via the IncentivesPool. Acceptance itself does not call the pool, and acceptance remains non-blocking even if the pool is depleted.
 
 ### Time-Weighted Calculation
 
@@ -144,99 +112,11 @@ Rewards are automatically claimed when supporters redeem their lock positions. B
 - Automatic for all supporters
 - Idempotent (safe to call multiple times)
 
-## Pool Depletion Handling
+## Operational Notes
 
-### Non-Blocking Design
-
-If the pool runs out of funds, initiative acceptance is NOT blocked. The system continues to function normally, but later initiatives may receive reduced or no incentive rewards.
-
-### Monitoring Pool Balance
-
-Check the pool's remaining balance and configuration to track available rewards. This helps you understand how many more initiatives can be incentivized.
-
-### Refilling Strategy
-
-If your pool runs low, you have two options:
-
-**Option 1: Accept It**
-- Let the pool deplete naturally
-- Later initiatives get fewer/no rewards
-- Maintains fair distribution to early participants
-
-**Option 2: Deploy New Board**
-- Create a new board with a fresh pool
-- "Season 2" with new budget
-- Clean slate for participants
-
-**Note:** You cannot add more funds to an existing pool mid-season.
-
-## Best Practices
-
-### Sizing the Pool
-
-1. **Estimate initiative volume**
-   - Conservative: 20-50 initiatives
-   - Moderate: 50-100 initiatives
-   - Aggressive: 100+ initiatives
-
-2. **Set appropriate max per initiative**
-   ```
-   maxPerInitiative = totalPool / (estimatedInitiatives * safetyFactor)
-   safetyFactor = 2-3x for buffer
-   ```
-
-3. **Consider token value**
-   - High value token: smaller pool
-   - Low value token: larger pool
-   - Target meaningful rewards per initiative
-
-### Decay Rate Selection
-
-**Conservative (5-8%):**
-- Small difference between early/late supporters
-- Focus on participation over timing
-- Good for mature communities
-
-**Standard (10-15%):**
-- Noticeable early advantage
-- Balanced incentive structure
-- Recommended starting point
-
-**Aggressive (20-30%):**
-- Strong early mover advantage
-- Creates urgency to evaluate proposals
-- Good for new boards needing momentum
-
-### Testing Strategy
-
-Before mainnet deployment:
-1. Deploy with small pool on testnet (e.g., 1,000 tokens)
-2. Test full lifecycle:
-   - Create initiatives
-   - Add support at different times
-   - Accept initiatives
-   - Redeem and verify rewards
-3. Verify calculations match expectations
-4. Test pool depletion scenarios
-
-### Communication
-
-**Before Launch:**
-- Announce total pool size
-- Explain decay mechanics
-- Set expectations for rewards
-- Provide examples of early vs. late support rewards
-
-**During Season:**
-- Show remaining pool balance
-- Highlight incentive opportunities
-- Display time factor for pending initiatives
-- Show projected rewards
-
-**After Acceptance:**
-- Announce rewards distributed
-- Show individual allocations
-- Remind about auto-claiming on redemption
+- Acceptance is non-blocking even if the pool is depleted; later initiatives may receive reduced rewards.
+- Pool balances should be monitored to plan for new seasons.
+- Pools cannot be refilled mid-season; deploy a new board for a fresh budget.
 
 ## Combining with Bounties
 

@@ -40,7 +40,7 @@ Proposed → Expired   (via expireInitiative)
 
 # Actioning an Initiative
 
-Actioning an initiative means officially approving it, transitioning it from Proposed to Accepted state. This triggers incentive calculation and makes locked tokens redeemable.
+Actioning an initiative means officially approving it, transitioning it from Proposed to Accepted state. This records the acceptance timestamp and makes locked tokens redeemable after any release timelock.
 
 ## Access Control
 
@@ -90,14 +90,13 @@ When an initiative is accepted:
 
 1. **State changes** to `Accepted` (irreversible)
 2. **Acceptance timestamp** is recorded (`acceptanceTimestamp = block.timestamp`)
-3. **Incentive rewards are calculated** (if configured)
-4. **Supporters can redeem** their locked tokens (after release timelock)
+3. **Supporters can redeem** their locked tokens (after release timelock)
 
 ### Automatic Integrations
 
-#### Incentives Calculation
+#### Incentives
 
-If an incentives pool is configured, rewards are calculated based on each supporter's time-weighted contribution. Supporters claim rewards when they redeem their locks.
+If an incentives pool is configured, rewards are calculated and paid when supporters redeem their locks after acceptance.
 
 ## Impact on Token Locks When Accepted
 

@@ -31,11 +31,7 @@ struct TokenLock {
 
 ## Redemption
 
-After an initiative reaches a terminal state (Accepted or Expired), lock position holders can redeem their underlying tokens:
-
-```solidity
-signals.redeemLock(tokenId);
-```
+After an initiative reaches a terminal state (Accepted or Expired), lock position holders can redeem their underlying tokens via `redeemLock`.
 
 **Requirements:**
 - Initiative must be in Accepted or Expired state
@@ -47,13 +43,13 @@ signals.redeemLock(tokenId);
 - Burns the NFT
 - Marks position as withdrawn
 
-## Bond Interface
+## Standardized Lock Interface
 
-Lock positions implement the `IBondIssuer` interface for compatibility with bond trading protocols:
+Lock positions expose the `ISignalsLock` interface for standardized lock metadata:
 
 ```solidity
-interface IBondIssuer {
-    struct BondInfo {
+interface ISignalsLock {
+    struct LockData {
         uint256 referenceId;      // Initiative ID
         uint256 nominalValue;     // Token amount
         uint256 expires;          // Expiration timestamp
@@ -61,57 +57,30 @@ interface IBondIssuer {
         bool claimed;             // Whether redeemed
     }
 
-    function getBondInfo(uint256 tokenId)
+    function getLockData(uint256 tokenId)
         external
         view
-        returns (BondInfo memory);
+        returns (LockData memory);
 }
 ```
 
-This allows lock positions to be traded on secondary markets as bonds representing future token value.
-
 ## Querying Lock Positions
 
-### Get Lock Details
-```solidity
-TokenLock memory lock = signals.getTokenLock(tokenId);
-```
+Use these view functions to query lock and weight data:
 
-### Get All Locks for Initiative
-```solidity
-uint256[] memory tokenIds = signals.getPositionsForInitiative(initiativeId);
-```
-
-### Get All Locks for Address
-```solidity
-uint256[] memory tokenIds = signals.getLocksForSupporter(supporter);
-```
-
-### Get Current Voting Weight
-```solidity
-// Weight for entire initiative
-uint256 weight = signals.getWeight(initiativeId);
-
-// Weight at specific timestamp
-uint256 historicalWeight = signals.getWeightAt(initiativeId, timestamp);
-
-// Weight for specific supporter
-uint256 supporterWeight = signals.getWeightForSupporterAt(
-    initiativeId,
-    supporter,
-    timestamp
-);
-```
+- `getTokenLock(tokenId)`
+- `locksForInitiative(initiativeId)`
+- ERC721Enumerable: `balanceOf(owner)` and `tokenOfOwnerByIndex(owner, index)`
+- `getWeight(initiativeId)`
+- `getWeightAt(initiativeId, timestamp)`
+- `getWeightForSupporterAt(initiativeId, supporter, timestamp)`
 
 ## NFT Metadata
 
 Lock positions are ERC721 tokens with:
 
-**Token Name:** `{UnderlyingToken} Locked Support`
-- Example: `"USDC Locked Support"`
-
+**Token Name:** `{UnderlyingToken} Locked Support`  
 **Token Symbol:** `sx{UnderlyingSymbol}`
-- Example: `"sxUSDC"`
 
 **Token URI:** Currently returns empty string (metadata can be added via future upgrades)
 

@@ -77,41 +77,6 @@ threshold = max(
 - At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero
 - `thresholdPercentTotalSupplyWAD` must be less than 100% (< 1e18)
 
-### Example Configurations
-
-**Owner-controlled board (default):**
-
-```solidity
-AcceptanceCriteria({
-    permissions: AcceptancePermissions.OnlyOwner,
-    thresholdOverride: ThresholdOverride.OnlyOwner,
-    thresholdPercentTotalSupplyWAD: 0,
-    minThreshold: 100_000 * 1e18  // 100k tokens
-})
-```
-
-**Community-driven board:**
-
-```solidity
-AcceptanceCriteria({
-    permissions: AcceptancePermissions.Permissionless,
-    thresholdOverride: ThresholdOverride.None,
-    thresholdPercentTotalSupplyWAD: 5e16,  // 5% of total supply
-    minThreshold: 50_000 * 1e18            // At least 50k tokens
-})
-```
-
-**Hybrid board (owner can fast-track):**
-
-```solidity
-AcceptanceCriteria({
-    permissions: AcceptancePermissions.Permissionless,
-    thresholdOverride: ThresholdOverride.OnlyOwner,
-    thresholdPercentTotalSupplyWAD: 10e16,  // 10% of total supply
-    minThreshold: 100_000 * 1e18            // At least 100k tokens
-})
-```
-
 ## Core Parameters
 
 ### owner

@@ -13,33 +13,39 @@ weight: 1
 
 ```solidity
 function proposeInitiative(
-    string calldata _title,
-    string calldata _body,
-    Attachment[] calldata _attachments
-) external
+    Metadata calldata _metadata
+) external returns (uint256 initiativeId)
 ```
 
 ### Proposal with Lock
 
 ```solidity
 function proposeInitiativeWithLock(
-    string calldata _title,
-    string calldata _body,
+    Metadata calldata _metadata,
     uint256 _amount,
-    uint256 _lockDuration,
-    Attachment[] calldata _attachments
-) external returns (uint256 tokenId)
+    uint256 _lockDuration
+) external returns (uint256 initiativeId, uint256 tokenId)
 ```
 
 ### Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `_title` | `string` | Title of the initiative (must not be empty) |
-| `_body` | `string` | Detailed description, markdown supported (must not be empty) |
-| `_attachments` | `Attachment[]` | Optional metadata attachments (max 5). URIs must be non-empty; MIME type and description are optional |
+| `_metadata` | `Metadata` | Initiative metadata (title, body, attachments). Title must be non-empty; attachments max 5 with non-empty URIs |
 | `_amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
 | `_lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
+
+### Metadata Struct
+
+```solidity
+struct Metadata {
+    string title;
+    string body;
+    Attachment[] attachments;
+}
+```
+
+Title must be non-empty; body may be empty. Attachments are optional, capped at 5, and must have non-empty URIs.
 
 ### Attachment Struct
 
@@ -56,60 +62,19 @@ struct Attachment {
 
 ### Returns
 
-- `tokenId` - An ERC721 NFT representing the lock position (only for `proposeInitiativeWithLock`)
+- `initiativeId` - ID of the newly created initiative
+- `tokenId` - ERC721 NFT representing the lock position (only for `proposeInitiativeWithLock`)
 
-## Examples
-
-### Basic Proposal
-
-```solidity
-ISignals.Attachment[] memory attachments = new ISignals.Attachment[](1);
-attachments[0] = ISignals.Attachment({
-    uri: 'ipfs://QmFullProposal',
-    mimeType: 'text/markdown',
-    description: 'Full proposal with implementation notes'
-});
-
-signals.proposeInitiative(
-    'Add dark mode to interface',
-    '## Motivation\n\nMany users have requested a dark mode option...\n\n## Proposal\n\nImplement theme switching...',
-    attachments
-);
-```
-
-### Proposal with Lock
-
-```solidity
-// Lock 100,000 tokens for 30 days
-// Assumes lockInterval = 1 day
-ISignals.Attachment[] memory lockAttachments = new ISignals.Attachment[](1);
-lockAttachments[0] = ISignals.Attachment({
-    uri: 'https://example.com/spec.pdf',
-    mimeType: 'application/pdf',
-    description: 'Detailed incentive breakdown'
-});
-
-signals.proposeInitiativeWithLock(
-    'Implement new governance features',
-    '## Overview\n\nThis initiative proposes...',
-    100_000 * 1e18,  // amount in wei
-    30,              // 30 intervals (30 days if lockInterval = 1 day)
-    lockAttachments
-);
-```
+**Metadata storage:** metadata is emitted in `InitiativeProposed` and not stored on-chain.
 
 ## Initiative Data Structure
 
 ```solidity
 struct Initiative {
-    string title;                    // Initiative title
-    string body;                     // Detailed description (markdown)
-    Attachment[] attachments;        // Supporting resources (max 5)
     InitiativeState state;           // Current state (Proposed, Accepted, Cancelled, Expired)
     address proposer;                // Proposer address
     uint256 timestamp;               // Creation timestamp
     uint256 lastActivity;            // Last activity timestamp
-    uint256 underlyingLocked;        // Total tokens locked in support
     uint256 acceptanceTimestamp;     // When accepted (0 if not yet accepted)
 }
 ```
@@ -121,53 +86,25 @@ enum InitiativeState {
     Proposed,    // Initial state, can receive support
     Accepted,    // Board owner accepted the initiative
     Cancelled,   // Reserved for future use
-    Expired      // No activity for > activityTimeout
+    Expired      // No activity for > inactivityTimeout
 }
 ```
 
 ## Proposer Requirements
 
 ```solidity
-struct ProposerRequirements {
-    EligibilityType eligibilityType;
+struct ParticipantRequirements {
     uint256 minBalance;
     uint256 minHoldingDuration;
-    uint256 threshold;
+    uint256 minLockAmount;
 }
 ```
 
-### None Type Example
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.None,
-    minBalance: 0,
-    minHoldingDuration: 0,
-    threshold: 50_000 * 1e18
-})
-```
-
-### MinBalance Type Example
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalance,
-    minBalance: 75_000 * 1e18,
-    minHoldingDuration: 0,
-    threshold: 50_000 * 1e18
-})
-```
-
-### MinBalanceAndDuration Type Example
-
-```solidity
-ProposerRequirements({
-    eligibilityType: EligibilityType.MinBalanceAndDuration,
-    minBalance: 40_000 * 1e18,
-    minHoldingDuration: 50400,  // blocks (~7 days at 12s/block)
-    threshold: 50_000 * 1e18
-})
-```
+**Eligibility rules derived from fields:**
+- `minBalance == 0` and `minHoldingDuration == 0`: no balance requirement.
+- `minBalance > 0` and `minHoldingDuration == 0`: current balance check only.
+- `minBalance > 0` and `minHoldingDuration > 0`: historical balance check (requires `IVotes`).
+- `minLockAmount` enforces a minimum lock amount for `proposeInitiativeWithLock`.
 
 ## Events Emitted
 
@@ -177,9 +114,7 @@ ProposerRequirements({
 event InitiativeProposed(
     uint256 indexed initiativeId,
     address indexed proposer,
-    string title,
-    string body,
-    Attachment[] attachments
+    Metadata metadata
 )
 ```
 
@@ -201,38 +136,26 @@ event InitiativeSupported(
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `Signals_EmptyTitle` | Title is empty | Provide a non-empty title |
-| `Signals_EmptyBody` | Body is empty | Provide a non-empty description |
-| `Signals_BoardNotYetOpen` | Current time < `boardOpenAt` | Wait for board to open |
-| `Signals_BoardClosed` | Board state is Closed | Cannot propose on closed boards |
+| `Signals_EmptyTitleOrBody` | Title is empty | Provide a non-empty title |
+| `Signals_IncorrectBoardState` | Board not open | Wait for board to open |
 | `Signals_InsufficientTokens` | Balance < required amount | Acquire more tokens |
-| `Signals_ProposerInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
-| `Signals_ProposerInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
-| `Signals_ProposerNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
-| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration range |
+| `Signals_InsufficientTokenDuration` | Haven't held tokens long enough | Wait or use different account |
+| `Signals_InsufficientLockAmount` | Lock amount below `minLockAmount` | Increase lock amount or update requirements |
+| `Signals_TokenHasNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
+| `Signals_InvalidArguments` | Invalid lock duration or attachment URI | Use valid duration and attachment data |
 | `Signals_TokenTransferFailed` | Token transfer reverted | Check approval and balance |
 | `Signals_AttachmentLimitExceeded` | More than 5 attachments provided | Trim the attachment list before submitting |
-| `Signals_AttachmentInvalidURI` | Attachment URI is empty | Provide a valid URI for each attachment |
 
 ## Helper Functions
 
 ```solidity
-// Check if address can propose
-function canPropose(address proposer) external view returns (bool)
+// Check if address can propose with a given lock amount
+function accountCanPropose(address account, uint256 lockAmount) external view returns (bool)
 
 // Get current proposer requirements
-function getProposerRequirements() external view returns (ProposerRequirements memory)
+function getProposerRequirements() external view returns (ParticipantRequirements memory)
 
 // Get board configuration
 function getBoardConfig() external view returns (BoardConfig memory)
 ```
-
-## Token Approval Example
-
-```solidity
-// Approve the Signals contract to spend your tokens
-token.approve(signalsContractAddress, amount)
-
-// Then propose with lock
-signals.proposeInitiativeWithLock(title, body, amount, duration)
-```
+**Token approval:** `proposeInitiativeWithLock` requires the caller to approve the Signals contract for `_amount` on the underlying ERC20.

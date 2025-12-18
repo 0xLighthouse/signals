@@ -14,7 +14,7 @@ You can track initiative support through several types of queries:
 1. **Initiative data** - Get basic information about the initiative
 2. **Weight tracking** - Query current and historical weight
 3. **Lock positions** - View individual lock details
-4. **Supporter lists** - See who is supporting an initiative
+4. **Supporter activity** - Derive supporters from lock data or events
 5. **Position enumeration** - List NFT positions by owner
 
 ## Key Concepts
@@ -46,16 +46,16 @@ To see how close an initiative is to acceptance:
 ### View Your Positions
 
 To see all your lock positions:
-1. Use `listPositions(yourAddress)` to get all NFT token IDs you own
+1. Use ERC721Enumerable (`balanceOf`, `tokenOfOwnerByIndex`) to enumerate NFT token IDs you own
 2. For each token ID, use `getTokenLock(tokenId)` to get lock details
 3. Check which initiatives you're supporting
 
 ### Monitor Supporter Activity
 
 To track an initiative's support:
-1. Use `getSupporters(initiativeId)` to get all unique supporters
-2. Use `getPositionsForInitiative(initiativeId)` to get all lock positions
-3. Calculate aggregate statistics (total locked, average duration, etc.)
+1. Use `locksForInitiative(initiativeId)` to get all lock positions
+2. For each lock, call `getTokenLock(tokenId)` and read the `supporter` address
+3. Aggregate stats (total locked, average duration, unique supporters) or use the indexer
 
 ## Weight Decay
 
