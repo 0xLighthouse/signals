@@ -214,13 +214,13 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   const opensAt: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
-    functionName: 'boardOpenAt',
+    functionName: 'opensAt',
   })) as bigint
 
   const closesAt: bigint = (await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
-    functionName: 'boardClosedAt',
+    functionName: 'closesAt',
   })) as bigint
 
   console.log('decayCurveParameters', decayCurveParameters)

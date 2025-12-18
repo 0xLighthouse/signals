@@ -99,8 +99,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                     minLockAmount: SUPPORTER_MIN_LOCK
                 }),
                 releaseLockDuration: 0,
-                boardOpenAt: block.timestamp - 1 days,
-                boardClosedAt: block.timestamp + 90 days
+                opensAt: block.timestamp - 1 days,
+                closesAt: block.timestamp + 90 days
             })
         );
 

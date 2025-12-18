@@ -76,10 +76,10 @@ contract Signals is
     uint256 public releaseLockDuration;
 
     /// @notice Timestamp when board opens for participation
-    uint256 public boardOpenAt;
+    uint256 public opensAt;
 
     /// @notice Timestamp when board closed or will close for participation
-    uint256 public boardClosedAt;
+    uint256 public closesAt;
 
     /// @notice If board was cancelled
     bool public boardCancelled;
@@ -131,20 +131,20 @@ contract Signals is
 
         _setAcceptanceCriteria(config.acceptanceCriteria);
 
-        if (config.boardOpenAt == 0) {
-            boardOpenAt = type(uint256).max;
-        } else if (config.boardOpenAt < block.timestamp) {
-            boardOpenAt = block.timestamp;
+        if (config.opensAt == 0) {
+            opensAt = type(uint256).max;
+        } else if (config.opensAt < block.timestamp) {
+            opensAt = block.timestamp;
         } else {
-            boardOpenAt = config.boardOpenAt;
+            opensAt = config.opensAt;
         }
 
-        if (config.boardClosedAt == 0) {
-            boardClosedAt = type(uint256).max;
-        } else if (config.boardClosedAt < config.boardOpenAt) {
+        if (config.closesAt == 0) {
+            closesAt = type(uint256).max;
+        } else if (config.closesAt < config.opensAt) {
             revert ISignals.Signals_InvalidArguments();
         } else {
-            boardClosedAt = config.boardClosedAt;
+            closesAt = config.closesAt;
         }
         _validateParticipantRequirements(config.proposerRequirements);
         _validateParticipantRequirements(config.supporterRequirements);
@@ -539,26 +539,26 @@ contract Signals is
     }
 
     /// @inheritdoc ISignals
-    function setBoardOpenAt(uint256 _boardOpenAt) external onlyOwner {
+    function setOpensAt(uint256 _opensAt) external onlyOwner {
         if (isBoardClosed()) revert ISignals.Signals_IncorrectBoardState();
-        _boardOpenAt < block.timestamp ? boardOpenAt = block.timestamp : boardOpenAt = _boardOpenAt;
+        _opensAt < block.timestamp ? opensAt = block.timestamp : opensAt = _opensAt;
     }
 
     /// @inheritdoc ISignals
-    function setBoardClosedAt(uint256 _boardClosedAt) external boardMustBeOpen onlyOwner {
-        if (_boardClosedAt < block.timestamp || _boardClosedAt < boardOpenAt) {
+    function setClosesAt(uint256 _closesAt) external boardMustBeOpen onlyOwner {
+        if (_closesAt < block.timestamp || _closesAt < opensAt) {
             revert ISignals.Signals_InvalidArguments();
         }
-        boardClosedAt = _boardClosedAt;
+        closesAt = _closesAt;
     }
 
     function closeBoard() external boardMustBeOpen onlyOwner {
-        boardClosedAt = block.timestamp;
+        closesAt = block.timestamp;
         emit BoardClosed(msg.sender);
     }
 
     function cancelBoard() external boardMustBeOpen onlyOwner {
-        boardClosedAt = block.timestamp;
+        closesAt = block.timestamp;
         boardCancelled = true;
         emit BoardCancelled(msg.sender);
     }
@@ -792,10 +792,10 @@ contract Signals is
     }
 
     function isBoardOpen() public view returns (bool) {
-        return block.timestamp >= boardOpenAt && block.timestamp < boardClosedAt;
+        return block.timestamp >= opensAt && block.timestamp < closesAt;
     }
 
     function isBoardClosed() public view returns (bool) {
-        return block.timestamp >= boardClosedAt;
+        return block.timestamp >= closesAt;
     }
 }

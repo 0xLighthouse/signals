@@ -35,7 +35,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         signals.proposeInitiative(_metadata(1));
         vm.stopPrank();
 
-        signals.setBoardOpenAt(block.timestamp);
+        signals.setOpensAt(block.timestamp);
         vm.prank(_alice);
         signals.proposeInitiative(_metadata(1));
     }
@@ -185,7 +185,7 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         assertTrue(signals.boardCancelled(), "Board should be marked as cancelled");
         assertFalse(signals.isBoardOpen(), "Board should not be open after cancellation");
         assertTrue(signals.isBoardClosed(), "Board should be closed after cancellation");
-        assertEq(signals.boardClosedAt(), timeBeforeCancel, "boardClosedAt should be set to cancellation time");
+        assertEq(signals.closesAt(), timeBeforeCancel, "closesAt should be set to cancellation time");
     }
 
     /// Test that proposals are blocked after board cancellation
@@ -326,8 +326,8 @@ contract SignalsBoardOpenTimeTest is Test, SignalsHarness {
         returns (Signals)
     {
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = openTime;
-        config.boardClosedAt = closeTime;
+        config.opensAt = openTime;
+        config.closesAt = closeTime;
         Signals newSignals = new Signals();
         newSignals.initialize(config);
 

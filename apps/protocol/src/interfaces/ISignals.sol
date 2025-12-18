@@ -33,10 +33,10 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     /**
      * @notice All configuration parameters for initializing the Signals contract
      *
-     * @param owner The address which will own the contract
-     * @param underlyingToken The address of the underlying ERC20 token
      * @param version The version of the Signals contract
+     * @param owner The address which will own the contract
      * @param acceptanceCriteria Criteria for accepting initiatives (permissions and thresholds)
+     * @param underlyingToken The address of the underlying ERC20 token
      * @param maxLockIntervals Maximum lock intervals allowed
      * @param lockInterval Time interval for lockup duration and decay calculations
      * @param decayCurveType Which decay curve to use (e.g., 0 = linear, 1 = exponential)
@@ -44,25 +44,25 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
      * @param proposerRequirements Requirements for who can propose (immutable)
      * @param supporterRequirements Requirements for who can support initiatives (immutable)
      * @param releaseLockDuration Duration tokens remain locked after acceptance (in seconds)
-     * @param boardOpenAt Timestamp when board opens for participation (0 = doesn't open until updated)
-     * @param boardClosedAt Timestamp when board closes for participation (0 = never closes)
+     * @param opensAt Timestamp when board opens for participation (0 = doesn't open until updated)
+     * @param closesAt Timestamp when board closes for participation (0 = never closes)
      */
     struct BoardConfig {
         string version;
         Metadata boardMetadata;
+        AcceptanceCriteria acceptanceCriteria;
+        IAuthorizer.ParticipantRequirements proposerRequirements;
+        IAuthorizer.ParticipantRequirements supporterRequirements;
         address owner;
         address underlyingToken;
-        AcceptanceCriteria acceptanceCriteria;
         uint256 maxLockIntervals;
         uint256 lockInterval;
         uint256 decayCurveType;
         uint256[] decayCurveParameters;
         uint256 inactivityTimeout;
-        IAuthorizer.ParticipantRequirements proposerRequirements;
-        IAuthorizer.ParticipantRequirements supporterRequirements;
         uint256 releaseLockDuration;
-        uint256 boardOpenAt;
-        uint256 boardClosedAt;
+        uint256 opensAt;
+        uint256 closesAt;
     }
 
     /**
@@ -251,8 +251,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     function lockCount() external view returns (uint256);
     function initiativeCount() external view returns (uint256);
     function releaseLockDuration() external view returns (uint256);
-    function boardOpenAt() external view returns (uint256);
-    function boardClosedAt() external view returns (uint256);
+    function opensAt() external view returns (uint256);
+    function closesAt() external view returns (uint256);
 
     // Public functions
     function initialize(BoardConfig calldata config) external;
@@ -284,8 +284,8 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         external;
     function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
         external;
-    function setBoardOpenAt(uint256 _boardOpenAt) external;
-    function setBoardClosedAt(uint256 _boardClosedAt) external;
+    function setOpensAt(uint256 _opensAt) external;
+    function setClosesAt(uint256 _closesAt) external;
     function isBoardOpen() external view returns (bool);
     function isBoardClosed() external view returns (bool);
 }

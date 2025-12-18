@@ -12,7 +12,7 @@ Complete technical reference for configuring and deploying the IncentivesPool sy
 1. Deploy `IncentivesPool` with the reward token address.
 2. Fund the pool via `addFundsToPool`.
 3. Approve each board with a budget and per-initiative cap.
-4. Link the pool to the board via `setIncentivesPool` **before** `boardOpenAt`.
+4. Link the pool to the board via `setIncentivesPool` **before** `opensAt`.
 
 ## IncentivesConfig Structure
 
@@ -73,7 +73,7 @@ function setIncentivesPool(
 ) external onlyOwner
 ```
 
-**Critical:** Must be called before `boardOpenAt`.
+**Critical:** Must be called before `opensAt`.
 
 ## Incentive Weighting (Bucket Model)
 
@@ -138,7 +138,7 @@ event RewardsClaimed(
 | `IncentivesPool_InsufficientFunds` | Budget exceeds available rewards | Fund the pool or reduce budgets |
 | `IncentivesPool_BoardAlreadyApproved` | Board already approved | Use `revokeBoard` then re-approve if needed |
 | `IncentivesPool_NotApprovedBoard` | Unauthorized board call | Approve the board first |
-| `Signals_IncorrectBoardState` | Pool set after board opens | Call `setIncentivesPool` before `boardOpenAt` |
+| `Signals_IncorrectBoardState` | Pool set after board opens | Call `setIncentivesPool` before `opensAt` |
 | `Signals_IncentivesPoolAlreadySet` | Pool already configured | Pool can be set only once |
 | `Signals_IncentivesPoolNotApproved` | Pool has not approved the board | Call `approveBoard` on the pool |
 | `Signals_InvalidArguments` | Invalid incentives config parameters | Use 2-24 values for linear curve |

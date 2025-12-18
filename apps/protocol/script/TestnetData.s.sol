@@ -77,7 +77,7 @@ contract SeedInitiativesScript is SharedScriptBase {
     }
 
     function _ensureBoardOpen() internal {
-        uint256 openAt = board.boardOpenAt();
+        uint256 openAt = board.opensAt();
         if (openAt > block.timestamp) {
             console.log("Warping chain to open board at:", openAt);
             vm.warp(openAt + 1);

@@ -48,7 +48,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test pool initialization can still happen after any board opens (1:M design)
     function test_IncentivesPool_InitializeAfterBoardOpens_Succeeds() public {
-        // Board is already open (setUp uses defaultConfig with boardOpenAt = 1)
+        // Board is already open (setUp uses defaultConfig with opensAt = 1)
         assertTrue(signals.isBoardOpen());
 
         // Deploy and fund pool using harness helper (uses _usdc as reward token)
@@ -66,7 +66,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     function test_SetIncentivesPool_BeforeOpen_Succeeds() public {
         // Deploy board that hasn't opened yet
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = block.timestamp + 1 hours;
+        config.opensAt = block.timestamp + 1 hours;
         signals = deploySignals(config);
 
         // Deploy and fund pool using harness helper (uses _usdc as reward token)
@@ -98,7 +98,7 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
 
     /// Test setting incentives pool after board opens, which should revert as it is not allowed
     function test_SetIncentivesPool_AfterOpen_Reverts() public {
-        // Board is already open (setUp uses defaultConfig with boardOpenAt = 1)
+        // Board is already open (setUp uses defaultConfig with opensAt = 1)
         assertTrue(signals.isBoardOpen());
 
         // Deploy and fund pool using harness helper (uses _usdc as reward token)
@@ -134,11 +134,11 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     function test_IncentivesPool_SingleSupporter() public {
         // Deploy board with incentives pool using harness helpers (uses _usdc as reward token)
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = block.timestamp + 1; // Delay board open to allow pool setup
+        config.opensAt = block.timestamp + 1; // Delay board open to allow pool setup
         (signals, incentivesPool) = deploySignalsWithIncentivesPool(config);
 
         // Warp to board open time
-        vm.warp(config.boardOpenAt);
+        vm.warp(config.opensAt);
 
         // Alice proposes initiative without lock (no support)
         vm.prank(_alice);
@@ -204,11 +204,11 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     function test_IncentivesPool_MultipleSupporter() public {
         // Deploy board with incentives pool
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = block.timestamp + 1;
+        config.opensAt = block.timestamp + 1;
         (signals, incentivesPool) = deploySignalsWithIncentivesPool(config);
 
         // Warp to board open time
-        vm.warp(config.boardOpenAt);
+        vm.warp(config.opensAt);
 
         // Alice proposes initiative with lock
         vm.startPrank(_alice);
@@ -300,12 +300,12 @@ contract SignalsBoardIncentivesTest is Test, SignalsHarness {
     function test_IncentivesPool_Depleted_NonBlocking() public {
         // Deploy board with SMALL pool budget to easily deplete it
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = block.timestamp + 1;
+        config.opensAt = block.timestamp + 1;
 
         // Deploy signals and pool with small budget (100 USDC) and small max reward (50 USDC)
         (signals, incentivesPool) = deploySignalsWithIncentivesPool(config, 100 * 1e6, 50 * 1e6);
 
-        vm.warp(config.boardOpenAt);
+        vm.warp(config.opensAt);
 
         // === FIRST INITIATIVE - Depletes the pool ===
 

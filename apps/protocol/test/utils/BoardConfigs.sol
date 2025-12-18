@@ -45,8 +45,8 @@ library BoardConfigs {
                 minLockAmount: 0
             }),
             releaseLockDuration: 0,
-            boardOpenAt: boardOpenAt_,
-            boardClosedAt: 0
+            opensAt: boardOpenAt_,
+            closesAt: 0
         });
     }
 
@@ -86,8 +86,8 @@ library BoardConfigs {
                 minLockAmount: 0
             }),
             releaseLockDuration: 0,
-            boardOpenAt: boardOpenAt_,
-            boardClosedAt: 0
+            opensAt: boardOpenAt_,
+            closesAt: 0
         });
     }
 }

@@ -53,8 +53,8 @@ struct BoardConfig {
     ParticipantRequirements proposerRequirements;      // Who can propose
     ParticipantRequirements supporterRequirements;     // Who can support
     uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 boardOpenAt;                              // Unix timestamp for opening
-    uint256 boardClosedAt;                            // Unix timestamp for closing
+    uint256 opensAt;                              // Unix timestamp for opening
+    uint256 closesAt;                            // Unix timestamp for closing
 }
 ```
 
@@ -78,7 +78,7 @@ Choose `AcceptanceCriteria` values based on whether acceptance should be owner-g
 1. Deploy (or reuse) a `SignalsFactory`.
 2. Build a `BoardConfig` with metadata, token, criteria, and timing.
 3. Call `create(config)` to deploy the board.
-4. Optionally link an incentives pool **before** `boardOpenAt`.
+4. Optionally link an incentives pool **before** `opensAt`.
 
 ## Post-Deployment Configuration
 
@@ -92,8 +92,8 @@ board.setAcceptanceCriteria(newCriteria)
 board.setDecayCurve(curveType, parameters)
 
 // Update board timing
-board.setBoardOpenAt(newOpenTime)
-board.setBoardClosedAt(newCloseTime)
+board.setOpensAt(newOpenTime)
+board.setClosesAt(newCloseTime)
 
 // Set incentives (only before board opens)
 board.setIncentivesPool(poolAddress, config)

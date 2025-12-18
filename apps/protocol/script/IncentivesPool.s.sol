@@ -192,7 +192,7 @@ contract IncentivesPoolScript is SharedScriptBase {
         Signals board = Signals(boardAddress);
 
         vm.startBroadcast(deployerPrivateKey);
-        board.setBoardOpenAt(block.timestamp);
+        board.setOpensAt(block.timestamp);
         vm.stopBroadcast();
     }
 }

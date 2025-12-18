@@ -14,7 +14,7 @@ A board is initialized with immutable parameters:
   \item \textbf{Eligibility}: Proposer and supporter requirements: \texttt{None}, \texttt{MinBalance}, or \texttt{MinBalanceAndDuration} (uses ERC20Votes checkpoints). Optional \texttt{minLockAmount}.
   \item \textbf{Inactivity Timeout}: Time after last activity when an initiative can be expired by the owner.
   \item \textbf{Release Timelock}: Optional delay before early redemption after acceptance.
-  \item \textbf{Board Open/Closed}: \texttt{boardOpenAt} and \texttt{boardClosedAt} gate propose/support. Owner can also \emph{close} or \emph{cancel} a board (cancellation unlocks all locks for redemption).
+  \item \textbf{Board Open/Closed}: \texttt{opensAt} and \texttt{closesAt} gate propose/support. Owner can also \emph{close} or \emph{cancel} a board (cancellation unlocks all locks for redemption).
 \end{itemize}
 Metadata for the board (and for initiatives) includes a title, body, and up to five attachments with non-empty URIs.
 

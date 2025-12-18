@@ -111,7 +111,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
     function test_Redeem_EarlyRedemptionExcludedFromIncentives() public {
         // Deploy board with incentives pool
         ISignals.BoardConfig memory config = defaultConfig;
-        config.boardOpenAt = block.timestamp + 1;
+        config.opensAt = block.timestamp + 1;
         (Signals customSignals,) = deploySignalsWithIncentivesPool(config);
 
         // Deal tokens to test users
@@ -127,7 +127,7 @@ contract SignalsRedemptionTest is Test, SignalsHarness {
         _tokenERC20.mint(_charlie, supportAmount);
 
         // Warp to board open time
-        vm.warp(config.boardOpenAt);
+        vm.warp(config.opensAt);
 
         uint256 lockDuration = 10;
 

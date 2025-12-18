@@ -18,7 +18,7 @@ Incentives are board-wide reward pools funded by a DAO or board owner. They comp
 
 - A DAO deploys and funds an `IncentivesPool`.
 - The pool owner approves boards with a budget and per-initiative cap.
-- The board owner calls `setIncentivesPool` **before** `boardOpenAt`.
+- The board owner calls `setIncentivesPool` **before** `opensAt`.
 - When supporters lock tokens, Signals credits the pool using time buckets.
 - When supporters redeem after acceptance, rewards are claimed automatically.
 
@@ -26,7 +26,7 @@ Incentives are board-wide reward pools funded by a DAO or board owner. They comp
 
 Incentives use a bucketed time-weighted model:
 
-- Lock credits are grouped into time buckets starting from `boardOpenAt`.
+- Lock credits are grouped into time buckets starting from `opensAt`.
 - `incentiveParametersWAD` defines a curve that is interpolated into bucket multipliers.
 - Earlier buckets receive higher multipliers, so early supporters earn more.
 

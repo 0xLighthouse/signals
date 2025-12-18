@@ -24,8 +24,8 @@ struct BoardConfig {
     ParticipantRequirements proposerRequirements;      // Who can propose
     ParticipantRequirements supporterRequirements;     // Who can support
     uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 boardOpenAt;                              // Unix timestamp for opening
-    uint256 boardClosedAt;                            // Unix timestamp for closing (0 = never)
+    uint256 opensAt;                              // Unix timestamp for opening
+    uint256 closesAt;                            // Unix timestamp for closing (0 = never)
 }
 ```
 
@@ -143,16 +143,16 @@ threshold = max(
 - **Redemption Logic:** Tokens can be redeemed when `acceptanceTimestamp + releaseLockDuration <= block.timestamp` or once the supporter's lockup duration is completed
 - **Override:** Board cancellation or initiative expiration bypasses this timelock, allowing immediate redemption regardless of the configured duration
 
-### boardOpenAt
+### opensAt
 
 - **Type:** `uint256` (Unix timestamp)
 - **Purpose:** Fair launch mechanism - board doesn't accept proposals until this time
 - **Values:**
-  - `0` - Board stays closed until explicitly opened via `setBoardOpenAt`
+  - `0` - Board stays closed until explicitly opened via `setOpensAt`
   - `block.timestamp + 1 hours` - Opens 1 hour from deployment
   - Specific timestamp for scheduled launch
 
-### boardClosedAt
+### closesAt
 
 - **Type:** `uint256` (Unix timestamp)
 - **Purpose:** Timestamp when the board closes for new activity
@@ -171,4 +171,4 @@ threshold = max(
 | `Signals_InvalidArguments` | Max intervals is 0 | Set max intervals > 0 |
 | `Signals_InvalidArguments` | Lock interval is 0 | Set lock interval > 0 |
 | `Signals_InvalidArguments` | Invalid decay curve type | Use type 0 or 1 |
-| `Signals_InvalidArguments` | boardClosedAt < boardOpenAt | Ensure close time is after open time |
+| `Signals_InvalidArguments` | closesAt < opensAt | Ensure close time is after open time |

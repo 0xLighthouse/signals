@@ -22,7 +22,7 @@ Before adding incentives:
 
 1. **Deploy your Signals board** via SignalsFactory
 2. **Have reward tokens** ready (typically DAO governance token)
-3. **Plan to link incentives before the board opens** - you cannot set the pool after `boardOpenAt`
+3. **Plan to link incentives before the board opens** - you cannot set the pool after `opensAt`
 
 ## Setup Workflow
 
@@ -51,7 +51,7 @@ The pool must explicitly approve which boards can use it. This is a security fea
 
 Finally, connect the pool to your board using `setIncentivesPool()`.
 
-**Critical timing:** This must be called before the `boardOpenAt` timestamp. Once the board opens, you cannot change the incentives pool.
+**Critical timing:** This must be called before the `opensAt` timestamp. Once the board opens, you cannot change the incentives pool.
 
 For detailed code examples and function signatures, see the [Incentives Configuration Reference](/reference/incentives-configuration).
 
@@ -59,7 +59,7 @@ For detailed code examples and function signatures, see the [Incentives Configur
 
 ### Decay Curve: How Early Support is Rewarded
 
-The incentive curve determines how early supporter bonuses are calculated. Parameters are interpolated across time buckets from `boardOpenAt` to acceptance.
+The incentive curve determines how early supporter bonuses are calculated. Parameters are interpolated across time buckets from `opensAt` to acceptance.
 
 #### Linear Decay (Type 0)
 
@@ -135,7 +135,7 @@ See [Bounties vs. Incentives](/rewards-and-incentives/bounties-vs-incentives) fo
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Cannot set pool | Board already opened | Must set before `boardOpenAt` |
+| Cannot set pool | Board already opened | Must set before `opensAt` |
 | Cannot enable incentives | Board created with `enabled: false` | Cannot add to existing board |
 | Pool not approved | Forgot to call `approveBoard()` | Approve the board in the pool |
 | Insufficient balance | Not enough tokens | Approve more tokens before initialization |
