@@ -22,7 +22,7 @@ pool.initializePool(
 )
 
 // 3. Approve board
-pool.approveBoard(address(signalsBoard))
+pool.approveBoard(address(signalsBoard), 100_000e18, 10_000e18)
 
 // 4. Link to board (BEFORE board opens) with config
 IncentivesConfig memory config = IncentivesConfig({
@@ -147,55 +147,66 @@ signalsBoard.setIncentivesPool(address(pool), config)
 
 ```solidity
 // 1. Deploy board
-ISignalsFactory.FactoryDeployment memory config = ISignalsFactory.FactoryDeployment({
+ISignals.BoardConfig memory config = ISignals.BoardConfig({
+    version: "1.0.0",
+    boardMetadata: ISignals.Metadata({
+        title: "Incentivized Board",
+        body: "Board with supporter rewards",
+        attachments: new ISignals.Attachment[](0)
+    }),
     owner: daoMultisig,
     underlyingToken: governanceToken,
-    acceptanceThreshold: 500_000 * 1e18,
+    acceptanceCriteria: ISignals.AcceptanceCriteria({
+        permissions: ISignals.AcceptancePermissions.OnlyOwner,
+        thresholdOverride: ISignals.ThresholdOverride.OnlyOwner,
+        thresholdPercentTotalSupplyWAD: 0,
+        minThreshold: 500_000 * 1e18
+    }),
     maxLockIntervals: 365,
-    proposalCap: 20,
     lockInterval: 1 days,
     decayCurveType: 0,
-    decayCurveParameters: [uint256(9e17)],
-    proposerRequirements: ProposerRequirements({
-        eligibilityType: EligibilityType.None,
-        minBalance: 0,
+    decayCurveParameters: new uint256[](1),
+    inactivityTimeout: 60 days,
+    proposerRequirements: IAuthorizer.ParticipantRequirements({
+        minBalance: 50_000 * 1e18,
         minHoldingDuration: 0,
-        threshold: 50_000 * 1e18
+        minLockAmount: 0
     }),
-    participantRequirements: ParticipantRequirements({
+    supporterRequirements: IAuthorizer.ParticipantRequirements({
         minBalance: 0,
         minHoldingDuration: 0,
         minLockAmount: 0
     }),
     releaseLockDuration: 0,
-    boardOpenAt: block.timestamp + 1 days  // Opens in 1 day
-})
+    boardOpenAt: block.timestamp + 1 days,  // Opens in 1 day
+    boardClosedAt: 0
+});
 
-address boardAddress = factory.create(config)
-Signals signalsBoard = Signals(boardAddress)
+address boardAddress = factory.create(config);
+Signals signalsBoard = Signals(boardAddress);
 
 // 2. Deploy IncentivesPool
-IncentivesPool pool = new IncentivesPool()
+IncentivesPool pool = new IncentivesPool();
 
 // 3. Initialize pool with 1M tokens
-IERC20 daoToken = IERC20(daoTokenAddress)
-daoToken.approve(address(pool), 1_000_000 * 1e18)
+IERC20 daoToken = IERC20(daoTokenAddress);
+daoToken.approve(address(pool), 1_000_000 * 1e18);
 
 pool.initializePool(
     address(daoToken),
     1_000_000 * 1e18,    // 1M total
     10_000 * 1e18        // 10k max per initiative
-)
+);
 
 // 4. Approve board with budget
-pool.approveBoard(address(signalsBoard), 100_000 * 1e18, 10_000 * 1e18)
+pool.approveBoard(address(signalsBoard), 100_000 * 1e18, 10_000 * 1e18);
 
 // 5. Link to board (before it opens!)
 IncentivesConfig memory incentivesConfig = IncentivesConfig({
     incentiveType: IncentiveType.Linear,
     incentiveParametersWAD: [uint256(0.12e18)]
 });
-signalsBoard.setIncentivesPool(address(pool), incentivesConfig)
+signalsBoard.setIncentivesPool(address(pool), incentivesConfig);
 ```
 
 ## Time-Weighted Calculation
@@ -264,49 +275,28 @@ supporterReward = (supporterWeight / totalWeightAllSupporters) * poolAllocation
 
 ## Distribution Mechanics
 
-### Automatic Calculation on Acceptance
+### Automatic Calculation on Lock
 
 ```solidity
-// Called automatically in Signals.acceptInitiative()
+// Called automatically when supporter locks tokens
 if (address(incentivesPool) != address(0)) {
-    // Rewards are tracked internally by the board using Incentivizer mixin
-    // Pool is notified when rewards are ready to be claimed
+    uint256 weight = _calculateLockWeightAt(_locks[lockCount], block.timestamp);
+    incentivesPool.addIncentivesCreditForLock(initiativeId, lockCount, uint128(weight));
 }
 ```
 
-### Claim Rewards Function
+### Claim Rewards on Redemption
 
 ```solidity
-function claimRewards(
-    uint256 _initiativeId,
-    address _payee,
-    uint256 _percentOfInitiativeRewards
-) external onlyApprovedBoard
-```
-
-**Requirements:**
-- Only callable by approved boards
-- Board must have remaining budget
-- Percent must be valid (0-100% in WAD format)
-
-**Process:**
-1. Board calculates reward percentage using bucket-based system
-2. Board calls pool to transfer tokens
-3. Pool deducts from board's remaining budget
-4. Tokens transferred directly to supporter
-
-### Automatic Claiming on Redemption
-
-```solidity
-// Inside Signals.redeem()
-if (address(incentivesPool) != address(0) &&
-    initiative.state == InitiativeState.Accepted) {
-    // Board calculates supporter's reward percentage
-    uint256 rewardPercent = _calculateRewardPercentage(lock.initiativeId, msg.sender);
-
-    if (rewardPercent > 0) {
-        // Board calls pool to pay rewards
-        _payIncentiveReward(lock.initiativeId, msg.sender, rewardPercent);
+// Inside Signals.redeemLocksForInitiative()
+if (address(incentivesPool) != address(0)) {
+    if (releaseTimelockPassed) {
+        incentivesPool.claimIncentivesForLocks(
+            initiativeId, lockIds, msg.sender, _incentivesConfig
+        );
+    } else {
+        // Remove credits if redeeming before acceptance
+        incentivesPool.removeIncentivesCreditForLocks(initiativeId, lockIds);
     }
 }
 ```
@@ -323,20 +313,10 @@ function poolInfo() external view returns (
 )
 ```
 
-**Example:**
-```solidity
-(address token, uint256 total, uint256 maxPerInit) = pool.poolInfo()
-```
-
 ### Check Board Approval
 
 ```solidity
 function approvedBoards(address _board) external view returns (bool)
-```
-
-**Example:**
-```solidity
-bool isApproved = pool.approvedBoards(address(signalsBoard))
 ```
 
 ### Get Board Budget Info
@@ -346,98 +326,12 @@ function totalRewardPerInitiative(address board) external view returns (uint256)
 function boardRemainingBudget(address board) external view returns (uint256)
 ```
 
-Returns budget information for a specific board.
-
-**Example:**
-```solidity
-uint256 maxPerInit = pool.totalRewardPerInitiative(address(signalsBoard));
-uint256 remaining = pool.boardRemainingBudget(address(signalsBoard));
-```
-
-### Check Board Approval
-
-```solidity
-function approvedBoards(address board) external view returns (bool)
-```
-
-**Example:**
-```solidity
-bool isApproved = pool.approvedBoards(address(signalsBoard));
-```
-
 ### Get Pool Stats
 
 ```solidity
 function availableRewards() external view returns (uint256)
 function totalBoardBudgets() external view returns (uint256)
 function distributedRewards() external view returns (uint256)
-```
-
-**Example:**
-```solidity
-uint256 available = pool.availableRewards();
-uint256 totalBudgets = pool.totalBoardBudgets();
-uint256 distributed = pool.distributedRewards();
-```
-
-## Claiming Functions
-
-### Claim Rewards
-
-```solidity
-function claimRewards(
-    address _board,
-    uint256 _initiativeId,
-    address _supporter
-) external returns (uint256)
-```
-
-Claims rewards for a supporter. Usually called automatically by the Signals contract during redemption.
-
-**Requirements:**
-- Distribution must be calculated
-- Supporter must have unclaimed rewards
-- Idempotent (safe to call multiple times)
-
-### Manual Claim
-
-```solidity
-// If needed, supporters can manually claim
-uint256 amount = pool.claimRewards(
-    address(signalsBoard),
-    initiativeId,
-    msg.sender
-)
-```
-
-## Pool Balance Monitoring
-
-### Check Remaining Balance
-
-```solidity
-// Get reward token
-(address token, , ) = pool.poolInfo()
-
-// Check remaining balance
-uint256 remaining = IERC20(token).balanceOf(address(pool))
-
-// Calculate available initiatives
-uint256 remainingInitiatives = remaining / maxRewardPerInitiative
-```
-
-### Monitor Pool Statistics
-
-```typescript
-// TypeScript example
-const poolInfo = await pool.read.poolInfo()
-const [rewardToken, totalRewards, maxPerInit] = poolInfo
-
-const remaining = await rewardToken.read.balanceOf([poolAddress])
-const usedRewards = totalRewards - remaining
-const percentUsed = (usedRewards / totalRewards) * 100
-
-console.log(`Pool ${percentUsed}% depleted`)
-console.log(`Rewards for ~${remaining / maxPerInit} more initiatives`)
 ```
 
 ## Events
@@ -458,17 +352,6 @@ event PoolInitialized(
 event BoardApproved(address indexed board)
 ```
 
-### IncentivesCalculated
-
-```solidity
-event IncentivesCalculated(
-    address indexed board,
-    uint256 indexed initiativeId,
-    uint256 totalRewards,
-    uint256 totalWeight
-)
-```
-
 ### RewardsClaimed
 
 ```solidity
@@ -487,11 +370,9 @@ event RewardsClaimed(
 | `IncentivesPool_PoolAlreadyInitialized` | Pool already initialized | Deploy new pool |
 | `IncentivesPool_BoardNotApproved` | Board not approved | Call `approveBoard()` |
 | `IncentivesPool_InsufficientBalance` | Not enough tokens approved | Approve more tokens |
-| `IncentivesPool_DistributionAlreadyCalculated` | Initiative already processed | Cannot recalculate |
-| `IncentivesPool_DistributionNotCalculated` | Trying to claim before calculation | Wait for acceptance |
-| `IncentivesPool_NoRewardsToClaim` | Supporter has no rewards or already claimed | Check `getSupporterRewards()` |
-| `Signals_BoardAlreadyOpened` | Trying to set pool after opening | Must set before `boardOpensAt` |
-| `Signals_IncentivesNotEnabled` | Board created without incentives | Cannot add to existing board |
+| `Signals_IncorrectBoardState` | Trying to set pool after opening | Must set before `boardOpenAt` |
+| `Signals_IncentivesPoolAlreadySet` | Pool already configured | Cannot change pool once set |
+| `Signals_IncentivesPoolNotApproved` | Pool hasn't approved this board | Call pool's `approveBoard()` |
 
 ## Frontend Integration
 
@@ -514,68 +395,6 @@ if (hasIncentives) {
 }
 ```
 
-### Display Supporter Rewards
-
-```typescript
-// For a specific initiative
-const supporters = await signalsBoard.read.getSupporters([initiativeId])
-
-for (const supporter of supporters) {
-  const rewards = await pool.read.getSupporterRewards([
-    signalsBoard.address,
-    initiativeId,
-    supporter
-  ])
-
-  const claimed = await pool.read.claimedRewards([
-    signalsBoard.address,
-    initiativeId,
-    supporter
-  ])
-
-  console.log(`${supporter}:`)
-  console.log(`  Allocated: ${formatEther(rewards)}`)
-  console.log(`  Claimed: ${formatEther(claimed)}`)
-  console.log(`  Pending: ${formatEther(rewards - claimed)}`)
-}
-```
-
-### Calculate Projected Rewards
-
-```typescript
-// Before acceptance, project rewards based on current time
-async function projectRewards(
-  initiativeId: bigint,
-  supporter: address,
-  decayRate: bigint // e.g., 0.12e18
-) {
-  const boardOpensAt = await signalsBoard.read.boardOpensAt()
-  const now = BigInt(Date.now() / 1000)
-
-  // Get supporter's locks
-  const locks = await signalsBoard.read.getLocksForSupporter([supporter])
-
-  // Calculate time-weighted sum
-  let totalWeight = 0n
-
-  for (const tokenId of locks) {
-    const lock = await signalsBoard.read.getTokenLock([tokenId])
-
-    if (lock.initiativeId === initiativeId) {
-      const t = (lock.created - boardOpensAt) / (now - boardOpensAt)
-      const weight = lock.tokenAmount * (1e18 - decayRate * t) / 1e18
-      totalWeight += weight
-    }
-  }
-
-  // Get pool allocation (max per initiative)
-  const [, , maxPerInit] = await pool.read.poolInfo()
-
-  // Project share (simplified - doesn't account for other supporters)
-  return totalWeight // Actual calculation requires all supporters' weights
-}
-```
-
 ## Advanced: Multi-Board Configuration
 
 ### Shared Pool Across Multiple Boards
@@ -590,14 +409,13 @@ sharedPool.initializePool(
     10_000e18       // 10k max per initiative
 )
 
-// Approve multiple boards
-sharedPool.approveBoard(address(board1))
-sharedPool.approveBoard(address(board2))
-sharedPool.approveBoard(address(board3))
+// Approve multiple boards with individual budgets
+sharedPool.approveBoard(address(board1), 1_000_000e18, 10_000e18)
+sharedPool.approveBoard(address(board2), 500_000e18, 5_000e18)
+sharedPool.approveBoard(address(board3), 250_000e18, 2_500e18)
 
 // Each board uses same pool
-board1.setIncentivesPool(address(sharedPool))
-board2.setIncentivesPool(address(sharedPool))
-board3.setIncentivesPool(address(sharedPool))
+board1.setIncentivesPool(address(sharedPool), config)
+board2.setIncentivesPool(address(sharedPool), config)
+board3.setIncentivesPool(address(sharedPool), config)
 ```
-

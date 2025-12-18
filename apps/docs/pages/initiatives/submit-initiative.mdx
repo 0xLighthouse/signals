@@ -22,7 +22,7 @@ Before submitting an initiative, ensure:
 - You meet the board's proposer requirements
 - You have sufficient token balance and approval (if locking tokens)
 
-You can check if you're eligible to propose using the `canPropose(address)` view function.
+You can check if you're eligible to propose using the `accountCanPropose(address, lockAmount)` view function.
 
 ## Creating an Initiative
 
@@ -60,18 +60,17 @@ Boards can configure three types of proposer requirements:
 
 ### 1. None (Most Permissive)
 
-Anyone can propose if they have enough tokens to meet the threshold. When proposing with lock, those tokens get locked.
+Anyone can propose. When proposing with lock, those tokens get locked.
 
 ### 2. Minimum Balance
 
-Proposers must hold a minimum balance **plus** the threshold amount. This prevents low-balance accounts from creating proposals.
+Proposers must hold a minimum balance. This prevents low-balance accounts from creating proposals.
 
 ### 3. Minimum Balance and Duration (Most Restrictive)
 
 Proposers must:
 - Currently hold ≥ `minBalance` tokens
 - Have held ≥ `minBalance` for ≥ `minHoldingDuration` blocks
-- Have ≥ `threshold` tokens to lock
 - Use a token that supports ERC20Votes (checkpoint functionality)
 
 This ensures only committed token holders can create proposals.
@@ -84,10 +83,8 @@ When locking tokens (using `proposeInitiativeWithLock`), you must first approve 
 
 Once created, your initiative starts in the **Proposed** state and can transition to:
 
-- **Accepted** - Board owner accepted the initiative
+- **Accepted** - Approved via `acceptInitiative` (based on acceptance criteria)
 - **Expired** - No activity for more than the inactivity timeout (default 60 days)
-
-Note: The Cancelled state is reserved for future use and not currently implemented.
 
 ## Weight and Decay
 
@@ -95,22 +92,24 @@ When tokens are locked in support of an initiative, they contribute **weight** t
 
 - Initial weight is based on the locked amount and duration
 - Weight decays according to the board's decay curve (Linear or Exponential)
-- Weight becomes 0 after the lock duration passes
-- An initiative is typically accepted when its weight reaches the acceptance threshold
+- Weight has a floor at the nominal lock amount until the lock expires
+- An initiative can be accepted when its weight reaches the acceptance threshold
 
-The board owner has discretion to accept initiatives regardless of whether they've reached the threshold.
+The acceptance threshold is calculated as:
+```solidity
+threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
+```
 
 ## Board Configuration Impact
 
 These board parameters affect initiative creation:
 
-- `proposalCap` - Maximum active proposals per user
-- `acceptanceThreshold` - Weight needed for typical acceptance
+- `acceptanceCriteria` - Who can accept and threshold requirements
 - `maxLockIntervals` - Maximum lock duration allowed
 - `lockInterval` - Duration of one interval
 - `proposerRequirements` - Eligibility criteria for proposers
 - `boardOpenAt` - Timestamp when board opens for proposals
-- `activityTimeout` - Inactivity period before expiration
+- `inactivityTimeout` - Inactivity period before expiration
 
 ## Best Practices
 
@@ -129,8 +128,8 @@ These board parameters affect initiative creation:
 
 ### Eligibility
 
-1. **Check requirements first** - Use `canPropose()` before attempting to create
-2. **Ensure sufficient balance** - Account for both threshold and minimum balance requirements
+1. **Check requirements first** - Use `accountCanPropose()` before attempting to create
+2. **Ensure sufficient balance** - Account for minimum balance requirements
 3. **Hold tokens long enough** - For duration-based requirements, wait before proposing
 
 ---

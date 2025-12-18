@@ -8,7 +8,7 @@ weight: 4
 ## Function Signature
 
 ```solidity
-function acceptInitiative(uint256 initiativeId) external payable onlyOwner
+function acceptInitiative(uint256 initiativeId) external payable
 ```
 
 ### Parameters
@@ -19,17 +19,52 @@ function acceptInitiative(uint256 initiativeId) external payable onlyOwner
 
 ## Access Control
 
-**Owner-only function** - Only the board owner can accept initiatives.
+Access control is determined by the board's `AcceptanceCriteria` configuration:
+
+```solidity
+enum AcceptancePermissions {
+    Permissionless,  // Anyone can accept if threshold is met
+    OnlyOwner        // Only the board owner can accept
+}
+
+enum ThresholdOverride {
+    None,            // Everyone (including owner) must meet threshold
+    OnlyOwner        // Owner can bypass threshold requirement
+}
+```
+
+### Permission Combinations
+
+| permissions | thresholdOverride | Who Can Accept | Threshold Required |
+|-------------|-------------------|----------------|-------------------|
+| `OnlyOwner` | `None` | Owner only | Yes, always |
+| `OnlyOwner` | `OnlyOwner` | Owner only | No (owner bypasses) |
+| `Permissionless` | `None` | Anyone | Yes, always |
+| `Permissionless` | `OnlyOwner` | Anyone | Owner: No, Others: Yes |
 
 ## Pre-conditions
 
 1. **Initiative must exist** - `initiativeId <= initiativeCount`
 2. **Initiative must be in Proposed state** - Cannot accept already Accepted or Expired initiatives
-3. **Caller must be owner** - Access restricted via `onlyOwner` modifier
+3. **Caller must have permission** - Based on `AcceptanceCriteria.permissions`
+4. **Threshold must be met** - Unless caller is owner and `thresholdOverride` is `OnlyOwner`
 
-### Important: No Automatic Threshold Check
+## Threshold Calculation
 
-The function **does not enforce** that the initiative has reached `acceptanceThreshold`. The owner has full discretion to accept initiatives regardless of weight.
+The acceptance threshold is calculated dynamically:
+
+```solidity
+threshold = max(
+    totalSupply * thresholdPercentTotalSupplyWAD / 1e18,
+    minThreshold
+)
+```
+
+Query the current threshold:
+
+```solidity
+uint256 threshold = signals.getAcceptanceThreshold();
+```
 
 ## What Happens When Accepting
 
@@ -37,19 +72,14 @@ When an initiative is accepted:
 
 1. **State changes** to `Accepted` (irreversible)
 2. **Acceptance timestamp** is recorded (`acceptanceTimestamp = block.timestamp`)
-3. **Bounties are automatically distributed** (if configured)
-4. **Incentive rewards are calculated** (if configured)
-5. **Supporters can redeem** their locked tokens (after release timelock)
+3. **Incentive rewards are calculated** (if configured)
+4. **Supporters can redeem** their locked tokens (after release timelock)
 
 ### Automatic Integrations
 
-#### Bounties Distribution
-
-If bounties are configured, they're automatically distributed. Supporters must claim their bounty rewards separately from the Bounties contract.
-
 #### Incentives Calculation
 
-If an incentives pool is configured, rewards are calculated and paid out.
+If an incentives pool is configured, rewards are tracked and become claimable when supporters redeem their locks.
 
 ## Impact on Token Locks
 
@@ -57,11 +87,11 @@ If an incentives pool is configured, rewards are calculated and paid out.
 
 Locked tokens become redeemable based on `releaseLockDuration`:
 
-**Immediate Release:** Supporters can redeem immediately
+**Immediate Release (`releaseLockDuration = 0`):** Supporters can redeem immediately after acceptance.
 
-**Timelocked Release:** Supporters must wait for timelock to pass before redeeming.
+**Timelocked Release:** Supporters must wait for `acceptanceTimestamp + releaseLockDuration` before redeeming.
 
-If the board is closed via `closeBoard()`, the release timelock is bypassed and all locks become immediately redeemable.
+**Board Cancellation:** If the board is cancelled via `cancelBoard()`, all locks become immediately redeemable regardless of release timelock.
 
 ## Events Emitted
 
@@ -73,37 +103,67 @@ event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
 
 | Error | Condition | Solution |
 |-------|-----------|----------|
-| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid ID (1 to initiativeCount) |
-| `Signals_NotProposedState` | Initiative not in Proposed state | Only accept Proposed initiatives |
-| `OwnableUnauthorizedAccount` | Caller is not owner | Must be board owner |
+| `Signals_InvalidID` | Invalid initiative ID | Use valid ID (1 to initiativeCount) |
+| `Signals_IncorrectInitiativeState` | Initiative not in Proposed state | Only accept Proposed initiatives |
+| `OwnableUnauthorizedAccount` | Caller not owner (when OnlyOwner) | Must be board owner |
+| `Signals_InsufficientSupport` | Weight below threshold | Wait for more support or use owner bypass |
 
 ## Integration Examples
 
-### Check and Accept Initiative
+### Check Acceptance Criteria
 
 ```typescript
-// Owner dashboard - check if initiative should be accepted
-async function shouldAccept(initiativeId: bigint) {
+// Get current acceptance criteria
+const criteria = await signals.read.getAcceptanceCriteria()
+
+console.log('Permissions:', criteria.permissions) // 0 = Permissionless, 1 = OnlyOwner
+console.log('Threshold Override:', criteria.thresholdOverride) // 0 = None, 1 = OnlyOwner
+console.log('Percent Threshold (WAD):', criteria.thresholdPercentTotalSupplyWAD)
+console.log('Min Threshold:', criteria.minThreshold)
+```
+
+### Check if Initiative Can Be Accepted
+
+```typescript
+async function canAccept(initiativeId: bigint, caller: address) {
   const initiative = await signals.read.getInitiative([initiativeId])
+  const criteria = await signals.read.getAcceptanceCriteria()
+  const owner = await signals.read.owner()
+  const isOwner = caller.toLowerCase() === owner.toLowerCase()
 
   // Must be proposed
-  if (initiative.state !== 0) return false  // 0 = Proposed
+  if (initiative.state !== 0) return { canAccept: false, reason: 'Not in Proposed state' }
 
-  // Check weight vs threshold
-  const weight = await signals.read.getWeight([initiativeId])
-  const threshold = await signals.read.acceptanceThreshold()
+  // Check permissions
+  if (criteria.permissions === 1 && !isOwner) { // OnlyOwner
+    return { canAccept: false, reason: 'Only owner can accept' }
+  }
 
-  // Owner's discretion
-  return weight >= threshold
+  // Check threshold (unless owner with bypass)
+  if (!(isOwner && criteria.thresholdOverride === 1)) {
+    const weight = await signals.read.getWeight([initiativeId])
+    const threshold = await signals.read.getAcceptanceThreshold()
+
+    if (weight < threshold) {
+      return {
+        canAccept: false,
+        reason: `Insufficient support: ${weight} / ${threshold}`
+      }
+    }
+  }
+
+  return { canAccept: true, reason: 'Ready for acceptance' }
 }
+```
 
-// Accept initiative
+### Accept Initiative
+
+```typescript
 async function accept(initiativeId: bigint) {
   const tx = await signals.write.acceptInitiative([initiativeId])
   await tx.wait()
 
   console.log(`Initiative ${initiativeId} accepted`)
-  notifySupporters(initiativeId)
 }
 ```
 
@@ -113,13 +173,18 @@ async function accept(initiativeId: bigint) {
 // Query functions
 function getInitiative(uint256 initiativeId) external view returns (Initiative memory)
 function getWeight(uint256 initiativeId) external view returns (uint256)
-function acceptanceThreshold() external view returns (uint256)
+function getAcceptanceThreshold() external view returns (uint256)
+function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory)
 function releaseLockDuration() external view returns (uint256)
 
 // Owner functions for managing initiatives
-function acceptInitiative(uint256 initiativeId) external onlyOwner
-function expireInitiative(uint256 initiativeId) external onlyOwner
+function acceptInitiative(uint256 initiativeId) external payable
+function expireInitiative(uint256 initiativeId) external payable
 
-// Emergency action
-function closeBoard() external onlyOwner  // Bypasses all timelocks
+// Owner functions for updating criteria
+function setAcceptanceCriteria(AcceptanceCriteria calldata) external
+
+// Emergency actions
+function closeBoard() external  // Closes board, locks remain timelocked
+function cancelBoard() external // Cancels board, all locks immediately redeemable
 ```

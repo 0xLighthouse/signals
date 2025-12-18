@@ -7,24 +7,109 @@ weight: 1
 
 ## Configuration Structure
 
-The complete configuration is defined in the `FactoryDeployment` struct:
+The complete configuration is defined in the `BoardConfig` struct:
 
 ```solidity
-struct FactoryDeployment {
+struct BoardConfig {
+    string version;
+    Metadata boardMetadata;
     address owner;                                      // Board owner address
     address underlyingToken;                           // ERC20 token address
-    uint256 acceptanceThreshold;                       // Weight needed for acceptance
-    uint256 lockInterval;                              // Time unit for locks (seconds)
+    AcceptanceCriteria acceptanceCriteria;             // Who can accept and threshold rules
     uint256 maxLockIntervals;                          // Max lock duration in intervals
-    uint256 proposalCap;                               // Max active proposals
+    uint256 lockInterval;                              // Time unit for locks (seconds)
     uint256 decayCurveType;                           // 0=linear, 1=exponential
     uint256[] decayCurveParameters;                    // Curve params (must be length 1)
-    ProposerRequirements proposerRequirements;         // Who can propose
-    ParticipantRequirements participantRequirements;   // Who can support
+    uint256 inactivityTimeout;                         // Seconds before initiative can expire
+    ParticipantRequirements proposerRequirements;      // Who can propose
+    ParticipantRequirements supporterRequirements;     // Who can support
     uint256 releaseLockDuration;                       // Timelock after acceptance
-    uint256 boardOpensAt;                             // Unix timestamp for opening
-    BoardIncentives boardIncentives;                   // Reward configuration
+    uint256 boardOpenAt;                              // Unix timestamp for opening
+    uint256 boardClosedAt;                            // Unix timestamp for closing (0 = never)
 }
+```
+
+## Acceptance Criteria
+
+The `AcceptanceCriteria` struct controls who can accept initiatives and under what conditions:
+
+```solidity
+enum AcceptancePermissions {
+    Permissionless,  // Anyone can accept if threshold is met
+    OnlyOwner        // Only the board owner can accept
+}
+
+enum ThresholdOverride {
+    None,            // Everyone (including owner) must meet threshold
+    OnlyOwner        // Owner can bypass threshold requirement
+}
+
+struct AcceptanceCriteria {
+    AcceptancePermissions permissions;
+    ThresholdOverride thresholdOverride;
+    uint256 thresholdPercentTotalSupplyWAD;  // Percentage of total supply (in WAD)
+    uint256 minThreshold;                     // Minimum fixed threshold
+}
+```
+
+### Permission Combinations
+
+| permissions | thresholdOverride | Behavior |
+|-------------|-------------------|----------|
+| `OnlyOwner` | `None` | Only owner can accept, owner must meet threshold |
+| `OnlyOwner` | `OnlyOwner` | Only owner can accept, owner can bypass threshold |
+| `Permissionless` | `None` | Anyone can accept if threshold met, owner also needs threshold |
+| `Permissionless` | `OnlyOwner` | Owner can always accept; others need threshold met |
+
+### Threshold Calculation
+
+The effective acceptance threshold is calculated as:
+
+```solidity
+threshold = max(
+    totalSupply * thresholdPercentTotalSupplyWAD / 1e18,
+    minThreshold
+)
+```
+
+**Requirements:**
+
+- At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero
+- `thresholdPercentTotalSupplyWAD` must be less than 100% (< 1e18)
+
+### Example Configurations
+
+**Owner-controlled board (default):**
+
+```solidity
+AcceptanceCriteria({
+    permissions: AcceptancePermissions.OnlyOwner,
+    thresholdOverride: ThresholdOverride.OnlyOwner,
+    thresholdPercentTotalSupplyWAD: 0,
+    minThreshold: 100_000 * 1e18  // 100k tokens
+})
+```
+
+**Community-driven board:**
+
+```solidity
+AcceptanceCriteria({
+    permissions: AcceptancePermissions.Permissionless,
+    thresholdOverride: ThresholdOverride.None,
+    thresholdPercentTotalSupplyWAD: 5e16,  // 5% of total supply
+    minThreshold: 50_000 * 1e18            // At least 50k tokens
+})
+```
+
+**Hybrid board (owner can fast-track):**
+
+```solidity
+AcceptanceCriteria({
+    permissions: AcceptancePermissions.Permissionless,
+    thresholdOverride: ThresholdOverride.OnlyOwner,
+    thresholdPercentTotalSupplyWAD: 10e16,  // 10% of total supply
+    minThreshold: 100_000 * 1e18            // At least 100k tokens
+})
 ```
 
 ## Core Parameters
@@ -45,12 +130,6 @@ struct FactoryDeployment {
   - Standard ERC20: Works with all eligibility types except `MinBalanceAndDuration`
   - ERC20Votes: Required for `MinBalanceAndDuration` eligibility (checkpoint support)
 
-### acceptanceThreshold
-
-- **Type:** `uint256`
-- **Purpose:** Total weight an initiative must reach to be eligible for actioning the initiative
-- **Requirement:** Must be > 0
-
 ### lockInterval
 
 - **Type:** `uint256` (seconds)
@@ -60,21 +139,15 @@ struct FactoryDeployment {
 ### maxLockIntervals
 
 - **Type:** `uint256` (number of intervals)
-- **Purpose:** Maximum duration users can lock tokens, represented as a number of intervals 
+- **Purpose:** Maximum duration users can lock tokens, represented as a number of intervals
 - **Requirement:** Must be > 0
 - **Note:** For example, if `lockInterval` is set to 86400 (1 day), then a `maxLockIntervals` of 365 would allow for a maximum lock duration of 365 days
-
-### proposalCap
-
-- **Type:** `uint256`
-- **Purpose:** Maximum number of active proposals allowed on the board
-- **Requirement:** Must be > 0
 
 ### decayCurveType
 
 - **Type:** `uint256`
 - **Purpose:** How weight decays over time
-- **Requirement:** Must be a valid option (currenlty only 2 types are supported):
+- **Requirement:** Must be a valid option (currently only 2 types are supported):
 - **Options:**
   - `0` - Linear decay: Weight decreases steadily
   - `1` - Exponential decay: Weight decreases at accelerating rate
@@ -88,6 +161,13 @@ struct FactoryDeployment {
   - Parameter: Decay rate (1e18 = 1:1 linear)
 - **Exponential Decay (Type 1):**
   - Parameter: Decay multiplier per interval
+
+### inactivityTimeout
+
+- **Type:** `uint256` (seconds)
+- **Purpose:** Duration of inactivity after which an initiative can be expired by the owner
+- **Default:** 60 days (5,184,000 seconds)
+- **Note:** Activity is tracked via the `lastActivity` timestamp, which updates when the initiative is created or when any supporter locks tokens
 
 ### releaseLockDuration
 
@@ -103,26 +183,27 @@ struct FactoryDeployment {
 - **Type:** `uint256` (Unix timestamp)
 - **Purpose:** Fair launch mechanism - board doesn't accept proposals until this time
 - **Values:**
-  - `0` - Opens immediately
+  - `0` - Board stays closed until explicitly opened via `setBoardOpenAt`
   - `block.timestamp + 1 hours` - Opens 1 hour from deployment
   - Specific timestamp for scheduled launch
+
+### boardClosedAt
+
+- **Type:** `uint256` (Unix timestamp)
+- **Purpose:** Timestamp when the board closes for new activity
+- **Values:**
+  - `0` - Board never closes automatically
+  - Specific timestamp for scheduled closure
 
 ## Validation & Errors
 
 | Error | Condition | Fix |
 |-------|-----------|-----|
 | `SignalsFactory_ZeroAddressOwner` | Owner is address(0) | Provide valid owner address |
-| `Signals_ZeroAddressToken` | Token is address(0) | Provide valid token address |
-| `Signals_ZeroAcceptanceThreshold` | Threshold is 0 | Set threshold > 0 |
-| `Signals_ZeroMaxLockIntervals` | Max intervals is 0 | Set max intervals > 0 |
-| `Signals_ZeroLockInterval` | Lock interval is 0 | Set lock interval > 0 |
-| `Signals_ZeroProposalCap` | Proposal cap is 0 | Set proposal cap > 0 |
-| `Signals_InvalidDecayCurveType` | Type >= 2 or params length != 1 | Use type 0 or 1, array length 1 |
-| `Signals_ProposerZeroThreshold` | Threshold 0 with None eligibility | Set threshold > 0 |
-| `Signals_ProposerZeroMinBalance` | MinBalance 0 with MinBalance type | Set minBalance > 0 |
-| `Signals_ProposerZeroMinDuration` | Duration 0 with MinBalanceAndDuration | Set minHoldingDuration > 0 |
-| `Signals_ProposerNoCheckpointSupport` | Token doesn't support IVotes | Use ERC20Votes token |
-| `Signals_ParticipantZeroMinBalance` | Participant minBalance is 0 | Set minBalance > 0 |
-| `Signals_ParticipantZeroMinDuration` | Participant duration is 0 | Set minHoldingDuration > 0 |
-| `Signals_ParticipantNoCheckpointSupport` | Token lacks checkpoint support | Use ERC20Votes token |
-| `Signals_BoardAlreadyOpened` | setIncentivesPool after opening | Call before boardOpenAt |
+| `Signals_InvalidArguments` | Token is address(0) | Provide valid token address |
+| `Signals_InvalidArguments` | Both thresholds are 0 | Set at least one threshold > 0 |
+| `Signals_InvalidArguments` | Percentage threshold >= 100% | Set thresholdPercentTotalSupplyWAD < 1e18 |
+| `Signals_InvalidArguments` | Max intervals is 0 | Set max intervals > 0 |
+| `Signals_InvalidArguments` | Lock interval is 0 | Set lock interval > 0 |
+| `Signals_InvalidArguments` | Invalid decay curve type | Use type 0 or 1 |
+| `Signals_InvalidArguments` | boardClosedAt < boardOpenAt | Ensure close time is after open time |

@@ -21,7 +21,7 @@ function supportInitiative(
 |-----------|------|-------------|
 | `initiativeId` | `uint256` | ID of the initiative to support (must exist and be in Proposed state) |
 | `amount` | `uint256` | Amount of tokens to lock (in wei, e.g., `100000 * 1e18`) |
-| `lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be > 0 and ≤ `maxLockIntervals`) |
+| `lockDuration` | `uint256` | Duration to lock tokens, **measured in intervals** (must be ≤ `maxLockIntervals`) |
 
 ### Returns
 
@@ -148,6 +148,7 @@ Weight never drops below the lock amount (nominal value) until the lock expires.
 ```solidity
 struct TokenLock {
     uint256 initiativeId;     // Which initiative this supports
+    address supporter;        // Original supporter address
     uint256 tokenAmount;      // Underlying tokens locked
     uint256 lockDuration;     // Duration in intervals
     uint256 created;          // Block timestamp of creation
@@ -196,38 +197,18 @@ event InitiativeSupported(
 - `lockDuration`: Lock duration in intervals
 - `tokenId`: ERC721 token ID minted
 
-## State Updates
-
-When you support an initiative:
-
-```solidity
-// Initiative updates
-initiative.underlyingLocked += amount        // Track total locked
-initiative.lastActivity = block.timestamp    // Reset inactivity timer
-
-// Supporter tracking
-supporters[initiativeId].push(supporter)     // Add to supporters list
-isSupporter[initiativeId][supporter] = true  // Mark as supporter
-
-// Lock tracking
-initiativeLocks[initiativeId].push(tokenId)  // Track locks per initiative
-supporterLocks[supporter].push(tokenId)      // Track locks per supporter
-```
-
 ## Validation & Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `Signals_BoardNotYetOpen` | Current time < `boardOpenAt` | Wait for board to open |
-| `Signals_BoardClosed` | Board is closed | Cannot support on closed boards |
-| `Signals_InitiativeNotFound` | Invalid initiative ID | Use valid initiative ID |
-| `Signals_NotProposedState` | Initiative not in Proposed state | Only support Proposed initiatives |
-| `Signals_InvalidLockDuration` | Duration = 0 or > `maxLockIntervals` | Use valid duration |
-| `Signals_InsufficientTokens` | Balance < amount | Acquire more tokens |
+| `Signals_IncorrectBoardState` | Board not open | Wait for board to open |
+| `Signals_InvalidID` | Invalid initiative ID | Use valid initiative ID |
+| `Signals_IncorrectInitiativeState` | Initiative not in Proposed state | Only support Proposed initiatives |
+| `Signals_InvalidArguments` | Duration > `maxLockIntervals` | Use valid duration |
+| `Signals_InsufficientTokens` | Balance < required | Acquire more tokens |
 | `Signals_TokenTransferFailed` | Transfer failed | Check approval and balance |
-| `Signals_ParticipantInsufficientBalance` | Balance < `minBalance` | Acquire more tokens |
-| `Signals_ParticipantInsufficientDuration` | Haven't held tokens long enough | Wait or use different account |
-| `Signals_ParticipantNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
+| `Signals_InsufficientTokenDuration` | Haven't held tokens long enough | Wait or use different account |
+| `Signals_TokenHasNoCheckpointSupport` | Token doesn't support IVotes | Board misconfigured |
 
 ## Complete Example Flow
 
@@ -237,30 +218,27 @@ address supporter = 0x1111
 uint256 initiativeId = 5
 IERC20 token = IERC20(signals.underlyingToken())
 
-// 1. Check eligibility
-require(signals.canParticipate(supporter), 'Not eligible')
-
-// 2. Check initiative state
+// 1. Check initiative state
 Initiative memory init = signals.getInitiative(initiativeId)
 require(init.state == InitiativeState.Proposed, 'Not proposed')
 
-// 3. Approve tokens
+// 2. Approve tokens
 uint256 amount = 150 * 1e18
 token.approve(address(signals), amount)
 
-// 4. Support initiative
+// 3. Support initiative
 uint256 lockDuration = 6  // 6 intervals
 uint256 tokenId = signals.supportInitiative(initiativeId, amount, lockDuration)
 
-// 5. Verify NFT received
+// 4. Verify NFT received
 require(signals.ownerOf(tokenId) == supporter, 'NFT not received')
 
-// 6. Check lock details
+// 5. Check lock details
 TokenLock memory lock = signals.getTokenLock(tokenId)
 assert(lock.tokenAmount == amount)
 assert(lock.lockDuration == lockDuration)
 
-// 7. Check weight contribution
+// 6. Check weight contribution
 uint256 myWeight = signals.getWeightForSupporterAt(
     initiativeId,
     supporter,
@@ -268,12 +246,12 @@ uint256 myWeight = signals.getWeightForSupporterAt(
 )
 // Initial: myWeight = 150 * 6 = 900 (decays over time)
 
-// 8. Check total initiative weight
+// 7. Check total initiative weight
 uint256 totalWeight = signals.getWeight(initiativeId)
-uint256 threshold = signals.acceptanceThreshold()
+uint256 threshold = signals.getAcceptanceThreshold()
 bool meetsThreshold = totalWeight >= threshold
 
-// 9. Later: Redeem after acceptance/expiration
+// 8. Later: Redeem after acceptance/expiration
 // ... wait for acceptance/expiration ...
 signals.redeemLock(tokenId)  // Receive original tokens back + incentives
 ```
@@ -281,20 +259,14 @@ signals.redeemLock(tokenId)  // Receive original tokens back + incentives
 ## Helper Functions
 
 ```solidity
-// Check if you can participate
-function canParticipate(address participant) external view returns (bool)
+// Get all lock positions for an initiative
+function locksForInitiative(uint256 initiativeId) external view returns (uint256[] memory)
 
-// Get participant requirements
-function getParticipantRequirements() external view returns (ParticipantRequirements memory)
+// Get acceptance threshold
+function getAcceptanceThreshold() external view returns (uint256)
 
-// Get all your lock positions
-function getLocksForSupporter(address supporter) external view returns (uint256[] memory)
-
-// Get lock count for supporter
-function getLockCountForSupporter(address supporter) external view returns (uint256)
-
-// List all NFT positions you own
-function listPositions(address owner) external view returns (uint256[] memory)
+// Get acceptance criteria
+function getAcceptanceCriteria() external view returns (AcceptanceCriteria memory)
 ```
 
 ## Incentive Rewards

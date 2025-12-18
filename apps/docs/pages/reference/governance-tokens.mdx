@@ -16,11 +16,13 @@ This unlocks the `MinBalanceAndDuration` requirement type, preventing flash-loan
 ## Why ERC20Votes?
 
 **Without checkpoints (standard ERC20):**
+
 - Users can borrow tokens, propose, then return them in one transaction
 - No way to verify holding duration
 - Only supports `MinBalance` requirements
 
 **With checkpoints (ERC20Votes):**
+
 - Historical balance tracking per block
 - Provable holding duration
 - Supports both `MinBalance` and `MinBalanceAndDuration` requirements
@@ -69,41 +71,18 @@ contract MyGovernanceToken is ERC20, ERC20Permit, ERC20Votes {
 
 ## Board Configuration
 
-Configure your board to require holding duration:
-
-```solidity
-BoardConfig memory config = BoardConfig({
-    version: "1.0",
-    owner: msg.sender,
-    underlyingToken: address(governanceToken), // ERC20Votes token
-    proposalThreshold: 50_000 * 1e18,
-    acceptanceThreshold: 100_000 * 1e18,
-    maxLockIntervals: 365,
-    proposalCap: 100,
-    lockInterval: 1 days,
-    decayCurveType: 0,
-    decayCurveParameters: new uint256[](1),
-    proposalRequirements: ProposalRequirements({
-        requirementType: ProposalRequirementType.MinBalanceAndDuration,
-        minBalance: 100_000 * 1e18,      // Must hold 100k tokens
-        minHoldingDuration: 50400         // For ~7 days (50,400 blocks at 12s)
-    }),
-    releaseLockDuration: 0
-});
-
-signals.initialize(config);
-```
+Configure your board to require a `minHoldingDuration` in `proposerRequirements`.
 
 ## How It Works
 
 When a user attempts to propose an initiative, Signals verifies their historical balance:
 
 ```solidity
-// Inside Signals.sol
+// Inside Signals authorization
 function meetsProposalRequirements() internal view returns (bool) {
-    ProposalRequirements memory reqs = getProposalRequirements();
+    ParticipantRequirements memory reqs = proposerRequirements;
 
-    if (reqs.requirementType == ProposalRequirementType.MinBalanceAndDuration) {
+    if (reqs.minHoldingDuration > 0) {
         // Check balance from N blocks ago
         uint256 pastBlock = block.number - reqs.minHoldingDuration;
         uint256 pastBalance = IVotes(underlyingToken).getPastVotes(
@@ -174,10 +153,10 @@ Configure `minHoldingDuration` based on your chain's block time:
 Require 30-day holding periods to ensure only committed members propose major initiatives:
 
 ```solidity
-ProposalRequirements({
-    requirementType: ProposalRequirementType.MinBalanceAndDuration,
+ParticipantRequirements({
     minBalance: 500_000 * 1e18,
-    minHoldingDuration: 216_000  // 30 days on Ethereum
+    minHoldingDuration: 216_000,  // 30 days on Ethereum
+    minLockAmount: 0
 })
 ```
 
@@ -186,30 +165,29 @@ ProposalRequirements({
 Require modest holdings for a short period to prevent borrowed-token attacks:
 
 ```solidity
-ProposalRequirements({
-    requirementType: ProposalRequirementType.MinBalanceAndDuration,
+ParticipantRequirements({
     minBalance: 10_000 * 1e18,
-    minHoldingDuration: 100  // ~20 minutes on Ethereum
+    minHoldingDuration: 100,  // ~20 minutes on Ethereum
+    minLockAmount: 0
 })
 ```
 
 ### Tiered Access
 
-Combine with proposal threshold for dual requirements:
+Combine with minimum lock amount for dual requirements:
 
 ```solidity
 BoardConfig({
     // ... other config
-    proposalThreshold: 1_000 * 1e18,  // 1k tokens to propose
-    proposalRequirements: ProposalRequirements({
-        requirementType: ProposalRequirementType.MinBalanceAndDuration,
+    proposerRequirements: ParticipantRequirements({
         minBalance: 100_000 * 1e18,    // Must hold 100k tokens
-        minHoldingDuration: 50_400      // For 7 days
+        minHoldingDuration: 50_400,     // For 7 days
+        minLockAmount: 10_000 * 1e18   // Must lock at least 10k
     })
 })
 ```
 
-Users must hold 100k tokens for 7 days AND pay 1k tokens to propose.
+Users must hold 100k tokens for 7 days AND lock at least 10k tokens to propose.
 
 ## Token Compatibility
 
@@ -226,7 +204,7 @@ Users must hold 100k tokens for 7 days AND pay 1k tokens to propose.
 - ERC20Snapshot (different interface)
 - Rebasing tokens (checkpoints may be inaccurate)
 
-If you configure `MinBalanceAndDuration` with a non-IVotes token, proposals will revert with "Token does not support holding duration checks".
+If you configure `minHoldingDuration > 0` with a non-IVotes token, proposals will revert with `Signals_TokenHasNoCheckpointSupport`.
 
 ## Best Practices
 
@@ -257,34 +235,11 @@ uint256 targetDays = 7;
 uint256 expectedBlocks = (targetDays * 24 * 60 * 60) / 12; // Ethereum
 uint256 bufferBlocks = expectedBlocks * 110 / 100;         // +10%
 
-ProposalRequirements({
-    minHoldingDuration: bufferBlocks
+ParticipantRequirements({
+    minBalance: 100_000 * 1e18,
+    minHoldingDuration: bufferBlocks,
+    minLockAmount: 0
 })
-```
-
-### Testing
-
-Always test proposal requirements with realistic scenarios:
-
-```solidity
-function test_ProposalRequirements() public {
-    // Mint and delegate
-    token.mint(alice, 100_000 * 1e18);
-    vm.prank(alice);
-    token.delegate(alice);
-
-    // Try immediately - should fail
-    vm.prank(alice);
-    vm.expectRevert("Tokens not held long enough");
-    signals.proposeInitiative("Test", "Description", new ISignals.Attachment[](0));
-
-    // Advance blocks
-    vm.roll(block.number + minHoldingDuration);
-
-    // Try again - should succeed
-    vm.prank(alice);
-    signals.proposeInitiative("Test", "Description", new ISignals.Attachment[](0));
-}
 ```
 
 ## References
