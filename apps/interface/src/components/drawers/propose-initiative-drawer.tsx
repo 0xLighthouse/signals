@@ -74,9 +74,10 @@ export function ProposeInitiativeDrawer({
   const setIsDrawerOpen = externalOnOpenChange || setInternalDrawerOpen
 
   const maxLockIntervals = useMemo(() => {
-    if (board?.maxLockIntervals && board.maxLockIntervals > 0) return board.maxLockIntervals
+    if (board?.lockingConfig?.maxLockIntervals && Number(board.lockingConfig.maxLockIntervals) > 0)
+      return Number(board.lockingConfig.maxLockIntervals)
     return 30
-  }, [board?.maxLockIntervals])
+  }, [board?.lockingConfig?.maxLockIntervals])
 
   const formatDurationLabel = (seconds: number) => {
     if (!seconds || seconds < 60) return `${seconds}s`

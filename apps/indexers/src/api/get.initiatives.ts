@@ -3,6 +3,7 @@ import { Context } from 'hono'
 import { SignalsABI } from '../../../../packages/abis'
 import { transform } from '../utils/transform'
 import { getClientByChainId } from '../utils/get-client-by-chain-id'
+import { erc20Abi } from 'viem'
 
 export const getInitiatives = async (c: Context) => {
   const chainId = Number(c.req.param('chainId'))
@@ -36,6 +37,13 @@ export const getInitiatives = async (c: Context) => {
     ),
   })
 
+  // Fetch total supply of underlying token
+  const totalSupply = await client.readContract({
+    address: board.underlyingToken,
+    abi: erc20Abi,
+    functionName: 'totalSupply',
+  }) as bigint
+
   const initiatives = await Promise.all(
     records.map(async (initiative) => {
       const initiativeState = (await client.readContract({
@@ -67,7 +75,7 @@ export const getInitiatives = async (c: Context) => {
         abi: SignalsABI,
         functionName: 'getWeight',
         args: [BigInt(initiative.initiativeId)],
-      })
+      }) as bigint
 
       const locks = await db.query.Lock.findMany({
         where: (lock, { and, eq }) =>
@@ -93,7 +101,7 @@ export const getInitiatives = async (c: Context) => {
         title: initiative.title,
         description: initiative.body,
         weight: Number(weight) / 1e18,
-        support: Number(weight) / Number(board.acceptanceThreshold),
+        support: calculateSupport(weight, totalSupply, board.acceptanceCriteria.thresholdPercentTotalSupplyWAD, board.acceptanceCriteria.minThreshold),
         proposer: initiativeState.proposer ?? initiative.proposer,
         rewards: Number(rewards) / 1e6,
         supporters: Array.from(new Set(locks.map((lock) => lock.owner))),
@@ -109,4 +117,12 @@ export const getInitiatives = async (c: Context) => {
     version: '0.1.0',
     initiatives: transform(initiatives),
   })
+}
+
+/**
+ * Current support for an initiative, expressed as a percentage
+ */
+const calculateSupport = (weight: bigint, totalSupply: bigint, thresholdPercentTotalSupplyWAD: string, minThreshold: string) => {
+  const percentThreshold = Number(totalSupply) * (Number(thresholdPercentTotalSupplyWAD) / 1e18)
+  return Number(weight) / Math.max(percentThreshold, Number(minThreshold))
 }
