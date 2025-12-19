@@ -13,7 +13,7 @@ import {IExperimentToken} from "@shared/interfaces/IExperimentToken.sol";
 /**
  * This script is used to create a Signals board with some default parameters for the Edge Experiment
  */
-contract DeploySignalsBoardFromFactory is SharedScriptBase {
+contract CreateBoardFromFactory is SharedScriptBase {
     address _deployer;
     address _instance;
 
@@ -32,16 +32,6 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
     uint256 private constant THRESHOLD_PERCENT_WAD = 10e16; // 10%
 
     /**
-     *
-     * @notice Usage:
-     * forge script script/DeploySignalsBoardFromFactory.s.sol:DeploySignalsBoardFromFactory \
-     *     --rpc-url "$ANVIL_RPC" \
-     *     --broadcast \
-     *     -s "run(string,address,address)" \
-     *     "anvil" \
-     *     "$signals_factory_address" \
-     *     "$token_address"
-     *
      * @param network The network to deploy the contracts to
      * @param factoryAddress The address of the deployed SignalsFactory
      * @param underlyingToken The address of the underlying token

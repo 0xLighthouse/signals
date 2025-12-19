@@ -67,13 +67,13 @@ forge script script/DeploySignalsFactory.s.sol \
      "base-sepolia"
 
 # (optional) Deploy a new Board from the CLI
-forge script script/DeploySignalsBoardFromFactory.s.sol \
+forge script script/CreateBoardFromFactory.s.sol \
      --rpc-url "$BASE_SEPOLIA_RPC" \
      --broadcast \
      --verify \
      -s "run(string,address,address)" \
      "base-sepolia" \
-     "0xe806daF7d123dbFc7bf1Ce538FF26163b374145E" \
+     "0xB340CB941bD8cA49d8C62716Aac7b88f32D461f1" \
      "0x9265e5df98c2aa68ab89fbc68ab2404553dfa07b"
 ```
 
