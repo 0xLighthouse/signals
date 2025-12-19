@@ -20,7 +20,6 @@ import {IIncentivizer} from "../src/interfaces/IIncentivizer.sol";
  * Approve Board:
  *   forge script script/IncentivesPool.s.sol --sig "approveBoard(string,address,address,uint256,uint256)" base-sepolia <pool> <board> <budget> <perInitiative> --broadcast
  */
-
 contract IncentivesPoolScript is SharedScriptBase {
     /**
      * Deploy a new IncentivesPool

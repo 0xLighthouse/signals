@@ -86,12 +86,16 @@ export function BoardSettingsDialog({ open, onOpenChange }: BoardSettingsDialogP
   const boardTitle = board.name ?? 'Untitled board'
   const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
   const networkLabel = network ? (NETWORKS[network]?.chain.name ?? network) : 'Unknown network'
-  const proposalThreshold = withSymbol(formatTokenAmount(board.proposalThreshold))
-  const acceptanceThreshold = withSymbol(formatTokenAmount(board.acceptanceThreshold))
-  const lockInterval = formatLockInterval(board.lockInterval)
+  const proposalThreshold = withSymbol(
+    formatTokenAmount(parseToNumber(board.proposerRequirements?.minBalance)),
+  )
+  const acceptanceThreshold = withSymbol(
+    formatTokenAmount(parseToNumber(board.acceptanceCriteria?.minThreshold)),
+  )
+  const lockInterval = formatLockInterval(parseToNumber(board.lockingConfig?.lockInterval))
   const decayCurve =
-    board.decayCurveType != null
-      ? (DECAY_CURVE_LABELS[board.decayCurveType] ?? 'Custom curve')
+    board.decayConfig?.curveType != null
+      ? (DECAY_CURVE_LABELS[board.decayConfig.curveType] ?? 'Custom curve')
       : 'Not set'
 
   // Format timestamps to local date/time
@@ -112,10 +116,12 @@ export function BoardSettingsDialog({ open, onOpenChange }: BoardSettingsDialogP
   const closesAtLabel = formatLocalDateTime(board.closesAt)
 
   // Calculate min and max lock intervals
-  const minLockInterval = board.lockInterval ? formatLockInterval(board.lockInterval) : null
+  const lockIntervalValue = parseToNumber(board.lockingConfig?.lockInterval)
+  const maxLockIntervalsValue = parseToNumber(board.lockingConfig?.maxLockIntervals)
+  const minLockInterval = lockIntervalValue ? formatLockInterval(lockIntervalValue) : null
   const maxLockInterval =
-    board.lockInterval && board.maxLockIntervals
-      ? formatLockInterval(board.lockInterval * board.maxLockIntervals)
+    lockIntervalValue && maxLockIntervalsValue
+      ? formatLockInterval(lockIntervalValue * maxLockIntervalsValue)
       : null
 
   const lockIntervalValues: Array<{ label: string; value: string }> = []

@@ -1,2 +1,10 @@
 .generated/
-broadcast/
+
+# Ignore all deployment run files except the latest
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+/broadcast/*/421614/*
+/broadcast/*/84532/*
+!/broadcast/*/421614/run-latest.json
+!/broadcast/*/84532/run-latest.json

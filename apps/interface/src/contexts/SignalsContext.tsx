@@ -12,6 +12,9 @@ import type {
   BoardRequirement,
   BoardByAddressQueryItem,
   BoardByAddressQueryResponse,
+  AcceptanceCriteria,
+  LockingConfig,
+  DecayConfig,
 } from '@/lib/indexer/types.graphql'
 
 export interface IndexedBoardMetadata {
@@ -19,6 +22,7 @@ export interface IndexedBoardMetadata {
   blockTimestamp: number | null
   transactionHash: string | null
   contractAddress: `0x${string}` | null
+  version: string | null
   owner: `0x${string}` | null
   name: string | null
   body: string | null
@@ -26,12 +30,34 @@ export interface IndexedBoardMetadata {
   closesAt: number | null
   symbol: string | null
   initiativesCount: number | null
+  /**
+   * @deprecated Use `proposerRequirements.minBalance` instead
+   */
   proposalThreshold: number | null
+  /**
+   * @deprecated Use `acceptanceCriteria.minThreshold` instead
+   */
   acceptanceThreshold: number | null
+  /**
+   * @deprecated Use `lockingConfig.lockInterval` instead
+   */
   lockInterval: number | null
+  /**
+   * @deprecated Use `lockingConfig.maxLockIntervals` instead
+   */
   maxLockIntervals: number | null
+  /**
+   * @deprecated Use `decayConfig.curveType` instead
+   */
   decayCurveType: number | null
+  /**
+   * @deprecated Use `decayConfig.params` instead
+   */
   decayCurveParameters: number[] | null
+  // Full indexed structures
+  acceptanceCriteria: AcceptanceCriteria | null
+  lockingConfig: LockingConfig | null
+  decayConfig: DecayConfig | null
   proposerRequirements: BoardRequirement | null
   participantRequirements: BoardRequirement | null
   underlyingToken: `0x${string}` | undefined
@@ -61,6 +87,7 @@ const initialBoard: IndexedBoardMetadata = {
   blockTimestamp: null,
   transactionHash: null,
   contractAddress: null,
+  version: null,
   owner: null,
   name: null,
   body: null,
@@ -74,6 +101,9 @@ const initialBoard: IndexedBoardMetadata = {
   maxLockIntervals: null,
   decayCurveType: null,
   decayCurveParameters: null,
+  acceptanceCriteria: null,
+  lockingConfig: null,
+  decayConfig: null,
   proposerRequirements: null,
   participantRequirements: null,
   underlyingToken: undefined,
@@ -233,6 +263,7 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         contractAddress: indexedBoard.contractAddress
           ? (indexedBoard.contractAddress.toLowerCase() as `0x${string}`)
           : null,
+        version: indexedBoard.version ?? null,
         owner: indexedBoard.owner ? (indexedBoard.owner.toLowerCase() as `0x${string}`) : null,
         name: indexedBoard.boardMetadata?.title ?? null,
         body: indexedBoard.boardMetadata?.body ?? null,
@@ -246,6 +277,9 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         maxLockIntervals: toNumber(indexedBoard.lockingConfig?.maxLockIntervals),
         decayCurveType: toNumber(indexedBoard.decayConfig?.curveType),
         decayCurveParameters: toNumberArray(indexedBoard.decayConfig?.params),
+        acceptanceCriteria: indexedBoard.acceptanceCriteria ?? null,
+        lockingConfig: indexedBoard.lockingConfig ?? null,
+        decayConfig: indexedBoard.decayConfig ?? null,
         proposerRequirements: indexedBoard.proposerRequirements ?? null,
         participantRequirements: indexedBoard.supporterRequirements ?? null,
         underlyingToken: indexedBoard.underlyingToken
