@@ -8,72 +8,11 @@ import { getNetworkFromSlug, getBoardUrl } from '@/lib/routing'
 import type { SupportedNetworks } from '@/config/network-types'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { useRouteStore } from '@/stores/useRouteStore'
-
-type BoardRequirement = {
-  minBalance: string
-  minHoldingDuration: string
-  minLockAmount: string
-}
-
-type BoardAttachment = {
-  uri: string
-  mimeType: string
-  description: string
-}
-
-type BoardMetadata = {
-  title: string
-  body: string
-  attachments: BoardAttachment[]
-}
-
-type AcceptanceCriteria = {
-  permissions: number
-  thresholdOverride: number
-  thresholdPercentTotalSupplyWAD: string
-  minThreshold: string
-}
-
-type LockingConfig = {
-  lockInterval: string
-  maxLockIntervals: string
-  releaseLockDuration: string
-  inactivityTimeout: string
-}
-
-type DecayConfig = {
-  curveType: number
-  params: string[]
-}
-
-type BoardByAddressQueryItem = {
-  chainId: number | string
-  blockTimestamp: string | number
-  transactionHash: string
-  contractAddress: string
-  version: string
-  owner: string
-  underlyingToken: string
-  underlyingTokenSymbol: string
-  underlyingTokenDecimals: number
-  underlyingTokenName: string
-  opensAt: string | number
-  closesAt: string | number
-  boardMetadata: BoardMetadata
-  acceptanceCriteria: AcceptanceCriteria
-  proposerRequirements: BoardRequirement
-  supporterRequirements: BoardRequirement
-  lockingConfig: LockingConfig
-  decayConfig: DecayConfig
-}
-
-type BoardByAddressQueryResponse = {
-  data?: {
-    boards?: {
-      items?: BoardByAddressQueryItem[]
-    }
-  }
-}
+import type {
+  BoardRequirement,
+  BoardByAddressQueryItem,
+  BoardByAddressQueryResponse,
+} from '@/lib/indexer/types.graphql'
 
 export interface IndexedBoardMetadata {
   chainId: number | null

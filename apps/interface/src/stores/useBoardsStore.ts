@@ -1,26 +1,15 @@
 import { create } from 'zustand'
 import { useNetworkStore } from '@/stores/useNetworkStore'
+import type {
+  BoardSummary,
+  BoardRequirement,
+  BoardMetadata,
+  AcceptanceCriteria,
+  LockingConfig,
+  DecayConfig,
+} from '@/lib/indexer/types.graphql'
 
-type Requirements = {
-  minBalance: string
-  minHoldingDuration: string
-  minLockAmount: string
-}
-
-export type BoardSummary = {
-  opensAt: number | null
-  closesAt: number | null
-  contractAddress: `0x${string}`
-  owner?: `0x${string}`
-  title: string
-  body: string
-  proposerRequirements: Requirements
-  participantRequirements: Requirements
-  acceptanceThreshold: string
-  underlyingToken?: `0x${string}`
-  createdAtTimestamp?: number
-  updatedAt?: number
-}
+export type { BoardSummary }
 
 interface BoardsState {
   boards: BoardSummary[]
@@ -37,15 +26,20 @@ interface GraphQLResponse {
         id: string
         chainId: number
         contractAddress: `0x${string}`
+        version: string
         owner: `0x${string}`
-        title: string
-        body: string
-        opensAt: number
-        closesAt: number
-        proposerRequirements: Requirements
-        participantRequirements: Requirements
-        acceptanceThreshold: string
-        underlyingToken?: `0x${string}`
+        underlyingToken: `0x${string}`
+        underlyingTokenSymbol: string
+        underlyingTokenDecimals: number
+        underlyingTokenName: string
+        opensAt: string | number
+        closesAt: string | number
+        boardMetadata: BoardMetadata
+        acceptanceCriteria: AcceptanceCriteria
+        proposerRequirements: BoardRequirement
+        supporterRequirements: BoardRequirement
+        lockingConfig: LockingConfig
+        decayConfig: DecayConfig
         blockTimestamp: string
         transactionHash: string
       }>
@@ -75,15 +69,20 @@ export const useBoardsStore = create<BoardsState>((set) => ({
               id
               chainId
               contractAddress
+              version
               owner
-              title
-              body
+              underlyingToken
+              underlyingTokenSymbol
+              underlyingTokenDecimals
+              underlyingTokenName
               opensAt
               closesAt
+              boardMetadata
+              acceptanceCriteria
               proposerRequirements
-              participantRequirements
-              acceptanceThreshold
-              underlyingToken
+              supporterRequirements
+              lockingConfig
+              decayConfig
               blockTimestamp
               transactionHash
             }
@@ -117,18 +116,26 @@ export const useBoardsStore = create<BoardsState>((set) => ({
           const createdAtTimestamp = Number.isFinite(createdAtSec) ? createdAtSec : 0
 
           return {
+            chainId: Number(item.chainId),
+            blockTimestamp: item.blockTimestamp,
+            transactionHash: item.transactionHash,
             contractAddress: item.contractAddress.toLowerCase() as `0x${string}`,
-            owner: item.owner?.toLowerCase() as `0x${string}`,
-            title: item.title,
-            body: item.body,
-            opensAt: Number(item.opensAt),
-            closesAt: Number(item.closesAt),
-            proposerRequirements: item.proposerRequirements,
-            participantRequirements: item.participantRequirements,
-            acceptanceThreshold: item.acceptanceThreshold,
+            version: item.version,
+            owner: item.owner.toLowerCase() as `0x${string}`,
             underlyingToken: item.underlyingToken
               ? (item.underlyingToken.toLowerCase() as `0x${string}`)
               : undefined,
+            underlyingTokenSymbol: item.underlyingTokenSymbol,
+            underlyingTokenDecimals: item.underlyingTokenDecimals,
+            underlyingTokenName: item.underlyingTokenName,
+            opensAt: Number(item.opensAt),
+            closesAt: Number(item.closesAt),
+            boardMetadata: item.boardMetadata,
+            acceptanceCriteria: item.acceptanceCriteria,
+            proposerRequirements: item.proposerRequirements,
+            supporterRequirements: item.supporterRequirements,
+            lockingConfig: item.lockingConfig,
+            decayConfig: item.decayConfig,
             createdAtTimestamp,
             updatedAt: createdAtTimestamp,
           }

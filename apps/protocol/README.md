@@ -12,18 +12,10 @@ sh script/abi.sh
 
 ## TODO
 
-- [ ] Simplify how new `Signals` boards are deployed
 - [ ] Use X96 for all math, remove decimals / tokens from assumptions
 - [ ] Consider, `ERC-721a` (more gas efficient) or `ERC-1155` (more flexible)?
 - [ ] Allow lockers to list their tokens for sale `PurchaseBondHook` (ideally could be bought at a premium)
 - [ ] Allow lockers to sell their tokens for sale `SellBondHook` (ideally could be sold at a discount)
-
-### Secondary Market
-
-- [ ] Allow lockers to sell their tokens into AMM `BondHook` (ideally could be sold at a discount)
-- [ ] Allow lockers to buy tokens from AMM `BondHook` (ideally could be bought at a premium)
-- [ ] Need a way to list bonds owned by the hook
-- [ ] When a hook matures, it can be redeemed for the underlying tokens, any upside is also sold into the AMM and distributed LPs
 
 ## Getting Started
 
@@ -63,10 +55,26 @@ forge test
 forge test <file> -vvvv
 ```
 
-### Deploy
+### Deployments
 
 ```shell
-forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# Deploy the latest factory contract
+forge script script/DeploySignalsFactory.s.sol \
+     --rpc-url "$BASE_SEPOLIA_RPC" \
+     --broadcast \
+     --verify \
+     -s "run(string)" \
+     "base-sepolia"
+
+# (optional) Deploy a new Board from the CLI
+forge script script/DeploySignalsBoardFromFactory.s.sol \
+     --rpc-url "$BASE_SEPOLIA_RPC" \
+     --broadcast \
+     --verify \
+     -s "run(string,address,address)" \
+     "base-sepolia" \
+     "0xe806daF7d123dbFc7bf1Ce538FF26163b374145E" \
+     "0x9265e5df98c2aa68ab89fbc68ab2404553dfa07b"
 ```
 
 #### Deploying a new contract
