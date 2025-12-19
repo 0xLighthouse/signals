@@ -687,7 +687,7 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '_closesAt', internalType: 'uint256', type: 'uint256' }],
+    inputs: [{ name: 'closesAt_', internalType: 'uint256', type: 'uint256' }],
     name: 'setClosesAt',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -697,7 +697,7 @@ export const signalsAbi = [
     inputs: [
       { name: 'incentivesPool_', internalType: 'address', type: 'address' },
       {
-        name: 'incentivesConfig_',
+        name: 'config_',
         internalType: 'struct IIncentivizer.IncentivesConfig',
         type: 'tuple',
         components: [
@@ -720,7 +720,7 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '_opensAt', internalType: 'uint256', type: 'uint256' }],
+    inputs: [{ name: 'opensAt_', internalType: 'uint256', type: 'uint256' }],
     name: 'setOpensAt',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -901,19 +901,44 @@ export const signalsAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'curveType',
-        internalType: 'enum ISignals.DecayCurveType',
-        type: 'uint8',
-        indexed: false,
-      },
-      {
-        name: 'params',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
+        name: 'closesAt',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
       },
     ],
-    name: 'DecayCurveUpdated',
+    name: 'ClosesAtChanged',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'incentivesPool',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'config',
+        internalType: 'struct IIncentivizer.IncentivesConfig',
+        type: 'tuple',
+        components: [
+          {
+            name: 'incentiveType',
+            internalType: 'enum IIncentivizer.IncentiveType',
+            type: 'uint8',
+          },
+          {
+            name: 'incentiveParametersWAD',
+            internalType: 'uint256[]',
+            type: 'uint256[]',
+          },
+        ],
+        indexed: true,
+      },
+    ],
+    name: 'IncentivesPoolSet',
   },
   {
     type: 'event',
@@ -1041,6 +1066,19 @@ export const signalsAbi = [
       },
     ],
     name: 'InitiativeSupported',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'opensAt',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'OpensAtChanged',
   },
   {
     type: 'event',
