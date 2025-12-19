@@ -137,6 +137,13 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
   })
 })
 
+ponder.on('SignalsBoard:OpensAtChanged', async ({ event, context }) => {
+  console.log('SignalsBoard:SetOpensAt', event)
+  await context.db.update(schema.Board, { id: event.id }).set({
+    opensAt: event.args.opensAt,
+  })
+})
+
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 
   // Read version

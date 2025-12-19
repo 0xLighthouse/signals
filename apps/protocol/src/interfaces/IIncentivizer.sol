@@ -3,10 +3,14 @@
 pragma solidity ^0.8.24;
 
 interface IIncentivizer {
+    /* ------------------------------
+     * Enums
+     * ------------------------------ */
     enum IncentiveType {
         Linear,
         Exponential
     }
+
     /**
      * @notice Configuration for board-wide incentive rewards
      *
@@ -15,7 +19,6 @@ interface IIncentivizer {
      * @dev If the incentive type is Linear, at least 2 values (starting and ending values) are required.
      * @dev Exponential type is not yet implemented.
      */
-
     struct IncentivesConfig {
         IncentiveType incentiveType;
         uint256[] incentiveParametersWAD;

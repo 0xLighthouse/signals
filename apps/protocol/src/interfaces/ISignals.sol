@@ -189,6 +189,11 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         Expired
     }
 
+    /* ------------------------------
+     * Events
+     * ------------------------------ */
+
+    event IncentivesPoolSet(address indexed incentivesPool, IncentivesConfig indexed config);
     /**
      * @notice Event emitted when a supporter supports an initiative
      *
@@ -212,10 +217,16 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     event Redeemed(
         uint256 indexed initiativeId, uint256 indexed tokenId, address indexed payee, uint256 amount
     );
-    event DecayCurveUpdated(DecayCurveType curveType, uint256[] params);
+
+    event OpensAtChanged(uint256 indexed opensAt);
+    event ClosesAtChanged(uint256 indexed closesAt);
+
     event BoardClosed(address indexed sender);
     event BoardCancelled(address indexed sender);
-    // Errors
+
+    /* ------------------------------
+     * Errors
+     * ------------------------------ */
 
     /// @notice Sender is not the owner of board or token they are interacting with
     error Signals_NotOwner();
@@ -310,10 +321,40 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         external
         view
         returns (uint256);
-    function setIncentivesPool(address _incentivesPool, IncentivesConfig calldata incentivesConfig)
+
+
+    /**
+     * Allows the board owner to set an incentives pool
+     *
+     * @param incentivesPool_ The address of the incentives pool
+     * @param config_ The configuration for the incentives pool
+     *
+     * @dev Emits an IncentivesPoolChanged event
+     */
+    function setIncentivesPool(address incentivesPool_, IncentivesConfig calldata config_)
         external;
-    function setOpensAt(uint256 _opensAt) external;
-    function setClosesAt(uint256 _closesAt) external;
+
+    /**
+     * Allows the board owner to change the opensAt timestamp
+     * while the board is not open or closed
+     *
+     * @param opensAt_ The new opensAt timestamp
+     * @dev Emits an OpensAtChanged event
+     */
+    function setOpensAt(uint256 opensAt_) external;
+
+    /**
+     * Allows the board owner to change the closesAt timestamp
+     * while the board not closed
+     *
+     * @param closesAt_ The new closesAt timestamp
+     * @dev Emits an ClosesAtChanged event
+     */
+    function setClosesAt(uint256 closesAt_) external;
+
+    /// @dev Returns true if the board is open
     function isBoardOpen() external view returns (bool);
+
+    /// @dev Returns true if the board is closed
     function isBoardClosed() external view returns (bool);
 }
