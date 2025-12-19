@@ -72,8 +72,8 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                 version: _factory.version(),
                 owner: deployerAddress,
                 underlyingToken: underlyingToken,
-                opensAt: block.timestamp - 1 days,
-                closesAt: block.timestamp + 90 days,
+                opensAt: block.timestamp + 1 days,
+                closesAt: block.timestamp + 91 days,
                 boardMetadata: ISignals.Metadata({
                     title: "Default Board",
                     body: "Default board deployed via script.",
@@ -86,11 +86,13 @@ contract DeploySignalsBoardFromFactory is SharedScriptBase {
                     minThreshold: MIN_THRESHOLD
                 }),
                 proposerRequirements: IAuthorizer.ParticipantRequirements({
+                    token: underlyingToken,
                     minBalance: PROPOSER_MIN_BALANCE, // 20k tokens
                     minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: PROPOSER_MIN_LOCK // 20k tokens
                 }),
                 supporterRequirements: IAuthorizer.ParticipantRequirements({
+                    token: underlyingToken,
                     minBalance: SUPPORTER_MIN_BALANCE,
                     minHoldingDuration: 0, // Balance-only requirement
                     minLockAmount: SUPPORTER_MIN_LOCK
