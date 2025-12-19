@@ -10,7 +10,7 @@ import {Signals} from "../src/Signals.sol";
  *
  * Usage:
  * Open Board:
- *   forge script script/BoardOperations.s.sol --sig "openBoard(string,address)" base-sepolia <boardAddress> --broadcast
+ *   forge script script/BoardOperations.s.sol --rpc-url "$BASE_SEPOLIA_RPC" --sig "openBoard(string,address)" base-sepolia <boardAddress> --broadcast
  */
 contract BoardOperationsScript is SharedScriptBase {
     /**
@@ -33,9 +33,7 @@ contract BoardOperationsScript is SharedScriptBase {
 
         console.log("=== Board Opened ===");
         console.log("Board Address:", boardAddress);
-        console.log("Opened By:", deployerAddress);
+        console.log("Board Owner:", deployerAddress);
         console.log("Opens At:", block.timestamp);
-
-        console.log("ScriptOutput:", boardAddress);
     }
 }
