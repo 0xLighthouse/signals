@@ -45,13 +45,6 @@ export const signalsAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'authorizationToken',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
     name: 'balanceOf',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -215,6 +208,7 @@ export const signalsAbi = [
         internalType: 'struct IAuthorizer.ParticipantRequirements',
         type: 'tuple',
         components: [
+          { name: 'token', internalType: 'address', type: 'address' },
           { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
           {
             name: 'minHoldingDuration',
@@ -237,6 +231,7 @@ export const signalsAbi = [
         internalType: 'struct IAuthorizer.ParticipantRequirements',
         type: 'tuple',
         components: [
+          { name: 'token', internalType: 'address', type: 'address' },
           { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
           {
             name: 'minHoldingDuration',
@@ -384,6 +379,7 @@ export const signalsAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
+              { name: 'token', internalType: 'address', type: 'address' },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -402,6 +398,7 @@ export const signalsAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
+              { name: 'token', internalType: 'address', type: 'address' },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -617,6 +614,7 @@ export const signalsAbi = [
     inputs: [],
     name: 'proposerRequirements',
     outputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
       { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
       { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
       { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
@@ -674,37 +672,6 @@ export const signalsAbi = [
       { name: 'data', internalType: 'bytes', type: 'bytes' },
     ],
     name: 'safeTransferFrom',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'acceptanceCriteria',
-        internalType: 'struct ISignals.AcceptanceCriteria',
-        type: 'tuple',
-        components: [
-          {
-            name: 'permissions',
-            internalType: 'enum ISignals.AcceptancePermissions',
-            type: 'uint8',
-          },
-          {
-            name: 'thresholdOverride',
-            internalType: 'enum ISignals.ThresholdOverride',
-            type: 'uint8',
-          },
-          {
-            name: 'thresholdPercentTotalSupplyWAD',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-          { name: 'minThreshold', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-    ],
-    name: 'setAcceptanceCriteria',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -774,6 +741,7 @@ export const signalsAbi = [
     inputs: [],
     name: 'supporterRequirements',
     outputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
       { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
       { name: 'minHoldingDuration', internalType: 'uint256', type: 'uint256' },
       { name: 'minLockAmount', internalType: 'uint256', type: 'uint256' },
@@ -1364,6 +1332,7 @@ export const signalsFactoryAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
+              { name: 'token', internalType: 'address', type: 'address' },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
@@ -1382,6 +1351,7 @@ export const signalsFactoryAbi = [
             internalType: 'struct IAuthorizer.ParticipantRequirements',
             type: 'tuple',
             components: [
+              { name: 'token', internalType: 'address', type: 'address' },
               { name: 'minBalance', internalType: 'uint256', type: 'uint256' },
               {
                 name: 'minHoldingDuration',
