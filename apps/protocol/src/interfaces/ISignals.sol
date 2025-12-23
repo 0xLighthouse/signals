@@ -212,7 +212,14 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
     event InitiativeProposed(
         uint256 indexed initiativeId, address indexed proposer, Metadata metadata
     );
-    event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor);
+
+    /**
+     *
+     * @param initiativeId ID of the initiative
+     * @param actor Address of the actor that accepted the initiative
+     * @param weight Weight of the support at the time of acceptance
+     */
+    event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor, uint256 weight);
     event InitiativeExpired(uint256 indexed initiativeId, address indexed actor);
     event Redeemed(
         uint256 indexed initiativeId, uint256 indexed tokenId, address indexed payee, uint256 amount
@@ -311,6 +318,14 @@ interface ISignals is IERC721Enumerable, ISignalsLock, IAuthorizer, IIncentivize
         returns (uint256);
     function acceptInitiative(uint256 initiativeId) external payable;
     function expireInitiative(uint256 initiativeId) external payable;
+
+    /**
+     * Allows a supporter to redeem a single lock
+     *
+     * @param lockId ID of the lock to redeem
+     *
+     * @dev Emits a Redeemed event if the lock is redeemed successfully
+     */
     function redeemLock(uint256 lockId) external;
     function redeemLocksForInitiative(uint256 initiativeId, uint256[] memory lockIds) external;
     function getTokenLock(uint256 tokenId) external view returns (TokenLock memory);

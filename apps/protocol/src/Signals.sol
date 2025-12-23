@@ -323,11 +323,11 @@ contract Signals is
             _checkOwner();
         }
 
+        uint256 weight = _calculateWeightAt(initiativeId, block.timestamp);
+
         // When thresholdOverride is None or the sender is not the owner, check threshold requirements
         if (_acceptanceCriteria.thresholdOverride == ThresholdOverride.None || msg.sender != owner()) {
-            uint256 acceptanceThreshold = getAcceptanceThreshold();
-            uint256 weight = _calculateWeightAt(initiativeId, block.timestamp);
-            if (weight < acceptanceThreshold) {
+            if (weight < getAcceptanceThreshold()) {
                 revert Signals_InsufficientSupport();
             }
         }
@@ -344,7 +344,7 @@ contract Signals is
         initiative.state = InitiativeState.Accepted;
         initiative.acceptanceTimestamp = block.timestamp;
 
-        emit InitiativeAccepted(initiativeId, msg.sender);
+        emit InitiativeAccepted(initiativeId, msg.sender, weight);
     }
 
     /**
@@ -378,7 +378,8 @@ contract Signals is
         emit InitiativeExpired(initiativeId, msg.sender);
     }
 
-    function redeemLock(uint256 lockId) external nonReentrant {
+    /// @inheritdoc ISignals
+    function redeemLock(uint256 lockId) external {
         TokenLock memory lock = _locks[lockId];
         uint256[] memory lockIds = new uint256[](1);
         lockIds[0] = lockId;

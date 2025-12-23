@@ -20,7 +20,7 @@ contract SignalsFactoryTest is Test, SignalsHarness {
     //////////////////////////////////////////////////////////////*/
 
     function test_Version_Correct() public {
-        assertEq(factory.version(), "0.3.1");
+        assertEq(factory.version(), "0.3.2");
     }
 
     function test_Create_DeploysSignalsContract() public {
