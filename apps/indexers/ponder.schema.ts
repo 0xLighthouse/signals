@@ -132,6 +132,9 @@ export const Initiative = onchainTable('initiatives', (t) => ({
   contractAddress: t.hex().notNull(),
   // --- attributes
   initiativeId: t.integer().notNull(),
+  state: t.text().notNull(),
+  acceptedAt: t.bigint(),
+  acceptedBy: t.hex(),
   proposer: t.hex().notNull(),
   title: t.text().notNull(),
   body: t.text().notNull(),

@@ -19,22 +19,17 @@ ponder.on('ExperimentTokenFactory:TokenDeployed', async ({ event, context }) => 
 })
 
 ponder.on('SignalsBoard:InitiativeProposed', async ({ event, context }) => {
+  const initiativeKey = `${context.chain.id}:${event.log.address}:${event.args.initiativeId}`
 
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()')
-  console.log('SignalsBoard:InitiativeProposed()', event)
   await context.db.insert(schema.Initiative).values({
-    id: event.id,
+    id: initiativeKey,
     chainId: context.chain.id,
     contractAddress: event.log.address,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
     initiativeId: Number(event.args.initiativeId),
     proposer: event.args.proposer,
+    state: 'Proposed',
     title: event.args.metadata.title,
     body: event.args.metadata.body,
     attachments:
@@ -141,12 +136,29 @@ ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {
  * Index the opensAt timestamp change event
  */
 ponder.on('SignalsBoard:OpensAtChanged', async ({ event, context }) => {
-  await context.db.update(schema.Board, { id: event.id }).set({
+  const boardKey = `${context.chain.id}:${event.log.address}`
+
+  await context.db.update(schema.Board, { id: boardKey }).set({
     opensAt: event.args.opensAt,
   })
 })
 
+/**
+ * Index the initiative accepted event
+ */
+ponder.on('SignalsBoard:InitiativeAccepted', async ({ event, context }) => {
+  console.log('SignalsBoard:InitiativeAccepted', event)
+  const initiativeKey = `${context.chain.id}:${event.log.address}:${event.args.initiativeId}`
+
+  await context.db.update(schema.Initiative, { id: initiativeKey }).set({
+    state: 'Accepted',
+    acceptedAt: event.block.timestamp,
+    acceptedBy: event.args.actor as `0x${string}`,
+  })
+})
+
 ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
+  const boardKey = `${context.chain.id}:${event.args.board}`
 
   // Read version
   const version: string = (await context.client.readContract({
@@ -256,7 +268,7 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
 
   // Insert board record with full BoardConfig
   await context.db.insert(schema.Board).values({
-    id: event.id,
+    id: boardKey,
     chainId: context.chain.id,
     blockTimestamp: event.block.timestamp,
     transactionHash: event.transaction.hash,
