@@ -1,21 +1,27 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
 import { shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
-import { Settings, ExternalLink } from 'lucide-react'
+import { Info, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { BoardSettingsDialog } from '@/components/dialogs/board-settings-dialog'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 
 export const BoardConfig = () => {
   const { board, boardAddress, network, underlyingBalance } = useSignals()
   const { isConnected } = useAccount()
   const { config: networkConfig } = useNetworkConfig()
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const params = useParams()
+  
+  // Build rules page URL
+  const networkSlug = params?.network as string | undefined
+  const boardAddressParam = params?.boardAddress as string | undefined
+  const rulesUrl = networkSlug && boardAddressParam ? `/${networkSlug}/${boardAddressParam}/rules` : '#'
 
   const boardTitle = board.name ?? 'Untitled board'
   const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
@@ -80,11 +86,13 @@ export const BoardConfig = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsSettingsOpen(true)}
+            asChild
             className="h-8 w-8"
-            aria-label="Board settings"
+            aria-label="Board rules"
           >
-            <Settings className="h-4 w-4" />
+            <Link href={rulesUrl}>
+              <Info className="h-4 w-4" />
+            </Link>
           </Button>
         </div>
         {statusLabel && (
@@ -93,7 +101,6 @@ export const BoardConfig = () => {
           </span>
         )}
       </div>
-      <BoardSettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </section>
   )
 }
