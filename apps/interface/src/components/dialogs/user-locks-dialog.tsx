@@ -33,7 +33,7 @@ export function UserLocksDialog({ open, onOpenChange }: UserLocksDialogProps) {
   const { boardAddress, underlyingSymbol, underlyingDecimals, board } = useSignals()
   const publicClient = usePublicClient()
   const walletClient = useWalletClient()
-  const { chain, indexerEndpoint } = useNetworkStore((state) => state.config)
+  const { chain, indexerEndpoint, explorerUrl } = useNetworkStore((state) => state.config)
   const chainId = chain?.id
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -322,6 +322,12 @@ export function UserLocksDialog({ open, onOpenChange }: UserLocksDialogProps) {
     })
   }
 
+  const getTxUrl = (hash?: string | null) => {
+    if (!hash || !explorerUrl) return null
+    const trimmed = explorerUrl.endsWith('/') ? explorerUrl.slice(0, -1) : explorerUrl
+    return `${trimmed}/tx/${hash}`
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -573,17 +579,19 @@ export function UserLocksDialog({ open, onOpenChange }: UserLocksDialogProps) {
                         </div>
                       </div>
                       <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-                        <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/40">
+                        <div className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/40">
                           <div>Amount</div>
                           <div>Unlocked</div>
                           <div className="text-right">Status</div>
+                          <div className="text-right">Tx</div>
                         </div>
                         {locks.map((lock) => {
                           const lockKey = getLockKey(lock)
+                          const txUrl = getTxUrl(lock.redeemedTxnHash)
                           return (
                             <div
                               key={lockKey}
-                              className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-sm border-t border-neutral-200 dark:border-neutral-800"
+                              className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-sm border-t border-neutral-200 dark:border-neutral-800"
                             >
                               <div className="truncate">
                                 {formatAmount(lock)} {underlyingSymbol}
@@ -593,6 +601,17 @@ export function UserLocksDialog({ open, onOpenChange }: UserLocksDialogProps) {
                               </div>
                               <div className="flex justify-end">
                                 <Badge variant="secondary">Claimed</Badge>
+                              </div>
+                              <div className="flex justify-end">
+                                {txUrl ? (
+                                  <Button variant="ghost" size="sm" asChild>
+                                    <a href={txUrl} target="_blank" rel="noreferrer">
+                                      View
+                                    </a>
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-neutral-400">—</span>
+                                )}
                               </div>
                             </div>
                           )
