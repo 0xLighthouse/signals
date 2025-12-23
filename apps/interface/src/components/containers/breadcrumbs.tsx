@@ -52,9 +52,6 @@ export const Breadcrumbs: React.FC = () => {
             </BreadcrumbItem>
           </div>
         )}
-        <BreadcrumbSeparator>
-          <Slash />
-        </BreadcrumbSeparator>
       </BreadcrumbList>
     </Breadcrumb>
   )

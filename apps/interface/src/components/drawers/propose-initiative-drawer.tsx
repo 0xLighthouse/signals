@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CircleAlert, Loader2, PlusIcon, Trash2 } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import { useWeb3 } from '@/contexts/WalletProvider'
 import { toast } from 'sonner'
 import { DateTime } from 'luxon'
@@ -10,37 +10,26 @@ import { Button } from '@/components/ui/button'
 import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
 import { useSignals } from '@/hooks/use-signals'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { AcceptanceProgressChart } from '../acceptance-progress-chart'
-import { SwitchContainer } from '../ui/switch-container'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
-import { Typography } from '../ui/typography'
 import { useRouteStore } from '@/stores/useRouteStore'
 import { SignalsABI } from '../../../../../packages/abis'
 import { useBalanceOf } from '@/hooks/useBalanceOf'
 import { usePublicClient } from '@/contexts/ChainProvider'
 import { useWalletClient } from '@/hooks/use-wallet-client'
 import { Alert, AlertDescription } from '../ui/alert'
-
-type AttachmentDraft = {
-  uri: string
-  mimeType: string
-  description: string
-}
-
-const MAX_ATTACHMENTS = 5
+import { InitiativeFormFields, type AttachmentDraft, MAX_ATTACHMENTS } from './propose-initiative-drawer/InitiativeFormFields'
+import { InitiativeLockTokens } from './propose-initiative-drawer/InitiativeLockTokens'
+import { InsufficientTokensMessage } from './propose-initiative-drawer/InsufficientTokensMessage'
 
 type ProposeInitiativeDrawerProps = {
   open?: boolean
@@ -333,227 +322,92 @@ export function ProposeInitiativeDrawer({
         </DrawerTrigger>
       )}
       <DrawerContent>
-        <div className="overflow-y-auto flex p-8 space-x-8">
-          <div className="flex flex-col mx-auto lg:w-3/5">
-            <DrawerHeader>
-              <DrawerTitle>Propose a new initiative</DrawerTitle>
-              <Alert className="bg-amber-50 dark:bg-neutral-800">
-                <AlertDescription>
-                  Signals is not a vote system. Lock only if you care enough to trade time or tokens
-                  for the outcome.
-                </AlertDescription>
-              </Alert>
-            </DrawerHeader>
+        <div className="overflow-y-auto p-8">
+          <DrawerHeader>
+            <DrawerTitle>Propose a new initiative</DrawerTitle>
+            <Alert className="bg-amber-50 dark:bg-neutral-800">
+              <AlertDescription>
+                Signals is not a vote system. Lock only if you care enough to trade time or tokens
+                for the outcome.
+              </AlertDescription>
+            </Alert>
+          </DrawerHeader>
 
-            {!meetsProposalThreshold(Number(balance ?? 0)) ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CircleAlert className="h-12 w-12 text-orange-500 mb-4" />
-                <Typography variant="h3" className="mb-2">
-                  Insufficient tokens
-                </Typography>
-                <Typography variant="body" className="text-muted-foreground max-w-md">
-                  You need at least {formatter(board.proposalThreshold)} {symbol} tokens to propose
-                  an initiative. Please acquire more tokens before trying again.
-                </Typography>
-                {isBalanceLoading ? (
-                  <div className="mt-3 flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <Typography variant="body-sm">Fetching your balance…</Typography>
-                  </div>
-                ) : (
-                  <Typography variant="body-sm" className="text-muted-foreground mt-3">
-                    Your balance: {formatter(Number(balance ?? 0))} {symbol}
-                  </Typography>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="my-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    placeholder='For example, "On-chain forums"'
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                <div className="my-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Include details of your initiative. Remember to search for existing ideas first."
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    style={{ resize: 'none', height: '200px' }}
-                  />
-                </div>
-                <div className="my-4">
-                  <Label>Attachments</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Optional supporting links or files. Provide a URI along with an optional MIME
-                    type and description.
-                  </p>
-                  {attachments.map((attachment, index) => (
-                    <div key={`attachment-${index}`} className="mb-4 rounded-md border p-4">
-                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-4">
-                        <div className="flex-1">
-                          <Label htmlFor={`attachment-uri-${index}`}>URI</Label>
-                          <Input
-                            id={`attachment-uri-${index}`}
-                            placeholder="https:// or ipfs://"
-                            value={attachment.uri}
-                            onChange={(e) => handleAttachmentChange(index, 'uri', e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="mt-2 self-start text-muted-foreground hover:text-foreground"
-                          onClick={() => handleRemoveAttachment(index)}
-                          aria-label="Remove attachment"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                      <div className="mt-2 grid gap-2 md:grid-cols-2">
-                        <div>
-                          <Label htmlFor={`attachment-mime-${index}`}>MIME type</Label>
-                          <Input
-                            id={`attachment-mime-${index}`}
-                            placeholder="application/pdf"
-                            value={attachment.mimeType}
-                            onChange={(e) =>
-                              handleAttachmentChange(index, 'mimeType', e.target.value)
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`attachment-description-${index}`}>Description</Label>
-                          <Input
-                            id={`attachment-description-${index}`}
-                            placeholder="Short description"
-                            value={attachment.description}
-                            onChange={(e) =>
-                              handleAttachmentChange(index, 'description', e.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddAttachment}
-                    disabled={attachments.length >= MAX_ATTACHMENTS}
-                  >
-                    Add attachment
-                  </Button>
-                </div>
-                <SwitchContainer>
-                  <Switch
-                    id="lock-tokens"
-                    checked={lockTokens}
-                    onCheckedChange={handleToggleLockTokens}
-                  />
-                  <Label htmlFor="lock-tokens">Also lock tokens to add support</Label>
-                </SwitchContainer>
-                {lockTokens && (
-                  <div className="flex flex-col gap-8 my-2">
-                    <div className="flex items-center">
-                      <Label className="w-1/5 flex items-center" htmlFor="amount">
-                        Amount
-                      </Label>
-                      <div className="w-4/5 flex flex-col">
-                        <Input
-                          id="amount"
-                          type="number"
-                          value={amount ?? ''}
-                          onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : 0)}
-                          min={minProposerLockAmount ?? 0}
-                        />
-                        {lockTokens && !amount && (
-                          <Label className="text-red-500 mt-2">
-                            Please enter an amount to lock
-                          </Label>
-                        )}
-                        {lockTokens &&
-                          minProposerLockAmount != null &&
-                          minProposerLockAmount > 0 && (
-                            <Label className="text-sm text-muted-foreground mt-2">
-                              Minimum to propose: {minProposerLockAmount.toLocaleString()} {symbol}
-                            </Label>
-                          )}
-                        {lockAmountBelowMinimum && minProposerLockAmount != null && (
-                          <Label className="text-red-500 mt-2">
-                            Enter at least {minProposerLockAmount.toLocaleString()} {symbol} to meet
-                            proposer requirements
-                          </Label>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Label className="w-1/5 flex items-center" htmlFor="duration">
-                        Duration
-                      </Label>
-                      <div className="w-4/5 flex items-center justify-center whitespace-nowrap">
-                        <Slider
-                          value={[duration]}
-                          step={1}
-                          min={1}
-                          max={maxLockIntervals}
-                          onValueChange={(value) => setDuration(value[0])}
-                        />
-                        <p className="ml-4">
-                          {`${duration} interval${duration !== 1 ? 's' : ''}`}
-                          {board.lockInterval
-                            ? ` (${formatDurationLabel(duration * board.lockInterval)})`
-                            : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="block lg:hidden">
-                      <AcceptanceProgressChart
-                        amount={amount}
-                        duration={duration}
-                        threshold={formatter(board.acceptanceThreshold)}
-                        initiative={{
-                          createdAt: DateTime.now().toSeconds(),
-                          lockInterval: board.lockInterval,
-                          decayCurveType: board.decayCurveType,
-                          decayCurveParameters: board.decayCurveParameters,
-                        }}
-                        existingLocks={[]}
-                        proposeNewInitiative={true}
-                        supportInitiative={lockTokens}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div className="flex justify-end py-8">{resolveAction()}</div>
-          </div>
-          <div className="hidden lg:block w-2/5 lg:mt-6">
-            <AcceptanceProgressChart
-              amount={amount}
-              duration={duration}
-              threshold={formatter(board.acceptanceThreshold)}
-              initiative={{
-                createdAt: DateTime.now().toSeconds(),
-                lockInterval: board.lockInterval,
-                decayCurveType: board.decayCurveType,
-                decayCurveParameters: board.decayCurveParameters,
-              }}
-              existingLocks={[]}
-              proposeNewInitiative={true}
-              supportInitiative={lockTokens}
+          {!meetsProposalThreshold(Number(balance ?? 0)) ? (
+            <InsufficientTokensMessage
+              requiredAmount={formatter(board.proposalThreshold)}
+              symbol={symbol}
+              balance={formatter(Number(balance ?? 0))}
+              isBalanceLoading={isBalanceLoading}
             />
-          </div>
+          ) : (
+            <>
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Left side: Title, Description, Attachments */}
+                <div className="flex flex-col flex-1 lg:w-1/2">
+                  <InitiativeFormFields
+                    title={title}
+                    description={description}
+                    attachments={attachments}
+                    onTitleChange={setTitle}
+                    onDescriptionChange={setDescription}
+                    onAddAttachment={handleAddAttachment}
+                    onAttachmentChange={handleAttachmentChange}
+                    onRemoveAttachment={handleRemoveAttachment}
+                  />
+                </div>
+
+                {/* Right side: Lock Tokens and Preview */}
+                <div className="flex flex-col flex-1 lg:w-1/2 gap-6">
+                  <InitiativeLockTokens
+                    lockTokens={lockTokens}
+                    amount={amount}
+                    duration={duration}
+                    minProposerLockAmount={minProposerLockAmount}
+                    lockAmountBelowMinimum={lockAmountBelowMinimum}
+                    maxLockIntervals={maxLockIntervals}
+                    symbol={symbol}
+                    board={{
+                      lockInterval: board.lockInterval,
+                      acceptanceThreshold: board.acceptanceThreshold,
+                      decayCurveType: board.decayCurveType,
+                      decayCurveParameters: board.decayCurveParameters,
+                    }}
+                    formatter={formatter}
+                    onToggleLock={handleToggleLockTokens}
+                    onAmountChange={setAmount}
+                    onDurationChange={setDuration}
+                    formatDurationLabel={formatDurationLabel}
+                  />
+
+                  {/* Preview Chart */}
+                  <div className="hidden lg:block">
+                    <AcceptanceProgressChart
+                      amount={amount}
+                      duration={duration}
+                      threshold={formatter(board.acceptanceThreshold)}
+                      initiative={{
+                        createdAt: DateTime.now().toSeconds(),
+                        lockInterval: board.lockInterval,
+                        decayCurveType: board.decayCurveType,
+                        decayCurveParameters: board.decayCurveParameters,
+                      }}
+                      existingLocks={[]}
+                      proposeNewInitiative={true}
+                      supportInitiative={lockTokens}
+                    />
+                  </div>
+                </div>
+              </div>
+
+            </>
+          )}
         </div>
+        {meetsProposalThreshold(Number(balance ?? 0)) && (
+          <DrawerFooter>
+            <div className="flex justify-end">{resolveAction()}</div>
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   )

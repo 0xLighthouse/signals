@@ -1,16 +1,15 @@
-import { ChevronUp, CircleAlert, Info } from 'lucide-react'
+import { CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
 import { useAccount } from '@/hooks/useAccount'
 import { Card } from '@/components/ui/card'
 import { useSignals } from '@/hooks/use-signals'
@@ -32,7 +31,9 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
 import { resolveName } from '@/lib/resolveName'
 import { useAsyncProp } from '@/lib/useAsyncProp'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { AmountInput } from './shared/AmountInput'
+import { DurationSlider } from './shared/DurationSlider'
+import { ImpactMetrics } from './shared/ImpactMetrics'
 
 interface Props {
   initiative: Initiative
@@ -56,7 +57,6 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
   const [amountValue, setAmount] = useState('0')
   const [duration, setDuration] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedTier, setSelectedTier] = useState<'mild' | 'strong' | 'conviction'>('strong')
   const [showAllowanceDetails, setShowAllowanceDetails] = useState(false)
 
   // Memoize as a primitive to avoid effect loops when initiativeId is a BigInt/object
@@ -148,102 +148,10 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
     }
   }, [board?.participantRequirements?.minLockAmount, underlyingTokenDecimals])
 
-  const ensureDisplayAmount = (value: number) => {
-    if (!Number.isFinite(value) || value <= 0) return ''
-    return String(Math.max(1, Math.floor(value)))
-  }
-
-  const tierPresets = useMemo(
-    () => [
-      {
-        id: 'minimum' as const,
-        title: 'Minimum',
-        description: 'Bare minimum commitment',
-        footnote: 'Symbolic signal • Little influence',
-        minAmount: Math.max(participantMinLockNumber, Math.floor(numericBalance * 0.02) || 0, 1),
-        style: 'border-neutral-200 dark:border-neutral-800',
-      },
-      {
-        id: 'strong' as const,
-        title: 'Strong',
-        description: 'Meaningful commitment',
-        footnote: 'Moves the needle • Real opportunity cost',
-        minAmount: Math.max(participantMinLockNumber, Math.floor(numericBalance * 0.25) || 0, 1),
-        style: 'border-neutral-300 dark:border-neutral-700',
-      },
-      {
-        id: 'deep' as const,
-        title: 'Deep Conviction',
-        description: 'High confidence, higher cost',
-        footnote: 'Substantial influence • Long lock expected',
-        minAmount: Math.max(participantMinLockNumber, Math.floor(numericBalance * 0.5) || 0, 2500),
-        style: 'border-orange-400 shadow-[0_0_0_1px_rgba(251,146,60,0.4)]',
-      },
-      {
-        id: 'all-in' as const,
-        title: 'All In',
-        description: 'Maximum commitment',
-        footnote: 'Decisive influence • Serious sacrifice',
-        minAmount: Math.max(participantMinLockNumber, Math.floor(numericBalance * 0.75) || 0, 5000),
-        style:
-          'border-orange-500 bg-orange-50/60 dark:bg-neutral-900 shadow-[0_0_0_1px_rgba(249,115,22,0.5)]',
-      },
-    ],
-    [numericBalance, participantMinLockNumber],
-  )
-
-  const selectedTierPreset = tierPresets.find((tier) => tier.id === selectedTier) ?? tierPresets[1]
-
   const maxLockIntervals = useMemo(() => {
     if (board?.maxLockIntervals && board.maxLockIntervals > 0) return board.maxLockIntervals
     return 30
   }, [board?.maxLockIntervals])
-
-  const clampAmountForTier = useCallback(
-    (desired: number) => {
-      const minFloor = participantMinLockNumber > 0 ? participantMinLockNumber : 1
-      if (!Number.isFinite(desired)) return minFloor
-      if (numericBalance > 0) {
-        return Math.max(minFloor, Math.min(desired, numericBalance))
-      }
-      return Math.max(minFloor, desired)
-    },
-    [numericBalance, participantMinLockNumber],
-  )
-
-  const getTierDefaults = useCallback(
-    (tierId: typeof selectedTier) => {
-      const baseMin = participantMinLockNumber || 0
-      const quarterBalance = numericBalance * 0.25
-      const halfBalance = numericBalance * 0.5
-      const threeQuarterBalance = numericBalance * 0.75
-
-      switch (tierId) {
-        case 'minimum':
-          return {
-            amount: clampAmountForTier(Math.max(1, baseMin)),
-            duration: 1,
-          }
-        case 'strong':
-          return {
-            amount: clampAmountForTier(Math.max(baseMin, Math.floor(quarterBalance), 1)),
-            duration: Math.max(1, Math.round(maxLockIntervals * 0.25)),
-          }
-        case 'deep':
-          return {
-            amount: clampAmountForTier(Math.max(baseMin, Math.floor(halfBalance), 1)),
-            duration: Math.max(1, Math.round(maxLockIntervals * 0.5)),
-          }
-        case 'all-in':
-        default:
-          return {
-            amount: clampAmountForTier(Math.max(baseMin, Math.floor(threeQuarterBalance), 1)),
-            duration: Math.max(1, maxLockIntervals),
-          }
-      }
-    },
-    [clampAmountForTier, maxLockIntervals, numericBalance, participantMinLockNumber],
-  )
 
   const formatDurationLabel = (seconds: number) => {
     if (!seconds || seconds < 60) return `${seconds}s`
@@ -256,30 +164,6 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
     const rounded = Math.round(hours * 10) / 10
     return `${rounded} hour${rounded !== 1 ? 's' : ''}`
   }
-
-  useEffect(() => {
-    if (maxLockIntervals && duration > maxLockIntervals) {
-      setDuration(maxLockIntervals)
-    }
-  }, [duration, maxLockIntervals])
-
-  useEffect(() => {
-    // When drawer opens, seed defaults for the initial tier
-    if (open) {
-      const defaults = getTierDefaults(selectedTier)
-      setAmount(ensureDisplayAmount(defaults.amount))
-      setDuration(defaults.duration)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
-  useEffect(() => {
-    // Keep amount above tier minimum when data changes
-    const min = selectedTierPreset.minAmount || 0
-    if (amount < min) {
-      setAmount(ensureDisplayAmount(min))
-    }
-  }, [amount, selectedTierPreset.minAmount])
 
   const {
     isApproving,
@@ -303,7 +187,6 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
     setAmount('0')
     setDuration(1)
     setIsSubmitting(false)
-    setSelectedTier('strong')
     setShowAllowanceDetails(false)
   }
 
@@ -413,298 +296,156 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
       onOpenChange={handleOnOpenChange}
     >
       <DrawerContent>
-        <div className="overflow-y-auto flex flex-col lg:flex-row p-8 gap-8">
-          <div className="lg:w-2/5 space-y-4">
-            <DrawerHeader className="px-0">
-              <DrawerTitle className="text-2xl">Support initiative</DrawerTitle>
-              <p className="text-sm text-muted-foreground">
-                Signals measures conviction, not opinion. Support only if you're willing to accept
-                real opportunity cost.
-              </p>
-            </DrawerHeader>
-            <Card className="border-neutral-200/80 dark:border-neutral-800 bg-gradient-to-r from-orange-50 via-white to-amber-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 shadow-sm">
-              <div className="flex items-start gap-4 p-4">
-                <Avatar className="h-12 w-12 ring-2 ring-white shadow-sm">
-                  <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
-                </Avatar>
-                <div className="flex-1 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wide">
-                      Proposer
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {proposerName} • {timeAgoWords(initiative.createdAtTimestamp)}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-white">
-                    {initiative.title}
-                  </h3>
-                  <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed">
-                    {initiative.description}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Alert className="bg-blue-50 dark:bg-neutral-800">
-              <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-              <AlertDescription>
-                {participantMinBalance || participantMinLock ? (
-                  <div className="space-y-1">
-                    <div>
-                      Commitment levels help distinguish symbolic support from decisive intent.
-                    </div>
-                    {participantMinBalance ? (
-                      <div>
-                        Requires at least <strong>{participantMinBalance}</strong> {symbol} balance
-                        to support.
-                      </div>
-                    ) : (
-                      <div>No minimum balance required to support.</div>
-                    )}
-                    {participantMinLock ? (
-                      <div>
-                        Minimum to lock: <strong>{participantMinLock}</strong> {symbol}.
-                      </div>
-                    ) : (
-                      <div>No minimum lock amount required.</div>
-                    )}
-                    <div>
-                      You have <strong>{formattedBalance ?? '—'}</strong> {symbol} available.
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    You have <strong>{formattedBalance ?? '—'}</strong> {symbol} available to
-                    support this initiative.
-                  </>
-                )}
-              </AlertDescription>
-            </Alert>
-          </div>
+        <div className="overflow-y-auto p-8">
+          <DrawerHeader className="px-0">
+            <DrawerTitle className="text-2xl">Support initiative</DrawerTitle>
+            <p className="text-sm text-muted-foreground">
+              Signals measures conviction, not opinion. Support only if you're willing to accept
+              real opportunity cost.
+            </p>
+          </DrawerHeader>
 
-          <div className="lg:w-3/5 space-y-8">
-            <section className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">Select commitment level</h3>
-                <p className="text-sm text-muted-foreground">
-                  Signals measures conviction. How far are you willing to go?
-                </p>
-              </div>
-              <TooltipProvider delayDuration={50}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  {tierPresets.map((tier) => {
-                    const isSelected = selectedTier === tier.id
-                    const isDisabled = numericBalance < tier.minAmount
-                    return (
-                      <button
-                        key={tier.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTier(tier.id)
-                          const defaults = getTierDefaults(tier.id)
-                          setAmount(ensureDisplayAmount(defaults.amount))
-                          setDuration(defaults.duration)
-                        }}
-                        className={`rounded-lg border p-4 text-left transition focus-visible:outline focus-visible:outline-2 ${
-                          isSelected ? 'ring-2 ring-orange-500' : ''
-                        } ${tier.style}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold">{tier.title}</p>
-                            <p className="text-sm text-muted-foreground">{tier.description}</p>
-                          </div>
-                          {isSelected && <Badge variant="default">Selected</Badge>}
-                          {isDisabled && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" align="center" className="text-xs">
-                                You can choose this level, but may not be able to complete the
-                                commitment yet.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left column: Initiative details */}
+            <div className="flex-1 lg:w-1/2 space-y-6">
+              <Card className="border-neutral-200/80 dark:border-neutral-800 bg-gradient-to-r from-orange-50 via-white to-amber-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 shadow-sm">
+                <div className="flex items-start gap-4 p-4">
+                  <Avatar className="h-12 w-12 ring-2 ring-white shadow-sm">
+                    <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="uppercase text-[10px] tracking-wide">
+                        Proposer
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {proposerName} • {timeAgoWords(initiative.createdAtTimestamp)}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-white">
+                      {initiative.title}
+                    </h3>
+                    <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed">
+                      {initiative.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Alert className="bg-amber-50 dark:bg-neutral-800">
+                <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
+                <AlertDescription>
+                  {participantMinBalance || participantMinLock ? (
+                    <div className="space-y-1">
+                      {participantMinBalance && (
+                        <div>
+                          Requires at least <strong>{participantMinBalance}</strong> {symbol} balance
+                          to support.
                         </div>
-                        <p className="mt-3 text-xs text-muted-foreground leading-snug">
-                          {tier.footnote}
-                        </p>
-                      </button>
-                    )
-                  })}
-                </div>
-              </TooltipProvider>
-            </section>
+                      )}
+                      {participantMinLock && (
+                        <div>
+                          Minimum to lock: <strong>{participantMinLock}</strong> {symbol}.
+                        </div>
+                      )}
+                      <div>
+                        You have <strong>{formattedBalance ?? '—'}</strong> {symbol} available.
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      You have <strong>{formattedBalance ?? '—'}</strong> {symbol} available to
+                      support this initiative.
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            </div>
 
-            <section className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="amount">Tokens at risk</Label>
-                  <span className="text-sm text-muted-foreground">
-                    {amount ? `${amount.toLocaleString()} ${symbol}` : 'Set an amount'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={amountValue ?? undefined}
-                    onFocus={() => !Number(amountValue) && setAmount('')}
-                    onBlur={() => !Number(amountValue) && setAmount('0')}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                  <span className="text-sm text-muted-foreground">{symbol}</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  These tokens will be locked and unavailable to be redeemed until {unlockDate}.
-                </p>
-                {selectedTierPreset.minAmount > 0 && amount < selectedTierPreset.minAmount && (
-                  <p className="text-sm text-muted-foreground">
-                    Minimum commitment for this tier:{' '}
-                    {Math.ceil(selectedTierPreset.minAmount).toLocaleString()} {symbol}
-                  </p>
-                )}
-                {insufficientBalance && (
-                  <p className="text-sm text-muted-foreground">
-                    You don't currently have enough {symbol} to make this commitment.
-                  </p>
-                )}
-              </div>
+            {/* Right column: Impact, Form inputs and preview */}
+            <div className="flex-1 lg:w-1/2 space-y-6">
+              <ImpactMetrics
+                weightContributed={weightContributed}
+                progressDelta={progressDelta}
+                coordinationPeers={coordinationPeers}
+              />
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="duration">Lock period</Label>
-                  <span className="text-sm text-muted-foreground">
-                    {duration} interval{duration !== 1 ? 's' : ''}{' '}
-                    {board?.lockInterval
-                      ? `(${formatDurationLabel(duration * board.lockInterval)})`
-                      : ''}
-                  </span>
-                </div>
-                <Slider
-                  value={[duration]}
-                  step={1}
-                  min={1}
-                  max={maxLockIntervals}
-                  onValueChange={(value) => setDuration(value[0])}
+              <div className="space-y-6">
+                <AmountInput
+                  amount={amountValue}
+                  symbol={symbol}
+                  minAmount={participantMinLockNumber}
+                  showError={insufficientBalance}
+                  errorMessage={
+                    insufficientBalance
+                      ? `You don't currently have enough ${symbol} to make this commitment.`
+                      : undefined
+                  }
+                  helperText={`These tokens will be locked and unavailable to be redeemed until ${unlockDate}.`}
+                  onAmountChange={(value) => setAmount(String(value))}
                 />
-                <p className="text-sm text-muted-foreground">Longer locks amplify your signal.</p>
-                <p className="text-sm text-muted-foreground">Available again on {unlockDate}</p>
-              </div>
-            </section>
 
-            <div className="space-y-2">
+                <DurationSlider
+                  duration={duration}
+                  maxIntervals={maxLockIntervals}
+                  lockInterval={board?.lockInterval}
+                  formatDurationLabel={formatDurationLabel}
+                  onDurationChange={setDuration}
+                />
+
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Longer locks amplify your signal. Available again on {unlockDate}
+                  </p>
+                </div>
+              </div>
+
               {!hasAllowance && amount > 0 && (
                 <p className="text-sm text-muted-foreground">
                   This requires a one-time approval to lock tokens.
                 </p>
               )}
               {hasAllowance && (
-                <Button
-                  type="button"
-                  variant="link"
-                  className="px-0 text-sm"
-                  onClick={() => setShowAllowanceDetails((prev) => !prev)}
-                >
-                  {showAllowanceDetails ? 'Hide advanced allowance' : 'Show allowance (Advanced)'}
-                </Button>
-              )}
-              {showAllowanceDetails && allowance && (
-                <p className="text-sm text-muted-foreground">
-                  Current allowance: {formattedAllowance}.{' '}
-                  <Button variant="link" className="px-0" onClick={handleRevokeAllowance}>
-                    Revoke
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 text-sm"
+                    onClick={() => setShowAllowanceDetails((prev) => !prev)}
+                  >
+                    {showAllowanceDetails ? 'Hide advanced allowance' : 'Show allowance (Advanced)'}
                   </Button>
-                </p>
+                  {showAllowanceDetails && allowance && (
+                    <p className="text-sm text-muted-foreground">
+                      Current allowance: {formattedAllowance}.{' '}
+                      <Button variant="link" className="px-0" onClick={handleRevokeAllowance}>
+                        Revoke
+                      </Button>
+                    </p>
+                  )}
+                </div>
               )}
-              <div className="flex justify-end pt-4">{resolveAction()}</div>
+
+              <AcceptanceProgressChart
+                initiative={{
+                  createdAt: initiative.createdAtTimestamp,
+                  lockInterval: board.lockInterval,
+                  decayCurveType: board.decayCurveType,
+                  decayCurveParameters: board.decayCurveParameters,
+                }}
+                supporters={initiative.supporters}
+                amount={amount}
+                duration={duration}
+                threshold={formatter(board.acceptanceThreshold)}
+                supportInitiative={true}
+                existingLocks={initiativeLocks}
+              />
             </div>
           </div>
-
-          <div className="hidden lg:block w-2/5 lg:mt-6 space-y-4">
-            <section className="space-y-3">
-              <h3 className="text-lg font-semibold">Your Impact</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Weight contributed</p>
-                  <p className="text-xl font-semibold">{weightContributed.toLocaleString()}</p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Progress toward acceptance</p>
-                  <p className="text-xl font-semibold">
-                    {progressDelta ? `+${progressDelta.toFixed(1)}%` : '—'}
-                  </p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Coordination hint</p>
-                  <p className="text-sm">
-                    {weightContributed > 0 && coordinationPeers != null
-                      ? coordinationPeers <= 0
-                        ? 'This commitment alone reaches acceptance.'
-                        : `If ${coordinationPeers} other${coordinationPeers === 1 ? '' : 's'} commit at this level, this initiative will reach acceptance.`
-                      : 'Set an amount to see coordination impact.'}
-                  </p>
-                </Card>
-              </div>
-            </section>
-            <AcceptanceProgressChart
-              initiative={{
-                createdAt: initiative.createdAtTimestamp,
-                lockInterval: board.lockInterval,
-                decayCurveType: board.decayCurveType,
-                decayCurveParameters: board.decayCurveParameters,
-              }}
-              supporters={initiative.supporters}
-              amount={amount}
-              duration={duration}
-              threshold={formatter(board.acceptanceThreshold)}
-              supportInitiative={true}
-              existingLocks={initiativeLocks}
-            />
-          </div>
-          <div className="block lg:hidden w-full space-y-4">
-            <section className="space-y-3">
-              <h3 className="text-lg font-semibold">Your Impact</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Weight contributed</p>
-                  <p className="text-xl font-semibold">{weightContributed.toLocaleString()}</p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Progress toward acceptance</p>
-                  <p className="text-xl font-semibold">
-                    {progressDelta ? `+${progressDelta.toFixed(1)}%` : '—'}
-                  </p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Coordination hint</p>
-                  <p className="text-sm">
-                    {weightContributed > 0 && coordinationPeers != null
-                      ? coordinationPeers <= 0
-                        ? 'This commitment alone reaches acceptance.'
-                        : `If ${coordinationPeers} other${coordinationPeers === 1 ? '' : 's'} commit at this level, this initiative will reach acceptance.`
-                      : 'Set an amount to see coordination impact.'}
-                  </p>
-                </Card>
-              </div>
-            </section>
-            <AcceptanceProgressChart
-              initiative={{
-                createdAt: initiative.createdAtTimestamp,
-                lockInterval: board.lockInterval,
-                decayCurveType: board.decayCurveType,
-                decayCurveParameters: board.decayCurveParameters,
-              }}
-              supporters={initiative.supporters}
-              amount={amount}
-              duration={duration}
-              threshold={formatter(board.acceptanceThreshold)}
-              supportInitiative={true}
-              existingLocks={initiativeLocks}
-            />
-          </div>
         </div>
+        <DrawerFooter>
+          <div className="flex justify-end">{resolveAction()}</div>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )

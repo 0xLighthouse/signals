@@ -40,6 +40,8 @@ export type DecayConfig = {
   params: string[]
 }
 
+export type InitiativeState = 'Proposed' | 'Accepted' | 'Cancelled' | 'Expired'
+
 /**
  * Complete board data structure from the indexer
  * Used for detailed board queries (single board)

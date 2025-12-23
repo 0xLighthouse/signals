@@ -34,26 +34,12 @@ export const AcceptanceProgressChart: React.FC<Props> = ({
   const { underlyingSymbol: symbol, underlyingDecimals: decimals } = useSignals()
 
   return (
-    <Card className="dark:bg-neutral-800">
-      <CardHeader>
-        <CardTitle>Impact</CardTitle>
-        {proposeNewInitiative && (
-          <Alert className="bg-blue-50 dark:bg-neutral-800">
-            <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-            <AlertTitle>You will add a new initative.</AlertTitle>
-          </Alert>
-        )}
-        {supportInitiative && (
-          <Alert className="bg-blue-50 dark:bg-neutral-800">
-            <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
-            <AlertTitle>
-              You will lock {amount} ({symbol}) for {duration} day{duration !== 1 ? 's' : ''}.
-            </AlertTitle>
-          </Alert>
-        )}
+    <Card className="dark:bg-neutral-800 border-0 shadow-none">
+      <CardHeader className="px-0">
+        <CardTitle>Preview</CardTitle>
       </CardHeader>
       {supportInitiative && (
-        <CardContent>
+        <CardContent className="px-0">
           {supporters?.length > 0 && (
             <div className="flex items-center mb-2">
               <Label className="w-3/4 flex items-center">Supporters:</Label>

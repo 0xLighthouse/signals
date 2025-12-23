@@ -11,6 +11,7 @@ import { PageSection } from '@/components/page-section'
 import { ProposeInitiativeDrawer } from '@/components/drawers/propose-initiative-drawer'
 import { SupportInitiativeDrawer } from '@/components/drawers/support-initiative-drawer'
 import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
 import { toast } from 'sonner'
@@ -36,6 +37,9 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   }, [isInitialized, fetchInitiatives, boardAddress])
 
   const [sortBy, setSortBy] = useState<'support' | 'createdAt'>('support')
+  const [statusFilter, setStatusFilter] = useState<'active' | 'accepted' | 'archived' | null>(
+    'active',
+  )
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
@@ -56,21 +60,51 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
     }
   }
 
+  const _initiativesFiltered = useMemo(() => {
+    if (!statusFilter) return initiatives
+    return initiatives.filter((initiative) => initiative.status === statusFilter)
+  }, [initiatives, statusFilter])
+
   const _initiativesSorted = useMemo(() => {
-    const arr = Array.isArray(initiatives) ? [...initiatives] : []
+    const arr = Array.isArray(_initiativesFiltered) ? [..._initiativesFiltered] : []
     return arr.sort((a, b) =>
       sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
     )
-  }, [initiatives, sortBy])
+  }, [_initiativesFiltered, sortBy])
 
   if (isFetching) {
     return <LoadingSpinner />
   }
 
-  const triggerButton = (
-    <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
-      <PlusIcon size={18} />
-    </Button>
+  const statusFilterButtons = (
+    <div className="flex items-center gap-2">
+      <ButtonGroup aria-label="Filter initiatives by status">
+        <Button
+          variant={statusFilter === 'active' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setStatusFilter('active')}
+        >
+          Open
+        </Button>
+        <Button
+          variant={statusFilter === 'accepted' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setStatusFilter('accepted')}
+        >
+          Accepted
+        </Button>
+        <Button
+          variant={statusFilter === 'archived' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setStatusFilter('archived')}
+        >
+          Cancelled
+        </Button>
+      </ButtonGroup>
+      <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+        <PlusIcon size={18} />
+      </Button>
+    </div>
   )
 
   if (_initiativesSorted.length === 0) {
@@ -88,7 +122,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
             onOpenChange={handleSupportDrawerOpenChange}
           />
         )}
-        <ListContainer title="Initiatives" action={triggerButton}>
+        <ListContainer title="Initiatives" action={statusFilterButtons}>
           <PageSection>
             <div className="text-center py-8">
               <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
@@ -117,7 +151,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
           onOpenChange={handleSupportDrawerOpenChange}
         />
       )}
-      <ListContainer title="Initiatives" action={triggerButton}>
+      <ListContainer title="Initiatives" action={statusFilterButtons}>
         {_initiativesSorted.map((item, index) => (
           <InitiativeCard
             key={item.initiativeId}
