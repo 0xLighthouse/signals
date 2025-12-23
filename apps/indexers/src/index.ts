@@ -86,6 +86,7 @@ ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
   else if (to === '0x0000000000000000000000000000000000000000') {
     await context.db.update(schema.Lock, { id: key }).set({
       burnedAt: event.block.timestamp,
+      burnedTransactionHash: event.transaction.hash,
       isActive: false,
     })
   }
@@ -96,6 +97,16 @@ ponder.on('SignalsBoard:Transfer', async ({ event, context }) => {
       owner: to as `0x${string}`,
     })
   }
+})
+
+ponder.on('SignalsBoard:Redeemed', async ({ event, context }) => {
+  const key = `${context.chain.id}:${event.log.address}:${event.args.tokenId}`
+
+  await context.db.update(schema.Lock, { id: key }).set({
+    burnedAt: event.block.timestamp,
+    burnedTransactionHash: event.transaction.hash,
+    isActive: false,
+  })
 })
 
 ponder.on('SignalsBoard:InitiativeSupported', async ({ event, context }) => {

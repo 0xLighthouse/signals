@@ -12,11 +12,15 @@ type PoolEntity = typeof schema.Pool.$inferSelect
 
 export type InitiativeLock = {
   initiativeId: bigint
+  initiative?: InitiativeEntity
   tokenId: bigint
   nominalValue: bigint
   durationAsIntervals: bigint
   createdAt: bigint
+  unlockTime?: bigint
   isRedeemed: boolean
+  isRedeemable?: boolean
+  redeemedTxnHash?: string | null
 }
 
 export type Pool = {

@@ -28,6 +28,7 @@ export const getInitiativeLocks = async (c: Context) => {
         durationAsIntervals: lock.durationAsIntervals,
         createdAt: lock.blockTimestamp,
         isRedeemed: lock.burnedAt !== null,
+        redeemedTxnHash: lock.burnedTransactionHash ?? null,
       }
     }),
   )

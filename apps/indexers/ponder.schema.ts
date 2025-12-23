@@ -104,6 +104,7 @@ export const Lock = onchainTable('locks', (t) => ({
   initiativeId: t.bigint().notNull(),
   owner: t.hex().notNull(),
   burnedAt: t.bigint(),
+  burnedTransactionHash: t.text(),
   nominalValue: t.bigint().notNull(),
   durationAsIntervals: t.bigint().notNull(),
   isActive: t.boolean().notNull(),

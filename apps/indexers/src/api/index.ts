@@ -5,6 +5,7 @@ import { client, graphql } from 'ponder'
 import { getLocks } from './get.locks'
 import { getInitiatives } from './get.initiatives'
 import { getInitiativeLocks } from './get.initiative-locks'
+import { getAccountLocks } from './get.account-locks'
 import { getStats } from './get.stats'
 
 const app = new Hono()
@@ -16,6 +17,11 @@ app.use('/sql/*', client({ db, schema }))
  * @example http://localhost:42069/initiatives/31337/0xBoardAddress
  */
 app.get('/initiatives/:chainId/:address', getInitiatives)
+
+/**
+ * @returns List locks for a given chainId, board address, and account address
+ */
+app.get('/locks/account/:chainId/:address/:accountAddress', getAccountLocks)
 
 /**
  * @returns List locks for a given chainId, board address, and initiativeId
