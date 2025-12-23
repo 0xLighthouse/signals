@@ -9,9 +9,8 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '../ui/breadcrumb'
-import { Slash } from 'lucide-react'
+import { Slash, ExternalLink } from 'lucide-react'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
-import { NETWORK_SLUGS } from '@/lib/routing'
 import { BaseIcon } from '@/components/icons/base'
 import { ArbitrumIcon } from '@/components/icons/arbitrum'
 import type { SupportedNetworks } from '@/config/network-types'
@@ -27,9 +26,22 @@ const getNetworkIcon = (network: SupportedNetworks) => {
 }
 
 export const Breadcrumbs: React.FC = () => {
-  const { underlyingName: name, underlyingSymbol: symbol } = useSignals()
+  const { board, boardAddress, underlyingName, underlyingSymbol: symbol } = useSignals()
   const { config, network } = useNetworkConfig()
   const NetworkIcon = getNetworkIcon(network)
+  
+  // Use board metadata name if available, fallback to underlying token name
+  const name = board.name ?? underlyingName
+  
+  // Build explorer URL for the board contract
+  const getExplorerUrl = (address: `0x${string}`) => {
+    const explorerUrl = config.explorerUrl
+    if (!explorerUrl) return null
+    return `${explorerUrl}/address/${address}`
+  }
+
+  const explorerUrl = boardAddress ? getExplorerUrl(boardAddress) : null
+  
   return (
     <Breadcrumb className="flex items-center">
       <BreadcrumbList>
@@ -48,7 +60,19 @@ export const Breadcrumbs: React.FC = () => {
               <Slash />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink>{`${name} (${symbol})`}</BreadcrumbLink>
+              {explorerUrl ? (
+                <BreadcrumbLink
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1"
+                >
+                  {`${name} (${symbol})`}
+                  <ExternalLink className="h-3 w-3" />
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbLink>{`${name} (${symbol})`}</BreadcrumbLink>
+              )}
             </BreadcrumbItem>
           </div>
         )}

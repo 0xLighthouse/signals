@@ -3,7 +3,7 @@
 import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { Activity, Info, BarChart } from 'lucide-react'
+import { Activity, Info, BarChart, PlusCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItem {
@@ -25,11 +25,12 @@ export function SecondaryNav() {
   }
 
   const basePath = `/${network}/${boardAddress}`
-  
+
   const navItems: NavItem[] = [
     { href: basePath, label: 'Initiatives', icon: Activity },
     { href: `${basePath}/rules`, label: 'Rules', icon: Info },
     { href: `${basePath}/insights`, label: 'Insights', icon: BarChart },
+    { href: `${basePath}/support`, label: 'Support', icon: PlusCircle },
   ]
 
   return (
@@ -39,21 +40,20 @@ export function SecondaryNav() {
           {navItems.map((item) => {
             // For the base path (Initiatives), check if we're exactly on that path
             // For other paths, check if pathname starts with the item href
-            const isActive = item.href === basePath
-              ? pathname === basePath
-              : pathname.startsWith(item.href)
-            
+            const isActive =
+              item.href === basePath ? pathname === basePath : pathname.startsWith(item.href)
+
             const Icon = item.icon
-            
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors',
+                  'inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-4 px-1 text-sm transition-colors',
                   isActive
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:border-neutral-300 hover:text-foreground dark:hover:border-neutral-600'
+                    ? 'border-primary font-medium text-foreground'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-neutral-50',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -66,4 +66,3 @@ export function SecondaryNav() {
     </div>
   )
 }
-

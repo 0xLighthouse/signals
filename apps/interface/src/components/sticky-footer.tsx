@@ -6,8 +6,6 @@ import { HomeLogo } from './ui/home-logo'
 import { SignalsContext } from '@/contexts/SignalsContext'
 import { useTotalSupply } from '@/hooks/use-total-supply'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
-import { useRouteStore } from '@/stores/useRouteStore'
-import { getSlugFromNetwork } from '@/lib/routing'
 
 interface StickyFooterProps {
   stats?: Array<{
@@ -22,8 +20,6 @@ export function StickyFooter({ stats }: StickyFooterProps) {
   const underlyingSymbol = signalsContext?.underlyingSymbol
   const { totalSupply, isLoading, refetch } = useTotalSupply(underlyingAddress)
   const { config: networkConfig } = useNetworkConfig()
-  const routeNetwork = useRouteStore((state) => state.network)
-  const routeBoardAddress = useRouteStore((state) => state.boardAddress)
 
   // Build explorer URL for the token contract
   const getExplorerUrl = (address: `0x${string}`) => {
@@ -34,16 +30,6 @@ export function StickyFooter({ stats }: StickyFooterProps) {
   }
 
   const explorerUrl = underlyingAddress ? getExplorerUrl(underlyingAddress) : null
-
-  // Build dynamic URLs for leaderboard and positions
-  const leaderboardUrl =
-    routeNetwork && routeBoardAddress
-      ? `/${getSlugFromNetwork(routeNetwork)}/${routeBoardAddress}/leaderboard`
-      : null
-  const positionsUrl =
-    routeNetwork && routeBoardAddress
-      ? `/${getSlugFromNetwork(routeNetwork)}/${routeBoardAddress}/positions`
-      : null
 
   // Use provided stats if available
   // Otherwise, if we have a board context, show total supply
@@ -64,7 +50,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
       <div className="container mx-auto max-w-7xl px-4">
         <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-x border-neutral-200 dark:border-neutral-800 rounded-t-xl h-12">
           <div className="flex flex-row w-full justify-between items-center h-full text-body-sm font-medium text-neutral-500 dark:text-neutral-400">
-            {/* Left section - Logo and links */}
+            {/* Left section - Logo */}
             <div className="flex items-center justify-start">
               <div className="flex gap-8 pl-2">
                 <div className="flex items-center">
@@ -77,24 +63,6 @@ export function StickyFooter({ stats }: StickyFooterProps) {
                   >
                     <HomeLogo />
                   </a>
-                </div>
-                <div className="flex items-center gap-6 border-l border-neutral-200 dark:border-neutral-800 pl-6">
-                  {leaderboardUrl && (
-                    <a
-                      href={leaderboardUrl}
-                      className="transition-colors duration-200 hover:text-neutral-900 dark:hover:text-neutral-50"
-                    >
-                      Leaderboard
-                    </a>
-                  )}
-                  {positionsUrl && (
-                    <a
-                      href={positionsUrl}
-                      className="transition-colors duration-200 hover:text-neutral-900 dark:hover:text-neutral-50"
-                    >
-                      Positions
-                    </a>
-                  )}
                 </div>
               </div>
             </div>

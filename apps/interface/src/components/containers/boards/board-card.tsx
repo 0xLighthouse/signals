@@ -6,20 +6,7 @@ import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { getBoardUrl } from '@/lib/routing'
 import { useNetworkStore } from '@/stores/useNetworkStore'
-
-type BoardSummary = {
-  contractAddress: `0x${string}`
-  owner?: `0x${string}`
-  title?: string
-  body?: string
-  opensAt?: number | null
-  closesAt?: number | null
-  proposalThreshold?: string
-  acceptanceThreshold?: string
-  underlyingToken?: `0x${string}`
-  createdAtTimestamp?: number
-  updatedAt?: number
-}
+import type { BoardSummary } from '@/stores/useBoardsStore'
 
 interface Props {
   board: BoardSummary
@@ -61,7 +48,7 @@ export const BoardCard: React.FC<Props> = ({ board, isFirst = false, isLast = fa
       <div className="flex flex-col md:flex-row w-full">
         <CardHeader className="md:w-3/5 p-6 pb-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <CardTitle>{board.title ? board.title : shortAddress(board.contractAddress)}</CardTitle>
+            <CardTitle>{board.boardMetadata?.title ? board.boardMetadata.title : shortAddress(board.contractAddress)}</CardTitle>
             {board.opensAt !== null || board.closesAt !== null ? (
               <Badge variant={isOpen ? 'success' : hasClosed ? 'secondary' : 'info'}>
                 {isOpen ? 'Open' : hasClosed ? 'Closed' : 'Upcoming'}
@@ -77,7 +64,7 @@ export const BoardCard: React.FC<Props> = ({ board, isFirst = false, isLast = fa
           </CardDescription>
           <div>
             <p className="text-body line-clamp-4 break-words">
-              {board.body ? board.body : 'No description provided'}
+              {board.boardMetadata?.body ? board.boardMetadata.body : 'No description provided'}
             </p>
           </div>
         </CardHeader>

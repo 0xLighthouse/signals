@@ -77,34 +77,35 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   }
 
   const statusFilterButtons = (
-    <div className="flex items-center gap-2">
-      <ButtonGroup aria-label="Filter initiatives by status">
-        <Button
-          variant={statusFilter === 'active' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('active')}
-        >
-          Open
-        </Button>
-        <Button
-          variant={statusFilter === 'accepted' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('accepted')}
-        >
-          Accepted
-        </Button>
-        <Button
-          variant={statusFilter === 'archived' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('archived')}
-        >
-          Cancelled
-        </Button>
-      </ButtonGroup>
-      <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
-        <PlusIcon size={18} />
+    <ButtonGroup aria-label="Filter initiatives by status">
+      <Button
+        variant={statusFilter === 'active' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setStatusFilter('active')}
+      >
+        Open
       </Button>
-    </div>
+      <Button
+        variant={statusFilter === 'accepted' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setStatusFilter('accepted')}
+      >
+        Accepted
+      </Button>
+      <Button
+        variant={statusFilter === 'archived' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setStatusFilter('archived')}
+      >
+        Cancelled
+      </Button>
+    </ButtonGroup>
+  )
+
+  const plusButton = (
+    <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+      <PlusIcon size={18} />
+    </Button>
   )
 
   if (_initiativesSorted.length === 0) {
@@ -122,7 +123,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
             onOpenChange={handleSupportDrawerOpenChange}
           />
         )}
-        <ListContainer title="Initiatives" action={statusFilterButtons}>
+        <ListContainer leftAction={statusFilterButtons} rightAction={plusButton}>
           <PageSection>
             <div className="text-center py-8">
               <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
@@ -151,7 +152,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
           onOpenChange={handleSupportDrawerOpenChange}
         />
       )}
-      <ListContainer title="Initiatives" action={statusFilterButtons}>
+      <ListContainer leftAction={statusFilterButtons} rightAction={plusButton}>
         {_initiativesSorted.map((item, index) => (
           <InitiativeCard
             key={item.initiativeId}
