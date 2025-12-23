@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.44.7",
-    "hono": "^4.5.0",
+    "hono": "^4.10.3",
     "lru-cache": "^11.0.2",
     "ponder": "^0.10.30",
     "viem": "^2.21.3"
