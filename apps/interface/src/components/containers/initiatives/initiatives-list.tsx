@@ -11,7 +11,7 @@ import { PageSection } from '@/components/page-section'
 import { ProposeInitiativeDrawer } from '@/components/drawers/propose-initiative-drawer'
 import { SupportInitiativeDrawer } from '@/components/drawers/support-initiative-drawer'
 import { Button } from '@/components/ui/button'
-import { ButtonGroup } from '@/components/ui/button-group'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
 import { toast } from 'sonner'
@@ -76,30 +76,17 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
     return <LoadingSpinner />
   }
 
-  const statusFilterButtons = (
-    <ButtonGroup aria-label="Filter initiatives by status">
-      <Button
-        variant={statusFilter === 'active' ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => setStatusFilter('active')}
-      >
-        Open
-      </Button>
-      <Button
-        variant={statusFilter === 'accepted' ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => setStatusFilter('accepted')}
-      >
-        Accepted
-      </Button>
-      <Button
-        variant={statusFilter === 'archived' ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => setStatusFilter('archived')}
-      >
-        Cancelled
-      </Button>
-    </ButtonGroup>
+  const statusFilterTabs = (
+    <Tabs
+      value={statusFilter || 'active'}
+      onValueChange={(value) => setStatusFilter(value as 'active' | 'accepted' | 'archived')}
+    >
+      <TabsList aria-label="Filter initiatives by status">
+        <TabsTrigger value="active">Open</TabsTrigger>
+        <TabsTrigger value="accepted">Accepted</TabsTrigger>
+        <TabsTrigger value="archived">Cancelled</TabsTrigger>
+      </TabsList>
+    </Tabs>
   )
 
   const plusButton = (
@@ -123,7 +110,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
             onOpenChange={handleSupportDrawerOpenChange}
           />
         )}
-        <ListContainer leftAction={statusFilterButtons} rightAction={plusButton}>
+        <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
           <PageSection>
             <div className="text-center py-8">
               <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
@@ -132,7 +119,6 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
               </p>
             </div>
           </PageSection>
-          <InformationSection />
         </ListContainer>
       </>
     )
@@ -152,7 +138,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
           onOpenChange={handleSupportDrawerOpenChange}
         />
       )}
-      <ListContainer leftAction={statusFilterButtons} rightAction={plusButton}>
+      <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
         {_initiativesSorted.map((item, index) => (
           <InitiativeCard
             key={item.initiativeId}
@@ -162,21 +148,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
             isLast={index === _initiativesSorted.length - 1}
           />
         ))}
-        <InformationSection />
       </ListContainer>
     </>
   )
 }
-
-// Extract the information section into its own component for reuse
-const InformationSection = () => (
-  <PageSection className="bg-neutral-50 dark:bg-neutral-900 mt-5 border-0 shadow-none">
-    <h3 className="text-lg font-medium mb-4">About Initiatives</h3>
-    <ul className="list-disc pl-5 space-y-2">
-      <li>Initiatives are community proposals that need support</li>
-      <li>Support initiatives to help them progress to development</li>
-      <li>Higher support increases an initiative's chance of implementation</li>
-      <li>Create your own initiative to propose new features or improvements</li>
-    </ul>
-  </PageSection>
-)

@@ -1,13 +1,10 @@
 'use client'
 
-import { useCallback } from 'react'
 import { PageLayout } from '@/components/containers/page-layout'
 import { RouteSync } from '@/components/route-sync'
 import { useSignals } from '@/hooks/use-signals'
-import { normaliseNumber, shortAddress } from '@/lib/utils'
-import { NETWORKS } from '@/config/networks'
-import { Button } from '@/components/ui/button'
-import { Copy, Info } from 'lucide-react'
+import { normaliseNumber, timeAgoWords } from '@/lib/utils'
+import { Info } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const DECAY_CURVE_LABELS: Record<number, string> = {
@@ -74,8 +71,6 @@ export default function RulesPage() {
   }
 
   const boardTitle = board.name ?? 'Untitled board'
-  const addressLabel = boardAddress ? shortAddress(boardAddress) : 'Deploying soon (stub)'
-  const networkLabel = network ? (NETWORKS[network]?.chain.name ?? network) : 'Unknown network'
   const proposalThreshold = withSymbol(
     formatTokenAmount(parseToNumber(board.proposerRequirements?.minBalance)),
   )
@@ -165,11 +160,6 @@ export default function RulesPage() {
         ? `Support can be locked for ${lockInterval}.`
         : 'Lock duration not set.'
 
-  const handleCopyAddress = useCallback(() => {
-    if (!boardAddress || !navigator?.clipboard?.writeText) return
-    void navigator.clipboard.writeText(boardAddress)
-  }, [boardAddress])
-
   return (
     <PageLayout>
       <RouteSync />
@@ -183,35 +173,38 @@ export default function RulesPage() {
 
         <TooltipProvider delayDuration={50}>
           <div className="space-y-8">
-            <section className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
-              <h3 className="text-sm font-medium mb-2">Board overview</h3>
+            <section className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-2 mb-6 dark:border-neutral-800 dark:bg-neutral-900">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                 <div className="space-y-1">
-                  <p className="text-neutral-500 dark:text-neutral-400">Network</p>
-                  <p className="font-medium text-neutral-900 dark:text-white">{networkLabel}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-neutral-500 dark:text-neutral-400">Board contract</p>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono">{addressLabel}</span>
-                    {boardAddress && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleCopyAddress}
-                        aria-label="Copy board address"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <p className="text-neutral-500 dark:text-neutral-400">Board version</p>
+                  <p className="font-medium text-neutral-900 dark:text-white">{board.version ?? '—'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-neutral-500 dark:text-neutral-400">Active period</p>
-                  <p className="text-neutral-900 dark:text-white">
-                    {board.opensAt ? `Opens ${opensAtLabel}` : 'Opens —'}
-                    {board.closesAt ? ` · Closes ${closesAtLabel}` : ''}
-                  </p>
+                  <div className="space-y-0.5 text-neutral-900 dark:text-white">
+                    <div>
+                      <span className="text-neutral-600 dark:text-neutral-400">Opens: </span>
+                      {board.opensAt ? (
+                        <>
+                          {opensAtLabel}
+                          <span className="text-neutral-600 dark:text-neutral-400">
+                            {' '}({timeAgoWords(board.opensAt)})
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </div>
+                    {board.closesAt && (
+                      <div>
+                        <span className="text-neutral-600 dark:text-neutral-400">Closes: </span>
+                        {closesAtLabel}
+                        <span className="text-neutral-600 dark:text-neutral-400">
+                          {' '}({timeAgoWords(board.closesAt)})
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
