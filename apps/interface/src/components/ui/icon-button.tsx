@@ -1,9 +1,9 @@
 import React from 'react'
-import { tv, VariantProps } from 'tailwind-variants'
+import { cva, type VariantProps } from 'class-variance-authority'
 
-const iconButton = tv(
+const iconButton = cva(
+  'flex items-center justify-center rounded-full p-2',
   {
-    base: 'flex items-center justify-center rounded-full p-2',
     variants: {
       clear: {
         true: 'bg-transparent',
@@ -18,7 +18,6 @@ const iconButton = tv(
     },
     defaultVariants: {
       size: 'sm',
-      color: 'primary',
     },
   },
 )
