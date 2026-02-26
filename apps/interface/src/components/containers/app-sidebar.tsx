@@ -7,7 +7,6 @@ import {
   SidebarHeader,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { FAQs } from '../faqs'
 import { Footer } from '../footer'
 import { FaucetActions } from './faucet-actions'
 import { ConnectButton } from '../web3/connect-button'
@@ -25,7 +24,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <FAQs />
           <Footer />
         </SidebarGroup>
       </SidebarContent>

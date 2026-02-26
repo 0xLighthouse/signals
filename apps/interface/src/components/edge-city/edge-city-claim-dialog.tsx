@@ -108,9 +108,10 @@ const buildClaimArgs = (
 
 interface EdgeCityClaimDialogProps {
   isVisible?: boolean
+  triggerVariant?: 'button' | 'inline'
 }
 
-export const EdgeCityClaimDialog = ({ isVisible = true }: EdgeCityClaimDialogProps) => {
+export const EdgeCityClaimDialog = ({ isVisible = true, triggerVariant = 'button' }: EdgeCityClaimDialogProps) => {
   const { authenticated, login, ready } = usePrivy()
   const { address } = useAccount()
   const { isInitialized } = useWeb3()
@@ -791,7 +792,16 @@ export const EdgeCityClaimDialog = ({ isVisible = true }: EdgeCityClaimDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">⛰️ Edge City Claim</Button>
+        {triggerVariant === 'inline' ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-sm font-medium text-stone-500 dark:text-stone-400 cursor-pointer transition-colors duration-200 hover:text-stone-900 dark:hover:text-stone-50"
+          >
+            ⛰️ Edge City Claim
+          </button>
+        ) : (
+          <Button variant="outline">⛰️ Edge City Claim</Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -139,7 +139,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
         />
       )}
       <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-6">
           {_initiativesSorted.map((item, index) => (
             <InitiativeCard
               key={item.initiativeId}

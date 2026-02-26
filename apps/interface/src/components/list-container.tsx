@@ -21,7 +21,7 @@ export const ListContainer = ({ children, title, count, className = '', action, 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             {title && (
-              <h1 className="text-h2">
+              <h1 className="text-2xl font-semibold">
                 {title} {count !== undefined && `(${count})`}
               </h1>
             )}

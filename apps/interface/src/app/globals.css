@@ -48,9 +48,9 @@
 
 @layer base {
   :root {
-    --background: #FAFAF7;
+    --background: #F7F7F8;
     --foreground: #1A1A1A;
-    --card: #FFFFFF;
+    --card: #F5F3EE;
     --card-foreground: #1A1A1A;
     --popover: #FFFFFF;
     --popover-foreground: #1A1A1A;
@@ -60,7 +60,7 @@
     --secondary-foreground: #1C1917;
     --muted: #F0EDE6;
     --muted-foreground: #78716C;
-    --accent: #EDE9FE;
+    --accent: #F5F3EE;
     --accent-foreground: #1C1917;
     --destructive: hsl(0 84.2% 60.2%);
     --destructive-foreground: #FAFAF9;
@@ -101,8 +101,8 @@
     --secondary-foreground: #E7E5E4;
     --muted: #292524;
     --muted-foreground: #A8A29E;
-    --accent: #3730A3;
-    --accent-foreground: #E0E7FF;
+    --accent: #292524;
+    --accent-foreground: #E7E5E4;
     --destructive: hsl(0 62.8% 30.6%);
     --destructive-foreground: #F5F5F4;
     --border: #3D3835;
@@ -140,52 +140,6 @@
   }
 }
 
-@layer components {
-  .text-display {
-    @apply text-5xl md:text-6xl font-bold leading-tight tracking-tight;
-    font-family: var(--font-display);
-  }
-
-  .text-h1 {
-    @apply text-3xl md:text-4xl font-bold leading-tight tracking-tight;
-    font-family: var(--font-display);
-  }
-
-  .text-h2 {
-    @apply text-2xl md:text-3xl font-semibold leading-tight tracking-tight;
-    font-family: var(--font-display);
-  }
-
-  .text-h3 {
-    @apply text-xl md:text-2xl font-semibold leading-snug;
-    font-family: var(--font-display);
-  }
-
-  .text-h4 {
-    @apply text-lg md:text-xl font-semibold leading-snug;
-    font-family: var(--font-display);
-  }
-
-  .text-body-lg {
-    @apply text-lg font-normal leading-normal;
-  }
-
-  .text-body {
-    @apply text-base font-normal leading-normal;
-  }
-
-  .text-body-sm {
-    @apply text-sm font-normal leading-normal;
-  }
-
-  .text-caption {
-    @apply text-xs font-normal leading-tight;
-  }
-
-  .text-mono {
-    @apply text-sm font-normal leading-normal font-mono;
-  }
-}
 
 @layer utilities {
   html,

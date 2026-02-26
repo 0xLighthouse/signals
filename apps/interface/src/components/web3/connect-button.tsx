@@ -4,6 +4,7 @@ import { Button } from '../ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar'
 import { useAccount } from '@/hooks/useAccount'
 import { shortAddress, resolveAvatar } from '@/lib/utils'
+import { ChevronsUpDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +24,15 @@ export const ConnectButton: React.FC = () => {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="gap-2">
-            <Avatar className="h-5 w-5">
+          <Button variant="ghost" className="flex h-auto items-center gap-3 px-3 py-2">
+            <Avatar className="h-10 w-10 rounded-xl">
               <AvatarImage src={resolveAvatar(address)} alt={address} />
-              <AvatarFallback>{shortAddress(address).slice(0, 2)}</AvatarFallback>
+              <AvatarFallback className="rounded-xl">{shortAddress(address).slice(0, 2)}</AvatarFallback>
             </Avatar>
-            <span>{shortAddress(address)}</span>
+            <div className="text-left leading-tight">
+              <div className="text-base font-medium">{shortAddress(address)}</div>
+            </div>
+            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -41,7 +45,7 @@ export const ConnectButton: React.FC = () => {
 
   // When not authenticated, show simple connect button
   return (
-    <Button onClick={login}>
+    <Button variant="ghost" className="flex h-auto items-center gap-3 px-3 py-2 text-base font-medium" onClick={login}>
       Sign In
     </Button>
   )

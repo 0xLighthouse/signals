@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { ChevronUp, CheckCircle, Eye } from 'lucide-react'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, resolveAvatar, shortAddress, timeAgoWords } from '@/lib/utils'
 import { IncentiveDrawer } from '@/components/drawers/incentive-drawer'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
@@ -152,32 +151,36 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
     setIsAcceptedDialogOpen(true)
   }
 
-  // Status-based left border color
-  const statusBorder = isAccepted
-    ? 'border-l-4 border-l-emerald-500'
+  // Status-based outer shell colour
+  const statusShell = isAccepted
+    ? 'bg-emerald-100 dark:bg-emerald-950/40'
     : isCancelled
-      ? 'border-l-4 border-l-stone-300 dark:border-l-stone-600'
-      : 'border-l-4 border-l-indigo-500'
+      ? 'bg-stone-100 dark:bg-stone-900'
+      : 'bg-indigo-100 dark:bg-indigo-950/40'
+
+  const statusTimestamp = isAccepted
+    ? 'text-emerald-500/70 dark:text-emerald-400/50'
+    : isCancelled
+      ? 'text-stone-400/70 dark:text-stone-500/50'
+      : 'text-indigo-400/70 dark:text-indigo-300/50'
 
   return (
-    <Card
-      className={cn(
-        'flex flex-col rounded-xl shadow-sm hover:shadow-md transition-shadow',
-        statusBorder,
-      )}
+    <div
+      className={cn('rounded-2xl p-2.5 pb-0', statusShell)}
       onClick={isAccepted ? undefined : handleCardClick}
     >
-      <CardHeader className="p-6 pb-0">
-        {/* Proposer + timestamp */}
-        <CardDescription className="flex items-center text-xs">
+      {/* Inner white card */}
+      <div className="flex flex-col gap-4 rounded-xl bg-white p-6 dark:bg-stone-950">
+        {/* Proposer avatar + name */}
+        <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center">
-                  <Avatar className="mr-1.5 ring-2 ring-indigo-200 dark:ring-indigo-800">
+                <span className="inline-flex items-center gap-1.5">
+                  <Avatar className="ring-2 ring-white dark:ring-stone-950">
                     <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
                   </Avatar>
-                  {displayName}
+                  <span className="text-xs text-muted-foreground">{displayName}</span>
                 </span>
               </TooltipTrigger>
               {isHexProposer && (
@@ -187,62 +190,59 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
               )}
             </Tooltip>
           </TooltipProvider>
-          <span className="mx-1.5">·</span>
-          {timeAgoWords(initiative.createdAtTimestamp)}
-        </CardDescription>
+        </div>
 
-        {/* Title */}
-        <CardTitle>{initiative.title}</CardTitle>
+        {/* Title — large and bold */}
+        <h3 className="text-xl font-bold leading-snug">{initiative.title}</h3>
 
         {/* Description */}
-        <div>
-          <p className="text-body line-clamp-3 break-words">{initiative.description}</p>
-          {hasAttachments && (
-            <div className="mt-3 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Attachments
-              </p>
-              <ul className="space-y-1">
-                {initiative.attachments.map(
-                  (
-                    attachment: { description?: string; uri: string; mimeType?: string },
-                    index: number,
-                  ) => {
-                    const label = attachment.description || attachment.uri
-                    return (
-                      <li key={`${attachment.uri}-${index}`} className="text-xs">
-                        <a
-                          href={attachment.uri}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          <Paperclip size={12} />
-                          <span className="truncate max-w-[180px] sm:max-w-[220px]">{label}</span>
-                          <ExternalLink size={12} />
-                        </a>
-                        {attachment.mimeType && (
-                          <span className="ml-5 text-[10px] uppercase text-muted-foreground">
-                            {attachment.mimeType}
-                          </span>
-                        )}
-                      </li>
-                    )
-                  },
-                )}
-              </ul>
-            </div>
-          )}
-        </div>
+        <p className="text-base text-muted-foreground line-clamp-3 break-words">{initiative.description}</p>
+
+        {hasAttachments && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Attachments
+            </p>
+            <ul className="space-y-1">
+              {initiative.attachments.map(
+                (
+                  attachment: { description?: string; uri: string; mimeType?: string },
+                  index: number,
+                ) => {
+                  const label = attachment.description || attachment.uri
+                  return (
+                    <li key={`${attachment.uri}-${index}`} className="text-xs">
+                      <a
+                        href={attachment.uri}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <Paperclip size={12} />
+                        <span className="truncate max-w-[180px] sm:max-w-[220px]">{label}</span>
+                        <ExternalLink size={12} />
+                      </a>
+                      {attachment.mimeType && (
+                        <span className="ml-5 text-[10px] uppercase text-muted-foreground">
+                          {attachment.mimeType}
+                        </span>
+                      )}
+                    </li>
+                  )
+                },
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* Progress Bar */}
         {!isAccepted && !isCancelled && (
-          <div className="space-y-1.5 mt-4">
+          <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{supportPercentage.toFixed(1)}% support</span>
               <span>100% to pass</span>
             </div>
-            <div className="h-2 rounded-full bg-secondary overflow-hidden">
+            <div className="h-1.5 rounded-full bg-stone-100 dark:bg-stone-800 overflow-hidden">
               <div
                 className={cn(
                   'h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500',
@@ -253,57 +253,64 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
             </div>
           </div>
         )}
-      </CardHeader>
 
-      {/* Footer: avatars, incentive, actions */}
-      <div className="flex items-center justify-between p-6">
-        <div className="flex items-center gap-3">
-          <AvatarGroup
-            avatars={
-              initiative.supporters.length > 0
-                ? initiative.supporters.map((address: string) => resolveAvatar(address) as string)
-                : undefined
-            }
-          />
-          <IncentiveDrawer initiative={initiative} />
-        </div>
+        {/* Footer: avatars, incentive, actions */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-3">
+            <AvatarGroup
+              avatars={
+                initiative.supporters.length > 0
+                  ? initiative.supporters.map((address: string) => resolveAvatar(address) as string)
+                  : undefined
+              }
+            />
+            <IncentiveDrawer initiative={initiative} />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <CardDescription className="text-xs hidden sm:block">
-            {timeAgoWords(initiative.updatedAtTimestamp)}
-          </CardDescription>
-          {isAccepted ? (
-            <Button
-              variant="outline"
-              onClick={handleAcceptedClick}
-              className="gap-1.5 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-              aria-label="View accepted initiative details"
-            >
-              <Eye className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span className="text-green-900 dark:text-green-200">View details</span>
-            </Button>
-          ) : canAccept ? (
-            <Button
-              variant="outline"
-              onClick={handleAcceptClick}
-              disabled={isAccepting}
-              className="gap-1.5"
-              aria-label="Accept initiative"
-            >
-              <CheckCircle className="h-4 w-4" />
-              Accept
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={handleSupportClick}
-              className="gap-1.5"
-            >
-              <ChevronUp className="h-4 w-4" />
-              Support
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAccepted ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAcceptedClick}
+                className="gap-1.5 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                aria-label="View accepted initiative details"
+              >
+                <Eye className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                <span className="text-green-900 dark:text-green-200">View</span>
+              </Button>
+            ) : canAccept ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAcceptClick}
+                disabled={isAccepting}
+                className="gap-1.5"
+                aria-label="Accept initiative"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                Accept
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSupportClick}
+                className="gap-1.5"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+                Support
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Coloured bottom strip — timestamp visible in the shell */}
+      <div className="flex items-center justify-center py-2">
+        <span className={cn('text-[10px] font-semibold uppercase tracking-wider', statusTimestamp)}>
+          {timeAgoWords(initiative.updatedAtTimestamp)}
+        </span>
       </div>
 
       <AcceptInitiativeDialog
@@ -320,6 +327,6 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
           initiative={initiative}
         />
       )}
-    </Card>
+    </div>
   )
 }

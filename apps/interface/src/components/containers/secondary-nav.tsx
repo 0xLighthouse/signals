@@ -3,7 +3,7 @@
 import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { Activity, Info, BarChart, PlusCircle } from 'lucide-react'
+import { Activity, Info, BarChart, PlusCircle, BookOpenText, ExternalLink } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItem {
@@ -16,7 +16,6 @@ export function SecondaryNav() {
   const params = useParams()
   const pathname = usePathname()
 
-  // Only show secondary nav when we're on a board page
   const network = params?.network as string | undefined
   const boardAddress = params?.boardAddress as string | undefined
 
@@ -34,35 +33,41 @@ export function SecondaryNav() {
   ]
 
   return (
-    <div className="border-b border-stone-200 dark:border-stone-700 bg-background">
-      <div className="container mx-auto max-w-7xl px-4">
-        <nav className="flex -mb-px space-x-8">
-          {navItems.map((item) => {
-            // For the base path (Initiatives), check if we're exactly on that path
-            // For other paths, check if pathname starts with the item href
-            const isActive =
-              item.href === basePath ? pathname === basePath : pathname.startsWith(item.href)
+    <nav className="flex flex-col sticky top-8">
+      {navItems.map((item) => {
+        const isActive =
+          item.href === basePath ? pathname === basePath : pathname.startsWith(item.href)
 
-            const Icon = item.icon
+        const Icon = item.icon
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-4 px-1 text-sm transition-colors',
-                  isActive
-                    ? 'border-primary font-medium text-foreground'
-                    : 'border-transparent text-stone-500 hover:text-stone-950 dark:text-stone-400 dark:hover:text-stone-50',
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
-    </div>
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              'inline-flex items-center gap-2 whitespace-nowrap px-2 py-1.5 text-sm transition-colors',
+              isActive
+                ? 'font-medium text-foreground'
+                : 'text-stone-400 hover:text-stone-950 dark:text-stone-500 dark:hover:text-stone-50',
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        )
+      })}
+      <div className="h-px bg-stone-200 dark:bg-stone-700 my-1" />
+      <a
+        href="https://signals.docs.lighthouse.cx"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Docs (opens in new tab)"
+        className="inline-flex items-center gap-2 whitespace-nowrap px-2 py-1.5 text-sm text-stone-400 hover:text-stone-950 dark:text-stone-500 dark:hover:text-stone-50 transition-colors"
+      >
+        <BookOpenText className="h-4 w-4" />
+        Docs
+        <ExternalLink className="size-3 opacity-70" />
+      </a>
+    </nav>
   )
 }
