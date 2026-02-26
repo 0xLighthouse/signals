@@ -7,6 +7,9 @@
   "scripts": {
     "lint": "eslint \"**/*.ts*\""
   },
+  "dependencies": {
+    "viem": "^2.23.15"
+  },
   "devDependencies": {
     "eslint": "^7.32.0",
     "eslint-config-custom": "*",
