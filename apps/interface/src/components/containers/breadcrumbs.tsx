@@ -47,7 +47,7 @@ export const Breadcrumbs: React.FC = () => {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink
-            href={`/${config.chain.network}`}
+            href={`/${network}`}
             className="flex items-center"
             aria-label={config.chain.name}
           >

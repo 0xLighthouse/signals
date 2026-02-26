@@ -35,13 +35,13 @@ export const metadata: Metadata = {
   description: 'Signals by Lighthouse',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode
 }>) {
   // Set the tailwind theme from stored cookie preference
-  const theme = getThemeCookie()
+  const theme = await getThemeCookie()
 
   const sidebarContent = (
     <>

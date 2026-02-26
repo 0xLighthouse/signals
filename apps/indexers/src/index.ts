@@ -1,7 +1,6 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { SignalsABI, Erc20ABI } from '../../../packages/abis'
-import { IAuthorizer } from '../../../packages/abis/interfaces'
 import { replaceBigInts } from "@ponder/utils";
 
 
@@ -225,18 +224,18 @@ ponder.on('SignalsFactory:BoardCreated', async ({ event, context }) => {
   })) as any
 
   // Read proposerRequirements
-  const proposerRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+  const proposerRequirements = await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'getProposerRequirements',
-  })) as IAuthorizer.ParticipantRequirements
+  })
 
   // Read supporterRequirements (was called participantRequirements)
-  const supporterRequirements: IAuthorizer.ParticipantRequirements = (await context.client.readContract({
+  const supporterRequirements = await context.client.readContract({
     address: event.args.board,
     abi: SignalsABI,
     functionName: 'getParticipantRequirements',
-  })) as IAuthorizer.ParticipantRequirements
+  })
 
   // Read lockingConfig fields
   const lockInterval: bigint = (await context.client.readContract({

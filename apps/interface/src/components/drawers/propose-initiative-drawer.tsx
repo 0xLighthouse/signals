@@ -115,8 +115,8 @@ export function ProposeInitiativeDrawer({
   const { isApproving, hasAllowance, handleApprove } = useApproveTokens({
     amount,
     actor: address,
-    spender: board?.contractAddress,
-    tokenAddress: board?.underlyingToken,
+    spender: board?.contractAddress ?? undefined,
+    tokenAddress: board?.underlyingToken ?? undefined,
     tokenDecimals: board?.underlyingTokenDecimals ?? 18,
     enabled: isDrawerOpen,
   })
@@ -244,21 +244,23 @@ export function ProposeInitiativeDrawer({
         body: description,
         attachments: preparedAttachments,
       }
-      const functionName = amount ? 'proposeInitiativeWithLock' : 'proposeInitiative'
+      const functionName = amount ? 'proposeInitiativeWithLock' as const : 'proposeInitiative' as const
       const args = amount
-        ? [metadata, parseUnits(String(amount), board?.underlyingTokenDecimals ?? 18), duration]
-        : [metadata]
+        ? [metadata, parseUnits(String(amount), board?.underlyingTokenDecimals ?? 18), duration] as const
+        : [metadata] as const
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: board?.contractAddress,
+        address: board!.contractAddress!,
         abi: SignalsABI,
         functionName,
         nonce,
         args,
-      })
+      } as any)
 
-      const hash = await walletClient.writeContract(request)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hash = await walletClient.writeContract(request as any)
 
       const receipt = await publicClient.waitForTransactionReceipt({
         hash,
@@ -316,7 +318,7 @@ export function ProposeInitiativeDrawer({
     >
       {showTrigger && (
         <DrawerTrigger asChild>
-          <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+          <Button variant="ghost" size="icon" onClick={handleTriggerDrawer}>
             <PlusIcon size={18} />
           </Button>
         </DrawerTrigger>
@@ -336,7 +338,7 @@ export function ProposeInitiativeDrawer({
           {!meetsProposalThreshold(Number(balance ?? 0)) ? (
             <InsufficientTokensMessage
               requiredAmount={formatter(board.proposalThreshold)}
-              symbol={symbol}
+              symbol={symbol ?? undefined}
               balance={formatter(Number(balance ?? 0))}
               isBalanceLoading={isBalanceLoading}
             />
@@ -366,12 +368,12 @@ export function ProposeInitiativeDrawer({
                     minProposerLockAmount={minProposerLockAmount}
                     lockAmountBelowMinimum={lockAmountBelowMinimum}
                     maxLockIntervals={maxLockIntervals}
-                    symbol={symbol}
+                    symbol={symbol ?? undefined}
                     board={{
-                      lockInterval: board.lockInterval,
-                      acceptanceThreshold: board.acceptanceThreshold,
-                      decayCurveType: board.decayCurveType,
-                      decayCurveParameters: board.decayCurveParameters,
+                      lockInterval: board.lockInterval ?? 0,
+                      acceptanceThreshold: BigInt(board.acceptanceThreshold ?? 0),
+                      decayCurveType: board.decayCurveType ?? 0,
+                      decayCurveParameters: String(board.decayCurveParameters?.[0] ?? '0'),
                     }}
                     formatter={formatter}
                     onToggleLock={handleToggleLockTokens}
@@ -385,7 +387,7 @@ export function ProposeInitiativeDrawer({
                     <AcceptanceProgressChart
                       amount={amount}
                       duration={duration}
-                      threshold={formatter(board.acceptanceThreshold)}
+                      threshold={formatter(Number(board.acceptanceThreshold ?? 0))}
                       initiative={{
                         createdAt: DateTime.now().toSeconds(),
                         lockInterval: board.lockInterval,

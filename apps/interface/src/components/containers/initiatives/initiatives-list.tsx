@@ -90,7 +90,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   )
 
   const plusButton = (
-    <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+    <Button variant="ghost" size="icon" onClick={handleTriggerDrawer}>
       <PlusIcon size={18} />
     </Button>
   )

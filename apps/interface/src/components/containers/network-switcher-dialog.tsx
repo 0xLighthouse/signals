@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useWeb3 } from '@/contexts/WalletProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
 import type { SupportedNetworks } from '@/config/network-types'
 import { NETWORKS, ZERO_ADDRESS } from '@/config/web3'
 import { ensureWalletNetwork } from '@/lib/wallet-network'
@@ -93,7 +93,7 @@ export function NetworkSwitcherDialog({
   const { network: selected } = useNetworkConfig()
   const setNetwork = useNetworkStore((state) => state.setNetwork)
   const router = useRouter()
-  const { walletClient } = useWeb3()
+  const walletClient = useWalletClient()
 
   const handleSelectBase = async () => {
     const networkKey: SupportedNetworks = 'base'

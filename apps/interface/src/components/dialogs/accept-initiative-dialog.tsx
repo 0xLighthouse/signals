@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useSignals } from '@/hooks/use-signals'
 import { normaliseNumber, shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
-import type { Initiative } from 'indexers/src/api/types'
+import type { Initiative } from '@/indexers/api/types'
 
 interface AcceptInitiativeDialogProps {
   open: boolean
@@ -137,4 +137,6 @@ export function AcceptInitiativeDialog({
     </Dialog>
   )
 }
+
+
 

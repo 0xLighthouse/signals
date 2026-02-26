@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Initiative } from 'indexers/src/api/types'
+import type { Initiative } from '@/indexers/api/types'
 
 interface SupportDrawerState {
   selectedInitiative: Initiative | null

@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card'
 import { useSignals } from '@/hooks/use-signals'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { Initiative } from '@/types/initiative'
+import type { Initiative } from '@/indexers/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AcceptanceProgressChart } from '../acceptance-progress-chart'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
@@ -373,7 +373,7 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
               <div className="space-y-6">
                 <AmountInput
                   amount={amountValue}
-                  symbol={symbol}
+                  symbol={symbol ?? undefined}
                   minAmount={participantMinLockNumber}
                   showError={insufficientBalance}
                   errorMessage={

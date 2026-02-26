@@ -16,7 +16,8 @@ export function getPublicClient(chainKey: ChainKey): PublicClient {
     batch: { multicall: true },
   })
 
-  cache.set(chainKey, client as PublicClient)
+  const typed = client as PublicClient
+  cache.set(chainKey, typed)
 
-  return client
+  return typed
 }
