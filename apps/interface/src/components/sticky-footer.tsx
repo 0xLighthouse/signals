@@ -6,6 +6,12 @@ import { HomeLogo } from './ui/home-logo'
 import { SignalsContext } from '@/contexts/SignalsContext'
 import { useTotalSupply } from '@/hooks/use-total-supply'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface StickyFooterProps {
   stats?: Array<{
@@ -25,7 +31,6 @@ export function StickyFooter({ stats }: StickyFooterProps) {
   const getExplorerUrl = (address: `0x${string}`) => {
     const explorerUrl = networkConfig.explorerUrl
     if (!explorerUrl) return null
-    // Most block explorers use /address/{address} format
     return `${explorerUrl}/address/${address}`
   }
 
@@ -39,7 +44,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
     (underlyingAddress
       ? [
           {
-            label: 'Total Supply:',
+            label: 'Community Tokens:',
             value: isLoading ? '...' : totalSupply || '—',
           },
         ]
@@ -48,8 +53,8 @@ export function StickyFooter({ stats }: StickyFooterProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 hidden sm:flex justify-center">
       <div className="container mx-auto max-w-7xl px-4">
-        <div className="bg-neutral-100 dark:bg-neutral-900 border-t border-x border-neutral-200 dark:border-neutral-800 rounded-t-xl h-12">
-          <div className="flex flex-row w-full justify-between items-center h-full text-body-sm font-medium text-neutral-500 dark:text-neutral-400">
+        <div className="backdrop-blur-sm bg-white/80 dark:bg-stone-900/80 border-t border-x border-stone-200 dark:border-stone-700 rounded-t-xl h-12">
+          <div className="flex flex-row w-full justify-between items-center h-full text-body-sm font-medium text-stone-500 dark:text-stone-400">
             {/* Left section - Logo */}
             <div className="flex items-center justify-start">
               <div className="flex gap-8 pl-2">
@@ -68,7 +73,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
             </div>
 
             {/* Right section - Stats */}
-            <div className="flex items-center px-6 gap-6 border-l border-neutral-200 dark:border-neutral-800">
+            <div className="flex items-center px-6 gap-6 border-l border-stone-200 dark:border-stone-700">
               {displayStats.map((stat) => (
                 <div key={stat.label} className="flex items-center">
                   {stats ? (
@@ -76,27 +81,34 @@ export function StickyFooter({ stats }: StickyFooterProps) {
                       {stat.label} {stat.value}
                     </span>
                   ) : explorerUrl ? (
-                    <a
-                      href={explorerUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      onContextMenu={() => void refetch()}
-                      className="cursor-pointer content-center transition-colors duration-200 hover:text-neutral-900 dark:hover:text-neutral-50 inline-flex items-center gap-1"
-                      aria-label={`${stat.label}: ${stat.value}. Click to view on block explorer, right-click to refresh`}
-                    >
-                      {stat.label} {stat.value}
-                      {underlyingSymbol && ` ${underlyingSymbol}`}
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </a>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            onContextMenu={() => void refetch()}
+                            className="cursor-pointer content-center transition-colors duration-200 hover:text-stone-900 dark:hover:text-stone-50 inline-flex items-center gap-1"
+                            aria-label={`${stat.label}: ${stat.value}. Click to view on block explorer, right-click to refresh`}
+                          >
+                            {stat.label} {stat.value}
+                            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {underlyingSymbol && <p>{underlyingSymbol}</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ) : (
                     <button
                       type="button"
                       onClick={() => void refetch()}
-                      className="cursor-pointer content-center transition-colors duration-200 hover:text-neutral-900 dark:hover:text-neutral-50"
+                      className="cursor-pointer content-center transition-colors duration-200 hover:text-stone-900 dark:hover:text-stone-50"
                       aria-label={`${stat.label}: ${stat.value}. Click to refresh`}
                     >
                       {stat.label} {stat.value}
-                      {underlyingSymbol && ` ${underlyingSymbol}`}
                     </button>
                   )}
                 </div>

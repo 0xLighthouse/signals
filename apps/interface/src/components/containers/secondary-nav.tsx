@@ -34,7 +34,7 @@ export function SecondaryNav() {
   ]
 
   return (
-    <div className="border-b border-neutral-200 dark:border-neutral-700 bg-background">
+    <div className="border-b border-stone-200 dark:border-stone-700 bg-background">
       <div className="container mx-auto max-w-7xl px-4">
         <nav className="flex -mb-px space-x-8">
           {navItems.map((item) => {
@@ -53,7 +53,7 @@ export function SecondaryNav() {
                   'inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-4 px-1 text-sm transition-colors',
                   isActive
                     ? 'border-primary font-medium text-foreground'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-neutral-50',
+                    : 'border-transparent text-stone-500 hover:text-stone-950 dark:text-stone-400 dark:hover:text-stone-50',
                 )}
               >
                 <Icon className="h-4 w-4" />

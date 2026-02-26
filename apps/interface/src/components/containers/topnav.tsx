@@ -13,7 +13,7 @@ export const TopNav = () => {
 
   return (
     <>
-      <div className="flex align-center py-4 border-neutral-200 dark:border-neutral-700 border-b">
+      <div className="flex align-center py-4 border-stone-200 dark:border-stone-700 border-b">
         <div className="container mx-auto max-w-7xl px-4 flex justify-between">
           <div className="flex items-center">
             <Breadcrumbs />

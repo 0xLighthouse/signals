@@ -150,7 +150,7 @@ export function NetworkSwitcherDialog({
             <button
               type="button"
               onClick={handleSelectBase}
-              className="w-full flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 transition hover:border-neutral-700 hover:bg-neutral-800"
+              className="w-full flex items-center justify-between rounded-lg border border-stone-800 bg-stone-900 px-4 py-3 transition hover:border-stone-700 hover:bg-stone-800"
             >
               <div className="flex items-center gap-3">
                 <BaseIcon className="h-6 w-6" />
@@ -169,7 +169,7 @@ export function NetworkSwitcherDialog({
             {disabledNetworks.map(({ key, label, description, Icon }) => (
               <div
                 key={key}
-                className="w-full flex items-center justify-between rounded-lg border border-neutral-800 px-4 py-3 opacity-60"
+                className="w-full flex items-center justify-between rounded-lg border border-stone-800 px-4 py-3 opacity-60"
               >
                 <div className="flex items-center gap-3">
                   {/* <Icon className="h-6 w-6 opacity-80" /> */}
@@ -185,7 +185,7 @@ export function NetworkSwitcherDialog({
             ))}
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-lg border border-stone-800 bg-stone-900 px-4 py-3 flex items-start gap-3">
             <FoundryIcon className="h-8 w-8 shrink-0" />
             <div className="space-y-2">
               <div className="text-sm font-medium">Join the community</div>

@@ -194,7 +194,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         <div className="p-8 flex-1 overflow-y-auto flex flex-col gap-4">
           <DrawerHeader>
             <DrawerTitle>Contribute incentives</DrawerTitle>
-            <Alert className="bg-blue-50 dark:bg-neutral-800">
+            <Alert className="bg-blue-50 dark:bg-stone-800">
               <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
               <AlertTitle>
                 Contribute incentives to help this initiative gain support. Incentives will be

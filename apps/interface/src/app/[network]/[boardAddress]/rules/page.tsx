@@ -173,21 +173,21 @@ export default function RulesPage() {
 
         <TooltipProvider delayDuration={50}>
           <div className="space-y-8">
-            <section className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-2 mb-6 dark:border-neutral-800 dark:bg-neutral-900">
+            <section className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-2 mb-6 dark:border-stone-800 dark:bg-stone-900">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                 <div className="space-y-1">
-                  <p className="text-neutral-500 dark:text-neutral-400">Board version</p>
-                  <p className="font-medium text-neutral-900 dark:text-white">{board.version ?? '—'}</p>
+                  <p className="text-stone-500 dark:text-stone-400">Board version</p>
+                  <p className="font-medium text-stone-900 dark:text-white">{board.version ?? '—'}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-neutral-500 dark:text-neutral-400">Active period</p>
-                  <div className="space-y-0.5 text-neutral-900 dark:text-white">
+                  <p className="text-stone-500 dark:text-stone-400">Active period</p>
+                  <div className="space-y-0.5 text-stone-900 dark:text-white">
                     <div>
-                      <span className="text-neutral-600 dark:text-neutral-400">Opens: </span>
+                      <span className="text-stone-600 dark:text-stone-400">Opens: </span>
                       {board.opensAt ? (
                         <>
                           {opensAtLabel}
-                          <span className="text-neutral-600 dark:text-neutral-400">
+                          <span className="text-stone-600 dark:text-stone-400">
                             {' '}({timeAgoWords(board.opensAt)})
                           </span>
                         </>
@@ -197,9 +197,9 @@ export default function RulesPage() {
                     </div>
                     {board.closesAt && (
                       <div>
-                        <span className="text-neutral-600 dark:text-neutral-400">Closes: </span>
+                        <span className="text-stone-600 dark:text-stone-400">Closes: </span>
                         {closesAtLabel}
-                        <span className="text-neutral-600 dark:text-neutral-400">
+                        <span className="text-stone-600 dark:text-stone-400">
                           {' '}({timeAgoWords(board.closesAt)})
                         </span>
                       </div>
@@ -212,81 +212,81 @@ export default function RulesPage() {
             <section className="space-y-3">
               <div>
                 <h3 className="text-sm font-medium">Decision rules</h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm text-stone-500 dark:text-stone-400">
                   These parameters shape how ideas gain traction and move forward.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Who can propose
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Proposers lock this amount to submit. Discourages spam; signals commitment.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
                     {proposalThreshold}
                   </p>
                 </div>
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       What it takes to pass
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Total support needed for acceptance. Support adds up as members lock tokens and time.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
                     {acceptanceThreshold}
                   </p>
                 </div>
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Commitment window
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Range of time supporters can lock. Longer locks = stronger signals, less flexibility.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
                     {lockInterval}
                   </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{commitmentWindow}</p>
+                  <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">{commitmentWindow}</p>
                 </div>
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       How support changes over time
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Influence decays unless participants renew or reinforce their commitment.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="text-lg font-semibold text-neutral-900 dark:text-white mt-1">
+                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
                     {decayCurve}
                   </p>
                 </div>
@@ -296,64 +296,64 @@ export default function RulesPage() {
             <section className="space-y-3">
               <div>
                 <h3 className="text-sm font-medium">Participation rules</h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm text-stone-500 dark:text-stone-400">
                   What's expected from proposers and supporters.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       To propose an initiative
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Proposers must hold and lock to keep submissions meaningful.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <div className="mt-2 space-y-1 text-sm text-neutral-900 dark:text-white">
+                  <div className="mt-2 space-y-1 text-sm text-stone-900 dark:text-white">
                     {proposerRequirementsValues.length > 0 ? (
                       proposerRequirementsValues.map(({ label, value }) => (
                         <div key={label} className="flex items-center gap-2">
-                          <span className="text-neutral-600 dark:text-neutral-400">{label}:</span>
+                          <span className="text-stone-600 dark:text-stone-400">{label}:</span>
                           <span className="font-medium">{value}</span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-neutral-500 dark:text-neutral-400">
+                      <p className="text-stone-500 dark:text-stone-400">
                         No additional requirements.
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="rounded-xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       To support an initiative
                     </p>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-neutral-400" />
+                        <Info className="h-4 w-4 text-stone-400" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         Supporters commit balance and a minimum lock so every signal carries weight.
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <div className="mt-2 space-y-1 text-sm text-neutral-900 dark:text-white">
+                  <div className="mt-2 space-y-1 text-sm text-stone-900 dark:text-white">
                     {participantRequirementsValues.length > 0 ? (
                       participantRequirementsValues.map(({ label, value }) => (
                         <div key={label} className="flex items-center gap-2">
-                          <span className="text-neutral-600 dark:text-neutral-400">{label}:</span>
+                          <span className="text-stone-600 dark:text-stone-400">{label}:</span>
                           <span className="font-medium">{value}</span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-neutral-500 dark:text-neutral-400">
+                      <p className="text-stone-500 dark:text-stone-400">
                         No additional requirements.
                       </p>
                     )}

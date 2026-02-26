@@ -34,7 +34,7 @@ export const AcceptanceProgressChart: React.FC<Props> = ({
   const { underlyingSymbol: symbol, underlyingDecimals: decimals } = useSignals()
 
   return (
-    <Card className="dark:bg-neutral-800 border-0 shadow-none">
+    <Card className="dark:bg-stone-800 border-0 shadow-none">
       <CardHeader className="px-0">
         <CardTitle>Preview</CardTitle>
       </CardHeader>

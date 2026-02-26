@@ -9,8 +9,8 @@ type StatItemProps = {
 
 export const StatItem = ({ label, value }: StatItemProps) => {
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg">
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+    <div className="bg-stone-100 dark:bg-stone-800 p-4 rounded-lg">
+      <p className="text-sm text-stone-500 dark:text-stone-400">
         {label}
       </p>
       <p className="text-2xl font-bold mt-1">{value}</p>

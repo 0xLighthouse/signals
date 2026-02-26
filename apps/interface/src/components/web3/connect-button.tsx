@@ -42,7 +42,7 @@ export const ConnectButton: React.FC = () => {
   // When not authenticated, show simple connect button
   return (
     <Button onClick={login}>
-      Connect
+      Sign In
     </Button>
   )
 }

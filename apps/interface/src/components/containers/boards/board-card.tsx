@@ -35,7 +35,7 @@ export const BoardCard: React.FC<Props> = ({ board, isFirst = false, isLast = fa
     <Card
       onClick={handleCardClick}
       className={cn(
-        'flex flex-col cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors',
+        'flex flex-col cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors',
         isFirst && isLast
           ? 'rounded-lg'
           : isFirst

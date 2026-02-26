@@ -3,6 +3,7 @@
 import { PageLayout } from '@/components/containers/page-layout'
 import { RouteSync } from '@/components/route-sync'
 import { UserLocks } from '@/components/user-locks'
+import { FAQs } from '@/components/faqs'
 
 export default function SupportPage() {
   return (
@@ -16,6 +17,10 @@ export default function SupportPage() {
           </p>
         </div>
         <UserLocks />
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
+          <FAQs />
+        </div>
       </div>
     </PageLayout>
   )

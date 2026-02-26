@@ -20,17 +20,21 @@ import { SignalsABI } from '../../../../../../packages/abis'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { AcceptInitiativeDialog } from '@/components/dialogs/accept-initiative-dialog'
 import { AcceptedInitiativeDialog } from '@/components/dialogs/accepted-initiative-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 import type { Initiative } from '@/indexers/api/types'
 
 interface Props {
   initiative: Initiative
   index: number
-  isFirst: boolean
-  isLast: boolean
 }
 
-export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast }) => {
+export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
   const proposerName = useAsyncProp(
     resolveName(initiative.proposer),
     shortAddress(initiative.proposer),
@@ -51,6 +55,11 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
   const supportPercentage = Number.parseFloat(String(initiative.support * 100))
   const canAccept = supportPercentage > 100 && initiative.status === 'active'
   const isAccepted = initiative.status === 'accepted'
+  const isCancelled = initiative.status === 'archived'
+
+  // Determine if proposer is showing a hex address (no ENS)
+  const isHexProposer = proposerName === shortAddress(initiative.proposer)
+  const displayName = isHexProposer ? 'Community Member' : proposerName
 
   const handleSupportClick = (ev: React.MouseEvent<HTMLButtonElement>) => {
     ev.preventDefault()
@@ -143,119 +152,160 @@ export const InitiativeCard: React.FC<Props> = ({ initiative, isFirst, isLast })
     setIsAcceptedDialogOpen(true)
   }
 
+  // Status-based left border color
+  const statusBorder = isAccepted
+    ? 'border-l-4 border-l-emerald-500'
+    : isCancelled
+      ? 'border-l-4 border-l-stone-300 dark:border-l-stone-600'
+      : 'border-l-4 border-l-indigo-500'
+
   return (
     <Card
       className={cn(
-        'flex flex-col',
-        isFirst && isLast
-          ? 'rounded-lg'
-          : isFirst
-            ? 'rounded-t-lg rounded-b-none border-b-0'
-            : isLast
-              ? 'rounded-b-lg rounded-t-none'
-              : 'rounded-none border-b-0',
+        'flex flex-col rounded-xl shadow-sm hover:shadow-md transition-shadow',
+        statusBorder,
       )}
       onClick={isAccepted ? undefined : handleCardClick}
     >
-      <div className="flex flex-col md:flex-row w-full">
-        <CardHeader className="md:w-3/5 p-6 pb-0">
-          <CardTitle>{initiative.title}</CardTitle>
-          <CardDescription className="flex items-center text-xs">
-            <span className="hidden sm:block">Proposed by</span>
-            <Avatar className="sm:ml-1 mr-1">
-              <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
-            </Avatar>
-            {proposerName}, {timeAgoWords(initiative.createdAtTimestamp)}
+      <CardHeader className="p-6 pb-0">
+        {/* Proposer + timestamp */}
+        <CardDescription className="flex items-center text-xs">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center">
+                  <Avatar className="mr-1.5 ring-2 ring-indigo-200 dark:ring-indigo-800">
+                    <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
+                  </Avatar>
+                  {displayName}
+                </span>
+              </TooltipTrigger>
+              {isHexProposer && (
+                <TooltipContent>
+                  <p>{shortAddress(initiative.proposer)}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+          <span className="mx-1.5">·</span>
+          {timeAgoWords(initiative.createdAtTimestamp)}
+        </CardDescription>
+
+        {/* Title */}
+        <CardTitle>{initiative.title}</CardTitle>
+
+        {/* Description */}
+        <div>
+          <p className="text-body line-clamp-3 break-words">{initiative.description}</p>
+          {hasAttachments && (
+            <div className="mt-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Attachments
+              </p>
+              <ul className="space-y-1">
+                {initiative.attachments.map(
+                  (
+                    attachment: { description?: string; uri: string; mimeType?: string },
+                    index: number,
+                  ) => {
+                    const label = attachment.description || attachment.uri
+                    return (
+                      <li key={`${attachment.uri}-${index}`} className="text-xs">
+                        <a
+                          href={attachment.uri}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <Paperclip size={12} />
+                          <span className="truncate max-w-[180px] sm:max-w-[220px]">{label}</span>
+                          <ExternalLink size={12} />
+                        </a>
+                        {attachment.mimeType && (
+                          <span className="ml-5 text-[10px] uppercase text-muted-foreground">
+                            {attachment.mimeType}
+                          </span>
+                        )}
+                      </li>
+                    )
+                  },
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        {!isAccepted && !isCancelled && (
+          <div className="space-y-1.5 mt-4">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{supportPercentage.toFixed(1)}% support</span>
+              <span>100% to pass</span>
+            </div>
+            <div className="h-2 rounded-full bg-secondary overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500',
+                  supportPercentage > 100 && 'animate-[progress-pulse_2s_ease-in-out_infinite]',
+                )}
+                style={{ width: `${Math.min(supportPercentage, 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </CardHeader>
+
+      {/* Footer: avatars, incentive, actions */}
+      <div className="flex items-center justify-between p-6">
+        <div className="flex items-center gap-3">
+          <AvatarGroup
+            avatars={
+              initiative.supporters.length > 0
+                ? initiative.supporters.map((address: string) => resolveAvatar(address) as string)
+                : undefined
+            }
+          />
+          <IncentiveDrawer initiative={initiative} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <CardDescription className="text-xs hidden sm:block">
+            {timeAgoWords(initiative.updatedAtTimestamp)}
           </CardDescription>
-          <div>
-            <p className="text-body line-clamp-4 break-words">{initiative.description}</p>
-            {hasAttachments && (
-              <div className="mt-3 space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Attachments
-                </p>
-                <ul className="space-y-1">
-                  {initiative.attachments.map(
-                    (
-                      attachment: { description?: string; uri: string; mimeType?: string },
-                      index: number,
-                    ) => {
-                      const label = attachment.description || attachment.uri
-                      return (
-                        <li key={`${attachment.uri}-${index}`} className="text-xs">
-                          <a
-                            href={attachment.uri}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                          >
-                            <Paperclip size={12} />
-                            <span className="truncate max-w-[180px] sm:max-w-[220px]">{label}</span>
-                            <ExternalLink size={12} />
-                          </a>
-                          {attachment.mimeType && (
-                            <span className="ml-5 text-[10px] uppercase text-muted-foreground">
-                              {attachment.mimeType}
-                            </span>
-                          )}
-                        </li>
-                      )
-                    },
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <div className="md:w-2/5 p-6 pb-0 flex justify-end items-center">
-          <div className="flex gap-1 h-[80px]">
-            <IncentiveDrawer initiative={initiative} />
-            {isAccepted ? (
-              <Button
-                variant="outline"
-                onClick={handleAcceptedClick}
-                className="flex flex-col items-center min-w-[80px] h-full border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20 cursor-pointer"
-                aria-label="View accepted initiative details"
-              >
-                <Eye className="h-6 w-6 -mt-1 text-green-600 dark:text-green-400" />
-                <span className="text-xs text-green-900 dark:text-green-200">View details</span>
-              </Button>
-            ) : canAccept ? (
-              <Button
-                variant="outline"
-                onClick={handleAcceptClick}
-                disabled={isAccepting}
-                className="flex flex-col items-center min-w-[80px] h-full"
-                aria-label="Accept initiative"
-              >
-                <CheckCircle className="h-6 w-6 -mt-1" />
-                <span className="text-xs">Accept</span>
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={handleSupportClick}
-                className="flex flex-col items-center min-w-[80px] h-full"
-              >
-                <ChevronUp className="h-6 w-6 -mt-1" />
-                <span className="text-xs">{supportPercentage.toFixed(2)}%</span>
-              </Button>
-            )}
-          </div>
+          {isAccepted ? (
+            <Button
+              variant="outline"
+              onClick={handleAcceptedClick}
+              className="gap-1.5 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+              aria-label="View accepted initiative details"
+            >
+              <Eye className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <span className="text-green-900 dark:text-green-200">View details</span>
+            </Button>
+          ) : canAccept ? (
+            <Button
+              variant="outline"
+              onClick={handleAcceptClick}
+              disabled={isAccepting}
+              className="gap-1.5"
+              aria-label="Accept initiative"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Accept
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleSupportClick}
+              className="gap-1.5"
+            >
+              <ChevronUp className="h-4 w-4" />
+              Support
+            </Button>
+          )}
         </div>
       </div>
-      <div className="flex justify-between p-6">
-        <AvatarGroup
-          avatars={
-            initiative.supporters.length > 0
-              ? initiative.supporters.map((address: string) => resolveAvatar(address) as string)
-              : undefined
-          }
-        />
-        <CardDescription className="text-xs">
-          Last activity, {timeAgoWords(initiative.updatedAtTimestamp)}
-        </CardDescription>
-      </div>
+
       <AcceptInitiativeDialog
         open={isAcceptDialogOpen}
         onOpenChange={setIsAcceptDialogOpen}

@@ -8,7 +8,7 @@ const iconButton = cva(
       clear: {
         true: 'bg-transparent',
         false:
-          'bg-neutral-100 dark:bg-neutral-800 dark:text-white-0 hover:bg-orange-200 dark:hover:bg-orange-500',
+          'bg-stone-100 dark:bg-stone-800 dark:text-white-0 hover:bg-orange-200 dark:hover:bg-orange-500',
       },
       size: {
         sm: 'p-2',
