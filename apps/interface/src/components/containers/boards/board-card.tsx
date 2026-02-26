@@ -31,11 +31,22 @@ export const BoardCard: React.FC<Props> = ({ board, isFirst = false, isLast = fa
   const hasClosed = board.closesAt ? board.closesAt <= now : false
   const isOpen = hasOpened && !hasClosed
 
+  const handleKeyDown = (ev: React.KeyboardEvent<HTMLDivElement>) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
     <Card
+      role="button"
+      tabIndex={0}
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      aria-label={board.boardMetadata?.title ?? shortAddress(board.contractAddress)}
       className={cn(
-        'flex flex-col cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors',
+        'flex flex-col cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isFirst && isLast
           ? 'rounded-lg'
           : isFirst
