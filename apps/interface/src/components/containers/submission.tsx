@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '../ui/textarea'
 import { useSignals } from '@/hooks/use-signals'
 import { useAccount } from '@/hooks/useAccount'
-import { useWeb3 } from '@/contexts/WalletProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
+import { usePublicClient } from '@/contexts/ChainProvider'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 
 export const Submission = () => {
@@ -19,7 +20,8 @@ export const Submission = () => {
     underlyingTotalSupply: totalSupply,
     underlyingBalance: balance,
   } = useSignals()
-  const { walletClient, publicClient } = useWeb3()
+  const walletClient = useWalletClient()
+  const publicClient = usePublicClient()
   const { config } = useNetworkConfig()
 
   const [title, setTitle] = useState('')

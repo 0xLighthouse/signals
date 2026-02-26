@@ -1,4 +1,4 @@
-import type { InitiativeLock } from 'indexers/src/api/types'
+import type { InitiativeLock } from '@/indexers/api/types'
 import { create } from 'zustand'
 import { useNetworkStore } from '@/stores/useNetworkStore'
 import { useRouteStore } from './useRouteStore'

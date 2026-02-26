@@ -37,7 +37,7 @@ export const getLocks = async (c: Context) => {
       const metadata = await client.readContract({
         address,
         abi: SignalsABI,
-        functionName: 'getBondInfo',
+        functionName: 'getLockData',
         args: [lock.tokenId],
       })
 

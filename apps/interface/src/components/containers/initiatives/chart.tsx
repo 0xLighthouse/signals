@@ -20,11 +20,11 @@ export const description = 'A line chart with a custom label'
 const chartConfig = {
   existingBase: {
     label: 'Current Weight',
-    color: 'hsl(var(--chart-1))',
+    color: 'var(--chart-1)',
   },
   inputBase: {
     label: 'New Weight',
-    color: 'hsl(var(--chart-3))',
+    color: 'var(--chart-3)',
   },
 } satisfies ChartConfig
 

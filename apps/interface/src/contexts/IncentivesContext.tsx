@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { getContract } from 'viem'
 
 import { useNetworkStore } from '@/stores/useNetworkStore'
-import { useWeb3 } from './WalletProvider'
+import { usePublicClient } from '@/contexts/ChainProvider'
 
 interface ContextValues {
   address: string
@@ -21,7 +21,7 @@ interface Props {
 
 //Provider
 export const IncentivesProvider: React.FC<Props> = ({ children }) => {
-  const { publicClient } = useWeb3()
+  const publicClient = usePublicClient()
   // Subscribe to only the specific config fields we need
   const incentivesAddress = useNetworkStore((state) => state.config.contracts.Incentives?.address)
   const incentivesAbi = useNetworkStore((state) => state.config.contracts.Incentives?.abi)

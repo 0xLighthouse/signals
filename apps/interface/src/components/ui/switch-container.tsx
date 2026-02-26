@@ -6,7 +6,7 @@ const SwitchContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
     <div
       ref={ref}
       className={cn(
-        'flex items-center py-4 my-2 gap-4 border border-neutral-200 bg-white rounded-md px-3 dark:border-neutral-800 dark:bg-neutral-800',
+        'flex items-center py-4 my-2 gap-4 border border-stone-200 bg-white rounded-md px-3 dark:border-stone-800 dark:bg-stone-800',
         className,
       )}
       {...props}

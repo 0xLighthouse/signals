@@ -969,6 +969,12 @@ export const signalsAbi = [
         type: 'address',
         indexed: true,
       },
+      {
+        name: 'weight',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'InitiativeAccepted',
   },

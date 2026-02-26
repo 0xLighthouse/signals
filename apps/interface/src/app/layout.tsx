@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 import localFont from 'next/font/local'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
@@ -29,19 +30,24 @@ const geistMono = localFont({
   variable: '--font-geist-mono',
   weight: '100 900',
 })
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['500', '600', '700', '800'],
+})
 
 export const metadata: Metadata = {
   title: 'Signals',
   description: 'Signals by Lighthouse',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode
 }>) {
   // Set the tailwind theme from stored cookie preference
-  const theme = getThemeCookie()
+  const theme = await getThemeCookie()
 
   const sidebarContent = (
     <>
@@ -62,7 +68,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={theme}>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable}`}>
         <ThemeProvider initialTheme={theme}>
           <ChainProvider initialChainKey={initialChainKey}>
             <WalletProvider>

@@ -1,32 +1,23 @@
 import React from 'react'
 import { TopNav } from '@/components/containers/topnav'
-import { Footer } from '@/components/footer'
-import { FAQs } from '@/components/faqs'
-import { FaucetActions } from '@/components/containers/faucet-actions'
+import { SecondaryNav } from '@/components/containers/secondary-nav'
 
 interface PageLayoutProps {
   children: React.ReactNode
-  sidebar?: React.ReactNode
-  fullWidth?: boolean
   afterNav?: React.ReactNode
 }
 
-export function PageLayout({ children, sidebar, fullWidth = false, afterNav }: PageLayoutProps) {
-  const sidebarContent = sidebar || (
-    <>
-      <FAQs />
-      <Footer />
-    </>
-  )
-
+export function PageLayout({ children, afterNav }: PageLayoutProps) {
   return (
     <main className="w-full">
       <TopNav />
       {afterNav}
-      <div className="container mx-auto max-w-7xl">
-        <div className={`grid grid-cols-1 ${!fullWidth ? 'lg:grid-cols-[800px_1fr]' : ''}`}>
-          <div className="px-4 py-8 space-y-6 sm:pt-8 pt-[calc(60px+2rem)]">{children}</div>
-          {!fullWidth && <div className="hidden lg:block px-4 py-8">{sidebarContent}</div>}
+      <div className="relative max-w-3xl mx-auto px-4 py-8 sm:pt-8 pt-[calc(60px+2rem)]">
+        <aside className="hidden md:block absolute right-full mr-6 w-36">
+          <SecondaryNav />
+        </aside>
+        <div className="space-y-6">
+          {children}
         </div>
       </div>
     </main>

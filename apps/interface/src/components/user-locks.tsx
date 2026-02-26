@@ -323,7 +323,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
   if (!address) {
     return (
       <div className="text-center py-8">
-        <p className="text-neutral-500 dark:text-neutral-400">
+        <p className="text-stone-500 dark:text-stone-400">
           Please connect your wallet to view your locks.
         </p>
       </div>
@@ -341,7 +341,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
   if (redeemableLocks.length === 0 && redeemedLocks.length === 0 && lockedLocks.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-neutral-500 dark:text-neutral-400">
+        <p className="text-stone-500 dark:text-stone-400">
           You have no locks for this board.
         </p>
       </div>
@@ -353,28 +353,28 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
       <TabsList className="w-fit mx-auto">
         <TabsTrigger value="locked" className="gap-2">
           Locked
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">{lockedCount}</span>
+          <span className="text-xs text-stone-500 dark:text-stone-400">{lockedCount}</span>
         </TabsTrigger>
         <TabsTrigger value="redeemable" className="gap-2">
           Redeemable
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+          <span className="text-xs text-stone-500 dark:text-stone-400">
             {redeemableCount}
           </span>
         </TabsTrigger>
         <TabsTrigger value="redeemed" className="gap-2">
           Claimed
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">{redeemedCount}</span>
+          <span className="text-xs text-stone-500 dark:text-stone-400">{redeemedCount}</span>
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="redeemable" className="space-y-4">
         {redeemableCount === 0 ? (
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="text-sm text-stone-500 dark:text-stone-400">
             No redeemable locks yet.
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-neutral-500 dark:text-neutral-400">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-stone-500 dark:text-stone-400">
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -403,18 +403,18 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
               return (
                 <div
                   key={initiativeId}
-                  className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-3"
+                  className="border border-stone-200 dark:border-stone-800 rounded-lg p-4 space-y-3"
                 >
                   <div className="flex flex-col gap-1">
                     <div className="font-medium">
                       Initiative #{initiativeId} - {initiativeTitle}
                     </div>
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    <div className="text-xs text-stone-500 dark:text-stone-400">
                       {locks.length} redeemable lock{locks.length === 1 ? '' : 's'}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-                    <div className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/40">
+                  <div className="rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden">
+                    <div className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-900/40">
                       <div />
                       <div>Amount</div>
                       <div>Unlocked</div>
@@ -427,11 +427,11 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
                       return (
                         <div
                           key={lockKey}
-                          className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-3 px-3 py-2 text-sm border-t border-neutral-200 dark:border-neutral-800"
+                          className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-3 px-3 py-2 text-sm border-t border-stone-200 dark:border-stone-800"
                         >
                           <input
                             type="checkbox"
-                            className="h-4 w-4 accent-neutral-900 dark:accent-neutral-100"
+                            className="h-4 w-4 accent-stone-900 dark:accent-stone-100"
                             checked={isSelected}
                             onChange={() => {
                               setSelectedLockIds((current) => {
@@ -448,7 +448,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
                           <div className="truncate">
                             {formatAmount(lock)} {underlyingSymbol}
                           </div>
-                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <div className="text-xs text-stone-500 dark:text-stone-400">
                             {formatUnlockTime(lock)}
                           </div>
                           <div className="flex justify-end">
@@ -469,8 +469,8 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
               )
             })}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 bg-neutral-50 dark:bg-neutral-900/40">
-              <div className="text-sm text-neutral-600 dark:text-neutral-300">
+            <div className="flex flex-wrap items-center justify-between gap-3 border border-stone-200 dark:border-stone-800 rounded-lg p-4 bg-stone-50 dark:bg-stone-900/40">
+              <div className="text-sm text-stone-600 dark:text-stone-300">
                 Selected {selectedCount} lock{selectedCount === 1 ? '' : 's'}
                 {selectedCount > 0 && (
                   <>
@@ -494,7 +494,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
 
       <TabsContent value="locked" className="space-y-4">
         {lockedCount === 0 ? (
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="text-sm text-stone-500 dark:text-stone-400">
             No locked positions right now.
           </div>
         ) : (
@@ -504,18 +504,18 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
             return (
               <div
                 key={initiativeId}
-                className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-3"
+                className="border border-stone-200 dark:border-stone-800 rounded-lg p-4 space-y-3"
               >
                 <div className="flex flex-col gap-1">
                   <div className="font-medium">
                     Initiative #{initiativeId} - {initiativeTitle}
                   </div>
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <div className="text-xs text-stone-500 dark:text-stone-400">
                     {locks.length} locked position{locks.length === 1 ? '' : 's'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-                  <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/40">
+                <div className="rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden">
+                  <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-900/40">
                     <div>Amount</div>
                     <div>Unlocks</div>
                     <div className="text-right">Status</div>
@@ -525,12 +525,12 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
                     return (
                       <div
                         key={lockKey}
-                        className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-sm border-t border-neutral-200 dark:border-neutral-800"
+                        className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 text-sm border-t border-stone-200 dark:border-stone-800"
                       >
                         <div className="truncate">
                           {formatAmount(lock)} {underlyingSymbol}
                         </div>
-                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <div className="text-xs text-stone-500 dark:text-stone-400">
                           {formatUnlockTime(lock)}
                         </div>
                         <div className="flex justify-end">
@@ -548,7 +548,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
 
       <TabsContent value="redeemed" className="space-y-4">
         {redeemedCount === 0 ? (
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="text-sm text-stone-500 dark:text-stone-400">
             No claimed locks yet.
           </div>
         ) : (
@@ -558,18 +558,18 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
             return (
               <div
                 key={initiativeId}
-                className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-3"
+                className="border border-stone-200 dark:border-stone-800 rounded-lg p-4 space-y-3"
               >
                 <div className="flex flex-col gap-1">
                   <div className="font-medium">
                     Initiative #{initiativeId} - {initiativeTitle}
                   </div>
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <div className="text-xs text-stone-500 dark:text-stone-400">
                     {locks.length} claimed lock{locks.length === 1 ? '' : 's'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-                  <div className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/40">
+                <div className="rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden">
+                  <div className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-900/40">
                     <div>Amount</div>
                     <div>Unlocked</div>
                     <div className="text-right">Status</div>
@@ -581,12 +581,12 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
                     return (
                       <div
                         key={lockKey}
-                        className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-sm border-t border-neutral-200 dark:border-neutral-800"
+                        className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-3 py-2 text-sm border-t border-stone-200 dark:border-stone-800"
                       >
                         <div className="truncate">
                           {formatAmount(lock)} {underlyingSymbol}
                         </div>
-                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <div className="text-xs text-stone-500 dark:text-stone-400">
                           {formatUnlockTime(lock)}
                         </div>
                         <div className="flex justify-end">
@@ -600,7 +600,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
                               </a>
                             </Button>
                           ) : (
-                            <span className="text-xs text-neutral-400">—</span>
+                            <span className="text-xs text-stone-400">—</span>
                           )}
                         </div>
                       </div>

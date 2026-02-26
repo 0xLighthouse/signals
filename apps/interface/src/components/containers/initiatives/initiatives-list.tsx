@@ -90,7 +90,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   )
 
   const plusButton = (
-    <Button variant="icon" size="icon" onClick={handleTriggerDrawer}>
+    <Button variant="ghost" size="icon" onClick={handleTriggerDrawer}>
       <PlusIcon size={18} />
     </Button>
   )
@@ -114,7 +114,7 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
           <PageSection>
             <div className="text-center py-8">
               <h3 className="text-lg font-medium mb-2">No initiatives found</h3>
-              <p className="text-neutral-500 dark:text-neutral-400">
+              <p className="text-stone-500 dark:text-stone-400">
                 There are currently no active initiatives.
               </p>
             </div>
@@ -139,15 +139,15 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
         />
       )}
       <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
-        {_initiativesSorted.map((item, index) => (
-          <InitiativeCard
-            key={item.initiativeId}
-            initiative={item}
-            index={index}
-            isFirst={index === 0}
-            isLast={index === _initiativesSorted.length - 1}
-          />
-        ))}
+        <div className="grid grid-cols-1 gap-6">
+          {_initiativesSorted.map((item, index) => (
+            <InitiativeCard
+              key={item.initiativeId}
+              initiative={item}
+              index={index}
+            />
+          ))}
+        </div>
       </ListContainer>
     </>
   )

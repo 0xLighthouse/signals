@@ -12,8 +12,8 @@ type WalletAddEthereumChainParameter = {
     symbol: string
     decimals: number
   }
-  rpcUrls: readonly string[]
-  blockExplorerUrls?: readonly string[]
+  rpcUrls: string[]
+  blockExplorerUrls?: string[]
 }
 
 export type EnsureWalletNetworkStatus = 'already-on-target' | 'switched' | 'added'
@@ -46,7 +46,7 @@ const buildAddChainParams = (
     chainId: numberToHex(chain.id) as `0x${string}`,
     chainName: chain.name,
     nativeCurrency: chain.nativeCurrency,
-    rpcUrls,
+    rpcUrls: [...rpcUrls],
     blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
   }
 }

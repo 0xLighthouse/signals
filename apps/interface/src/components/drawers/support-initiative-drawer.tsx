@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card'
 import { useSignals } from '@/hooks/use-signals'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
-import type { Initiative } from '@/types/initiative'
+import type { Initiative } from '@/indexers/api/types'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AcceptanceProgressChart } from '../acceptance-progress-chart'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
@@ -308,7 +308,7 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left column: Initiative details */}
             <div className="flex-1 lg:w-1/2 space-y-6">
-              <Card className="border-neutral-200/80 dark:border-neutral-800 bg-gradient-to-r from-orange-50 via-white to-amber-50 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 shadow-sm">
+              <Card className="border-stone-200/80 dark:border-stone-800 bg-gradient-to-r from-orange-50 via-white to-amber-50 dark:from-stone-900 dark:via-stone-950 dark:to-stone-900 shadow-sm">
                 <div className="flex items-start gap-4 p-4">
                   <Avatar className="h-12 w-12 ring-2 ring-white shadow-sm">
                     <AvatarImage src={resolveAvatar(initiative.proposer)} alt={initiative.proposer} />
@@ -322,17 +322,17 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
                         {proposerName} • {timeAgoWords(initiative.createdAtTimestamp)}
                       </span>
                     </div>
-                    <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-white">
+                    <h3 className="text-lg font-semibold leading-snug text-stone-900 dark:text-white">
                       {initiative.title}
                     </h3>
-                    <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed">
+                    <p className="text-sm text-stone-700 dark:text-stone-200 leading-relaxed">
                       {initiative.description}
                     </p>
                   </div>
                 </div>
               </Card>
 
-              <Alert className="bg-amber-50 dark:bg-neutral-800">
+              <Alert className="bg-amber-50 dark:bg-stone-800">
                 <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
                 <AlertDescription>
                   {participantMinBalance || participantMinLock ? (
@@ -373,7 +373,7 @@ export function SupportInitiativeDrawer({ initiative, open, onOpenChange }: Prop
               <div className="space-y-6">
                 <AmountInput
                   amount={amountValue}
-                  symbol={symbol}
+                  symbol={symbol ?? undefined}
                   minAmount={participantMinLockNumber}
                   showError={insufficientBalance}
                   errorMessage={

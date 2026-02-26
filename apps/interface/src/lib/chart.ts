@@ -22,7 +22,7 @@ const normaliseWeights = (weights: Weight) => {
   return weights.map((w) => ({
     ...w,
     weight: Math.round(w.y),
-    label: DateTime.fromSeconds(w.x).toRelative(),
+    label: DateTime.fromSeconds(w.x).toRelative() ?? '',
   }))
 }
 

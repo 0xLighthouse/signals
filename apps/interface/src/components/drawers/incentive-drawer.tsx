@@ -15,12 +15,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
-import type { Initiative } from 'indexers/src/api/types'
+import type { Initiative } from '@/indexers/api/types'
 import { TokenSelector } from '../token-selector'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
 import { useIncentives } from '@/contexts/IncentivesContext'
 import { useAccount } from '@/hooks/useAccount'
-import { useWeb3 } from '@/contexts/WalletProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
+import { usePublicClient } from '@/contexts/ChainProvider'
 import { UsdcIcon } from '../icons/usdc'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { usePrivy } from '@privy-io/react-auth'
@@ -41,7 +42,8 @@ export function IncentiveDrawer({ initiative }: Props) {
   }
 
   const { address } = useAccount()
-  const { walletClient, publicClient } = useWeb3()
+  const walletClient = useWalletClient()
+  const publicClient = usePublicClient()
   const { authenticated, login } = usePrivy()
   const { allocations } = useIncentives()
   const { fetch: fetchUSDC } = useRewardsStore()
@@ -180,8 +182,7 @@ export function IncentiveDrawer({ initiative }: Props) {
       <DrawerTrigger asChild>
         <Button
           variant="outline"
-          full
-          size="md"
+          size="default"
           onClick={handleTriggerDrawer}
           className="flex flex-col items-center min-w-[80px]"
         >
@@ -193,7 +194,7 @@ export function IncentiveDrawer({ initiative }: Props) {
         <div className="p-8 flex-1 overflow-y-auto flex flex-col gap-4">
           <DrawerHeader>
             <DrawerTitle>Contribute incentives</DrawerTitle>
-            <Alert className="bg-blue-50 dark:bg-neutral-800">
+            <Alert className="bg-blue-50 dark:bg-stone-800">
               <CircleAlert style={{ height: 22, width: 22, marginRight: 8 }} />
               <AlertTitle>
                 Contribute incentives to help this initiative gain support. Incentives will be

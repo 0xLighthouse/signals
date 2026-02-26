@@ -42,7 +42,7 @@ export const BoardsList = () => {
         <PageSection>
           <div className="text-center py-8">
             <h3 className="text-lg font-medium mb-2">No boards found</h3>
-            <p className="text-neutral-500 dark:text-neutral-400">
+            <p className="text-stone-500 dark:text-stone-400">
               There are currently no active boards.
             </p>
           </div>

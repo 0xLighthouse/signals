@@ -18,99 +18,71 @@ import type {
 } from '@/lib/indexer/types.graphql'
 
 export interface IndexedBoardMetadata {
-  chainId: number | null
-  blockTimestamp: number | null
-  transactionHash: string | null
-  contractAddress: `0x${string}` | null
-  version: string | null
-  owner: `0x${string}` | null
-  name: string | null
-  body: string | null
-  opensAt: number | null
-  closesAt: number | null
-  symbol: string | null
-  initiativesCount: number | null
+  chainId?: number
+  blockTimestamp?: number
+  transactionHash?: string
+  contractAddress?: `0x${string}`
+  version?: string
+  owner?: `0x${string}`
+  name?: string
+  body?: string
+  opensAt?: number
+  closesAt?: number
+  symbol?: string
+  initiativesCount?: number
   /**
    * @deprecated Use `proposerRequirements.minBalance` instead
    */
-  proposalThreshold: number | null
+  proposalThreshold?: number
   /**
    * @deprecated Use `acceptanceCriteria.minThreshold` instead
    */
-  acceptanceThreshold: number | null
+  acceptanceThreshold?: number
   /**
    * @deprecated Use `lockingConfig.lockInterval` instead
    */
-  lockInterval: number | null
+  lockInterval?: number
   /**
    * @deprecated Use `lockingConfig.maxLockIntervals` instead
    */
-  maxLockIntervals: number | null
+  maxLockIntervals?: number
   /**
    * @deprecated Use `decayConfig.curveType` instead
    */
-  decayCurveType: number | null
+  decayCurveType?: number
   /**
    * @deprecated Use `decayConfig.params` instead
    */
-  decayCurveParameters: number[] | null
+  decayCurveParameters?: number[]
   // Full indexed structures
-  acceptanceCriteria: AcceptanceCriteria | null
-  lockingConfig: LockingConfig | null
-  decayConfig: DecayConfig | null
-  proposerRequirements: BoardRequirement | null
-  participantRequirements: BoardRequirement | null
-  underlyingToken: `0x${string}` | undefined
-  underlyingTokenSymbol: string | null
-  underlyingTokenDecimals: number | null
-  underlyingTokenName: string | null
+  acceptanceCriteria?: AcceptanceCriteria
+  lockingConfig?: LockingConfig
+  decayConfig?: DecayConfig
+  proposerRequirements?: BoardRequirement
+  participantRequirements?: BoardRequirement
+  underlyingToken?: `0x${string}`
+  underlyingTokenSymbol?: string
+  underlyingTokenDecimals?: number
+  underlyingTokenName?: string
 }
 
 export interface SignalsContextValue {
   network: SupportedNetworks | null
   boardAddress: `0x${string}` | null
   board: IndexedBoardMetadata
-  underlyingAddress: `0x${string}` | undefined
-  underlyingName: string | null
-  underlyingSymbol: string | null
-  underlyingDecimals: number | null
-  underlyingTotalSupply: number | null
-  underlyingBalance: number | null
+  underlyingAddress?: `0x${string}`
+  underlyingName?: string
+  underlyingSymbol?: string
+  underlyingDecimals?: number
+  underlyingTotalSupply?: number
+  underlyingBalance?: number
   formatter: (value?: number | null | undefined) => number
   fetchBoardMetadata: () => Promise<void>
   meetsProposalThreshold: (balance: number) => boolean
   navigateToBoard: (address: `0x${string}`) => void
 }
 
-const initialBoard: IndexedBoardMetadata = {
-  chainId: null,
-  blockTimestamp: null,
-  transactionHash: null,
-  contractAddress: null,
-  version: null,
-  owner: null,
-  name: null,
-  body: null,
-  opensAt: null,
-  closesAt: null,
-  symbol: null,
-  initiativesCount: null,
-  proposalThreshold: null,
-  acceptanceThreshold: null,
-  lockInterval: null,
-  maxLockIntervals: null,
-  decayCurveType: null,
-  decayCurveParameters: null,
-  acceptanceCriteria: null,
-  lockingConfig: null,
-  decayConfig: null,
-  proposerRequirements: null,
-  participantRequirements: null,
-  underlyingToken: undefined,
-  underlyingTokenSymbol: null,
-  underlyingTokenDecimals: null,
-  underlyingTokenName: null,
-}
+const initialBoard: IndexedBoardMetadata = {}
 
 interface BoardBalances {
   // Wallet balance of the underlying token
@@ -173,17 +145,17 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
-    const toNumber = (value?: string | number | null): number | null => {
-      if (value == null) return null
+    const toNumber = (value?: string | number | null): number | undefined => {
+      if (value == null) return undefined
       try {
         return Number(BigInt(value))
       } catch {
-        return null
+        return undefined
       }
     }
 
-    const toNumberArray = (values?: Array<string | number | null> | null): number[] | null => {
-      if (!values || values.length === 0) return null
+    const toNumberArray = (values?: Array<string | number | null> | null): number[] | undefined => {
+      if (!values || values.length === 0) return undefined
 
       const parsed = values
         .map((value) => {
@@ -197,7 +169,7 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
         })
         .filter((value): value is number => value != null)
 
-      return parsed.length > 0 ? parsed : null
+      return parsed.length > 0 ? parsed : undefined
     }
 
     try {
@@ -259,35 +231,33 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
       setBoardState({
         chainId: toNumber(indexedBoard.chainId),
         blockTimestamp: toNumber(indexedBoard.blockTimestamp),
-        transactionHash: indexedBoard.transactionHash ?? null,
+        transactionHash: indexedBoard.transactionHash ?? undefined,
         contractAddress: indexedBoard.contractAddress
           ? (indexedBoard.contractAddress.toLowerCase() as `0x${string}`)
-          : null,
-        version: indexedBoard.version ?? null,
-        owner: indexedBoard.owner ? (indexedBoard.owner.toLowerCase() as `0x${string}`) : null,
-        name: indexedBoard.boardMetadata?.title ?? null,
-        body: indexedBoard.boardMetadata?.body ?? null,
+          : undefined,
+        version: indexedBoard.version ?? undefined,
+        owner: indexedBoard.owner ? (indexedBoard.owner.toLowerCase() as `0x${string}`) : undefined,
+        name: indexedBoard.boardMetadata?.title ?? undefined,
+        body: indexedBoard.boardMetadata?.body ?? undefined,
         opensAt: toNumber(indexedBoard.opensAt),
         closesAt: toNumber(indexedBoard.closesAt),
-        symbol: null,
-        initiativesCount: null,
         proposalThreshold: toNumber(indexedBoard.proposerRequirements?.minBalance),
         acceptanceThreshold: toNumber(indexedBoard.acceptanceCriteria?.minThreshold),
         lockInterval: toNumber(indexedBoard.lockingConfig?.lockInterval),
         maxLockIntervals: toNumber(indexedBoard.lockingConfig?.maxLockIntervals),
         decayCurveType: toNumber(indexedBoard.decayConfig?.curveType),
         decayCurveParameters: toNumberArray(indexedBoard.decayConfig?.params),
-        acceptanceCriteria: indexedBoard.acceptanceCriteria ?? null,
-        lockingConfig: indexedBoard.lockingConfig ?? null,
-        decayConfig: indexedBoard.decayConfig ?? null,
-        proposerRequirements: indexedBoard.proposerRequirements ?? null,
-        participantRequirements: indexedBoard.supporterRequirements ?? null,
+        acceptanceCriteria: indexedBoard.acceptanceCriteria ?? undefined,
+        lockingConfig: indexedBoard.lockingConfig ?? undefined,
+        decayConfig: indexedBoard.decayConfig ?? undefined,
+        proposerRequirements: indexedBoard.proposerRequirements ?? undefined,
+        participantRequirements: indexedBoard.supporterRequirements ?? undefined,
         underlyingToken: indexedBoard.underlyingToken
           ? (indexedBoard.underlyingToken.toLowerCase() as `0x${string}`)
           : undefined,
-        underlyingTokenSymbol: indexedBoard.underlyingTokenSymbol ?? null,
-        underlyingTokenDecimals: indexedBoard.underlyingTokenDecimals ?? null,
-        underlyingTokenName: indexedBoard.underlyingTokenName ?? null,
+        underlyingTokenSymbol: indexedBoard.underlyingTokenSymbol ?? undefined,
+        underlyingTokenDecimals: indexedBoard.underlyingTokenDecimals ?? undefined,
+        underlyingTokenName: indexedBoard.underlyingTokenName ?? undefined,
       })
     } catch (error) {
       console.error('Error fetching board metadata from indexer:', error)
@@ -338,12 +308,12 @@ export const SignalsProvider = ({ children }: { children: ReactNode }) => {
             : null
         return meetsThreshold ?? false
       },
-      underlyingAddress: boardState.underlyingToken ?? undefined,
+      underlyingAddress: boardState.underlyingToken,
       underlyingName: boardState.underlyingTokenName,
       underlyingSymbol: boardState.underlyingTokenSymbol,
       underlyingDecimals: boardState.underlyingTokenDecimals,
-      underlyingTotalSupply: balances.totalSupply ?? null,
-      underlyingBalance: balances.walletBalance ?? null,
+      underlyingTotalSupply: balances.totalSupply ?? undefined,
+      underlyingBalance: balances.walletBalance ?? undefined,
       formatter,
       fetchBoardMetadata,
       navigateToBoard,

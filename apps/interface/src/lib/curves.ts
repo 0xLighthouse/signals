@@ -4,9 +4,9 @@ import { ChartLock } from './chart'
 // FIXME: This type needs to be merged into our indexer types
 export interface InitiativeDetails {
   createdAt: number // unix timestamp of when the initative was created
-  lockInterval: number | null // lock interval in seconds
-  decayCurveType: number | null // decay curve type
-  decayCurveParameters: number[] | null // decay curve parameters
+  lockInterval?: number | null // lock interval in seconds
+  decayCurveType?: number | null // decay curve type
+  decayCurveParameters?: number[] | null // decay curve parameters
 }
 
 // Weight is a list of chart points, in which key is the X-axis (unix timestamp) and value is the Y-axis (weight)

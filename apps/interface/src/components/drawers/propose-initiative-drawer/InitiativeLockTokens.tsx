@@ -88,12 +88,12 @@ export function InitiativeLockTokens({
             <AcceptanceProgressChart
               amount={amount}
               duration={duration}
-              threshold={formatter(board.acceptanceThreshold)}
+              threshold={formatter(Number(board.acceptanceThreshold))}
               initiative={{
                 createdAt: DateTime.now().toSeconds(),
                 lockInterval: board.lockInterval,
                 decayCurveType: board.decayCurveType,
-                decayCurveParameters: board.decayCurveParameters,
+                decayCurveParameters: board.decayCurveParameters ? [Number(board.decayCurveParameters)] : null,
               }}
               existingLocks={[]}
               proposeNewInitiative={true}

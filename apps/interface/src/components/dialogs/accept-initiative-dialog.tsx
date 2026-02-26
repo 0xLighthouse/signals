@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useSignals } from '@/hooks/use-signals'
 import { normaliseNumber, shortAddress } from '@/lib/utils'
 import { NETWORKS } from '@/config/networks'
-import type { Initiative } from 'indexers/src/api/types'
+import type { Initiative } from '@/indexers/api/types'
 
 interface AcceptInitiativeDialogProps {
   open: boolean
@@ -71,25 +71,25 @@ export function AcceptInitiativeDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
-          <section className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-xl border border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="text-sm font-medium mb-3">Initiative details</h3>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-neutral-500 dark:text-neutral-400 mb-1">Title</p>
-                <p className="font-medium text-neutral-900 dark:text-white">{initiative.title}</p>
+                <p className="text-stone-500 dark:text-stone-400 mb-1">Title</p>
+                <p className="font-medium text-stone-900 dark:text-white">{initiative.title}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 mb-1">Current support</p>
-                  <p className="font-medium text-neutral-900 dark:text-white">
+                  <p className="text-stone-500 dark:text-stone-400 mb-1">Current support</p>
+                  <p className="font-medium text-stone-900 dark:text-white">
                     {supportPercentage.toFixed(2)}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 mb-1">
+                  <p className="text-stone-500 dark:text-stone-400 mb-1">
                     Acceptance threshold
                   </p>
-                  <p className="font-medium text-neutral-900 dark:text-white">
+                  <p className="font-medium text-stone-900 dark:text-white">
                     {thresholdWithSymbol}
                   </p>
                 </div>
@@ -97,22 +97,22 @@ export function AcceptInitiativeDialog({
             </div>
           </section>
 
-          <section className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-xl border border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="text-sm font-medium mb-2">Board information</h3>
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div>
-                <p className="text-neutral-500 dark:text-neutral-400">Board</p>
-                <p className="font-medium text-neutral-900 dark:text-white">{boardTitle}</p>
+                <p className="text-stone-500 dark:text-stone-400">Board</p>
+                <p className="font-medium text-stone-900 dark:text-white">{boardTitle}</p>
               </div>
               <div className="flex items-center gap-2">
                 <div>
-                  <p className="text-neutral-500 dark:text-neutral-400">Network</p>
-                  <p className="font-medium text-neutral-900 dark:text-white">{networkLabel}</p>
+                  <p className="text-stone-500 dark:text-stone-400">Network</p>
+                  <p className="font-medium text-stone-900 dark:text-white">{networkLabel}</p>
                 </div>
-                <span className="text-neutral-400">•</span>
+                <span className="text-stone-400">•</span>
                 <div>
-                  <p className="text-neutral-500 dark:text-neutral-400">Contract</p>
-                  <p className="font-mono text-neutral-900 dark:text-white">{addressLabel}</p>
+                  <p className="text-stone-500 dark:text-stone-400">Contract</p>
+                  <p className="font-mono text-stone-900 dark:text-white">{addressLabel}</p>
                 </div>
               </div>
             </div>
@@ -137,4 +137,6 @@ export function AcceptInitiativeDialog({
     </Dialog>
   )
 }
+
+
 

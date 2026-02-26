@@ -8,7 +8,8 @@ import { PublicClient, WalletClient } from 'viem'
 import { Separator } from '@/components/ui/separator'
 import { useAccount } from '@/hooks/useAccount'
 import { cn } from '@/lib/utils'
-import { useWeb3 } from '@/contexts/WalletProvider'
+import { useWalletClient } from '@/hooks/use-wallet-client'
+import { usePublicClient } from '@/contexts/ChainProvider'
 import { useRewardsStore } from '@/stores/useRewardsStore'
 import { useSignals } from '@/hooks/use-signals'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
@@ -51,7 +52,8 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
   const { address } = useAccount()
   const [isLoadingUSDC, setIsLoadingUSDC] = useState(false)
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
-  const { walletClient, publicClient } = useWeb3()
+  const walletClient = useWalletClient()
+  const publicClient = usePublicClient()
   const { fetch: fetchUSDC } = useRewardsStore()
   const { underlyingSymbol } = useSignals()
   const { config } = useNetworkConfig()
@@ -102,7 +104,7 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
       <div className={cn('flex gap-2', vertical && 'flex-col')}>
         <Button
           variant="outline"
-          disabled={!usdcConfig}
+          disabled={!usdcConfig || isLoadingUSDC}
           onClick={async () => {
             if (!usdcConfig) {
               toast('USDC faucet is not configured for this network.')
@@ -116,13 +118,12 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
             })
             await fetchUSDC(address)
           }}
-          isLoading={isLoadingUSDC}
         >
           Get USDC
         </Button>
         <Button
           variant="outline"
-          disabled={!underlyingContract}
+          disabled={!underlyingContract || isLoadingTokens}
           onClick={async () => {
             if (!underlyingContract) {
               toast('Underlying token faucet is not configured for this network.')
@@ -136,7 +137,6 @@ export const FaucetActions = ({ vertical = false }: { vertical?: boolean }) => {
             })
             // Leave metadata refetch to the caller if needed
           }}
-          isLoading={isLoadingTokens}
         >
           Get {underlyingSymbol}
         </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Moon, Sun } from '@phosphor-icons/react'
+import { Moon, Sun } from 'lucide-react'
 import React, { useCallback, useEffect } from 'react'
 import { IconButton } from './icon-button'
 import { UITheme } from '@/config/theme'
