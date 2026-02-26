@@ -16,6 +16,8 @@ import { useAccount } from '@/hooks/useAccount'
 import { usePrivy } from '@privy-io/react-auth'
 import { toast } from 'sonner'
 
+const POLL_INTERVAL_MS = 30_000
+
 export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` }) => {
   const initiatives = useInitiativesStore((state) => state.initiatives)
   const isFetching = useInitiativesStore((state) => state.isFetching)
@@ -29,8 +31,6 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   const selectedInitiative = useSupportDrawerStore((state) => state.selectedInitiative)
   const isSupportDrawerOpen = useSupportDrawerStore((state) => state.isOpen)
   const closeDrawer = useSupportDrawerStore((state) => state.closeDrawer)
-
-  const POLL_INTERVAL_MS = 30_000
 
   const refresh = useCallback(() => {
     void fetchInitiatives(boardAddress)

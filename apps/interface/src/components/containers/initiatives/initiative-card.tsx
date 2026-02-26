@@ -106,7 +106,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
 
       const hash = await walletClient.writeContract(request)
 
-      const receipt = await publicClient.waitForTransactionReceipt({
+      await publicClient.waitForTransactionReceipt({
         hash,
         confirmations: 2,
         pollingInterval: 2000,
@@ -276,6 +276,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
                 size="sm"
                 onClick={handleSupportClick}
                 className="gap-1.5"
+                aria-label="Support this initiative"
               >
                 <ChevronUp className="h-3.5 w-3.5" />
                 Support
