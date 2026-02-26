@@ -30,7 +30,6 @@ import type { Initiative } from '@/indexers/api/types'
 
 interface Props {
   initiative: Initiative
-  index: number
 }
 
 export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
@@ -112,7 +111,6 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
         confirmations: 2,
         pollingInterval: 2000,
       })
-      console.log('Receipt:', receipt)
       toast('Initiative accepted!')
       if (boardAddress) {
         fetchInitiatives(boardAddress)
@@ -126,22 +124,6 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
       }
     } finally {
       setIsAccepting(false)
-    }
-  }
-
-  const handleCardClick = (ev: React.MouseEvent<HTMLDivElement>) => {
-    // Don't handle card clicks for accepted initiatives (button handles it)
-    if (isAccepted) return
-
-    // Don't open dialog if clicking on interactive elements
-    const target = ev.target as HTMLElement
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.closest('[role="button"]') ||
-      target.closest('[data-slot="drawer-trigger"]')
-    ) {
-      return
     }
   }
 
@@ -165,10 +147,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
       : 'text-indigo-400/70 dark:text-indigo-300/50'
 
   return (
-    <div
-      className={cn('rounded-2xl p-2.5 pb-0', statusShell)}
-      onClick={isAccepted ? undefined : handleCardClick}
-    >
+    <div className={cn('rounded-2xl p-2.5 pb-0', statusShell)}>
       {/* Inner white card */}
       <div className="flex flex-col gap-4 rounded-xl bg-white p-6 dark:bg-stone-950">
         {/* Proposer avatar + name */}

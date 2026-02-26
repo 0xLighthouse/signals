@@ -38,7 +38,7 @@ const WalletContextProvider = ({ children }: { children: ReactNode }) => {
   )
 
   return (
-    <WalletContext.Provider value={contextValue}>{children as ReactNode}</WalletContext.Provider>
+    <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>
   )
 }
 

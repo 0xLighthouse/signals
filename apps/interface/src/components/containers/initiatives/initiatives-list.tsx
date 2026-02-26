@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlusIcon } from 'lucide-react'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useSupportDrawerStore } from '@/stores/useSupportDrawerStore'
@@ -30,11 +30,26 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
   const isSupportDrawerOpen = useSupportDrawerStore((state) => state.isOpen)
   const closeDrawer = useSupportDrawerStore((state) => state.closeDrawer)
 
+  const POLL_INTERVAL_MS = 30_000
+
+  const refresh = useCallback(() => {
+    void fetchInitiatives(boardAddress)
+  }, [fetchInitiatives, boardAddress])
+
+  // Initial fetch + re-fetch when boardAddress changes
+  const prevBoardRef = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (!isInitialized && boardAddress) {
-      void fetchInitiatives(boardAddress)
+    if (!isInitialized || prevBoardRef.current !== boardAddress) {
+      prevBoardRef.current = boardAddress
+      refresh()
     }
-  }, [isInitialized, fetchInitiatives, boardAddress])
+  }, [isInitialized, boardAddress, refresh])
+
+  // Polling
+  useEffect(() => {
+    const id = setInterval(refresh, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [refresh])
 
   const [sortBy, setSortBy] = useState<'support' | 'createdAt'>('support')
   const [statusFilter, setStatusFilter] = useState<'active' | 'accepted' | 'archived' | null>(
@@ -60,21 +75,38 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
     }
   }
 
-  const _initiativesFiltered = useMemo(() => {
+  const initiativesFiltered = useMemo(() => {
     if (!statusFilter) return initiatives
     return initiatives.filter((initiative) => initiative.status === statusFilter)
   }, [initiatives, statusFilter])
 
-  const _initiativesSorted = useMemo(() => {
-    const arr = Array.isArray(_initiativesFiltered) ? [..._initiativesFiltered] : []
+  const initiativesSorted = useMemo(() => {
+    const arr = Array.isArray(initiativesFiltered) ? [...initiativesFiltered] : []
     return arr.sort((a, b) =>
       sortBy === 'support' ? b.support - a.support : b.createdAtTimestamp - a.createdAtTimestamp,
     )
-  }, [_initiativesFiltered, sortBy])
+  }, [initiativesFiltered, sortBy])
 
-  if (isFetching) {
+  if (isFetching && !isInitialized) {
     return <LoadingSpinner />
   }
+
+  const sharedDrawers = (
+    <>
+      <ProposeInitiativeDrawer
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        showTrigger={false}
+      />
+      {selectedInitiative && (
+        <SupportInitiativeDrawer
+          initiative={selectedInitiative}
+          open={isSupportDrawerOpen}
+          onOpenChange={handleSupportDrawerOpenChange}
+        />
+      )}
+    </>
+  )
 
   const statusFilterTabs = (
     <Tabs
@@ -95,21 +127,10 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
     </Button>
   )
 
-  if (_initiativesSorted.length === 0) {
+  if (initiativesSorted.length === 0) {
     return (
       <>
-        <ProposeInitiativeDrawer
-          open={isDrawerOpen}
-          onOpenChange={setIsDrawerOpen}
-          showTrigger={false}
-        />
-        {selectedInitiative && (
-          <SupportInitiativeDrawer
-            initiative={selectedInitiative}
-            open={isSupportDrawerOpen}
-            onOpenChange={handleSupportDrawerOpenChange}
-          />
-        )}
+        {sharedDrawers}
         <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
           <PageSection>
             <div className="text-center py-8">
@@ -126,26 +147,11 @@ export const InitiativesList = ({ boardAddress }: { boardAddress: `0x${string}` 
 
   return (
     <>
-      <ProposeInitiativeDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        showTrigger={false}
-      />
-      {selectedInitiative && (
-        <SupportInitiativeDrawer
-          initiative={selectedInitiative}
-          open={isSupportDrawerOpen}
-          onOpenChange={handleSupportDrawerOpenChange}
-        />
-      )}
+      {sharedDrawers}
       <ListContainer leftAction={statusFilterTabs} rightAction={plusButton}>
         <div className="grid grid-cols-1 gap-6">
-          {_initiativesSorted.map((item, index) => (
-            <InitiativeCard
-              key={item.initiativeId}
-              initiative={item}
-              index={index}
-            />
+          {initiativesSorted.map((item) => (
+            <InitiativeCard key={item.initiativeId} initiative={item} />
           ))}
         </div>
       </ListContainer>
