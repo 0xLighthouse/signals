@@ -10,14 +10,14 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 ### Data
 
 - [x] **DATA-01**: Governor-compatible event schema defines PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED as validated data structures with consistent field names
-- [ ] **DATA-02**: Synthetic event stream generator produces configurable voter counts, proposal counts, and participation rates
-- [ ] **DATA-03**: Synthetic stake distribution follows power-law (Pareto) with Gini >= 0.65 matching real DAO profiles
-- [ ] **DATA-04**: Synthetic vote timing follows tri-modal distribution (early, mid, late) within proposal windows
-- [ ] **DATA-05**: Synthetic data enforces referential integrity (no double votes, no votes outside proposal window)
+- [x] **DATA-02**: Synthetic event stream generator produces configurable voter counts, proposal counts, and participation rates
+- [x] **DATA-03**: Synthetic stake distribution follows power-law (Pareto) with Gini >= 0.65 matching real DAO profiles
+- [x] **DATA-04**: Synthetic vote timing follows tri-modal distribution (early, mid, late) within proposal windows
+- [x] **DATA-05**: Synthetic data enforces referential integrity (no double votes, no votes outside proposal window)
 - [x] **DATA-06**: Pydantic v2 validates all event data at construction time
-- [ ] **DATA-07**: User can select voter behavior profiles (power-law, uniform, bimodal stake distributions)
-- [ ] **DATA-08**: User can set a random seed for reproducible event stream generation
-- [ ] **DATA-09**: Data loader interface supports swapping synthetic for real Governor data with zero architecture changes
+- [x] **DATA-07**: User can select voter behavior profiles (power-law, uniform, bimodal stake distributions)
+- [x] **DATA-08**: User can set a random seed for reproducible event stream generation
+- [x] **DATA-09**: Data loader interface supports swapping synthetic for real Governor data with zero architecture changes
 
 ### Weighting
 
@@ -109,14 +109,14 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DATA-01 | Phase 3 | Complete |
-| DATA-02 | Phase 3 | Pending |
-| DATA-03 | Phase 3 | Pending |
-| DATA-04 | Phase 3 | Pending |
-| DATA-05 | Phase 3 | Pending |
+| DATA-02 | Phase 3 | Complete |
+| DATA-03 | Phase 3 | Complete |
+| DATA-04 | Phase 3 | Complete |
+| DATA-05 | Phase 3 | Complete |
 | DATA-06 | Phase 3 | Complete |
-| DATA-07 | Phase 3 | Pending |
-| DATA-08 | Phase 3 | Pending |
-| DATA-09 | Phase 3 | Pending |
+| DATA-07 | Phase 3 | Complete |
+| DATA-08 | Phase 3 | Complete |
+| DATA-09 | Phase 3 | Complete |
 | WGHT-01 | Phase 3 | Complete |
 | WGHT-02 | Phase 3 | Complete |
 | WGHT-03 | Phase 3 | Complete |

@@ -19,7 +19,7 @@
 
 **Milestone Goal:** Build a complete simulation + analysis pipeline: synthetic data → cadCAD replay → Signals weighting → metrics → publication-grade plots.
 
-- [ ] **Phase 3: Foundation** - Governor-compatible event schema, synthetic data factory, and Signals weight functions
+- [x] **Phase 3: Foundation** - Governor-compatible event schema, synthetic data factory, and Signals weight functions (completed 2026-02-27)
 - [ ] **Phase 4: cadCAD Integration** - Event-replay state machine, dual-tally simulation, and results DataFrame
 - [ ] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame
 - [ ] **Phase 6: Plots** - Publication-grade matplotlib plotting suite for all metrics
@@ -107,7 +107,7 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 |-------|-----------|----------------|--------|-----------|
 | 1. Migrate | v1.0 | 1/1 | Complete | 2026-02-27 |
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
-| 3. Foundation | 1/2 | In Progress|  | - |
+| 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
 | 4. cadCAD Integration | v2.0 | 0/1 | Not started | - |
 | 5. Metrics | v2.0 | 0/1 | Not started | - |
 | 6. Plots | v2.0 | 0/1 | Not started | - |
