@@ -2,7 +2,7 @@
 dockerfilePath = "apps/indexers/Dockerfile"
 
 [deploy]
-startCommand = "pnpm start --schema $RAILWAY_DEPLOYMENT_ID --views-schema indexer"
+startCommand = "node scripts/prune-schemas.mjs && pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer"
 healthcheckPath = "/ready"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
