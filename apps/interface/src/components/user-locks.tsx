@@ -324,7 +324,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
     return (
       <div className="text-center py-8">
         <p className="text-stone-500 dark:text-stone-400">
-          Please connect your wallet to view your locks.
+          Please connect your wallet to view initiatives you have supported.
         </p>
       </div>
     )
@@ -342,7 +342,7 @@ export function UserLocks({ autoFetch = true }: UserLocksProps) {
     return (
       <div className="text-center py-8">
         <p className="text-stone-500 dark:text-stone-400">
-          You have no locks for this board.
+          You have not supported any initiatives for this board.
         </p>
       </div>
     )

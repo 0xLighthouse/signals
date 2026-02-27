@@ -29,7 +29,7 @@ export function SecondaryNav() {
     { href: basePath, label: 'Initiatives', icon: Activity },
     { href: `${basePath}/rules`, label: 'Rules', icon: Info },
     { href: `${basePath}/insights`, label: 'Insights', icon: BarChart },
-    { href: `${basePath}/support`, label: 'Support', icon: PlusCircle },
+    { href: `${basePath}/support`, label: 'My Support', icon: PlusCircle },
   ]
 
   return (

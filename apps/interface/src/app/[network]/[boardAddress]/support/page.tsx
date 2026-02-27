@@ -10,9 +10,9 @@ export default function SupportPage() {
       <RouteSync />
       <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold mb-2">Your Locks</h1>
+          <h1 className="text-2xl font-semibold mb-2">Your Supported Initiatives</h1>
           <p className="text-muted-foreground">
-            View and redeem your locked tokens for this board
+            View the initiatives you are currently supporting, and redeem tokens from closed initiatives.
           </p>
         </div>
         <UserLocks />
