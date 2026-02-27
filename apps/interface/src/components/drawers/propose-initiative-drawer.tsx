@@ -329,8 +329,7 @@ export function ProposeInitiativeDrawer({
             <DrawerTitle>Propose a new initiative</DrawerTitle>
             <Alert className="bg-amber-50 dark:bg-stone-800">
               <AlertDescription>
-                Signals is not a vote system. Lock only if you care enough to trade time or tokens
-                for the outcome.
+                Submit a new initiative for the community to rally around.
               </AlertDescription>
             </Alert>
           </DrawerHeader>
