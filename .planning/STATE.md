@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Poetry to uv Migration
-status: milestone_complete
+milestone: v2.0
+milestone_name: Signals Backtesting & Simulation
+status: defining_requirements
 last_updated: "2026-02-27"
 progress:
-  total_phases: 2
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -17,13 +17,15 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-02-27)
 
-**Core value:** Reliable simulations infrastructure — dependencies install cleanly, tests pass, and simulations run reproducibly.
-**Current focus:** Milestone v1.0 complete — ready for next milestone
+**Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
+**Current focus:** Defining requirements for v2.0
 
 ## Current Position
 
-Milestone: v1.0 Poetry to uv Migration — COMPLETE
-Last activity: 2026-02-27 — Milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-27 — Milestone v2.0 started
 
 ## Accumulated Context
 
@@ -31,16 +33,19 @@ Last activity: 2026-02-27 — Milestone archived
 
 See PROJECT.md Key Decisions table for full history.
 
+- Fresh start for v2.0 — old simulation code can be replaced
+- Governor-compatible event schema for synthetic/real data interchangeability
+
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-- Phase 2 (Verify) was skipped — VER-01/02/03 unverified
+None.
 
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Milestone v1.0 complete
+Stopped at: Defining v2.0 requirements
 Resume file: None
