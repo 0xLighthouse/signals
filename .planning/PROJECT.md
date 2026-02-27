@@ -26,7 +26,16 @@ Produce credible, quantitative evidence that commitment-weighted voting improves
 
 ### Active
 
-(No active milestone — start `/gsd:new-milestone` for v2.1+)
+## Current Milestone: v3.0 Sweep Engine & Extended Analysis
+
+**Goal:** Build a dedicated parameter sweep engine with Monte Carlo allocation modeling, formalize budget/lock mechanics, and produce deep governance analysis (margin-class flips, address-level influence, timing sensitivity).
+
+**Target features:**
+- Formalize budget/lock constraint system (from 2c8bfd4) with proper tests and pipeline integration
+- Research-backed allocation & vote-timing models (Monte Carlo distributions)
+- Dedicated sweep runner: curve type × alpha × duration distribution × allocation strategy grid
+- Full report bundle: heatmaps, per-config detail plots, JSON/CSV export
+- Extended analysis: flip breakdown by margin class, address-level influence changes, timing sensitivity
 
 ### Out of Scope
 
@@ -58,9 +67,7 @@ The project uses a `src/` layout within `apps/simulations`. The `backtesting` pa
 - `GovernorDataLoader` Protocol not exercised by pipeline (DATA-09 integration seam)
 - Pre-existing `test_simulation.py` broken import (`generate_summary_stats`)
 
-**Next milestone candidates (from REQUIREMENTS.md v2.1):**
-- Parameter sweeps: lock curve × decay × duration grid search with heatmaps
-- Extended analysis: timing sensitivity, flip breakdown by margin class, address-level changes
+**v3.0 context:** Budget/lock constraint system added in 2c8bfd4 (sim_a, sim_b) needs formalization. Allocation strategy modeling (how much a voter commits per proposal) is an open research question — Monte Carlo approaches to be investigated.
 
 ## Constraints
 
@@ -88,4 +95,4 @@ The project uses a `src/` layout within `apps/simulations`. The `backtesting` pa
 | NaN-to-None sanitization before JSON | Float NaN breaks JSON spec; recursive cleaner prevents silent corruption | ✓ Good |
 
 ---
-*Last updated: 2026-02-27 after v2.0 milestone completion*
+*Last updated: 2026-02-27 after v3.0 milestone start*
