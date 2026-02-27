@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Signals Backtesting & Simulation
-status: ready_to_plan
-last_updated: "2026-02-27"
+milestone: v1.0
+milestone_name: Backtesting & Simulation
+status: unknown
+last_updated: "2026-02-27T16:01:23.769Z"
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 6
-  completed_plans: 0
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # Project State
@@ -23,24 +23,24 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 Phase: 3 of 7 (Foundation)
-Plan: 1 of 2 in current phase
+Plan: 2 of 2 in current phase
 Status: In progress
-Last activity: 2026-02-27 — Completed 03-01 (schema and weighting foundation)
+Last activity: 2026-02-27 — Completed 03-02 (synthetic factory and data loader)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4 min
-- Total execution time: 4 min
+- Total plans completed: 2
+- Average duration: 6 min
+- Total execution time: 12 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 03-foundation | 1/2 | 4 min | 4 min |
+| 03-foundation | 2/2 | 12 min | 6 min |
 
 ## Accumulated Context
 
@@ -56,6 +56,8 @@ See PROJECT.md Key Decisions table for full history.
 - GovernorDataLoader uses typing.Protocol + @runtime_checkable — no inheritance needed for real data loaders
 - lock_curve floor=0.1 default — uncommitted voters get minimal weight, not silenced
 - cadcad import check in tests uses line-by-line import scan to avoid docstring false positives
+- [Phase 03-foundation]: Gini test uses full stake distribution not vote sample — subsample of participating voters underrepresents inequality
+- [Phase 03-foundation]: Factory clamps vote blocks to window to guarantee synthetic data passes validation without errors
 
 ### Pending Todos
 
@@ -69,5 +71,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 03-01-PLAN.md — schema and weighting foundation done
-Resume file: None
+Stopped at: Phase 3 execution complete (2/2 plans), verification pending
+Resume file: .planning/phases/03-foundation
+Resume action: Run verify_phase_goal step from execute-phase workflow, then update_roadmap if passed

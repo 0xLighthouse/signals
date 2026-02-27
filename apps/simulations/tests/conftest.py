@@ -11,6 +11,55 @@ from datetime import datetime
 # Add src directory to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+# ---------------------------------------------------------------------------
+# Backtesting fixtures (backtesting.data — 03-02)
+# ---------------------------------------------------------------------------
+from backtesting.data.factory import generate_scenario
+from backtesting.data.loader import events_to_dataframe
+
+
+@pytest.fixture
+def default_scenario_config():
+    """Config dict for a full-scale scenario (200 voters, 30 proposals)."""
+    return {
+        'n_voters': 200,
+        'n_proposals': 30,
+        'total_supply': 1_000_000.0,
+        'avg_participation_rate': 0.10,
+        'stake_profile': 'pareto',
+        'lock_profile': 'independent',
+        'seed': 42,
+    }
+
+
+@pytest.fixture
+def small_scenario_config():
+    """Config dict for a fast test scenario (50 voters, 5 proposals)."""
+    return {
+        'n_voters': 50,
+        'n_proposals': 5,
+        'total_supply': 1_000_000.0,
+        'avg_participation_rate': 0.10,
+        'stake_profile': 'pareto',
+        'lock_profile': 'independent',
+        'seed': 42,
+    }
+
+
+@pytest.fixture
+def sample_events(small_scenario_config):
+    """In-memory event list from small scenario config."""
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        return generate_scenario(**small_scenario_config)
+
+
+@pytest.fixture
+def sample_dataframe(sample_events):
+    """DataFrame produced from sample_events."""
+    return events_to_dataframe(sample_events)
+
 from cadcad.state import generate_initial_state
 
 
