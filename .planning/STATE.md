@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Backtesting & Simulation
 status: unknown
-last_updated: "2026-02-27T16:57:12Z"
+last_updated: "2026-02-27T17:06:01.955Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** Phase 5 — Metrics (plan 1 of 2 complete)
+**Current focus:** Phase 5 — Metrics (plan 2 of 2 complete — phase done)
 
 ## Current Position
 
 Phase: 5 of 7 (Metrics)
-Plan: 1 of 2 in current phase (complete)
-Status: Phase 5 in progress
-Last activity: 2026-02-27 — Completed 05-01 (10 governance metric pure functions, frozen dataclasses, smoke test green)
+Plan: 2 of 2 in current phase (complete)
+Status: Phase 5 complete
+Last activity: 2026-02-27 — Completed 05-02 (11-test metrics suite, METR-01..10 covered, 153 passing tests)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 5.4 min
-- Total execution time: 27 min
+- Total plans completed: 6
+- Average duration: 5.0 min
+- Total execution time: 30 min
 
 **By Phase:**
 
@@ -42,7 +42,7 @@ Progress: [█████░░░░░] 50%
 |-------|-------|-------|----------|
 | 03-foundation | 2/2 | 12 min | 6 min |
 | 04-cadcad-integration | 2/2 | 11 min | 5.5 min |
-| 05-metrics | 1/2 | 4 min | 4 min |
+| 05-metrics | 2/2 | 7 min | 3.5 min |
 
 ## Accumulated Context
 
@@ -73,6 +73,9 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 05-metrics]: Renamed compute_signals_weight import to _compute_signals_weight — keeps exactly 10 public compute_ names in module namespace for verification
 - [Phase 05-metrics]: runner.py _to_dict() normalises Pydantic factory objects and dicts — both test fixtures and smoke test pass without changes to either
 - [Phase 05-metrics]: dict[str, T] not pd.Series in frozen dataclasses — avoids Series equality conflict with frozen fields
+- [Phase 05-metrics 05-02]: metrics_results_df uses sample_events (seed=42) — consistent 50-voter 5-proposal base for all 10 metric tests
+- [Phase 05-metrics 05-02]: test_tie_is_fail uses inline synthetic DataFrame — edge case cleanly isolated without fixture dependency
+- [Phase 05-metrics 05-02]: isnan guards on timing metrics (METR-08, METR-09) — NaN is valid return when no lock-in occurs
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 05-01-PLAN.md (10 governance metric pure functions, frozen dataclasses, smoke test)
+Stopped at: Completed 05-02-PLAN.md (11-test metrics suite, METR-01..10 covered)
 Resume file: .planning/phases/05-metrics
-Resume action: Plan 05-01 complete — begin 05-02 (metrics test suite)
+Resume action: Phase 5 complete — begin Phase 6 (analysis)

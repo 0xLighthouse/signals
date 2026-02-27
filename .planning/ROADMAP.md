@@ -21,7 +21,7 @@
 
 - [x] **Phase 3: Foundation** - Governor-compatible event schema, synthetic data factory, and Signals weight functions (completed 2026-02-27)
 - [x] **Phase 4: cadCAD Integration** - Event-replay state machine, dual-tally simulation, and results DataFrame (completed 2026-02-27)
-- [ ] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame
+- [x] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame (completed 2026-02-27)
 - [ ] **Phase 6: Plots** - Publication-grade matplotlib plotting suite for all metrics
 - [ ] **Phase 7: Pipeline** - Single orchestrating entry point tying all layers together
 
@@ -82,10 +82,11 @@ Plans:
   2. Legacy vs Signals comparison is visually present in every dual-regime chart (margins, Gini, ENP, top-k, late-vote share, Lorenz curve)
   3. Proposal story plots show time evolution of net margin and voter power composition for a selected proposal
   4. All plots share consistent publication-grade rcParams set once at module import
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: Plotting suite (PLOT-01 through PLOT-12)
+- [ ] 06-01-PLAN.md — plots.py: all 11 publication-grade plot functions with module-level rcParams (PLOT-01 through PLOT-12)
+- [ ] 06-02-PLAN.md — test_plots.py: 12 requirement-traced tests verifying Figure returns and OO API compliance
 
 ### Phase 7: Pipeline
 **Goal**: The complete data → simulation → metrics → plots workflow runs from a single command
@@ -111,6 +112,6 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
 | 4. cadCAD Integration | 2/2 | Complete   | 2026-02-27 | - |
-| 5. Metrics | 1/2 | In Progress|  | - |
-| 6. Plots | v2.0 | 0/1 | Not started | - |
+| 5. Metrics | 2/2 | Complete   | 2026-02-27 | - |
+| 6. Plots | v2.0 | 0/2 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |

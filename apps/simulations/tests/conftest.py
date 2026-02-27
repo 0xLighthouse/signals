@@ -190,6 +190,42 @@ def backtest_dataframe(backtest_raw_result, minimal_event_records):
     return build_results_dataframe(backtest_raw_result, minimal_event_records)
 
 
+# ---------------------------------------------------------------------------
+# Phase 5 fixtures (backtesting.metrics — 05-02)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def metrics_results_df(sample_events):
+    """Results DataFrame from full 50-voter, 5-proposal scenario (seed=42).
+
+    Uses sample_events fixture (already defined above). Produces a DataFrame
+    with enough proposals and votes to meaningfully test all 10 metrics.
+    """
+    import warnings
+    from backtesting.simulation.runner import run_backtest, build_results_dataframe
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        raw = run_backtest(sample_events)
+    return build_results_dataframe(raw, sample_events)
+
+
+@pytest.fixture
+def metrics_windows_df(sample_events):
+    """Windows DataFrame with proposal_id, start_block, end_block.
+
+    Required by timing metrics (METR-08, METR-09). Extracted from the
+    PROPOSAL_CREATED rows of the loader DataFrame.
+    """
+    from backtesting.data.loader import events_to_dataframe
+    events_df = events_to_dataframe(sample_events)
+    return (
+        events_df[events_df['event_type'] == 'PROPOSAL_CREATED']
+        [['proposal_id', 'start_block', 'end_block']]
+        .copy()
+        .reset_index(drop=True)
+    )
+
+
 # Test markers for different test categories
 def pytest_configure(config):
     """Configure pytest markers."""
