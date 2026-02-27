@@ -11,7 +11,7 @@ watchPatterns = [
 ]
 
 [deploy]
-startCommand = "sh -c 'pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer'"
+startCommand = "sh -c 'node scripts/prune-schemas.mjs && pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer'"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
