@@ -1,9 +1,16 @@
 [build]
 dockerfilePath = "apps/indexers/Dockerfile"
+watchPatterns = [
+  "apps/indexers/**",
+  "packages/abis/**",
+  "apps/protocol/broadcast/**",
+  "apps/signals-token-factory/broadcast/**",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "apps/indexers/railway.toml",
+]
 
 [deploy]
 startCommand = "node scripts/prune-schemas.mjs && pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer"
-healthcheckPath = "/ready"
-healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5

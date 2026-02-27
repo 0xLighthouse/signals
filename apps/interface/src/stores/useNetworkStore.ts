@@ -4,11 +4,15 @@ import { NETWORKS } from '@/config/networks'
 import type { NetworkConfig, SupportedNetworks } from '@/config/network-types'
 import { DEFAULT_NETWORK } from '@/config/network-config'
 
+type IndexerStatus = 'ready' | 'indexing' | 'unknown'
+
 interface NetworkState {
   selected: SupportedNetworks
   config: NetworkConfig
+  indexerStatus: IndexerStatus
   setNetwork: (key: SupportedNetworks) => void
   hydrateFromEnv: () => void
+  checkIndexerStatus: () => Promise<IndexerStatus>
 }
 
 const resolveInitialKey = (): SupportedNetworks => {
@@ -23,9 +27,10 @@ const resolveInitialKey = (): SupportedNetworks => {
 const initialKey = resolveInitialKey()
 const initialConfig = NETWORKS[initialKey]
 
-export const useNetworkStore = create<NetworkState>((set) => ({
+export const useNetworkStore = create<NetworkState>((set, get) => ({
   selected: initialKey,
   config: initialConfig,
+  indexerStatus: 'unknown',
   setNetwork: (key) => {
     const nextConfig = NETWORKS[key]
     if (!nextConfig) {
@@ -36,6 +41,7 @@ export const useNetworkStore = create<NetworkState>((set) => ({
     set({
       selected: key,
       config: nextConfig,
+      indexerStatus: 'unknown',
     })
   },
   hydrateFromEnv: () => {
@@ -43,6 +49,18 @@ export const useNetworkStore = create<NetworkState>((set) => ({
       selected: initialKey,
       config: initialConfig,
     })
+  },
+  checkIndexerStatus: async () => {
+    const { indexerEndpoint } = get().config
+    try {
+      const res = await fetch(`${indexerEndpoint}/ready`)
+      const status: IndexerStatus = res.status === 503 ? 'indexing' : 'ready'
+      set({ indexerStatus: status })
+      return status
+    } catch {
+      set({ indexerStatus: 'unknown' })
+      return 'unknown'
+    }
   },
 }))
 
