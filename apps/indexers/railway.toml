@@ -2,7 +2,8 @@
 dockerfilePath = "apps/indexers/Dockerfile"
 
 [deploy]
-healthcheckPath = "/"
+startCommand = "pnpm start --schema $RAILWAY_DEPLOYMENT_ID --views-schema indexer"
+healthcheckPath = "/ready"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
