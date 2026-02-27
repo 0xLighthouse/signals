@@ -1,65 +1,54 @@
-# Simulations: Poetry to uv Migration
+# Signals
 
 ## What This Is
 
-Migration of the `apps/simulations` Python sub-project from Poetry to uv as the package manager and build system. This is a brownfield project within a larger pnpm monorepo — only the Python simulations app is affected. Includes cleanup of dependency categorization (dev vs runtime).
+A monorepo containing TypeScript/Solidity applications and a Python simulations sub-project (`apps/simulations`). The simulations use cadCAD for agent-based modeling with pandas, numpy, matplotlib, and seaborn for data analysis and visualization.
 
 ## Core Value
 
-The simulations project uses uv for dependency management with a clean, modern pyproject.toml — no Poetry artifacts remain.
+Reliable simulations infrastructure — dependencies install cleanly, tests pass, and simulations run reproducibly.
 
 ## Requirements
 
 ### Validated
 
-<!-- Existing capabilities that must be preserved -->
-
-- ✓ Python cadCAD simulations run correctly — existing
-- ✓ All current dependencies resolve and install — existing
-- ✓ Tests pass with pytest — existing
-- ✓ Ruff linting works — existing
+- ✓ pyproject.toml uses PEP 621 format with hatchling backend — v1.0
+- ✓ uv.lock replaces poetry.lock with 36-package resolution — v1.0
+- ✓ Dev deps (ruff, pytest, pytest-cov) separated from runtime deps — v1.0
+- ✓ `uv sync --dev` installs all packages successfully — v1.0
 
 ### Active
 
-<!-- Current scope. Building toward these. -->
-
-- [ ] pyproject.toml converted from Poetry format to uv/hatchling format
-- [ ] poetry.lock replaced with uv.lock
-- [ ] Dev dependencies (ruff, pytest, pytest-cov) separated from runtime dependencies
-- [ ] Build backend changed from poetry-core to hatchling
-- [ ] Python >=3.12 constraint preserved
-- [ ] All existing simulations and tests work identically after migration
+(None — start next milestone to define new requirements)
 
 ### Out of Scope
 
-- Upgrading dependency versions — migration only, keep current versions
-- Changing the monorepo structure or pnpm workspace config
-- Adding new Python dependencies
-- Modifying simulation code or tests
-- CI/CD pipeline changes (handle separately if needed)
+- Dependency version upgrades — migration-only scope in v1.0
+- CI/CD pipeline updates — handle separately if needed
+- Monorepo structure changes — only Python sub-project affected
 
 ## Context
 
-- `apps/simulations` is a Python sub-project inside a larger TypeScript/Solidity monorepo
-- Current setup uses Poetry with `poetry-core` build backend
-- Dependencies are flat (no dev/runtime separation): pandas, matplotlib, seaborn, numpy, fastparquet, tabulate, ruff, cadcad, pytest, pytest-cov
-- Has a `poetry.lock` lockfile, `src/` directory for source, `tests/` for tests
-- Ruff configured with 100-char line length in pyproject.toml
+Shipped v1.0 (Poetry to uv migration) on 2026-02-27.
+Tech stack: Python 3.12, uv, hatchling, cadCAD, pandas, numpy, matplotlib, seaborn.
+The project uses a `src/` layout with separate subdirectories (cadcad, supply, visualization, statistical_analysis) rather than a single package.
+Note: Phase 2 verification was skipped — tests/simulations/ruff should be manually verified.
 
 ## Constraints
 
-- **Python version**: >=3.12 — matches current Poetry constraint
-- **Build backend**: hatchling — user preference for modern default
-- **Scope**: Only `apps/simulations` — no changes to the rest of the monorepo
-- **Behavioral parity**: All simulations and tests must work identically post-migration
+- **Python version**: >=3.12
+- **Build backend**: hatchling with src layout packages config
+- **Scope**: `apps/simulations` only within the monorepo
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use hatchling as build backend | Modern default, minimal config, uv's preferred backend | — Pending |
-| Separate dev dependencies | ruff, pytest, pytest-cov belong in dev deps, not runtime | — Pending |
-| Keep current dep versions | Migration-only scope, minimize risk | — Pending |
+| Use hatchling as build backend | Modern default, minimal config, uv preferred | ✓ Good |
+| Separate dev dependencies | ruff, pytest, pytest-cov belong in dev deps, not runtime | ✓ Good |
+| Keep current dep versions | Migration-only scope, minimize risk | ✓ Good |
+| hatchling build targets for src/ layout | Project uses subdirectories, not a single package | ✓ Good |
+| Install uv + Python 3.12 via uv bootstrap | Host had only Python 3.10, no uv | ✓ Good |
 
 ---
-*Last updated: 2026-02-27 after initialization*
+*Last updated: 2026-02-27 after v1.0 milestone*

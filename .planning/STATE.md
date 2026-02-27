@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: unknown
-last_updated: "2026-02-27T14:16:50.791Z"
+milestone_name: Poetry to uv Migration
+status: milestone_complete
+last_updated: "2026-02-27"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
   total_plans: 1
   completed_plans: 1
@@ -17,52 +17,19 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-02-27)
 
-**Core value:** The simulations project uses uv for dependency management with a clean, modern pyproject.toml — no Poetry artifacts remain.
-**Current focus:** Phase 1 - Migrate
+**Core value:** Reliable simulations infrastructure — dependencies install cleanly, tests pass, and simulations run reproducibly.
+**Current focus:** Milestone v1.0 complete — ready for next milestone
 
 ## Current Position
 
-Phase: 1 of 2 (Migrate)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-02-27 — Plan 01-01 complete (Poetry to uv migration)
-
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 1
-- Average duration: 6 min
-- Total execution time: 6 min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-migrate | 1 | 6 min | 6 min |
-
-**Recent Trend:**
-- Last 5 plans: 6 min
-- Trend: —
-
-*Updated after each plan completion*
-| Phase 01-migrate P01 | 6 | 2 tasks | 3 files |
+Milestone: v1.0 Poetry to uv Migration — COMPLETE
+Last activity: 2026-02-27 — Milestone archived
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Pre-migration]: Use hatchling as build backend (modern default, uv preferred)
-- [Pre-migration]: Separate dev deps — ruff, pytest, pytest-cov move to dev group
-- [Pre-migration]: Keep current dependency versions (migration-only scope)
-- [01-01]: Added hatchling build targets config for src/ layout — project uses subdirectories not a single signals_simulations package
-- [01-01]: Installed uv 0.10.7 and Python 3.12 on host — not pre-installed, required for migration
-- [Phase 01-migrate]: Added hatchling build targets config for src/ layout — project uses subdirectories not a single package
-- [Phase 01-migrate]: Installed uv 0.10.7 and Python 3.12 on host — not pre-installed, required for migration
+See PROJECT.md Key Decisions table for full history.
 
 ### Pending Todos
 
@@ -70,10 +37,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Phase 2 (Verify) was skipped — VER-01/02/03 unverified
 
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 01-migrate/01-01-PLAN.md (Poetry to uv migration complete)
+Stopped at: Milestone v1.0 complete
 Resume file: None
