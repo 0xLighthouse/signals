@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Backtesting & Simulation
 status: unknown
-last_updated: "2026-02-27T17:28:39.038Z"
+last_updated: "2026-02-27T17:34:50.761Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** Phase 6 — Plots (plan 1 of 2 complete)
+**Current focus:** Phase 7 — Pipeline (Phase 6 complete)
 
 ## Current Position
 
-Phase: 6 of 7 (Plots)
-Plan: 1 of 2 in current phase (complete)
-Status: Phase 6 in progress
-Last activity: 2026-02-27 — Completed 06-01 (11 plot functions in plots.py, PLOT-01..12 satisfied)
+Phase: 6 of 7 (Plots) — COMPLETE
+Plan: 2 of 2 in phase 6 (complete)
+Status: Phase 6 complete — Phase 7 ready to begin
+Last activity: 2026-02-27 — Completed 06-02 (12 requirement-traced plot tests, PLOT-01..12 all passing)
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [███████░░░] 70%
 | 04-cadcad-integration | 2/2 | 11 min | 5.5 min |
 | 05-metrics | 2/2 | 7 min | 3.5 min |
 | Phase 06-plots P01 | 2 | 1 tasks | 1 files |
+| Phase 06-plots P02 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 05-metrics 05-02]: test_tie_is_fail uses inline synthetic DataFrame — edge case cleanly isolated without fixture dependency
 - [Phase 05-metrics 05-02]: isnan guards on timing metrics (METR-08, METR-09) — NaN is valid return when no lock-in occurs
 - [Phase 06-plots]: compute_signals_weight imported as _cw inside plot_lorenz_curve and plot_lock_duration_histogram function bodies — avoids circular import at module level
+- [Phase 06-plots]: Test file sets matplotlib.use('Agg') before any Figure import in test_plots.py — ensures headless CI compatibility
+- [Phase 06-plots]: PLOT-12 test deletes backtesting.plots from sys.modules, clears pyplot, reimports, asserts pyplot still absent — catches lazy imports too
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 05-02-PLAN.md (11-test metrics suite, METR-01..10 covered)
-Resume file: .planning/phases/05-metrics
-Resume action: Phase 5 complete — begin Phase 6 (analysis)
+Stopped at: Completed 06-02-PLAN.md (12 requirement-traced plot tests, PLOT-01..12 covered)
+Resume file: .planning/phases/06-plots
+Resume action: Phase 6 complete — begin Phase 7 (pipeline)
