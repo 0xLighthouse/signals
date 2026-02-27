@@ -82,10 +82,11 @@ Plans:
   2. Legacy vs Signals comparison is visually present in every dual-regime chart (margins, Gini, ENP, top-k, late-vote share, Lorenz curve)
   3. Proposal story plots show time evolution of net margin and voter power composition for a selected proposal
   4. All plots share consistent publication-grade rcParams set once at module import
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: Plotting suite (PLOT-01 through PLOT-12)
+- [ ] 06-01-PLAN.md — plots.py: all 11 publication-grade plot functions with module-level rcParams (PLOT-01 through PLOT-12)
+- [ ] 06-02-PLAN.md — test_plots.py: 12 requirement-traced tests verifying Figure returns and OO API compliance
 
 ### Phase 7: Pipeline
 **Goal**: The complete data → simulation → metrics → plots workflow runs from a single command
@@ -112,5 +113,5 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
 | 4. cadCAD Integration | 2/2 | Complete   | 2026-02-27 | - |
 | 5. Metrics | 2/2 | Complete   | 2026-02-27 | - |
-| 6. Plots | v2.0 | 0/1 | Not started | - |
+| 6. Plots | v2.0 | 0/2 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
