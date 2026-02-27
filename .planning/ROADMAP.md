@@ -37,11 +37,11 @@
   3. Pydantic v2 rejects malformed events at construction time (double votes, out-of-window votes, missing fields)
   4. Signals weight W = stake × f(lock_duration) and legacy weight W = stake are computable as pure functions with no cadCAD import
   5. Data loader interface accepts both synthetic and real Governor data through the same API
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Schema and data factory (DATA-01 through DATA-09)
-- [ ] 03-02: Weighting pure functions (WGHT-01 through WGHT-04)
+- [ ] 03-01-PLAN.md — Pydantic v2 event schema, enums, Protocol, and pure weighting functions (lock curve + signals/legacy weight)
+- [ ] 03-02-PLAN.md — Synthetic event stream factory with configurable profiles and data loader with fail-fast validation
 
 ### Phase 4: cadCAD Integration
 **Goal**: A working end-to-end simulation consumes the event stream and produces both tallies in a single pass
