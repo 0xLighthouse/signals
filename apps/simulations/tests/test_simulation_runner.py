@@ -1,68 +1,16 @@
 """
 Unit tests for cadCAD simulation runner components — SIM-01 through SIM-08.
 
-SIM-01 and SIM-08 require a running cadCAD simulation (runner.py from Plan 02)
-and are marked skip. SIM-02 through SIM-07 are pure unit tests of policies.py
-and sufs.py that run without cadCAD.
+SIM-02 through SIM-07 are pure unit tests of policies.py and sufs.py that run
+without cadCAD. SIM-01 and SIM-08 are integration tests requiring runner.py
+(implemented in Plan 02) and use the conftest backtest_raw_result /
+backtest_dataframe fixtures.
 """
 import pytest
 
 from backtesting.simulation.policies import policy_event_replay
 from backtesting.simulation.sufs import suf_step, suf_tallies
 from backtesting.weighting.signals import compute_signals_weight
-
-
-# ---------------------------------------------------------------------------
-# Shared test data — module-level so unit tests can use directly without pytest
-# ---------------------------------------------------------------------------
-
-minimal_event_records = [
-    {
-        'event_type': 'PROPOSAL_CREATED',
-        'proposal_id': 'p1',
-        'block_number': 100,
-        'voter': None,
-        'support': None,
-        'weight': None,
-        'lock_duration_days': None,
-    },
-    {
-        'event_type': 'VOTE_CAST',
-        'proposal_id': 'p1',
-        'block_number': 110,
-        'voter': '0xA',
-        'support': 'FOR',
-        'weight': 1000.0,
-        'lock_duration_days': 90.0,
-    },
-    {
-        'event_type': 'VOTE_CAST',
-        'proposal_id': 'p1',
-        'block_number': 120,
-        'voter': '0xB',
-        'support': 'AGAINST',
-        'weight': 500.0,
-        'lock_duration_days': 0.0,
-    },
-    {
-        'event_type': 'VOTE_CAST',
-        'proposal_id': 'p1',
-        'block_number': 130,
-        'voter': '0xC',
-        'support': 'ABSTAIN',
-        'weight': 200.0,
-        'lock_duration_days': 365.0,
-    },
-    {
-        'event_type': 'PROPOSAL_FINALIZED',
-        'proposal_id': 'p1',
-        'block_number': 200,
-        'voter': None,
-        'support': None,
-        'weight': None,
-        'lock_duration_days': None,
-    },
-]
 
 
 # ---------------------------------------------------------------------------
@@ -83,20 +31,22 @@ def _make_prev_state_with_p1():
 
 
 # ---------------------------------------------------------------------------
-# SIM-01 — requires runner.py (Plan 02)
+# SIM-01 — full cadCAD simulation runs without errors end-to-end
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason='requires runner.py — implemented in Plan 02')
-def test_sim01_no_errors():
+def test_sim01_no_errors(backtest_raw_result, minimal_event_records):
     """Full cadCAD simulation runs without errors end-to-end."""
-    pass
+    assert len(backtest_raw_result) == len(minimal_event_records) + 1
+    assert backtest_raw_result[0]['step'] == 0
+    assert backtest_raw_result[0]['tallies'] == {}
+    assert backtest_raw_result[-1]['step'] == len(minimal_event_records)
 
 
 # ---------------------------------------------------------------------------
 # SIM-02 — policy reads event by step index
 # ---------------------------------------------------------------------------
 
-def test_sim02_policy_reads_by_step():
+def test_sim02_policy_reads_by_step(minimal_event_records):
     """policy_event_replay returns the event at index prev_state['step']."""
     stream = tuple(minimal_event_records)
     params = {'event_stream': stream}
@@ -118,7 +68,7 @@ def test_sim02_policy_reads_by_step():
 # SIM-03 — event dispatch correctness
 # ---------------------------------------------------------------------------
 
-def test_sim03_event_dispatch():
+def test_sim03_event_dispatch(minimal_event_records):
     """suf_tallies dispatches PROPOSAL_CREATED, VOTE_CAST, PROPOSAL_FINALIZED."""
     empty_state = {'step': 0, 'tallies': {}}
 
@@ -271,10 +221,49 @@ def test_sim07_no_mutation():
 
 
 # ---------------------------------------------------------------------------
-# SIM-08 — requires runner.py (Plan 02)
+# SIM-08 — results DataFrame has correct shape and dtypes
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason='requires runner.py — implemented in Plan 02')
-def test_sim08_results_dataframe():
+def test_sim08_results_dataframe(backtest_dataframe, minimal_event_records):
     """build_results_dataframe produces a DataFrame with expected shape."""
-    pass
+    expected_columns = [
+        'timestep', 'event_type', 'block_number', 'proposal_id', 'voter',
+        'support', 'weight', 'lock_duration_days', 'legacy_for',
+        'legacy_against', 'legacy_abstain', 'signals_for', 'signals_against',
+        'signals_abstain',
+    ]
+    tally_cols = [
+        'legacy_for', 'legacy_against', 'legacy_abstain',
+        'signals_for', 'signals_against', 'signals_abstain',
+    ]
+
+    # Correct row count
+    assert len(backtest_dataframe) == len(minimal_event_records)  # 5 rows
+
+    # All 14 columns present
+    for col in expected_columns:
+        assert col in backtest_dataframe.columns, f'missing column: {col}'
+
+    # All 6 tally columns are float64
+    for col in tally_cols:
+        assert backtest_dataframe[col].dtype.name == 'float64', (
+            f'{col} dtype is {backtest_dataframe[col].dtype}, expected float64'
+        )
+
+    # Event order preserved
+    assert backtest_dataframe['event_type'].tolist() == [
+        'PROPOSAL_CREATED', 'VOTE_CAST', 'VOTE_CAST', 'VOTE_CAST', 'PROPOSAL_FINALIZED'
+    ]
+
+    # FOR vote with partial lock (90 days): legacy_for >= signals_for
+    # (signals weight <= raw stake for partial lock)
+    vote_cast_rows = backtest_dataframe[
+        (backtest_dataframe['event_type'] == 'VOTE_CAST') &
+        (backtest_dataframe['support'] == 'FOR')
+    ]
+    assert len(vote_cast_rows) > 0, 'expected at least one FOR VOTE_CAST row'
+    for _, row in vote_cast_rows.iterrows():
+        # FOR vote at 90 days lock — legacy_for >= signals_for
+        assert row['legacy_for'] >= row['signals_for'], (
+            f'legacy_for ({row["legacy_for"]}) should be >= signals_for ({row["signals_for"]})'
+        )

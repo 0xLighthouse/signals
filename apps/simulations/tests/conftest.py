@@ -157,6 +157,39 @@ def state_with_support(state_with_initiative):
     return state
 
 
+# ---------------------------------------------------------------------------
+# Phase 4 fixtures (backtesting.simulation — 04-02)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def minimal_event_records():
+    """Minimal 5-event stream for 1 proposal. No factory dependency."""
+    return [
+        {'event_type': 'PROPOSAL_CREATED', 'proposal_id': 'p1', 'block_number': 100, 'voter': None, 'support': None, 'weight': None, 'lock_duration_days': None},
+        {'event_type': 'VOTE_CAST', 'proposal_id': 'p1', 'block_number': 110, 'voter': '0xA', 'support': 'FOR', 'weight': 1000.0, 'lock_duration_days': 90.0},
+        {'event_type': 'VOTE_CAST', 'proposal_id': 'p1', 'block_number': 120, 'voter': '0xB', 'support': 'AGAINST', 'weight': 500.0, 'lock_duration_days': 0.0},
+        {'event_type': 'VOTE_CAST', 'proposal_id': 'p1', 'block_number': 130, 'voter': '0xC', 'support': 'ABSTAIN', 'weight': 200.0, 'lock_duration_days': 365.0},
+        {'event_type': 'PROPOSAL_FINALIZED', 'proposal_id': 'p1', 'block_number': 200, 'voter': None, 'support': None, 'weight': None, 'lock_duration_days': None},
+    ]
+
+
+@pytest.fixture
+def backtest_raw_result(minimal_event_records):
+    """raw_result from run_backtest on minimal_event_records."""
+    import warnings
+    from backtesting.simulation.runner import run_backtest
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        return run_backtest(minimal_event_records)
+
+
+@pytest.fixture
+def backtest_dataframe(backtest_raw_result, minimal_event_records):
+    """Results DataFrame from build_results_dataframe on minimal run."""
+    from backtesting.simulation.runner import build_results_dataframe
+    return build_results_dataframe(backtest_raw_result, minimal_event_records)
+
+
 # Test markers for different test categories
 def pytest_configure(config):
     """Configure pytest markers."""

@@ -20,7 +20,7 @@
 **Milestone Goal:** Build a complete simulation + analysis pipeline: synthetic data → cadCAD replay → Signals weighting → metrics → publication-grade plots.
 
 - [x] **Phase 3: Foundation** - Governor-compatible event schema, synthetic data factory, and Signals weight functions (completed 2026-02-27)
-- [ ] **Phase 4: cadCAD Integration** - Event-replay state machine, dual-tally simulation, and results DataFrame
+- [x] **Phase 4: cadCAD Integration** - Event-replay state machine, dual-tally simulation, and results DataFrame (completed 2026-02-27)
 - [ ] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame
 - [ ] **Phase 6: Plots** - Publication-grade matplotlib plotting suite for all metrics
 - [ ] **Phase 7: Pipeline** - Single orchestrating entry point tying all layers together
@@ -67,10 +67,11 @@ Plans:
   2. Outcome transition matrix correctly classifies all four proposal outcome combinations (Pass→Pass, Pass→Fail, Fail→Pass, Fail→Fail)
   3. Late-vote share and lock-in timing metrics correctly identify time-sensitive voting behavior per proposal
   4. Top-k concentration is computable for top-1, top-5, and top-10 voters under both tally regimes
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Metrics suite (METR-01 through METR-10)
+- [ ] 05-01-PLAN.md — metrics.py implementation: all 10 governance metric pure functions with frozen dataclass return types
+- [ ] 05-02-PLAN.md — test_metrics.py: 10 requirement-traced tests + conftest metrics fixtures
 
 ### Phase 6: Plots
 **Goal**: Every metric has a corresponding publication-grade matplotlib figure
@@ -109,7 +110,7 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 1. Migrate | v1.0 | 1/1 | Complete | 2026-02-27 |
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
-| 4. cadCAD Integration | 1/2 | In Progress|  | - |
-| 5. Metrics | v2.0 | 0/1 | Not started | - |
+| 4. cadCAD Integration | 2/2 | Complete   | 2026-02-27 | - |
+| 5. Metrics | v2.0 | 0/2 | Not started | - |
 | 6. Plots | v2.0 | 0/1 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
