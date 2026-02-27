@@ -27,10 +27,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Dev dependencies (ruff, pytest, pytest-cov) are listed under `[dependency-groups]` or `[project.optional-dependencies]` dev group
   4. uv.lock exists and poetry.lock is deleted
   5. Python >=3.12 constraint is present in pyproject.toml
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 01-01: Rewrite pyproject.toml and generate uv.lock
+- [ ] 01-01-PLAN.md — Rewrite pyproject.toml to uv/hatchling format and generate uv.lock
 
 ### Phase 2: Verify
 **Goal**: All existing simulations and tests pass with the uv-managed environment, confirming behavioral parity
