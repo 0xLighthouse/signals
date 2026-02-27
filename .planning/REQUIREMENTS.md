@@ -87,45 +87,45 @@ Research annotations (italicized) justify decisions for future reference.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUDG-01 | — | Pending |
-| BUDG-02 | — | Pending |
-| BUDG-03 | — | Pending |
-| BUDG-04 | — | Pending |
-| BUDG-05 | — | Pending |
-| BUDG-06 | — | Pending |
-| MCAL-01 | — | Pending |
-| MCAL-02 | — | Pending |
-| MCAL-03 | — | Pending |
-| MCAL-04 | — | Pending |
-| MCAL-05 | — | Pending |
-| SWEP-01 | — | Pending |
-| SWEP-02 | — | Pending |
-| SWEP-03 | — | Pending |
-| SWEP-04 | — | Pending |
-| SWEP-05 | — | Pending |
-| SWEP-06 | — | Pending |
-| SWEP-07 | — | Pending |
-| ANAL-01 | — | Pending |
-| ANAL-02 | — | Pending |
-| ANAL-03 | — | Pending |
-| ANAL-04 | — | Pending |
-| ANAL-05 | — | Pending |
-| ANAL-06 | — | Pending |
-| ANAL-07 | — | Pending |
-| REPT-01 | — | Pending |
-| REPT-02 | — | Pending |
-| REPT-03 | — | Pending |
-| REPT-04 | — | Pending |
-| REPT-05 | — | Pending |
-| REPT-06 | — | Pending |
-| REPT-07 | — | Pending |
-| REPT-08 | — | Pending |
+| BUDG-01 | Phase 8 | Pending |
+| BUDG-02 | Phase 8 | Pending |
+| BUDG-03 | Phase 8 | Pending |
+| BUDG-04 | Phase 8 | Pending |
+| BUDG-05 | Phase 8 | Pending |
+| BUDG-06 | Phase 8 | Pending |
+| MCAL-01 | Phase 9 | Pending |
+| MCAL-02 | Phase 9 | Pending |
+| MCAL-03 | Phase 9 | Pending |
+| MCAL-04 | Phase 9 | Pending |
+| MCAL-05 | Phase 9 | Pending |
+| SWEP-01 | Phase 10 | Pending |
+| SWEP-02 | Phase 10 | Pending |
+| SWEP-03 | Phase 10 | Pending |
+| SWEP-04 | Phase 10 | Pending |
+| SWEP-05 | Phase 10 | Pending |
+| SWEP-06 | Phase 10 | Pending |
+| SWEP-07 | Phase 10 | Pending |
+| ANAL-01 | Phase 11 | Pending |
+| ANAL-02 | Phase 11 | Pending |
+| ANAL-03 | Phase 11 | Pending |
+| ANAL-04 | Phase 11 | Pending |
+| ANAL-05 | Phase 11 | Pending |
+| ANAL-06 | Phase 11 | Pending |
+| ANAL-07 | Phase 11 | Pending |
+| REPT-01 | Phase 12 | Pending |
+| REPT-02 | Phase 12 | Pending |
+| REPT-03 | Phase 12 | Pending |
+| REPT-04 | Phase 12 | Pending |
+| REPT-05 | Phase 12 | Pending |
+| REPT-06 | Phase 12 | Pending |
+| REPT-07 | Phase 12 | Pending |
+| REPT-08 | Phase 12 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 33 total
-- Mapped to phases: 0
-- Unmapped: 33 ⚠️ (pending roadmap creation)
+- Mapped to phases: 33
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 — traceability updated after roadmap creation*
