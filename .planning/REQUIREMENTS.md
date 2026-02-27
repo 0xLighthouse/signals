@@ -52,18 +52,18 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 
 ### Plotting
 
-- [ ] **PLOT-01**: Flip rate summary bar chart
-- [ ] **PLOT-02**: Margin shift histogram (legacy vs Signals margins)
-- [ ] **PLOT-03**: Outcome transition matrix visualization
-- [ ] **PLOT-04**: Gini before vs after comparison per regime
-- [ ] **PLOT-05**: Top-k share comparison chart
-- [ ] **PLOT-06**: ENP comparison visualization
-- [ ] **PLOT-07**: Cumulative vote curve per selected proposal (legacy and Signals overlaid)
-- [ ] **PLOT-08**: Late-vote share comparison
-- [ ] **PLOT-09**: Lorenz curve (legacy vs Signals voting power distributions)
-- [ ] **PLOT-10**: Proposal story plots showing time evolution of net margin and voter power composition
-- [ ] **PLOT-11**: Lock duration distribution histogram with Signals weight overlay
-- [ ] **PLOT-12**: All plots use matplotlib OO API, publication-grade styling, and consistent rcParams
+- [x] **PLOT-01**: Flip rate summary bar chart
+- [x] **PLOT-02**: Margin shift histogram (legacy vs Signals margins)
+- [x] **PLOT-03**: Outcome transition matrix visualization
+- [x] **PLOT-04**: Gini before vs after comparison per regime
+- [x] **PLOT-05**: Top-k share comparison chart
+- [x] **PLOT-06**: ENP comparison visualization
+- [x] **PLOT-07**: Cumulative vote curve per selected proposal (legacy and Signals overlaid)
+- [x] **PLOT-08**: Late-vote share comparison
+- [x] **PLOT-09**: Lorenz curve (legacy vs Signals voting power distributions)
+- [x] **PLOT-10**: Proposal story plots showing time evolution of net margin and voter power composition
+- [x] **PLOT-11**: Lock duration distribution histogram with Signals weight overlay
+- [x] **PLOT-12**: All plots use matplotlib OO API, publication-grade styling, and consistent rcParams
 
 ### Pipeline
 
@@ -139,18 +139,18 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | METR-08 | Phase 5 | Complete |
 | METR-09 | Phase 5 | Complete |
 | METR-10 | Phase 5 | Complete |
-| PLOT-01 | Phase 6 | Pending |
-| PLOT-02 | Phase 6 | Pending |
-| PLOT-03 | Phase 6 | Pending |
-| PLOT-04 | Phase 6 | Pending |
-| PLOT-05 | Phase 6 | Pending |
-| PLOT-06 | Phase 6 | Pending |
-| PLOT-07 | Phase 6 | Pending |
-| PLOT-08 | Phase 6 | Pending |
-| PLOT-09 | Phase 6 | Pending |
-| PLOT-10 | Phase 6 | Pending |
-| PLOT-11 | Phase 6 | Pending |
-| PLOT-12 | Phase 6 | Pending |
+| PLOT-01 | Phase 6 | Complete |
+| PLOT-02 | Phase 6 | Complete |
+| PLOT-03 | Phase 6 | Complete |
+| PLOT-04 | Phase 6 | Complete |
+| PLOT-05 | Phase 6 | Complete |
+| PLOT-06 | Phase 6 | Complete |
+| PLOT-07 | Phase 6 | Complete |
+| PLOT-08 | Phase 6 | Complete |
+| PLOT-09 | Phase 6 | Complete |
+| PLOT-10 | Phase 6 | Complete |
+| PLOT-11 | Phase 6 | Complete |
+| PLOT-12 | Phase 6 | Complete |
 | PIPE-01 | Phase 7 | Pending |
 | PIPE-02 | Phase 7 | Pending |
 | PIPE-03 | Phase 7 | Pending |
