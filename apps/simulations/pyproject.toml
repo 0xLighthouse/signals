@@ -1,26 +1,30 @@
-[tool.poetry]
+[project]
 name = "signals-simulations"
 version = "0.1.0"
 description = "SIGNALS Protocol Simulation using cadCAD"
-authors = ["1a35e1 <1a35e1@protonmail.com>"]
+authors = [{name = "1a35e1", email = "1a35e1@protonmail.com"}]
 readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2.3,<3",
+    "matplotlib>=3.9.2,<4",
+    "seaborn>=0.13.2,<0.14",
+    "numpy>=1.26.4,<2",
+    "fastparquet>=2024.11.0,<2025",
+    "tabulate>=0.9.0,<0.10",
+    "cadcad>=0.5.3,<0.6",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-pandas = "^2.2.3"
-matplotlib = "^3.9.2"
-seaborn = "^0.13.2"
-numpy = "^1.26.4"
-fastparquet = "^2024.11.0"
-tabulate = "^0.9.0"
-ruff = "^0.8.4"
-cadcad = "^0.5.3"
-pytest = "^8.0.0"
-pytest-cov = "^4.0.0"
+[dependency-groups]
+dev = [
+    "ruff>=0.8.4,<0.9",
+    "pytest>=8.0.0,<9",
+    "pytest-cov>=4.0.0,<5",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
