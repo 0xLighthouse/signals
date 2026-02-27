@@ -21,7 +21,7 @@
 
 - [x] **Phase 3: Foundation** - Governor-compatible event schema, synthetic data factory, and Signals weight functions (completed 2026-02-27)
 - [x] **Phase 4: cadCAD Integration** - Event-replay state machine, dual-tally simulation, and results DataFrame (completed 2026-02-27)
-- [ ] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame
+- [x] **Phase 5: Metrics** - Complete metrics suite as pure functions on results DataFrame (completed 2026-02-27)
 - [ ] **Phase 6: Plots** - Publication-grade matplotlib plotting suite for all metrics
 - [ ] **Phase 7: Pipeline** - Single orchestrating entry point tying all layers together
 
@@ -111,6 +111,6 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
 | 4. cadCAD Integration | 2/2 | Complete   | 2026-02-27 | - |
-| 5. Metrics | 1/2 | In Progress|  | - |
+| 5. Metrics | 2/2 | Complete   | 2026-02-27 | - |
 | 6. Plots | v2.0 | 0/1 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
