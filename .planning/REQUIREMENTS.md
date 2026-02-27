@@ -67,9 +67,9 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 
 ### Pipeline
 
-- [ ] **PIPE-01**: Single entry point orchestrates data generation → simulation → metrics → plots
-- [ ] **PIPE-02**: Pipeline outputs are saved to a configurable output directory
-- [ ] **PIPE-03**: Pipeline can be run from CLI or imported as a Python module
+- [x] **PIPE-01**: Single entry point orchestrates data generation → simulation → metrics → plots
+- [x] **PIPE-02**: Pipeline outputs are saved to a configurable output directory
+- [x] **PIPE-03**: Pipeline can be run from CLI or imported as a Python module
 
 ## v2.1 Requirements
 
@@ -151,9 +151,9 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | PLOT-10 | Phase 6 | Complete |
 | PLOT-11 | Phase 6 | Complete |
 | PLOT-12 | Phase 6 | Complete |
-| PIPE-01 | Phase 7 | Pending |
-| PIPE-02 | Phase 7 | Pending |
-| PIPE-03 | Phase 7 | Pending |
+| PIPE-01 | Phase 7 | Complete |
+| PIPE-02 | Phase 7 | Complete |
+| PIPE-03 | Phase 7 | Complete |
 
 **Coverage:**
 

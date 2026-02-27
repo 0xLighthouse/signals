@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Backtesting & Simulation
 status: unknown
-last_updated: "2026-02-27T17:34:50.761Z"
+last_updated: "2026-02-27T22:28:09.070Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 9
+  completed_plans: 9
 ---
 
 # Project State
@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 ## Current Position
 
-Phase: 6 of 7 (Plots) — COMPLETE
-Plan: 2 of 2 in phase 6 (complete)
-Status: Phase 6 complete — Phase 7 ready to begin
-Last activity: 2026-02-27 — Completed 06-02 (12 requirement-traced plot tests, PLOT-01..12 all passing)
+Phase: 7 of 7 (Pipeline) — COMPLETE
+Plan: 1 of 1 in phase 7 (complete)
+Status: Phase 7 complete — all phases done
+Last activity: 2026-02-27 — Completed 07-01 (pipeline orchestrator + 10 requirement-traced tests, PIPE-01..03 all passing)
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [████████░░] 80%
 | 05-metrics | 2/2 | 7 min | 3.5 min |
 | Phase 06-plots P01 | 2 | 1 tasks | 1 files |
 | Phase 06-plots P02 | 2 | 1 tasks | 1 files |
+| Phase 07-pipeline P01 | 9 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 06-plots]: compute_signals_weight imported as _cw inside plot_lorenz_curve and plot_lock_duration_histogram function bodies — avoids circular import at module level
 - [Phase 06-plots]: Test file sets matplotlib.use('Agg') before any Figure import in test_plots.py — ensures headless CI compatibility
 - [Phase 06-plots]: PLOT-12 test deletes backtesting.plots from sys.modules, clears pyplot, reimports, asserts pyplot still absent — catches lazy imports too
+- [Phase 07-pipeline]: if __name__ == '__main__' guard required in pipeline.py — python -m backtesting.pipeline runs pipeline.py as __main__, not __main__.py; guard is essential for CLI to function
+- [Phase 07-pipeline]: Module-scoped pytest fixture for pipeline runs expensive pipeline once per test module — avoids 15s overhead per test
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 06-02-PLAN.md (12 requirement-traced plot tests, PLOT-01..12 covered)
-Resume file: .planning/phases/06-plots
-Resume action: Phase 6 complete — begin Phase 7 (pipeline)
+Stopped at: Completed 07-01-PLAN.md (pipeline orchestrator + 10 requirement-traced tests, PIPE-01/02/03 covered)
+Resume file: .planning/phases/07-pipeline
+Resume action: Phase 7 complete — all phases done, milestone v1.0 complete
