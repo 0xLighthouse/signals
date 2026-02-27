@@ -45,21 +45,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIG-01 | — | Pending |
-| MIG-02 | — | Pending |
-| MIG-03 | — | Pending |
-| MIG-04 | — | Pending |
-| CLN-01 | — | Pending |
-| CLN-02 | — | Pending |
-| VER-01 | — | Pending |
-| VER-02 | — | Pending |
-| VER-03 | — | Pending |
+| MIG-01 | Phase 1 | Pending |
+| MIG-02 | Phase 1 | Pending |
+| MIG-03 | Phase 1 | Pending |
+| MIG-04 | Phase 1 | Pending |
+| CLN-01 | Phase 1 | Pending |
+| CLN-02 | Phase 1 | Pending |
+| VER-01 | Phase 2 | Pending |
+| VER-02 | Phase 2 | Pending |
+| VER-03 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 after roadmap creation*
