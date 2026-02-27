@@ -52,10 +52,11 @@ Plans:
   2. Each proposal carries both a legacy (stake) tally and a Signals (W_signals) tally simultaneously in state after simulation completes
   3. State update functions return new copies — never mutate in-place — confirmed by identity assertion in tests
   4. Simulation outputs a flat results DataFrame with one row per event covering both tally regimes
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: cadCAD event-replay state machine and dual-tally (SIM-01 through SIM-08)
+- [ ] 04-01-PLAN.md — cadCAD policy + SUF modules and SIM unit tests (SIM-02 through SIM-07)
+- [ ] 04-02-PLAN.md — runner.py wiring cadCAD Configuration, results DataFrame builder, and SIM integration tests (SIM-01, SIM-08)
 
 ### Phase 5: Metrics
 **Goal**: Every required metric is computable as a pure function on the results DataFrame
@@ -108,7 +109,7 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 1. Migrate | v1.0 | 1/1 | Complete | 2026-02-27 |
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
-| 4. cadCAD Integration | v2.0 | 0/1 | Not started | - |
+| 4. cadCAD Integration | v2.0 | 0/2 | Not started | - |
 | 5. Metrics | v2.0 | 0/1 | Not started | - |
 | 6. Plots | v2.0 | 0/1 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
