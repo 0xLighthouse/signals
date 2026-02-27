@@ -113,5 +113,5 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
 | 4. cadCAD Integration | 2/2 | Complete   | 2026-02-27 | - |
 | 5. Metrics | 2/2 | Complete   | 2026-02-27 | - |
-| 6. Plots | v2.0 | 0/2 | Not started | - |
+| 6. Plots | 1/2 | In Progress|  | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
