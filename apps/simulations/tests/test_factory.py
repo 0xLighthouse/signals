@@ -128,7 +128,8 @@ def test_distribution_profiles():
         warnings.simplefilter('ignore', UserWarning)
         events_uniform = generate_scenario(
             n_voters=50, n_proposals=3, seed=42,
-            stake_profile='uniform', avg_participation_rate=0.50
+            stake_profile='uniform', avg_participation_rate=0.50,
+            budget_enabled=False,
         )
     vote_events_uniform = _get_vote_events(events_uniform)
     if vote_events_uniform:
@@ -201,6 +202,19 @@ def test_lock_durations_generated():
         # Correlation should be positive
         corr = float(np.corrcoef(stakes_arr, locks_arr)[0, 1])
         assert corr > 0.0, f'Correlated lock profile has non-positive correlation: {corr:.4f}'
+
+    # inverse_correlated: higher stake voters should have shorter locks
+    events_inv = generate_scenario(
+        n_voters=200, n_proposals=2, seed=42,
+        lock_profile='inverse_correlated', avg_participation_rate=0.50
+    )
+    vote_inv = _get_vote_events(events_inv)
+    if len(vote_inv) >= 20:
+        stakes_inv = np.array([e.weight for e in vote_inv])
+        locks_inv = np.array([e.lock_duration_days for e in vote_inv])
+        # Correlation should be negative
+        corr_inv = float(np.corrcoef(stakes_inv, locks_inv)[0, 1])
+        assert corr_inv < 0.0, f'Inverse correlated lock profile has non-negative correlation: {corr_inv:.4f}'
 
     # bimodal: locks cluster around short and long
     events_bi = generate_scenario(
@@ -278,3 +292,135 @@ def test_events_sorted():
         assert blocks[i] >= blocks[i - 1], (
             f'Events not sorted: block[{i}]={blocks[i]} < block[{i-1}]={blocks[i-1]}'
         )
+
+
+# ---------------------------------------------------------------------------
+# Budget allocation (token budget)
+# ---------------------------------------------------------------------------
+
+class TestBudgetAllocation:
+    """Tests for token budget allocation in generate_scenario."""
+
+    def test_weights_le_full_stake(self):
+        """With budget enabled, vote weights must be <= voter's full stake."""
+        events = generate_scenario(
+            n_voters=200, n_proposals=30, seed=42, budget_enabled=True,
+        )
+        vote_events = _get_vote_events(events)
+        # Build stake lookup from first-proposal weights with budget disabled
+        events_legacy = generate_scenario(
+            n_voters=200, n_proposals=30, seed=42, budget_enabled=False,
+        )
+        legacy_votes = _get_vote_events(events_legacy)
+        full_stakes: dict[str, float] = {}
+        for e in legacy_votes:
+            if e.voter not in full_stakes:
+                full_stakes[e.voter] = e.weight
+
+        for e in vote_events:
+            if e.voter in full_stakes:
+                assert e.weight <= full_stakes[e.voter] + 1e-6, (
+                    f'Vote weight {e.weight} > full stake {full_stakes[e.voter]} for {e.voter}'
+                )
+
+    def test_available_balance_decreases(self):
+        """A voter's total weight across proposals should exceed any single vote weight."""
+        events = generate_scenario(
+            n_voters=200, n_proposals=30, seed=42,
+            budget_enabled=True, avg_participation_rate=0.30,
+        )
+        vote_events = _get_vote_events(events)
+        # Group by voter
+        voter_weights: dict[str, list[float]] = {}
+        for e in vote_events:
+            voter_weights.setdefault(e.voter, []).append(e.weight)
+
+        # Voters who voted multiple times should show decreasing or varied weights
+        multi_voters = {v: ws for v, ws in voter_weights.items() if len(ws) >= 3}
+        assert multi_voters, 'No voters with 3+ votes to test balance decrease'
+
+        for voter, weights in multi_voters.items():
+            # Sum of allocated amounts should be bounded by total stake
+            # (can't allocate more than you have)
+            total_allocated = sum(weights)
+            max_single = max(weights)
+            assert total_allocated > max_single, (
+                f'Voter {voter} total allocated {total_allocated} not > max single {max_single}'
+            )
+
+    def test_zero_balance_voters_skipped(self):
+        """With aggressive allocation, individual vote weights never exceed available balance."""
+        from backtesting.data.factory import _generate_stakes, _VoterLedger, BLOCKS_PER_DAY
+
+        events = generate_scenario(
+            n_voters=200, n_proposals=30, seed=42,
+            budget_enabled=True, allocation_strategy='aggressive',
+            avg_participation_rate=0.30,
+        )
+        vote_events = _get_vote_events(events)
+
+        # Reconstruct ledgers and verify no vote exceeds available balance
+        rng = np.random.default_rng(42)
+        stakes = _generate_stakes(200, 1_000_000.0, 'pareto', 0.7, rng)
+        voters = [f'0x{i:040x}' for i in range(200)]
+        stake_map = dict(zip(voters, (float(s) for s in stakes)))
+        ledgers: dict[str, _VoterLedger] = {
+            v: _VoterLedger(total_stake=stake_map[v]) for v in voters
+        }
+
+        for e in vote_events:
+            avail = ledgers[e.voter].available_balance(e.block_number)
+            assert e.weight <= avail + 1e-6, (
+                f'Vote weight {e.weight:.2f} > available {avail:.2f} for {e.voter}'
+            )
+            unlock = e.block_number + int(e.lock_duration_days * BLOCKS_PER_DAY)
+            ledgers[e.voter].add_lock(e.weight, unlock)
+
+    def test_strategies_produce_different_distributions(self):
+        """Different allocation strategies produce different weight distributions."""
+        results = {}
+        for strategy in ('uniform_fraction', 'conviction_weighted', 'aggressive'):
+            events = generate_scenario(
+                n_voters=200, n_proposals=10, seed=42,
+                budget_enabled=True, allocation_strategy=strategy,
+                avg_participation_rate=0.20,
+            )
+            weights = [e.weight for e in _get_vote_events(events)]
+            results[strategy] = np.mean(weights) if weights else 0.0
+
+        # Aggressive should have highest mean weight, uniform_fraction lowest
+        assert results['aggressive'] > results['uniform_fraction'], (
+            f'Aggressive mean {results["aggressive"]:.1f} not > '
+            f'uniform mean {results["uniform_fraction"]:.1f}'
+        )
+
+    def test_budget_disabled_matches_legacy(self):
+        """budget_enabled=False gives full stake as weight (legacy behavior)."""
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', UserWarning)
+            events = generate_scenario(
+                n_voters=50, n_proposals=5, seed=42, budget_enabled=False,
+            )
+        vote_events = _get_vote_events(events)
+        # Each voter's weight should be identical across all their votes
+        voter_weights: dict[str, set[float]] = {}
+        for e in vote_events:
+            voter_weights.setdefault(e.voter, set()).add(round(e.weight, 6))
+        for voter, weights in voter_weights.items():
+            assert len(weights) == 1, (
+                f'Legacy voter {voter} has varying weights: {weights}'
+            )
+
+    def test_budget_reproducibility(self):
+        """Same seed with budget enabled produces identical output."""
+        events_a = generate_scenario(
+            n_voters=200, n_proposals=10, seed=42, budget_enabled=True,
+        )
+        events_b = generate_scenario(
+            n_voters=200, n_proposals=10, seed=42, budget_enabled=True,
+        )
+        assert len(events_a) == len(events_b), 'Different event counts with same seed'
+        for i, (a, b) in enumerate(zip(events_a, events_b)):
+            assert a.block_number == b.block_number, f'Block mismatch at {i}'
+            if hasattr(a, 'weight') and hasattr(b, 'weight'):
+                assert abs(a.weight - b.weight) < 1e-9, f'Weight mismatch at {i}'

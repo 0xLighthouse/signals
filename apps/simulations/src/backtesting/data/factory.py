@@ -10,10 +10,12 @@ Usage:
     from backtesting.data.factory import generate_scenario, StakeProfile, LockProfile
 
     events = generate_scenario(n_voters=200, n_proposals=30, seed=42)
+    events = generate_scenario(budget_enabled=True, allocation_strategy='aggressive')
 """
 
 import logging
 import warnings
+from dataclasses import dataclass, field
 from typing import Literal
 
 import numpy as np
@@ -30,7 +32,55 @@ from backtesting.data.schema import (
 logger = logging.getLogger(__name__)
 
 StakeProfile = Literal['pareto', 'uniform', 'bimodal']
-LockProfile = Literal['correlated', 'independent', 'bimodal']
+LockProfile = Literal['correlated', 'inverse_correlated', 'independent', 'bimodal']
+AllocationStrategy = Literal['uniform_fraction', 'conviction_weighted', 'aggressive']
+
+BLOCKS_PER_DAY = 7200  # L2 default (~12s blocks)
+
+
+@dataclass
+class _LockEntry:
+    """A single token lock: amount locked until unlock_block."""
+    amount: float
+    unlock_block: int
+
+
+@dataclass
+class _VoterLedger:
+    """Tracks a voter's total stake and active locks for budget allocation."""
+    total_stake: float
+    locks: list[_LockEntry] = field(default_factory=list)
+
+    def available_balance(self, at_block: int) -> float:
+        """Return total_stake minus sum of locks still active at at_block."""
+        locked = sum(
+            lock.amount for lock in self.locks if lock.unlock_block > at_block
+        )
+        return max(0.0, self.total_stake - locked)
+
+    def add_lock(self, amount: float, unlock_block: int) -> None:
+        self.locks.append(_LockEntry(amount=amount, unlock_block=unlock_block))
+
+
+def _compute_allocation_fraction(
+    strategy: AllocationStrategy,
+    lock_duration_days: float,
+    l_max_days: float,
+    rng: np.random.Generator,
+) -> float:
+    """Return the fraction of available balance a voter commits to one proposal."""
+    if strategy == 'uniform_fraction':
+        return float(rng.uniform(0.15, 0.45))
+    elif strategy == 'conviction_weighted':
+        # Longer lock → bigger commitment (15-70% range)
+        ratio = min(lock_duration_days / max(l_max_days, 1.0), 1.0)
+        base = 0.15 + 0.55 * ratio
+        noise = float(rng.uniform(-0.05, 0.05))
+        return float(np.clip(base + noise, 0.10, 0.75))
+    elif strategy == 'aggressive':
+        return float(rng.uniform(0.60, 1.00))
+    else:
+        raise ValueError(f'Unknown allocation strategy: {strategy}')
 
 
 def _generate_stakes(
@@ -168,6 +218,12 @@ def _generate_lock_durations(
         # Add small noise
         noise = rng.uniform(-0.05, 0.05, size=n_votes) * l_max_days
         durations = np.clip(durations + noise, 0.0, l_max_days)
+    elif profile == 'inverse_correlated':
+        # Higher stake -> shorter lock (whales seek liquidity)
+        ranks = np.argsort(np.argsort(stakes)) / max(len(stakes) - 1, 1)
+        durations = (1.0 - ranks) * l_max_days
+        noise = rng.uniform(-0.05, 0.05, size=n_votes) * l_max_days
+        durations = np.clip(durations + noise, 0.0, l_max_days)
     elif profile == 'independent':
         durations = rng.uniform(0.0, l_max_days, size=n_votes)
     elif profile == 'bimodal':
@@ -194,6 +250,9 @@ def generate_scenario(
     l_max_days: float = 365.0,
     proposal_window_blocks: int = 50400,
     seed: int | None = None,
+    budget_enabled: bool = True,
+    allocation_strategy: AllocationStrategy = 'uniform_fraction',
+    blocks_per_day: int = BLOCKS_PER_DAY,
 ) -> list[GovernorEvent]:
     """
     Generate a synthetic Governor-compatible event stream.
@@ -220,6 +279,14 @@ def generate_scenario(
         Number of blocks each proposal is open for voting.
     seed : int | None
         Random seed for reproducibility. None = random.
+    budget_enabled : bool
+        If True, tokens locked for one proposal are unavailable for concurrent
+        proposals. Voters commit a fraction of available balance per vote.
+    allocation_strategy : AllocationStrategy
+        How much of available balance to commit: 'uniform_fraction' (15-45%),
+        'conviction_weighted' (scales with lock duration), or 'aggressive' (60-100%).
+    blocks_per_day : int
+        Blocks per day for lock duration conversion (default 7200 for L2).
 
     Returns
     -------
@@ -245,6 +312,9 @@ def generate_scenario(
 
     # Generate per-voter participation probabilities
     participation_probs = _generate_participation_probs(n_voters, avg_participation_rate, rng)
+
+    # Initialize per-voter budget ledgers
+    ledgers = [_VoterLedger(total_stake=float(stakes[i])) for i in range(n_voters)]
 
     events: list[GovernorEvent] = []
 
@@ -323,13 +393,31 @@ def generate_scenario(
             # Clamp to valid window
             vote_block = max(start_block, min(end_block - 1, vote_block))
 
+            lock_days = float(lock_durations[i])
+
+            # Budget allocation: compute weight from available balance
+            if budget_enabled:
+                available = ledgers[voter_idx].available_balance(vote_block)
+                if available <= 0.0:
+                    continue  # voter is fully locked out
+
+                frac = _compute_allocation_fraction(
+                    allocation_strategy, lock_days, l_max_days, rng
+                )
+                allocated = available * frac
+                unlock_block = vote_block + int(lock_days * blocks_per_day)
+                ledgers[voter_idx].add_lock(allocated, unlock_block)
+                vote_weight = allocated
+            else:
+                vote_weight = float(stakes[voter_idx])
+
             vote_event = VoteCastEvent(
                 block_number=vote_block,
                 proposal_id=proposal_id,
                 voter=voter,
                 support=support,
-                weight=float(stakes[voter_idx]),
-                lock_duration_days=float(lock_durations[i]),
+                weight=vote_weight,
+                lock_duration_days=lock_days,
             )
             events.append(vote_event)
 

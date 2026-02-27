@@ -18,6 +18,7 @@ cadCAD intentionally does not deep-copy state on every timestep for performance 
 
 **How to avoid:**
 In every SUF that touches a mutable state variable, return a **new** object:
+
 ```python
 # WRONG — mutates in place
 def s_apply_actions(params, substep, history, prev_state, policy_input):
@@ -31,9 +32,11 @@ def s_apply_actions(params, substep, history, prev_state, policy_input):
     balances['0x01'] += 100
     return ('balances', balances)
 ```
+
 For nested structures (dict of dicts), use `{k: dict(v) for k, v in prev_state['initiatives'].items()}`. Reserve `copy.deepcopy()` only for deeply-nested objects — it is expensive at scale.
 
 **Warning signs:**
+
 - Metrics computed at timestep T differ when you re-run the same seed
 - `accepted_initiatives` set grows faster than proposals finalized
 - `reward_history` list length is unbounded and grows super-linearly
@@ -54,6 +57,7 @@ cadCAD evaluates state variables as they existed *before* the substep executes. 
 
 **How to avoid:**
 Use a helper function that computes current epoch from cadCAD's internal `timestep` counter rather than reading it from state. Alternatively, always pass `current_epoch` explicitly through policy output so SUFs that need the incremented value get it from `policy_input`, not `previous_state`:
+
 ```python
 # In p_advance_time policy:
 def p_advance_time(params, substep, history, prev_state):
@@ -65,6 +69,7 @@ epoch = policy_input.get('next_epoch', prev_state['current_epoch'])
 ```
 
 **Warning signs:**
+
 - Lock positions expiring one epoch earlier than their `expiry_epoch` field indicates
 - Initiative acceptance threshold reached at epoch N-1 but logged as epoch N
 - Sensitivity to PSUB ordering: reordering blocks changes metric outputs
@@ -84,6 +89,7 @@ cadCAD's `Executor` does not deep-copy `initial_state` per run. The `generate_in
 
 **How to avoid:**
 Call `generate_initial_state()` inside the loop body, not outside it. Use `copy.deepcopy(initial_state)` as a guard inside `run_simulation()` before passing to `Configuration`:
+
 ```python
 import copy
 
@@ -91,9 +97,11 @@ def run_simulation(initial_state, num_epochs=None):
     safe_initial = copy.deepcopy(initial_state)   # always copy
     config = Configuration(initial_state=safe_initial, ...)
 ```
+
 Also, confirm that `accepted_initiatives` is serialized as a list (not a set) in the state dict — Python sets are mutable and not safely shareable. The `__dict__()` method in `state.py` correctly makes copies of collections, but this is defeated if the same object is passed to multiple `Configuration` instantiations.
 
 **Warning signs:**
+
 - Run 2 of a parameter sweep starts with non-zero `accepted_initiatives`
 - Gini coefficient for run 2 is lower than run 1 on identical parameters
 - Increasing N Monte Carlo runs changes the mean metric value (it should not)
@@ -113,6 +121,7 @@ Uniform distribution is the easiest to implement and "feels fair." Research on r
 
 **How to avoid:**
 Generate token balances from a Pareto distribution calibrated to real DAO data:
+
 ```python
 import numpy as np
 # Zipf/Pareto: shape parameter ~1.5 matches empirical DAO distributions
@@ -120,9 +129,11 @@ alpha = 1.5
 raw = np.random.pareto(alpha, num_users) + 1
 balances = (raw / raw.sum() * circulating_supply).astype(int)
 ```
+
 Also model realistic voting participation: 0.5-5% of token holders vote on any given proposal, concentrated in top holders. The `prob_support_initiative` parameter in the current model should be made heterogeneous — proportional to balance — not uniform.
 
 **Warning signs:**
+
 - Gini coefficient of initial balances is below 0.5 (real DAOs are 0.7-0.95)
 - All users have similar voting weight in simulated proposals
 - ENP metric consistently > 3 in baseline (real DAOs often < 2)
@@ -143,6 +154,7 @@ cadCAD's sweep model is not a full factorial grid search. It zips parameter list
 
 **How to avoid:**
 For full factorial sweeps, build the Cartesian product manually and run multiple `Configuration` objects, or use radCAD which supports arbitrary parameter grids more cleanly:
+
 ```python
 from itertools import product
 import pandas as pd
@@ -155,9 +167,11 @@ sweep_params = {
 all_combos = list(product(*sweep_params.values()))
 # Run one cadCAD Config per combo, collect results, concat DataFrames
 ```
+
 Cap total sweep combinations at 50-100 for interactive analysis; use batch/background jobs for larger sweeps.
 
 **Warning signs:**
+
 - Parameter sweep DataFrame has fewer rows than expected (`T × N × expected_combos`)
 - Changing order of M keys changes which combinations are run
 - `subset` column in results DataFrame has fewer unique values than combinations specified
@@ -177,6 +191,7 @@ The standard Gini formula `G = sum(|xi - xj|) / (2n^2 * mean(x))` divides by `me
 
 **How to avoid:**
 Always guard Gini computation:
+
 ```python
 def gini(weights: np.ndarray) -> float:
     if len(weights) == 0 or weights.sum() == 0:
@@ -188,9 +203,11 @@ def gini(weights: np.ndarray) -> float:
     index = np.arange(1, n + 1)
     return (2 * (index * weights).sum()) / (n * weights.sum()) - (n + 1) / n
 ```
+
 Return `np.nan` for undefined cases and filter NaN in aggregation — do not substitute 0 (zero Gini incorrectly implies perfect equality rather than "undefined").
 
 **Warning signs:**
+
 - Gini values exactly 0.0 for proposals with 1-2 voters (likely incorrect)
 - NaN propagation causing entire metric series to collapse
 - Aggregated Gini using `.mean()` silently dropping NaN rows
@@ -207,6 +224,7 @@ ENP = 1 / Σ(pi²) where pi is the vote share of voter i. With a single dominant
 
 **How to avoid:**
 Normalize vote shares explicitly before computing ENP, and clamp to valid range:
+
 ```python
 def enp(weights: np.ndarray) -> float:
     total = weights.sum()
@@ -215,9 +233,11 @@ def enp(weights: np.ndarray) -> float:
     shares = weights / total
     return float(np.clip(1.0 / (shares ** 2).sum(), 1.0, len(weights)))
 ```
+
 The ENP valid range is [1, n_voters]. Clamping catches floating-point artifacts. Document in the codebase that ENP ~= 1 means one entity controls the outcome.
 
 **Warning signs:**
+
 - ENP values below 1.0 appearing in results
 - ENP time series jumping non-monotonically when one large voter joins mid-proposal
 - ENP for a proposal with 1 voter returning NaN instead of 1.0
@@ -236,6 +256,7 @@ When inferring "typical" lock durations from observed on-chain data (or from sim
 Track expired locks in the simulation state (the current model has `expired_initiatives` but not `expired_locks`). When computing lock duration statistics, use the full cohort at a consistent snapshot time (e.g., all locks opened in epoch 0-100, measured at epoch 50) or use survival analysis (Kaplan-Meier) to account for right-censoring. For synthetic data generation, sample lock durations from the *full* distribution (not the observed active-at-time-T distribution).
 
 **Warning signs:**
+
 - Mean lock duration increases as simulation progresses (short locks expire, biasing upward)
 - Signals weight advantage grows over simulation time even with stable parameters
 - Calibrated parameters produce unrealistically high lock durations vs historical DAO data
@@ -255,6 +276,7 @@ Matplotlib uses global figure state (`plt.figure()`, `plt.gca()`). When multiple
 
 **How to avoid:**
 Use the object-oriented matplotlib API exclusively. Never call `plt.figure()` or `plt.gca()` in production plotting code:
+
 ```python
 import matplotlib
 matplotlib.use('Agg')          # non-interactive backend for batch runs
@@ -281,9 +303,11 @@ def plot_metric(data, output_path):
     fig.savefig(output_path, bbox_inches='tight')
     plt.close(fig)                  # ALWAYS close — prevents memory leak + state pollution
 ```
+
 For publication, export PDF (vector) not PNG (raster) — PDF survives infinite zoom and journal submission requirements. Use `300 dpi` minimum for any PNG fallback.
 
 **Warning signs:**
+
 - Plot from second pipeline run looks different from first (same data, same code)
 - Labels clipped at figure boundary
 - Seaborn and matplotlib figures in the same session have inconsistent font sizes
@@ -304,11 +328,13 @@ The distinction is subtle. cadCAD supports both modes; the project description s
 
 **How to avoid:**
 Clearly distinguish in documentation and code between:
+
 1. **Replay mode**: events are fixed; only weight function changes. Valid claim: "Proposal X would have had a different tally."
 2. **ABM mode**: agents decide based on current Signals weight incentives. Valid claim: "Agents who anticipate Signals rewards commit longer."
 For v2.0, use replay mode and be explicit about its limitations in output comments and plots. Label plots as "counterfactual tally" not "simulated participation."
 
 **Warning signs:**
+
 - Metrics labeled "participation rate" when event stream is fixed
 - Claims that Signals "increased participation" when participation events are pre-determined
 - Confusion about why running N=10 Monte Carlo on an event-replay gives different results (it should not if the event stream is deterministic)
@@ -404,21 +430,21 @@ Phase design (before any implementation). Establish in docstrings and comments t
 
 ## Sources
 
-- cadCAD GitHub Issue #250 — Timestep off-by-one in first PSUB: https://github.com/cadCAD-org/cadCAD/issues/250
-- cadCAD GitHub Issue #195 — Multi-config truncated results bug: https://github.com/cadCAD-org/cadCAD/issues/195
-- cadCAD Parameter Sweep documentation: https://github.com/cadCAD-org/cadCAD/blob/master/documentation/System_Model_Parameter_Sweep.md
-- cadCAD Simulation Execution documentation: https://github.com/cadCAD-org/cadCAD/blob/master/documentation/Simulation_Execution.md
-- radCAD (cadCAD successor with improved performance): https://github.com/BenSchZA/radCAD
-- DAO voting power analysis (voting concentration empirics): https://www.sciencedirect.com/science/article/pii/S2096720924000216
-- DAO Large Scale Analysis (Gini, participation rates): https://arxiv.org/html/2410.13095v1
-- DAO decentralization metrics (Nakamoto, Gini): https://www.cs.cornell.edu/~babel/papers/dao-vbe-dd.pdf
-- ENP (Laakso-Taagepera 1979): https://journals.sagepub.com/doi/10.1177/001041407901200101
-- ENP single-party limitation: https://en.wikipedia.org/wiki/Effective_number_of_parties
-- Matplotlib publication-quality tips: https://medium.com/sissa-mathlab/tips-and-tricks-to-create-publication-ready-figures-with-matplotlib-5382b480232b
-- matplotlib rcParams customization: https://matplotlib.org/stable/users/explain/customizing.html
-- Publication-ready matplotlib workflow: https://www.dmcdougall.co.uk/publication-ready-the-first-time-beautiful-reproducible-plots-with-matplotlib
-- Governor Bravo event schema: https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorBravoDelegate.sol
-- Backtesting lookahead bias: https://timkimutai.medium.com/how-i-built-an-event-driven-backtesting-engine-in-python-25179a80cde0
+- cadCAD GitHub Issue #250 — Timestep off-by-one in first PSUB: <https://github.com/cadCAD-org/cadCAD/issues/250>
+- cadCAD GitHub Issue #195 — Multi-config truncated results bug: <https://github.com/cadCAD-org/cadCAD/issues/195>
+- cadCAD Parameter Sweep documentation: <https://github.com/cadCAD-org/cadCAD/blob/master/documentation/System_Model_Parameter_Sweep.md>
+- cadCAD Simulation Execution documentation: <https://github.com/cadCAD-org/cadCAD/blob/master/documentation/Simulation_Execution.md>
+- radCAD (cadCAD successor with improved performance): <https://github.com/BenSchZA/radCAD>
+- DAO voting power analysis (voting concentration empirics): <https://www.sciencedirect.com/science/article/pii/S2096720924000216>
+- DAO Large Scale Analysis (Gini, participation rates): <https://arxiv.org/html/2410.13095v1>
+- DAO decentralization metrics (Nakamoto, Gini): <https://www.cs.cornell.edu/~babel/papers/dao-vbe-dd.pdf>
+- ENP (Laakso-Taagepera 1979): <https://journals.sagepub.com/doi/10.1177/001041407901200101>
+- ENP single-party limitation: <https://en.wikipedia.org/wiki/Effective_number_of_parties>
+- Matplotlib publication-quality tips: <https://medium.com/sissa-mathlab/tips-and-tricks-to-create-publication-ready-figures-with-matplotlib-5382b480232b>
+- matplotlib rcParams customization: <https://matplotlib.org/stable/users/explain/customizing.html>
+- Publication-ready matplotlib workflow: <https://www.dmcdougall.co.uk/publication-ready-the-first-time-beautiful-reproducible-plots-with-matplotlib>
+- Governor Bravo event schema: <https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorBravoDelegate.sol>
+- Backtesting lookahead bias: <https://timkimutai.medium.com/how-i-built-an-event-driven-backtesting-engine-in-python-25179a80cde0>
 
 ---
 *Pitfalls research for: cadCAD governance simulation + backtesting pipeline (Signals Protocol)*

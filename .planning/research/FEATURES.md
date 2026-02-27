@@ -15,6 +15,7 @@ and inclusivity metrics. The v2.0 milestone replaces the initiative/support mode
 Governor-style proposal/vote event stream and adds dual-tally comparison.
 
 **Existing infrastructure the new features depend on:**
+
 - cadCAD 0.4.x installation + PSUB pipeline pattern
 - `GovernanceMetrics` class with `_calculate_gini_coefficient()`
 - `StatisticalTests` class with Mann-Whitney U, t-test, KS test, Cohen's d
@@ -180,6 +181,7 @@ Minimum to produce credible dual-tally comparison results.
 | Outcome flip breakdown by proposal class | MEDIUM | MEDIUM | P3 |
 
 **Priority key:**
+
 - P1: Must have for a working dual-tally pipeline
 - P2: Should have for a complete metrics + analysis suite
 - P3: Nice to have for publication-grade sensitivity analysis
