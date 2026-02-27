@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from backtesting.weighting.signals import compute_signals_weight
+from backtesting.weighting.signals import compute_signals_weight as _compute_signals_weight
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ def _get_final_tallies(results_df: pd.DataFrame) -> pd.DataFrame:
 def _add_signals_weight_column(vote_df: pd.DataFrame) -> pd.DataFrame:
     """Return a copy of vote_df with a new `signals_w` column computed per row."""
     vote_df = vote_df.copy()
-    vote_df['signals_w'] = np.vectorize(compute_signals_weight)(
+    vote_df['signals_w'] = np.vectorize(_compute_signals_weight)(
         vote_df['weight'].values,
         vote_df['lock_duration_days'].fillna(0.0).values,
     )
