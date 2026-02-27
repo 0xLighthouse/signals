@@ -29,12 +29,12 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 ### Simulation
 
 - [ ] **SIM-01**: cadCAD event-replay state machine consumes a pre-sorted event list with one event per timestep
-- [ ] **SIM-02**: Policy function reads next event from the event stream by step index
-- [ ] **SIM-03**: State update functions apply PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED events to state
-- [ ] **SIM-04**: Legacy tally accumulates For/Against by stake per proposal
-- [ ] **SIM-05**: Signals tally accumulates For/Against by W_signals per proposal in the same simulation pass
-- [ ] **SIM-06**: Dual-tally state carries both legacy and Signals results per proposal simultaneously
-- [ ] **SIM-07**: SUFs return new state copies (never mutate in-place) to prevent cadCAD state corruption
+- [x] **SIM-02**: Policy function reads next event from the event stream by step index
+- [x] **SIM-03**: State update functions apply PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED events to state
+- [x] **SIM-04**: Legacy tally accumulates For/Against by stake per proposal
+- [x] **SIM-05**: Signals tally accumulates For/Against by W_signals per proposal in the same simulation pass
+- [x] **SIM-06**: Dual-tally state carries both legacy and Signals results per proposal simultaneously
+- [x] **SIM-07**: SUFs return new state copies (never mutate in-place) to prevent cadCAD state corruption
 - [ ] **SIM-08**: Simulation outputs a flat results DataFrame with one row per event per tally regime
 
 ### Metrics
@@ -122,12 +122,12 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | WGHT-03 | Phase 3 | Complete |
 | WGHT-04 | Phase 3 | Complete |
 | SIM-01 | Phase 4 | Pending |
-| SIM-02 | Phase 4 | Pending |
-| SIM-03 | Phase 4 | Pending |
-| SIM-04 | Phase 4 | Pending |
-| SIM-05 | Phase 4 | Pending |
-| SIM-06 | Phase 4 | Pending |
-| SIM-07 | Phase 4 | Pending |
+| SIM-02 | Phase 4 | Complete |
+| SIM-03 | Phase 4 | Complete |
+| SIM-04 | Phase 4 | Complete |
+| SIM-05 | Phase 4 | Complete |
+| SIM-06 | Phase 4 | Complete |
+| SIM-07 | Phase 4 | Complete |
 | SIM-08 | Phase 4 | Pending |
 | METR-01 | Phase 5 | Pending |
 | METR-02 | Phase 5 | Pending |
