@@ -9,15 +9,15 @@ Requirements for the migration. Each maps to roadmap phases.
 
 ### Migration
 
-- [ ] **MIG-01**: pyproject.toml uses `[project]` table instead of `[tool.poetry]`
-- [ ] **MIG-02**: Build backend is hatchling instead of poetry-core
-- [ ] **MIG-03**: uv.lock replaces poetry.lock
-- [ ] **MIG-04**: poetry.lock is deleted
+- [x] **MIG-01**: pyproject.toml uses `[project]` table instead of `[tool.poetry]`
+- [x] **MIG-02**: Build backend is hatchling instead of poetry-core
+- [x] **MIG-03**: uv.lock replaces poetry.lock
+- [x] **MIG-04**: poetry.lock is deleted
 
 ### Cleanup
 
-- [ ] **CLN-01**: ruff, pytest, pytest-cov are dev dependencies (not runtime)
-- [ ] **CLN-02**: Runtime dependencies (pandas, matplotlib, seaborn, numpy, fastparquet, tabulate, cadcad) are correctly categorized
+- [x] **CLN-01**: ruff, pytest, pytest-cov are dev dependencies (not runtime)
+- [x] **CLN-02**: Runtime dependencies (pandas, matplotlib, seaborn, numpy, fastparquet, tabulate, cadcad) are correctly categorized
 
 ### Verification
 
@@ -45,12 +45,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIG-01 | Phase 1 | Pending |
-| MIG-02 | Phase 1 | Pending |
-| MIG-03 | Phase 1 | Pending |
-| MIG-04 | Phase 1 | Pending |
-| CLN-01 | Phase 1 | Pending |
-| CLN-02 | Phase 1 | Pending |
+| MIG-01 | Phase 1 | Complete |
+| MIG-02 | Phase 1 | Complete |
+| MIG-03 | Phase 1 | Complete |
+| MIG-04 | Phase 1 | Complete |
+| CLN-01 | Phase 1 | Complete |
+| CLN-02 | Phase 1 | Complete |
 | VER-01 | Phase 2 | Pending |
 | VER-02 | Phase 2 | Pending |
 | VER-03 | Phase 2 | Pending |

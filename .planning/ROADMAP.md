@@ -12,7 +12,7 @@ A two-phase migration: rewrite the pyproject.toml from Poetry to uv/hatchling fo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Migrate** - Convert pyproject.toml to uv/hatchling format, generate uv.lock, remove Poetry artifacts
+- [x] **Phase 1: Migrate** - Convert pyproject.toml to uv/hatchling format, generate uv.lock, remove Poetry artifacts (completed 2026-02-27)
 - [ ] **Phase 2: Verify** - Confirm simulations and tests work identically after migration
 
 ## Phase Details
@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Dev dependencies (ruff, pytest, pytest-cov) are listed under `[dependency-groups]` or `[project.optional-dependencies]` dev group
   4. uv.lock exists and poetry.lock is deleted
   5. Python >=3.12 constraint is present in pyproject.toml
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Rewrite pyproject.toml to uv/hatchling format and generate uv.lock
@@ -52,5 +52,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Migrate | 0/1 | Not started | - |
+| 1. Migrate | 1/1 | Complete   | 2026-02-27 |
 | 2. Verify | 0/1 | Not started | - |
