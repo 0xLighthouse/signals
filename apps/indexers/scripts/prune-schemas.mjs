@@ -7,6 +7,9 @@
  *
  * Defaults: keep last 5 schemas, prune others older than 30 days.
  * Requires DATABASE_URL env var.
+ *
+ * IMPORTANT: This script must NOT call process.exit() — it runs chained
+ * with `&&` before `pnpm start` in the Railway start command.
  */
 
 import pg from 'pg'
@@ -25,76 +28,72 @@ for (let i = 0; i < args.length; i++) {
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
   console.log('No DATABASE_URL set, skipping schema pruning.')
-  process.exit(0)
-}
+} else {
+  const client = new pg.Client({ connectionString: databaseUrl })
 
-const client = new pg.Client({ connectionString: databaseUrl })
+  try {
+    await client.connect()
 
-try {
-  await client.connect()
+    // Get all deploy schemas sorted newest first
+    const { rows: allSchemas } = await client.query(`
+      SELECT schema_name
+      FROM information_schema.schemata
+      WHERE schema_name ~ '^deploy_[0-9]{6}_[0-9]{6}$'
+      ORDER BY schema_name DESC
+    `)
 
-  // Get all deploy schemas sorted newest first
-  const { rows: allSchemas } = await client.query(`
-    SELECT schema_name
-    FROM information_schema.schemata
-    WHERE schema_name ~ '^deploy_[0-9]{6}_[0-9]{6}$'
-    ORDER BY schema_name DESC
-  `)
+    const total = allSchemas.length
+    console.log(`Found ${total} deploy schema(s).`)
 
-  const total = allSchemas.length
-  console.log(`Found ${total} deploy schema(s).`)
+    if (total <= keepMin) {
+      console.log(`At or below minimum (${keepMin}). Nothing to prune.`)
+    } else {
+      // Protect the N most recent
+      const protectedSchemas = new Set(
+        allSchemas.slice(0, keepMin).map((r) => r.schema_name),
+      )
 
-  if (total <= keepMin) {
-    console.log(`At or below minimum (${keepMin}). Nothing to prune.`)
-    process.exit(0)
+      // Find stale schemas beyond the protected set
+      const { rows: staleSchemas } = await client.query(`
+        SELECT schema_name
+        FROM information_schema.schemata
+        WHERE schema_name ~ '^deploy_[0-9]{6}_[0-9]{6}$'
+          AND to_timestamp(substr(schema_name, 8), 'YYMMDD_HH24MISS')
+              < now() - interval '${keepDays} days'
+        ORDER BY schema_name
+      `)
+
+      const toPrune = staleSchemas.filter(
+        (r) => !protectedSchemas.has(r.schema_name),
+      )
+
+      if (toPrune.length === 0) {
+        console.log('No stale schemas to prune.')
+      } else {
+        console.log(
+          `Pruning ${toPrune.length} schema(s) (keeping newest ${keepMin}):`,
+        )
+        for (const { schema_name } of toPrune) {
+          console.log(`  - ${schema_name}`)
+        }
+
+        if (dryRun) {
+          console.log('(dry run — no schemas dropped)')
+        } else {
+          for (const { schema_name } of toPrune) {
+            console.log(`Dropping ${schema_name}...`)
+            await client.query(
+              `DROP SCHEMA ${client.escapeIdentifier(schema_name)} CASCADE`,
+            )
+          }
+
+          console.log(
+            `Done. ${toPrune.length} dropped, ${total - toPrune.length} remaining.`,
+          )
+        }
+      }
+    }
+  } finally {
+    await client.end()
   }
-
-  // Protect the N most recent
-  const protectedSchemas = new Set(
-    allSchemas.slice(0, keepMin).map((r) => r.schema_name),
-  )
-
-  // Find stale schemas beyond the protected set
-  const { rows: staleSchemas } = await client.query(`
-    SELECT schema_name
-    FROM information_schema.schemata
-    WHERE schema_name ~ '^deploy_[0-9]{6}_[0-9]{6}$'
-      AND to_timestamp(substr(schema_name, 8), 'YYMMDD_HH24MISS')
-          < now() - interval '${keepDays} days'
-    ORDER BY schema_name
-  `)
-
-  const toPrune = staleSchemas.filter(
-    (r) => !protectedSchemas.has(r.schema_name),
-  )
-
-  if (toPrune.length === 0) {
-    console.log('No stale schemas to prune.')
-    process.exit(0)
-  }
-
-  console.log(
-    `Pruning ${toPrune.length} schema(s) (keeping newest ${keepMin}):`,
-  )
-  for (const { schema_name } of toPrune) {
-    console.log(`  - ${schema_name}`)
-  }
-
-  if (dryRun) {
-    console.log('(dry run — no schemas dropped)')
-    process.exit(0)
-  }
-
-  for (const { schema_name } of toPrune) {
-    console.log(`Dropping ${schema_name}...`)
-    await client.query(
-      `DROP SCHEMA ${client.escapeIdentifier(schema_name)} CASCADE`,
-    )
-  }
-
-  console.log(
-    `Done. ${toPrune.length} dropped, ${total - toPrune.length} remaining.`,
-  )
-} finally {
-  await client.end()
 }

@@ -1,6 +1,17 @@
+'use client'
+
+import { useEffect } from 'react'
 import { Separator } from '@/components/ui/separator'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 
 export function Footer() {
+  const indexerStatus = useNetworkStore((s) => s.indexerStatus)
+  const checkIndexerStatus = useNetworkStore((s) => s.checkIndexerStatus)
+
+  useEffect(() => {
+    checkIndexerStatus()
+  }, [checkIndexerStatus])
+
   return (
     <div className="mt-10 md:mt-20">
       <div className="space-y-2">
@@ -34,6 +45,14 @@ export function Footer() {
             Submit feedback
           </a>
         </div>
+        {indexerStatus === 'indexing' && (
+          <>
+            <Separator orientation="vertical" />
+            <div className="text-muted-foreground/60 text-xs animate-pulse">
+              Indexer syncing...
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
