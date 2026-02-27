@@ -3,6 +3,7 @@ backtesting.data — Governor-compatible event schema, synthetic factory, and da
 """
 
 from backtesting.data.factory import (
+    AllocationStrategy,
     LockProfile,
     StakeProfile,
     generate_scenario,
@@ -36,6 +37,7 @@ __all__ = [
     'generate_scenario',
     'StakeProfile',
     'LockProfile',
+    'AllocationStrategy',
     # Loader
     'SyntheticLoader',
     'ParquetLoader',

@@ -120,12 +120,14 @@ def p_process_events(params, step, history, state):
 ## Metrics Implementation Notes
 
 ### Gini Coefficient
+
 The codebase already has a hand-rolled `_calculate_gini_coefficient` in `GovernanceMetrics`.
 Keep it — it's correct and avoids a scipy import in the metrics module. Use
 `scipy.stats.gini` (added in scipy 1.12) only if the existing implementation shows
 numerical precision issues at extreme distributions.
 
 ### ENP (Effective Number of Parties)
+
 Formula: `ENP = 1 / sum(p_i^2)` where `p_i` is voter i's share of total vote weight.
 This is the inverse Herfindahl-Hirschman Index. Pure numpy — no scipy needed:
 
@@ -137,6 +139,7 @@ def compute_enp(vote_weights: np.ndarray) -> float:
 ```
 
 ### Vote Flip Detection
+
 Track proposal outcome changes across Legacy vs Signals tallies. Pure pandas — no
 additional library. A flip is `legacy_outcome != signals_outcome` per proposal.
 
@@ -183,16 +186,19 @@ additional library. A flip is `legacy_outcome != signals_outcome` per proposal.
 ## Stack Patterns by Variant
 
 **If running parameter sweeps interactively (Jupyter/local dev):**
+
 - Use plotly for interactive heatmaps of sweep results
 - Use tqdm for sweep progress
 - kaleido `<1.0` for saving figures to disk
 
 **If running in CI/headless pipeline:**
+
 - Use matplotlib only for static outputs (no browser/Chrome required)
 - kaleido is optional — skip figure saving or use matplotlib backends
 - tqdm still works (outputs to stdout)
 
 **If real Governor data replaces synthetic:**
+
 - pydantic models validate incoming data at ingestion time — zero code change to simulation
 - Event schema is defined once in pydantic models, used by both synthetic generator and real data loader
 
@@ -200,12 +206,12 @@ additional library. A flip is `legacy_outcome != signals_outcome` per proposal.
 
 ## Sources
 
-- cadCAD Parameter Sweep docs: https://github.com/cadCAD-org/cadCAD/blob/master/documentation/System_Model_Parameter_Sweep.md — HIGH confidence
-- scipy PyPI: https://pypi.org/project/SciPy/ — version 1.15.3 current stable — HIGH confidence
-- plotly PyPI: https://pypi.org/project/plotly/ — version 6.5.2 current stable — HIGH confidence
-- plotly static image export: https://plotly.com/python/static-image-export/ — kaleido `<1.0` recommendation — HIGH confidence
-- pydantic v2 PyPI: https://pypi.org/project/pydantic/ — version 2.12.x stable — HIGH confidence
-- Laakso-Taagepera ENP formula: https://en.wikipedia.org/wiki/Effective_number_of_parties — formula verified — HIGH confidence
+- cadCAD Parameter Sweep docs: <https://github.com/cadCAD-org/cadCAD/blob/master/documentation/System_Model_Parameter_Sweep.md> — HIGH confidence
+- scipy PyPI: <https://pypi.org/project/SciPy/> — version 1.15.3 current stable — HIGH confidence
+- plotly PyPI: <https://pypi.org/project/plotly/> — version 6.5.2 current stable — HIGH confidence
+- plotly static image export: <https://plotly.com/python/static-image-export/> — kaleido `<1.0` recommendation — HIGH confidence
+- pydantic v2 PyPI: <https://pypi.org/project/pydantic/> — version 2.12.x stable — HIGH confidence
+- Laakso-Taagepera ENP formula: <https://en.wikipedia.org/wiki/Effective_number_of_parties> — formula verified — HIGH confidence
 - Existing codebase (`src/statistical_analysis/metrics.py`): scipy already imported but unpinned — confirmed from source read
 
 ---
