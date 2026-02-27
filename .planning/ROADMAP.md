@@ -109,7 +109,7 @@ Phases execute in numeric order: 3 → 4 → 5 → 6 → 7
 | 1. Migrate | v1.0 | 1/1 | Complete | 2026-02-27 |
 | 2. Verify | v1.0 | 0/1 | Skipped | - |
 | 3. Foundation | 2/2 | Complete   | 2026-02-27 | - |
-| 4. cadCAD Integration | v2.0 | 0/2 | Not started | - |
+| 4. cadCAD Integration | 1/2 | In Progress|  | - |
 | 5. Metrics | v2.0 | 0/1 | Not started | - |
 | 6. Plots | v2.0 | 0/1 | Not started | - |
 | 7. Pipeline | v2.0 | 0/1 | Not started | - |
