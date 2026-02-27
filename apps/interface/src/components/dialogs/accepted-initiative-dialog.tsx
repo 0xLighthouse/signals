@@ -70,7 +70,7 @@ export function AcceptedInitiativeDialog({
             <DialogTitle>Accepted Initiative</DialogTitle>
           </div>
           <DialogDescription>
-            This initiative has been officially accepted and is now in development.
+            This initiative has been accepted and can now be actioned by the community. Supporters can redeem their locked tokens after the refund delay.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
@@ -168,37 +168,7 @@ export function AcceptedInitiativeDialog({
                 avatars={initiative.supporters.map((address) => resolveAvatar(address) as string)}
               />
             </section>
-          )}
-
-          {/* Board Information */}
-          <section className="rounded-xl border border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-900">
-            <h3 className="text-sm font-medium mb-2">Board information</h3>
-            <div className="grid grid-cols-1 gap-3 text-sm">
-              <div>
-                <p className="text-stone-500 dark:text-stone-400">Board</p>
-                <p className="font-medium text-stone-900 dark:text-white">{boardTitle}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div>
-                  <p className="text-stone-500 dark:text-stone-400">Network</p>
-                  <p className="font-medium text-stone-900 dark:text-white">{networkLabel}</p>
-                </div>
-                <span className="text-stone-400">•</span>
-                <div>
-                  <p className="text-stone-500 dark:text-stone-400">Contract</p>
-                  <p className="font-mono text-stone-900 dark:text-white">{addressLabel}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Status Badge */}
-          <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/20">
-            <p className="text-sm text-green-900 dark:text-green-200">
-              <strong>Status:</strong> This initiative has been accepted and is now in development.
-              Supporters can redeem their locked tokens after any release timelock period.
-            </p>
-          </div>
+          )}      
         </div>
       </DialogContent>
     </Dialog>
