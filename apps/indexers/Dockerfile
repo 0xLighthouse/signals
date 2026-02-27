@@ -17,9 +17,8 @@ COPY apps/indexers/ apps/indexers/
 COPY apps/protocol/broadcast/ apps/protocol/broadcast/
 COPY apps/signals-token-factory/broadcast/ apps/signals-token-factory/broadcast/
 
-# Install dependencies (production only, no frozen lockfile since we're pruning)
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter indexers... --frozen-lockfile
+# Install dependencies
+RUN pnpm install --filter indexers... --frozen-lockfile
 
 WORKDIR /app/apps/indexers
 
