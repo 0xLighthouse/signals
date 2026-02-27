@@ -13,6 +13,8 @@ dependencies = [
     "fastparquet>=2024.11.0,<2025",
     "tabulate>=0.9.0,<0.10",
     "cadcad>=0.5.3,<0.6",
+    "pydantic>=2.0.0,<3",
+    "scipy>=1.13.0,<2",
 ]
 
 [dependency-groups]
@@ -27,7 +29,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cadcad", "src/supply", "src/visualization", "src/statistical_analysis"]
+packages = ["src/cadcad", "src/supply", "src/visualization", "src/statistical_analysis", "src/backtesting"]
 
 [tool.ruff]
 line-length = 100
