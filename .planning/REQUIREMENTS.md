@@ -9,22 +9,22 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 
 ### Data
 
-- [ ] **DATA-01**: Governor-compatible event schema defines PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED as validated data structures with consistent field names
+- [x] **DATA-01**: Governor-compatible event schema defines PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED as validated data structures with consistent field names
 - [ ] **DATA-02**: Synthetic event stream generator produces configurable voter counts, proposal counts, and participation rates
 - [ ] **DATA-03**: Synthetic stake distribution follows power-law (Pareto) with Gini >= 0.65 matching real DAO profiles
 - [ ] **DATA-04**: Synthetic vote timing follows tri-modal distribution (early, mid, late) within proposal windows
 - [ ] **DATA-05**: Synthetic data enforces referential integrity (no double votes, no votes outside proposal window)
-- [ ] **DATA-06**: Pydantic v2 validates all event data at construction time
+- [x] **DATA-06**: Pydantic v2 validates all event data at construction time
 - [ ] **DATA-07**: User can select voter behavior profiles (power-law, uniform, bimodal stake distributions)
 - [ ] **DATA-08**: User can set a random seed for reproducible event stream generation
 - [ ] **DATA-09**: Data loader interface supports swapping synthetic for real Governor data with zero architecture changes
 
 ### Weighting
 
-- [ ] **WGHT-01**: Signals weight function computes W = stake × f(lock_duration) as a pure function independent of cadCAD
-- [ ] **WGHT-02**: Lock curve f(L) is parameterized and supports linear, log, sqrt, and exponential shapes
-- [ ] **WGHT-03**: Lock curve exhibits diminishing returns after ~3 months
-- [ ] **WGHT-04**: Legacy weight function computes W = stake (identity) for baseline comparison
+- [x] **WGHT-01**: Signals weight function computes W = stake × f(lock_duration) as a pure function independent of cadCAD
+- [x] **WGHT-02**: Lock curve f(L) is parameterized and supports linear, log, sqrt, and exponential shapes
+- [x] **WGHT-03**: Lock curve exhibits diminishing returns after ~3 months
+- [x] **WGHT-04**: Legacy weight function computes W = stake (identity) for baseline comparison
 
 ### Simulation
 
@@ -108,19 +108,19 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 3 | Pending |
+| DATA-01 | Phase 3 | Complete |
 | DATA-02 | Phase 3 | Pending |
 | DATA-03 | Phase 3 | Pending |
 | DATA-04 | Phase 3 | Pending |
 | DATA-05 | Phase 3 | Pending |
-| DATA-06 | Phase 3 | Pending |
+| DATA-06 | Phase 3 | Complete |
 | DATA-07 | Phase 3 | Pending |
 | DATA-08 | Phase 3 | Pending |
 | DATA-09 | Phase 3 | Pending |
-| WGHT-01 | Phase 3 | Pending |
-| WGHT-02 | Phase 3 | Pending |
-| WGHT-03 | Phase 3 | Pending |
-| WGHT-04 | Phase 3 | Pending |
+| WGHT-01 | Phase 3 | Complete |
+| WGHT-02 | Phase 3 | Complete |
+| WGHT-03 | Phase 3 | Complete |
+| WGHT-04 | Phase 3 | Complete |
 | SIM-01 | Phase 4 | Pending |
 | SIM-02 | Phase 4 | Pending |
 | SIM-03 | Phase 4 | Pending |
