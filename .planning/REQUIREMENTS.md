@@ -108,58 +108,58 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| DATA-03 | — | Pending |
-| DATA-04 | — | Pending |
-| DATA-05 | — | Pending |
-| DATA-06 | — | Pending |
-| DATA-07 | — | Pending |
-| DATA-08 | — | Pending |
-| DATA-09 | — | Pending |
-| WGHT-01 | — | Pending |
-| WGHT-02 | — | Pending |
-| WGHT-03 | — | Pending |
-| WGHT-04 | — | Pending |
-| SIM-01 | — | Pending |
-| SIM-02 | — | Pending |
-| SIM-03 | — | Pending |
-| SIM-04 | — | Pending |
-| SIM-05 | — | Pending |
-| SIM-06 | — | Pending |
-| SIM-07 | — | Pending |
-| SIM-08 | — | Pending |
-| METR-01 | — | Pending |
-| METR-02 | — | Pending |
-| METR-03 | — | Pending |
-| METR-04 | — | Pending |
-| METR-05 | — | Pending |
-| METR-06 | — | Pending |
-| METR-07 | — | Pending |
-| METR-08 | — | Pending |
-| METR-09 | — | Pending |
-| METR-10 | — | Pending |
-| PLOT-01 | — | Pending |
-| PLOT-02 | — | Pending |
-| PLOT-03 | — | Pending |
-| PLOT-04 | — | Pending |
-| PLOT-05 | — | Pending |
-| PLOT-06 | — | Pending |
-| PLOT-07 | — | Pending |
-| PLOT-08 | — | Pending |
-| PLOT-09 | — | Pending |
-| PLOT-10 | — | Pending |
-| PLOT-11 | — | Pending |
-| PLOT-12 | — | Pending |
-| PIPE-01 | — | Pending |
-| PIPE-02 | — | Pending |
-| PIPE-03 | — | Pending |
+| DATA-01 | Phase 3 | Pending |
+| DATA-02 | Phase 3 | Pending |
+| DATA-03 | Phase 3 | Pending |
+| DATA-04 | Phase 3 | Pending |
+| DATA-05 | Phase 3 | Pending |
+| DATA-06 | Phase 3 | Pending |
+| DATA-07 | Phase 3 | Pending |
+| DATA-08 | Phase 3 | Pending |
+| DATA-09 | Phase 3 | Pending |
+| WGHT-01 | Phase 3 | Pending |
+| WGHT-02 | Phase 3 | Pending |
+| WGHT-03 | Phase 3 | Pending |
+| WGHT-04 | Phase 3 | Pending |
+| SIM-01 | Phase 4 | Pending |
+| SIM-02 | Phase 4 | Pending |
+| SIM-03 | Phase 4 | Pending |
+| SIM-04 | Phase 4 | Pending |
+| SIM-05 | Phase 4 | Pending |
+| SIM-06 | Phase 4 | Pending |
+| SIM-07 | Phase 4 | Pending |
+| SIM-08 | Phase 4 | Pending |
+| METR-01 | Phase 5 | Pending |
+| METR-02 | Phase 5 | Pending |
+| METR-03 | Phase 5 | Pending |
+| METR-04 | Phase 5 | Pending |
+| METR-05 | Phase 5 | Pending |
+| METR-06 | Phase 5 | Pending |
+| METR-07 | Phase 5 | Pending |
+| METR-08 | Phase 5 | Pending |
+| METR-09 | Phase 5 | Pending |
+| METR-10 | Phase 5 | Pending |
+| PLOT-01 | Phase 6 | Pending |
+| PLOT-02 | Phase 6 | Pending |
+| PLOT-03 | Phase 6 | Pending |
+| PLOT-04 | Phase 6 | Pending |
+| PLOT-05 | Phase 6 | Pending |
+| PLOT-06 | Phase 6 | Pending |
+| PLOT-07 | Phase 6 | Pending |
+| PLOT-08 | Phase 6 | Pending |
+| PLOT-09 | Phase 6 | Pending |
+| PLOT-10 | Phase 6 | Pending |
+| PLOT-11 | Phase 6 | Pending |
+| PLOT-12 | Phase 6 | Pending |
+| PIPE-01 | Phase 7 | Pending |
+| PIPE-02 | Phase 7 | Pending |
+| PIPE-03 | Phase 7 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 44 total
-- Mapped to phases: 0
-- Unmapped: 44 ⚠️
+- v2.0 requirements: 46 total
+- Mapped to phases: 46
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 after roadmap creation*
