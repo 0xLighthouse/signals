@@ -11,6 +11,6 @@ watchPatterns = [
 ]
 
 [deploy]
-startCommand = "pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer"
+startCommand = "sh -c 'pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
