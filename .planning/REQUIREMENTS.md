@@ -28,27 +28,27 @@ Requirements for the backtesting & simulation pipeline. Each maps to roadmap pha
 
 ### Simulation
 
-- [ ] **SIM-01**: cadCAD event-replay state machine consumes a pre-sorted event list with one event per timestep
+- [x] **SIM-01**: cadCAD event-replay state machine consumes a pre-sorted event list with one event per timestep
 - [x] **SIM-02**: Policy function reads next event from the event stream by step index
 - [x] **SIM-03**: State update functions apply PROPOSAL_CREATED, VOTE_CAST, and PROPOSAL_FINALIZED events to state
 - [x] **SIM-04**: Legacy tally accumulates For/Against by stake per proposal
 - [x] **SIM-05**: Signals tally accumulates For/Against by W_signals per proposal in the same simulation pass
 - [x] **SIM-06**: Dual-tally state carries both legacy and Signals results per proposal simultaneously
 - [x] **SIM-07**: SUFs return new state copies (never mutate in-place) to prevent cadCAD state corruption
-- [ ] **SIM-08**: Simulation outputs a flat results DataFrame with one row per event per tally regime
+- [x] **SIM-08**: Simulation outputs a flat results DataFrame with one row per event per tally regime
 
 ### Metrics
 
-- [ ] **METR-01**: Flip rate computed per-proposal (legacy_winner != signals_winner) and as aggregate
-- [ ] **METR-02**: Gini coefficient computed over legacy stake distribution and over Signals-weighted distribution
-- [ ] **METR-03**: Participation rate computed per-proposal and as aggregate
-- [ ] **METR-04**: Effective Number of Participants (ENP) computed as 1/sum(s_i^2) for both regimes
-- [ ] **METR-05**: Nakamoto coefficient computed as minimum voters controlling >50% of voting power for both regimes
-- [ ] **METR-06**: Margin shift computed as difference between legacy and Signals margins per proposal
-- [ ] **METR-07**: Outcome transition matrix classifies proposals into Pass→Pass, Pass→Fail, Fail→Pass, Fail→Fail
-- [ ] **METR-08**: Late-vote share computed as proportion of voting power cast in final third of proposal window
-- [ ] **METR-09**: Lock-in timing identifies when each proposal's outcome becomes irreversible under each regime
-- [ ] **METR-10**: Top-k concentration computed for top-1, top-5, top-10 voters under both regimes
+- [x] **METR-01**: Flip rate computed per-proposal (legacy_winner != signals_winner) and as aggregate
+- [x] **METR-02**: Gini coefficient computed over legacy stake distribution and over Signals-weighted distribution
+- [x] **METR-03**: Participation rate computed per-proposal and as aggregate
+- [x] **METR-04**: Effective Number of Participants (ENP) computed as 1/sum(s_i^2) for both regimes
+- [x] **METR-05**: Nakamoto coefficient computed as minimum voters controlling >50% of voting power for both regimes
+- [x] **METR-06**: Margin shift computed as difference between legacy and Signals margins per proposal
+- [x] **METR-07**: Outcome transition matrix classifies proposals into Pass→Pass, Pass→Fail, Fail→Pass, Fail→Fail
+- [x] **METR-08**: Late-vote share computed as proportion of voting power cast in final third of proposal window
+- [x] **METR-09**: Lock-in timing identifies when each proposal's outcome becomes irreversible under each regime
+- [x] **METR-10**: Top-k concentration computed for top-1, top-5, top-10 voters under both regimes
 
 ### Plotting
 
@@ -121,24 +121,24 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | WGHT-02 | Phase 3 | Complete |
 | WGHT-03 | Phase 3 | Complete |
 | WGHT-04 | Phase 3 | Complete |
-| SIM-01 | Phase 4 | Pending |
+| SIM-01 | Phase 4 | Complete |
 | SIM-02 | Phase 4 | Complete |
 | SIM-03 | Phase 4 | Complete |
 | SIM-04 | Phase 4 | Complete |
 | SIM-05 | Phase 4 | Complete |
 | SIM-06 | Phase 4 | Complete |
 | SIM-07 | Phase 4 | Complete |
-| SIM-08 | Phase 4 | Pending |
-| METR-01 | Phase 5 | Pending |
-| METR-02 | Phase 5 | Pending |
-| METR-03 | Phase 5 | Pending |
-| METR-04 | Phase 5 | Pending |
-| METR-05 | Phase 5 | Pending |
-| METR-06 | Phase 5 | Pending |
-| METR-07 | Phase 5 | Pending |
-| METR-08 | Phase 5 | Pending |
-| METR-09 | Phase 5 | Pending |
-| METR-10 | Phase 5 | Pending |
+| SIM-08 | Phase 4 | Complete |
+| METR-01 | Phase 5 | Complete |
+| METR-02 | Phase 5 | Complete |
+| METR-03 | Phase 5 | Complete |
+| METR-04 | Phase 5 | Complete |
+| METR-05 | Phase 5 | Complete |
+| METR-06 | Phase 5 | Complete |
+| METR-07 | Phase 5 | Complete |
+| METR-08 | Phase 5 | Complete |
+| METR-09 | Phase 5 | Complete |
+| METR-10 | Phase 5 | Complete |
 | PLOT-01 | Phase 6 | Pending |
 | PLOT-02 | Phase 6 | Pending |
 | PLOT-03 | Phase 6 | Pending |

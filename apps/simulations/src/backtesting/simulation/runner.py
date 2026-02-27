@@ -10,19 +10,34 @@ from cadCAD.engine import ExecutionMode, ExecutionContext, Executor
 from backtesting.simulation.sufs import PSUBS
 
 
-def run_backtest(event_records: list[dict]) -> list[dict]:
+def _to_dict(event: Any) -> dict:
+    """Normalise an event record to a plain dict.
+
+    Accepts both plain dicts (backward compatible) and Pydantic model objects
+    produced by the factory.  Enum values are serialised to their string value
+    so downstream code can compare with literal strings like 'VOTE_CAST'.
+    """
+    if isinstance(event, dict):
+        return {k: (v.value if hasattr(v, 'value') else v) for k, v in event.items()}
+    # Pydantic v2 model
+    return {k: (v.value if hasattr(v, 'value') else v) for k, v in event.model_dump().items()}
+
+
+def run_backtest(event_records: list) -> list[dict]:
     """Run a cadCAD event-replay simulation over the given event records.
 
     Args:
-        event_records: List of event dicts with keys:
-            event_type, proposal_id, block_number, voter, support, weight,
-            lock_duration_days.
+        event_records: List of event dicts (or Pydantic GovernorEvent objects)
+            with fields: event_type, proposal_id, block_number, voter, support,
+            weight, lock_duration_days.
 
     Returns:
         raw_result: List of N+1 state dicts.
             raw_result[0] = initial state (step=0, tallies={})
             raw_result[1..N] = post-event states aligned with event_records[0..N-1]
     """
+    # Normalise to plain dicts before passing into cadCAD
+    event_records = [_to_dict(e) for e in event_records]
     n_events = len(event_records)
 
     config = Configuration(
@@ -49,7 +64,7 @@ def run_backtest(event_records: list[dict]) -> list[dict]:
 
 def build_results_dataframe(
     raw_result: list[dict[str, Any]],
-    event_records: list[dict],
+    event_records: list,
 ) -> pd.DataFrame:
     """Build a results DataFrame from a cadCAD raw_result and event records.
 
@@ -67,6 +82,8 @@ def build_results_dataframe(
             legacy_abstain, signals_for, signals_against, signals_abstain
         All 6 tally columns are float64.
     """
+    # Normalise to plain dicts in case caller passes Pydantic objects
+    event_records = [_to_dict(e) for e in event_records]
     rows = []
 
     for i, state in enumerate(raw_result[1:]):  # skip index 0 (initial state)
