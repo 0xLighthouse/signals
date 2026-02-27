@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Signals — Backtesting & cadCAD Simulation Pipeline (v2.0)
-**Domain:** DAO Governance Simulation — commitment-weighted voting backtester
+**Project:** Signals v3.0 — Sweep Engine & Extended Analysis
+**Domain:** Parameter sweep engine, Monte Carlo allocation, extended governance simulation analysis
 **Researched:** 2026-02-27
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project builds a Python backtesting pipeline to validate the Signals Protocol — a commitment-weighted voting mechanism where voting power equals `W = stake × f(lock_duration)`. The pipeline replays synthetic Governor-compatible events through cadCAD, computes dual tallies (legacy token-weighted vs Signals commitment-weighted) per proposal, and produces publication-grade metrics and plots. The existing codebase already has a working cadCAD PSUB pipeline and a `GovernanceMetrics` class; v2.0 extends it with a new `backtesting/` package without touching existing modules. The core deliverable is evidence — specifically, flip rate statistics and Gini/ENP comparisons — sufficient for academic publication.
+Signals v3.0 extends the existing cadCAD-based governance simulation with a parameter sweep engine, Monte Carlo allocation modeling, heatmap report bundles, and extended statistical analysis. Research confirms the entire feature set is achievable with zero new runtime dependencies — the locked stack (cadCAD 0.5.3, scipy 1.17.1, numpy 1.26.4, seaborn 0.13.2, pandas 2.3.3, matplotlib 3.10.8) provides every capability needed. The only pyproject.toml change is pinning `tqdm` as a direct dependency. This substantially de-risks delivery: there are no dependency resolution unknowns, no API mismatches to discover, and no new library learning curves.
 
-The recommended approach is schema-first: define Governor-compatible event types as Python dataclasses before writing any generator, replayer, or metric. Everything downstream — synthetic data factory, cadCAD state update functions, and metrics — depends on this schema contract. Event replay is implemented as a single cadCAD simulation pass that accumulates both tallies simultaneously in state, producing one clean results DataFrame. Parameter sweeps over lock curve shape (alpha) and decay rate are handled via cadCAD's `Experiment` API with externally-built Cartesian product configurations, since cadCAD's M parameter has a documented 2-distinct-length constraint that prevents true factorial sweeps natively.
+The recommended architecture introduces five new or modified modules under `backtesting/`: a promoted `budget.py` for allocation mechanics, a `sweep.py` runner, a cross-run `analysis.py`, heatmap functions added to `plots.py`, and an orchestrating `report.py`. The single most impactful prerequisite is threading `curve_type` through the existing call stack — it is currently hardcoded to `'sqrt'` deep in metrics computation, and the entire sweep grid depends on it being a first-class parameter. A critical performance decision must be built in from day one: cadCAD runs once per (stake_profile, lock_profile, allocation_strategy, seed); metric computation sweeps curve_type and alpha without re-running simulation. Retrofitting this later requires significant rework.
 
-The critical risks are cadCAD-specific: state mutation in SUFs silently corrupts history; global initial state leaks between sweep runs inflate later metrics; and the cadCAD timestep off-by-one at substep=1 shifts epoch-dependent calculations. A second category of risk is scientific: uniform token distributions produce unrealistically low Gini coefficients that won't hold when swapped to real DAO data, and event-replay results must be explicitly framed as "counterfactual tally" — not as "simulated participation" — to avoid overclaiming behavioral effects. Both categories require upfront discipline, not post-hoc patching.
+The top risks are memory-related (cadCAD results accumulate at sweep scale; matplotlib figures must be explicitly closed) and correctness-related (two pre-existing metric bugs — `_gini()` and `_enp()` returning `0.0` for degenerate inputs — will silently corrupt heatmaps for edge-case configs). Both are straightforward to prevent if addressed before sweep work begins. Monte Carlo seed management via `SeedSequence.spawn()` is a one-time decision that cannot be safely retrofitted. Overall, this is well-mapped territory with concrete implementation paths — the main risk is sequencing, not feasibility.
 
 ---
 
@@ -19,166 +19,157 @@ The critical risks are cadCAD-specific: state mutation in SUFs silently corrupts
 
 ### Recommended Stack
 
-The existing `apps/simulations/pyproject.toml` is nearly complete. Three additions are required and one latent bug must be fixed. `scipy` is already imported in `src/statistical_analysis/metrics.py` but is not listed as a dependency — it must be pinned explicitly at `>=1.13.0,<2`. `plotly>=6.0.0,<7` adds interactive HTML sweep heatmaps as a complement to matplotlib's static publication PDFs. `pydantic>=2.0.0,<3` validates Governor event schemas at construction time, making the synthetic-to-real data swap zero-cost. `kaleido>=0.2.1,<1.0` enables plotly static export without Chrome in CI. `tqdm>=4.66.0,<5` provides progress feedback for long sweeps.
+The existing locked stack handles all v3.0 requirements. No new packages are required. The stdlib provides `itertools.product` for cartesian sweep enumeration and `concurrent.futures.ProcessPoolExecutor` for parallelism — adding joblib, dask, or ray would add complexity without benefit for a ~192-cell grid. `scipy.stats.qmc.LatinHypercube` (available since scipy 1.7, locked at 1.17.1) enables variance reduction for continuous Monte Carlo axes without additional packages.
 
 **Core technologies:**
-- `scipy>=1.13.0,<2` — statistical tests (Mann-Whitney U, KS) and confidence intervals — already used, must be pinned (latent bug fix)
-- `plotly>=6.0.0,<7` — interactive sweep heatmaps for exploratory analysis; complement to matplotlib, not replacement
-- `pydantic>=2.0.0,<3` — Governor event schema validation; Rust-backed v2 catches schema drift before it corrupts runs
-- `kaleido>=0.2.1,<1.0` — plotly static export; pin `<1.0` to avoid Chrome dependency in headless CI
-- `tqdm>=4.66.0,<5` — progress bars for parameter sweeps; zero-config, works in terminal and Jupyter
-
-**What NOT to add:** scikit-learn, dask/ray, polars, hvplot, altair. None are needed and each adds costly transitive dependencies or library conflicts.
+- `cadCAD 0.5.3`: simulation backbone — locked, do not change
+- `scipy 1.17.1`: Mann-Whitney U, KS test, bootstrap CI, QMC sampling — all capabilities confirmed at this version
+- `numpy 1.26.4`: RNG via `default_rng()` and `SeedSequence.spawn()`, Beta/LogNormal/truncnorm distributions
+- `pandas 2.3.3`: sweep result accumulation, pivot_table for heatmap inputs, CSV export
+- `seaborn 0.13.2`: `heatmap(ax=ax)` OO API for sweep visualization
+- `matplotlib 3.10.8`: figure management for multi-panel reports
+- `itertools` + `concurrent.futures` (stdlib): cartesian product + process parallelism — no new deps needed
+- `tqdm 4.67.3`: progress reporting — pin as direct dep (currently transitive only via cadCAD)
 
 ### Expected Features
 
-The feature dependency graph is unambiguous: Governor-compatible event schema blocks everything. Define it first. From there, synthetic data factory and cadCAD event-replay state machine unblock all tallies, which unblock flip rate, which unblocks all analysis and visualization.
+**Must have (table stakes):**
+- Grid search over (curve_type, lock_profile, allocation_strategy) with `itertools.product` cartesian enumeration
+- cadCAD-once / metrics-N-times optimization baked into sweep runner from day one
+- Monte Carlo allocation fractions via `rng.beta(a, b)` replacing fixed allocation strategies
+- Seed-based reproducibility via `SeedSequence.spawn()` for independent per-sample generators
+- Flip breakdown by margin class (tight <10%, moderate 10-30%, decisive >30%)
+- Address-level influence analysis (legacy share vs. signals share per voter)
+- Three core heatmaps: flip_rate, gini_delta, nakamoto_delta
+- CSV + JSON export of full sweep results
 
-**Must have — Phase 1 (table stakes for a credible dual-tally pipeline):**
-- Governor-compatible event schema (dataclasses for `PROPOSAL_CREATED`, `VOTE_CAST`, `PROPOSAL_FINALIZED`) — foundation for all else
-- Synthetic event stream generator — power-law stake distribution, configurable participation rate
-- cadCAD event-replay state machine — PSUB consuming pre-sorted event list, one event per timestep
-- Legacy tally (token-weighted) — `W = stake`; per-proposal For/Against sums and winner
-- Signals tally (commitment-weighted) — `W = stake × f(L)` with parameterized lock curve
-- Dual-tally state — both results per proposal carried simultaneously in a single sim pass
-- Flip rate metric — per-proposal and aggregate; core evidence for the paper
-- Gini coefficient — over stake and over `W_signals` distributions
-- Participation rate — per-proposal and aggregate
-- Results DataFrame and basic plots — distribution histogram, dual-tally bar, flip summary
+**Should have (competitive differentiators):**
+- Latin Hypercube Sampling for continuous axes (alpha, beta_a, beta_b) via `scipy.stats.qmc`
+- Per-proposal timing variation via `rng.dirichlet()` (early/mid/late allocation per proposal)
+- Convergence diagnostics: running mean/std over MC samples
+- Bootstrap confidence intervals on aggregate metrics (`scipy.stats.bootstrap`)
+- Mann-Whitney U significance testing on influence distribution differences
+- Multi-panel composite figure combining heatmaps, flip breakdown, timing scatter
+- Per-config detail plots for best/worst N configurations
 
-**Should have — Phase 2 (complete metrics and analysis suite):**
-- ENP (Effective Number of Parties) and Nakamoto coefficient — one numpy formula each, high publication value
-- Lorenz curve + Gini visualization — publication-expected inequality plot
-- Configurable voter behavior profiles — power-law / uniform / bimodal for scenario testing
-- Reproducible seed control — `numpy.random.default_rng(seed)` threaded through generator and cadCAD
-- Lock duration distribution plot — histogram with Signals weight overlay
-
-**Defer to Phase 3+ (nice to have):**
-- Parameter sweep over lock curve exponent and decay rate
-- Sensitivity analysis plots (flip rate vs alpha)
-- Timing sensitivity analysis (vote bucketing by proposal lifecycle position)
-- Outcome flip breakdown by legacy margin class
-
-**Anti-features — do not build:**
-- Real-time / streaming simulation (premature; adds web3.py/RPC infra)
-- Agent-based strategic voter modeling (overclaims beyond replay scope)
-- Interactive Streamlit/Dash dashboard (matplotlib static figures are the deliverable)
-- Full Shapley value computation (O(2^n), infeasible at realistic voter counts)
+**Defer (v4+):**
+- Interactive HTML dashboards (Streamlit/Dash)
+- Agent-based behavioral modeling
+- Bayesian optimization for sweep grid
+- 3D surface plots
+- Shapley value computation (O(2^n) infeasible)
+- Causal inference claims
 
 ### Architecture Approach
 
-The architecture isolates all new v2.0 code in a single new top-level package `backtesting/` while extending (not reorganizing) existing `cadcad/` modules by appending new functions and dataclasses alongside existing ones. The key structural decision is that `backtesting/weighting/signals.py` contains only pure functions — no cadCAD dependency — making the core scientific claim (`W = S × f(L)`) independently testable. The data schema defined in `backtesting/data/schema.py` is the contract that makes synthetic-to-real data swappable: only `loader.py` changes when real Governor data becomes available.
+The sweep runner lives in a new `backtesting/sweep.py` and calls inner pipeline stages directly (`generate_scenario` -> `run_backtest` -> `build_results_dataframe` -> `compute_*`) rather than wrapping `run_pipeline()`, which has per-run I/O side effects that are harmful inside a sweep loop. Extended analysis splits into two tiers: per-run functions added to `metrics.py` (margin class flips, address influence), and cross-run sweep analysis in a new `backtesting/analysis.py` consuming `SweepResult.summary_df`. A new `backtesting/report.py` orchestrates everything into a structured output directory. `backtesting/pipeline.py` is unchanged — single-config runs remain fully functional.
 
 **Major components:**
-1. `backtesting/data/` — schema, synthetic factory, loader; produces a sorted `pd.DataFrame` of events
-2. `backtesting/weighting/signals.py` — pure functions: `lock_curve()`, `compute_signals_weight()`, `compute_legacy_weight()`
-3. `cadcad/` extensions — `BacktestConfig`, `BacktestState`, `p_replay_event()`, `sufs/replay.py`; orchestrates event-driven simulation via `Experiment` API
-4. `backtesting/metrics/` — Gini, ENP, flip rate, sensitivity; pure functions on `pd.DataFrame` inputs
-5. `backtesting/plots/` — publication-grade matplotlib figures; one function per chart type using OO API exclusively
-6. `backtesting/pipeline.py` — single entry point orchestrating all layers: data → sim → metrics → plots
-
-**Build order matters:** schema → weighting → factory → loader → cadCAD extensions → metrics → plots → pipeline. Tests at each layer boundary before proceeding.
+1. `backtesting/data/budget.py` (NEW) — promoted `_VoterLedger`, `AllocationDistribution` dataclass, MC sampling; backward-compatible `mc_dist` param added to `generate_scenario()`
+2. `backtesting/sweep.py` (NEW) — `SweepConfig`, `SweepRunner`, `SweepResult`; cadCAD-once/metrics-N-times loop with `ProcessPoolExecutor`; explicit `del raw; gc.collect()` after each config
+3. `backtesting/metrics.py` (MODIFY) — add `margin_class_breakdown()`, `address_influence()` with counterfactual baseline
+4. `backtesting/analysis.py` (NEW) — cross-run: `pivot_heatmap()`, `timing_sensitivity()`, `margin_class_summary()`
+5. `backtesting/plots.py` (MODIFY) — add `plot_sweep_heatmap()` with `origin='lower'`, diverging colormap for signed metrics, global vmin/vmax
+6. `backtesting/report.py` (NEW) — `generate_sweep_report()` orchestrator; outputs to `output/sweep_{timestamp}/`
+7. `backtesting/pipeline.py` (UNCHANGED) — single-config runs remain fully functional
 
 ### Critical Pitfalls
 
-1. **cadCAD state mutation (Pitfall 1, CRITICAL)** — SUFs that mutate dicts/lists/sets in-place corrupt state history silently. Every SUF touching a mutable state variable must return a new copy (`dict(prev_state['x'])`). Test by asserting `id(result) != id(prev_state['key'])` in every SUF test. Corruption manifests as non-reproducible metrics under identical seeds.
+1. **cadCAD M parameter is not factorial (P3)** — `config_sim()` zips lists element-wise, not cartesian product; a 3x3x2 grid would produce 3 runs, not 18. Prevention: always use `itertools.product` manually for sweep enumeration; assert expected vs. actual combination count at sweep start.
 
-2. **Global initial state leaking between sweep runs (Pitfall 3, CRITICAL)** — If `generate_initial_state()` is called once outside the sweep loop, run 2+ starts from run 1's terminal state (non-empty `accepted_initiatives`, inflated `reward_history`). Always call `generate_initial_state()` inside each sweep iteration, or guard with `copy.deepcopy()`. Test by asserting initial state purity (len == 0) before each run.
+2. **Monte Carlo seed contamination (P2)** — calling `np.random.default_rng(42)` N times produces N identical generators, making all MC samples identical. Prevention: use `np.random.SeedSequence(base_seed).spawn(n_samples)` for independent child generators. This is a first-implementation decision that cannot be retrofitted.
 
-3. **cadCAD M parameter sweep constraint (Pitfall 5, HIGH)** — cadCAD's `config_sim()` M parameter allows at most 2 distinct list lengths and zips (not Cartesian products) parameter lists. Build Cartesian products externally with `itertools.product` and run N `Configuration` objects. Always log expected vs actual combination count at sweep start; assert they match.
+3. **Pre-existing metric bugs exposed by sweeps (P4)** — `_gini()` returns `0.0` for zero-sum arrays (implies "perfect equality" when there's no data); `_enp()` returns `0.0` for zero-weight arrays (outside valid range [1, n]). Edge-case sweep configs will trigger these and silently corrupt heatmaps. Prevention: fix both to return `np.nan` for degenerate inputs before any sweep work begins.
 
-4. **Uniform token distribution producing misleading Gini (Pitfall 4, HIGH)** — Real DAOs have Gini ≈ 0.7–0.95. Uniform synthetic balances produce Gini ≈ 0.3–0.5, making Signals appear more impactful than realistic. Generate balances from a Pareto distribution (alpha ≈ 1.5). Validate: `gini(initial_balances) > 0.65` in tests.
+4. **Memory accumulation in sweep loops (P1)** — cadCAD `Configuration` + `Executor` per call; at 100+ configs x 1000 events, memory exceeds 500MB without explicit cleanup. Prevention: `del raw; gc.collect()` immediately after metrics computation per config. Must be built in from day one.
 
-5. **Event-replay vs ABM framing (Pitfall 10, MEDIUM)** — Event replay computes a counterfactual tally (what outcome would have occurred under different weighting), not a behavioral simulation. Label all plots and metrics as "counterfactual" — never as "simulated participation" or "behavior change." Establish this in docstrings before any implementation begins.
+5. **Heatmap visualization triple-trap (P5)** — `imshow` default `origin='upper'` inverts y-axis; sequential colormap (viridis) makes zero invisible on signed delta metrics; per-slice normalization breaks cross-heatmap comparison. Prevention: `origin='lower'`, diverging colormap (RdYlGn) for signed metrics, global vmin/vmax — enforce via shared `plot_sweep_heatmap()` helper.
 
 ---
 
 ## Implications for Roadmap
 
-Based on combined research, 5 phases are recommended. The first three deliver the complete dual-tally pipeline and publication-ready metrics. Phases 4 and 5 add sweep infrastructure and sensitivity analysis.
+The build order is driven by two hard constraints: (1) the metric bugs must be fixed before any sweep work or heatmaps will be silently corrupted, and (2) `budget.py` and extended metrics are independent and can develop in parallel, but `sweep.py` depends on both. The cadCAD-once optimization must be designed into the sweep runner from day one — it cannot be added later without significant rework.
 
-### Phase 1: Foundation — Schema, Data, and Weighting
+### Phase 1: Foundation Fixes & Budget Promotion
 
-**Rationale:** The Governor event schema is a hard dependency for everything else. Nothing can be built, tested, or validated without it. The weighting pure functions are equally foundational and trivially testable — establishing them early de-risks the core scientific claim.
+**Rationale:** Two pre-existing bugs (`_gini()`, `_enp()` returning `0.0` for degenerate inputs) will silently corrupt sweep heatmaps. These must be fixed before sweep work begins. Simultaneously, promoting `_VoterLedger` and `_compute_allocation_fraction` to a public `budget.py` module is a prerequisite for Monte Carlo allocation. Neither fix touches the other — they can develop in parallel within the phase.
 
-**Delivers:** A complete, testable data layer that can be exercised without cadCAD. Synthetic event stream, canonical schema, and weight functions ready for cadCAD integration.
+**Delivers:** Corrected `_gini()` and `_enp()` returning `np.nan` for degenerate inputs; `budget.py` with `AllocationDistribution(Beta/truncnorm/uniform)` dataclass; `mc_dist` parameter wired into `generate_scenario()` (backward-compatible); `tqdm` pinned as direct dependency; `SeedSequence.spawn()` seed architecture established.
 
-**Addresses:** Governor-compatible event schema, synthetic event stream generator, Signals tally formula — all P1 features from FEATURES.md.
+**Addresses:** Prerequisite foundation for all sweep and Monte Carlo features.
 
-**Avoids:** Lock-duration survivorship bias (Pitfall 8) by sampling from full Pareto distribution at generation time; Uniform distribution mismatch (Pitfall 4) by validating Gini > 0.65 immediately; Governor schema referential integrity violations by validating every VOTE_CAST references a valid PROPOSAL_CREATED.
+**Avoids:** P4 (metric nan fix prevents silent heatmap corruption), P2 (seed architecture established at first implementation point)
 
-**Files:** `backtesting/data/schema.py`, `backtesting/data/factory.py`, `backtesting/data/loader.py`, `backtesting/weighting/signals.py`
+---
 
-### Phase 2: cadCAD Integration — Event Replay and Dual Tally
+### Phase 2: Monte Carlo Allocation Modeling
 
-**Rationale:** cadCAD integration is the highest-complexity phase and has the most pitfall exposure. Isolating it from metrics and plotting means cadCAD-specific failures are immediately attributable. A single integration test (3 proposals, 10 votes each) validates the entire path before metrics are added.
+**Rationale:** With `budget.py` in place, replacing fixed allocation strategies with Beta distribution draws is straightforward. This phase also establishes convergence diagnostics needed to validate that MC sample counts are sufficient before sweep scale-out.
 
-**Delivers:** A working end-to-end simulation that consumes the Phase 1 event stream, produces both legacy and Signals tallies in a single pass, and outputs a flat results DataFrame. Flip rate is computable from this output.
+**Delivers:** `rng.beta(a, b)` allocation replacing `rng.uniform()`; `beta_a`/`beta_b` as continuous sweep axes; per-proposal timing variation via `rng.dirichlet()`; quasi-Monte Carlo via `scipy.stats.qmc.LatinHypercube`; convergence diagnostics (running mean/std over samples); N>=50 sample minimum documented.
 
-**Addresses:** cadCAD event-replay state machine, legacy tally, Signals tally, dual-tally state, flip rate, results DataFrame — all P1 from FEATURES.md.
+**Addresses:** MC allocation (all table stakes + QMC differentiator)
 
-**Implements:** Event-replay via M parameters (Pattern 1), dual tally accumulation in single pass (Pattern 2), `Experiment` API for sweep config (Architecture).
+**Avoids:** P2 (SeedSequence already established in Phase 1), P6 (convergence diagnostics built in, not retrofitted)
 
-**Avoids:** State mutation corruption (Pitfall 1) — test SUF reference inequality from day one; Global state leak (Pitfall 3) — always regenerate initial state per run; Timestep off-by-one (Pitfall 2) — pass epoch through policy output, not state; N misuse for sweeps (anti-pattern 3) — use M lists, not N.
+---
 
-**Stack additions:** `pydantic` for event validation; `tqdm` for sweep progress.
+### Phase 3: Sweep Runner
 
-### Phase 3: Metrics and Basic Plots
+**Rationale:** Depends on `budget.py` (Phase 1) and the extended per-run metrics (Phase 1 parallel track). The cadCAD-once / metrics-N-times optimization must be built in here — it cannot be added later without rework. Threading `curve_type` through the call stack is the gating prerequisite and must happen at phase start.
 
-**Rationale:** Metrics are pure functions on the results DataFrame — no cadCAD dependency. They can be written and fully tested against recorded DataFrame snapshots from Phase 2. Plots follow directly. This phase completes the P1 MVP and delivers the publication-grade output.
+**Delivers:** `sweep.py` with `SweepConfig`, `SweepRunner`, `SweepResult`; cadCAD-once loop with `ProcessPoolExecutor`; `itertools.product` cartesian enumeration (not cadCAD M-param); `del raw; gc.collect()` memory management per config; progress via `tqdm`.
 
-**Delivers:** Gini, participation rate, and flip rate metrics; basic plots (voting power distribution, dual-tally bar, flip rate summary). The core paper appendix is complete at end of this phase.
+**Addresses:** Grid sweep (all table stakes); process parallelism (differentiator)
 
-**Addresses:** Gini coefficient, participation rate, flip rate visualization, basic plots — all P1 from FEATURES.md.
+**Avoids:** P1 (explicit memory cleanup per config), P3 (itertools.product not cadCAD M-param), P10 (plt.close(fig) pattern enforced in sweep plotting)
 
-**Avoids:** Gini edge cases (Pitfall 6) — guard for zero-vote proposals, return `np.nan` not 0; ENP floating-point bias (Pitfall 7) — clamp to `[1, n_voters]`; Matplotlib figure state pollution (Pitfall 9) — OO API only, `plt.close(fig)` always, `rcParams` set once at module level.
+---
 
-**Stack additions:** `matplotlib` (existing), `scipy` (pinned fix for latent bug).
+### Phase 4: Extended Statistical Analysis
 
-### Phase 4: Extended Metrics and Analysis Suite
+**Rationale:** Depends on `SweepResult` shape from Phase 3. Per-run metric extensions (`margin_class_breakdown`, `address_influence`) can begin development in parallel with Phase 3, but cross-run analysis (`analysis.py`) requires the `SweepResult` contract to be finalized first. The counterfactual baseline for address influence must be established here — not raw legacy weight.
 
-**Rationale:** ENP, Nakamoto coefficient, Lorenz curve, and seed control are P2 features with no new architectural complexity. They extend the existing metrics module and plotting suite. Configurable voter behavior profiles (power-law / uniform / bimodal) extend the factory from Phase 1. Group together because they share the same DataFrame interface and can be added iteratively.
+**Delivers:** `margin_class_breakdown()` (tight/moderate/decisive flip counts via `pandas.cut`); `address_influence()` with counterfactual baseline (median lock duration, not raw legacy weight); `analysis.py` with `pivot_heatmap()`, `timing_sensitivity()` as 2D heatmap separating timing from lock-duration effects; Mann-Whitney U + bootstrap CI; voter archetype classification (whale/medium/retail by stake quantile).
 
-**Delivers:** Complete publication-grade metrics suite (Gini + ENP + Nakamoto trio), Lorenz curve visualization, reproducible seed control, configurable scenario profiles. Results are academically defensible.
+**Addresses:** Extended governance analysis (all table stakes + statistical differentiators)
 
-**Addresses:** ENP, Nakamoto coefficient, Lorenz curve, seed control, voter behavior profiles, lock duration distribution plot — all P2 from FEATURES.md.
+**Avoids:** P7 (all fairness metrics reported, none cherry-picked; operational definitions in docstrings), P8 (counterfactual baseline enforced), P9 (2D timing-quantile x lock-quantile heatmap isolates the two effects)
 
-**Uses:** numpy (existing), plotly for interactive Lorenz exploration alongside matplotlib publication version.
+---
 
-### Phase 5: Parameter Sweeps and Sensitivity Analysis
+### Phase 5: Heatmap Report Bundle
 
-**Rationale:** Sweep infrastructure is P2/P3 and requires all earlier phases to be stable. cadCAD's M parameter constraint means sweeps need external Cartesian product management — this is a contained complexity that should not block the core pipeline. Add last, after the pipeline is validated end-to-end.
+**Rationale:** Terminal integration phase. Depends on sweep runner output (Phase 3) and analysis functions (Phase 4). Orchestrates all prior work into a structured, self-contained output directory. The shared `plot_sweep_heatmap()` helper is the single enforcement point for all visualization correctness.
 
-**Delivers:** Full parameter sweep over lock curve alpha and decay rate, sensitivity analysis plots (flip rate vs alpha heatmap), outcome flip breakdown by legacy margin class. This is the "stress test" evidence layer for the paper.
+**Delivers:** `report.py` with `generate_sweep_report()`; `plot_sweep_heatmap()` helper in `plots.py` with `origin='lower'`, RdYlGn diverging colormap for signed metrics, global vmin/vmax across comparison plots; multi-panel composite figure; per-config detail plots (best/worst N configurations); CSV + JSON export; output directory structure `output/sweep_{timestamp}/heatmaps/detail/timing_sensitivity/`.
 
-**Addresses:** Parameter sweep support, sensitivity analysis, timing sensitivity, outcome flip breakdown — all P3 from FEATURES.md.
+**Addresses:** Heatmap report bundle (all table stakes + multi-panel differentiator)
 
-**Avoids:** Combinatorial explosion (Pitfall 5) — always use `itertools.product` externally; assert expected vs actual combo count; cap at 50-100 combos for interactive work.
-
-**Stack additions:** `plotly` sweep heatmaps, `kaleido` for static export.
+**Avoids:** P5 (all three visualization traps handled by shared helper), P10 (plt.close(fig) enforced throughout sweep report generation)
 
 ---
 
 ### Phase Ordering Rationale
 
-- Schema before everything: FEATURES.md feature dependency graph is unambiguous — Governor schema is a hard prerequisite for 8+ other features.
-- cadCAD integration before metrics: Cannot validate metrics without real simulation output. Integration test with minimal dataset proves the pipeline before investing in analysis.
-- Metrics before plots: Plots are pure consumers of metrics output. Decoupling them lets both be independently tested.
-- Sweeps last: Sweep correctness depends on the underlying single-run pipeline being verified. Adding sweeps to a broken pipeline produces amplified confusion.
-- Pitfall avoidance is phase-specific: State mutation (Phase 2), distribution realism (Phase 1), and figure pollution (Phase 3) each have natural entry points where the cost of prevention is lowest.
+- Phase 1 must come first because metric bugs silently corrupt all downstream heatmap output, and `budget.py` is a hard prerequisite for Monte Carlo allocation
+- Within Phase 1, the metric fixes track and the `budget.py` track are fully independent and can develop in parallel
+- Phase 2 (MC allocation) depends only on Phase 1's `budget.py` track and can begin immediately after
+- Phase 3 (sweep runner) depends on both Phase 1 tracks being complete; threading `curve_type` through the stack is the single gating prerequisite and must happen at phase start
+- Phase 4 (extended analysis) per-run metrics can begin in parallel with Phase 3, but `analysis.py` depends on `SweepResult` contract being finalized
+- Phase 5 (report bundle) always comes last — it is a pure consumer of Phases 3 and 4 outputs
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-
-- **Phase 2 (cadCAD Integration):** cadCAD's event-replay pattern is documented but not heavily demonstrated in official examples. The exact SUF composition order within PSUBs and the `Experiment` API for backtest sweeps warrants a targeted research-phase before implementation to confirm behavior of `substep` filtering in results.
-- **Phase 5 (Parameter Sweeps):** The cadCAD M parameter 2-length constraint is a known pitfall (GitHub issue #195). The external Cartesian product pattern is the workaround, but its interaction with cadCAD's `subset` indexing in results should be validated with a small spike before building full sweep infrastructure.
+Phases likely needing deeper research during planning:
+- **Phase 4 (Extended Analysis):** Counterfactual baseline selection for address influence is methodology-sensitive — "median lock duration" as counterfactual may need empirical grounding or literature citation. The definition of "fairness" as an operational metric (P7) needs explicit consensus before implementation begins. Flag for targeted research-phase.
 
 Phases with standard patterns (skip research-phase):
-
-- **Phase 1 (Schema and Data):** Python dataclasses and Pareto distribution sampling are well-documented. No ambiguity.
-- **Phase 3 (Metrics and Plots):** Gini, ENP, Nakamoto are standard formulae. Matplotlib OO API is fully documented. No ambiguity.
-- **Phase 4 (Extended Metrics):** All additions are incremental to Phase 3 patterns. No new integration surfaces.
+- **Phase 1 (Foundation Fixes & Budget):** All patterns are established in the existing codebase; no external API ambiguity
+- **Phase 2 (Monte Carlo Allocation):** scipy and numpy RNG APIs are comprehensively documented; Beta/truncnorm distributions are standard
+- **Phase 3 (Sweep Runner):** `itertools.product` + `ProcessPoolExecutor` are stdlib with no surprises; cadCAD inner-stage calling pattern verified in existing code
+- **Phase 5 (Report Bundle):** seaborn/matplotlib OO API well-documented; output directory structure is straightforward
 
 ---
 
@@ -186,40 +177,41 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified via PyPI; scipy latent bug confirmed by direct codebase read; cadCAD sweep constraint confirmed via official docs and GitHub issues |
-| Features | HIGH | Feature dependency graph built from existing codebase analysis and DAO governance literature (2023-2025 papers); P1/P2/P3 split is unambiguous |
-| Architecture | HIGH | Existing code read directly; cadCAD API verified via official docs; module boundaries are explicit and testable |
-| Pitfalls | HIGH | cadCAD pitfalls verified via GitHub issues; distribution mismatch validated against empirical DAO data from published papers; matplotlib pollution is a documented known issue |
+| Stack | HIGH | All versions read directly from uv.lock; no new dependencies needed; zero ambiguity |
+| Features | HIGH | Derived from direct codebase read; all integration points verified; complexity estimates are conservative and based on actual code paths |
+| Architecture | HIGH | Module boundaries verified against existing code; cadCAD-once optimization confirmed viable from v2.0 weight storage pattern |
+| Pitfalls | HIGH | All pitfalls derived from direct codebase analysis; P4 metric bugs confirmed present in source code |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Real DAO data schema conformance:** The Governor-compatible schema is designed for Compound/Uniswap/ENS Governor Bravo data, but no real data was fetched during research to validate the field mapping. When swapping from synthetic to real data, validate `loader.py` against at least one real Compound proposal event log before claiming zero-cost swap.
-- **Lock curve calibration:** The alpha parameter for `f(L) = 1 - exp(-alpha × L)` has no empirically-grounded default. Research suggests alpha ≈ 0.5 gives ~78% of max weight at 3 months, but this should be validated against veToken (Curve, Velodrome) real locking data during Phase 4 or 5.
-- **cadCAD 0.5.x vs 0.4.x API:** The existing codebase uses `cadCAD>=0.5.3`. The research references cadCAD API patterns from official docs and README, but the internal API has changed between 0.4.x and 0.5.x. Confirm that `Experiment.append_model()` behaves as documented in 0.5.x before Phase 2 implementation.
+- **MC sample count vs. runtime tradeoff:** Whether N=50 MC samples per sweep config is feasible within acceptable wall-clock runtime is unknown without profiling a single-config run. Address in Phase 2 by profiling before committing to convergence diagnostic defaults.
+- **`iterrows` performance at sweep scale:** `_compute_lockin_fraction` uses an `iterrows` loop that may bottleneck at 100+ proposals x 500+ voters inside a sweep context. Profile during Phase 3 and vectorize if needed.
+- **Sweep CLI interface:** Whether sweep execution should be a new `__main__` entry point in `sweep.py` or integrated into the existing pipeline CLI is an open design decision. Resolve during Phase 3 planning.
+- **Detail plot selection:** Which best/worst N configurations are most analytically useful for the report bundle needs explicit decisions. Resolve during Phase 5 planning.
+- **MC distribution parameters for realistic DAO behavior:** Beta(2,5) and Beta(5,2) are reasonable priors but lack empirical grounding in DAO-specific data. Flag for literature review or empirical validation during Phase 2 planning.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- cadCAD official docs (Parameter Sweep, Simulation Execution, Configuration API) — cadCAD sweep constraints, Experiment API, result row structure
-- cadCAD GitHub issues #250, #195 — timestep off-by-one, multi-config truncation bugs
-- Existing codebase (`apps/simulations/src/`) — read directly; confirmed scipy usage, cadCAD PSUB patterns, GovernanceMetrics implementation
-- scipy PyPI (v1.15.3 current), plotly PyPI (v6.5.2 current), pydantic PyPI (v2.12.x current) — version verification
-- Governor Bravo source (compound-finance/compound-protocol) — event schema field names
+- `apps/simulations/uv.lock` — exact resolved versions for all locked packages (read directly)
+- `apps/simulations/pyproject.toml` — direct dependency declarations (read directly)
+- `apps/simulations/src/backtesting/` (factory.py, metrics.py, pipeline.py, plots.py) — existing module code read directly; integration points and bugs verified
+- scipy 1.17.1 API — `qmc.LatinHypercube`, `stats.mannwhitneyu`, `stats.ks_2samp`, `stats.bootstrap` confirmed available (added in scipy 1.7)
+- numpy 1.26.4 API — `random.SeedSequence.spawn()`, `random.default_rng()` confirmed
 
 ### Secondary (MEDIUM confidence)
-- DAO Large Scale Analysis (arxiv 2410.13095) — Gini benchmarks across 10K+ DAOs; participation rates; Nakamoto baselines
-- Analyzing Voting Power in Decentralized Governance (ScienceDirect 2096720924000216) — Nakamoto, Gini empirical values for real DAOs
-- Voting-Bloc Entropy paper (Fabrega et al. USENIX Security / arxiv 2509.22620) — VBE definition, Gini/Nakamoto comparison; confirms our metric trio is sufficient
-- Laakso-Taagepera ENP formula (1979) — verified via Wikipedia; standard political science reference
+- cadCAD M-parameter element-wise zip behavior (not cartesian) — confirmed from existing simulation run patterns in codebase and PITFALLS analysis
+- Beta distribution parameter recommendations (Beta(2,5) mean≈0.29, Beta(5,2) mean≈0.71) — statistically grounded but lack DAO-specific empirical validation
 
 ### Tertiary (LOW confidence — validate during implementation)
-- Lock curve alpha calibration (inferred from veToken mechanisms) — no peer-reviewed source; validate against real locking data
-- cadCAD 0.5.x `Experiment` API behavior (inferred from README + 0.4.x patterns) — confirm against actual 0.5.x source before Phase 2
+- N=50 minimum MC samples for publishable CI widths — derived from 1/30 flip rate resolution (~3.3% granularity); needs runtime profiling to confirm feasibility at sweep scale
+- Counterfactual baseline ("median lock duration") for address influence — reasonable methodology choice, not empirically validated against actual DAO datasets
 
 ---
+
 *Research completed: 2026-02-27*
 *Ready for roadmap: yes*

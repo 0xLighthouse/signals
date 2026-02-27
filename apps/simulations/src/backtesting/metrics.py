@@ -6,6 +6,11 @@ Timing metrics (compute_late_vote_share, compute_lockin_timing) additionally
 accept windows_df (pd.DataFrame) with proposal_id, start_block, end_block.
 
 No simulation framework imports. No side effects. All functions return frozen dataclasses.
+
+NaN-for-degenerate-inputs convention: metric helpers return np.nan (not 0.0)
+when given zero-sum or zero-weight arrays. NaN propagates silently through
+downstream aggregation (np.nanmean, etc.). This is the documented convention
+for all metric functions — Phase 11 extended analysis must follow it.
 """
 from __future__ import annotations
 
@@ -23,20 +28,28 @@ from backtesting.weighting.signals import compute_signals_weight as _compute_sig
 
 
 def _gini(arr: np.ndarray) -> float:
-    """Standard Gini coefficient for a 1-D array of non-negative values."""
+    """Standard Gini coefficient for a 1-D array of non-negative values.
+
+    Returns np.nan for zero-sum arrays (NaN-for-degenerate-inputs convention).
+    Zero participation is a valid but degenerate case, not 'perfect equality'.
+    """
     arr = np.sort(arr.astype(float))
     n = len(arr)
     if n == 0 or arr.sum() == 0:
-        return 0.0
+        return float(np.nan)
     idx = np.arange(1, n + 1)
     return float((2 * (idx * arr).sum()) / (n * arr.sum()) - (n + 1) / n)
 
 
 def _enp(weights: np.ndarray) -> float:
-    """Effective Number of Parties — ENP = 1 / sum(s_i^2)."""
+    """Effective Number of Parties — ENP = 1 / sum(s_i^2).
+
+    Returns np.nan for zero-weight arrays (NaN-for-degenerate-inputs convention).
+    ENP=0 is outside the valid range [1, n_voters] and would corrupt sweep heatmaps.
+    """
     total = weights.sum()
     if total == 0:
-        return 0.0
+        return float(np.nan)
     shares = weights / total
     return float(1.0 / (shares ** 2).sum())
 
