@@ -1,14 +1,15 @@
 """
-Simulation A — Whale-dominated DAO: Does commitment-weighting reduce plutocracy?
+Simulation B — Heterogeneous Returns: Whale Short-Lock vs Retail Long-Lock
 
-Generates a 200-voter, 30-proposal scenario with Pareto stake distribution
-(80/20 power law) and independent lock durations, then compares Legacy
-(stake-only) vs Signals (commitment-weighted) governance across key fairness
-metrics.
+Tests the thesis that when whales operate on a Pareto basis with short locks
+(liquidity-seeking) while smaller holders lock longer (conviction-driven),
+the Signals weighting curve (sqrt, floor=0.1) amplifies small holders and
+dampens whales, producing meaningful Gini reduction and more outcome flips
+compared to Legacy governance.
 
 Usage:
     cd apps/simulations
-    uv run python src/figs/sim_a.py
+    uv run python src/figs/sim_b.py
 """
 import warnings
 import os
@@ -50,13 +51,13 @@ SCENARIO = dict(
     total_supply=1_000_000.0,
     avg_participation_rate=0.10,
     stake_profile='pareto',
-    lock_profile='bimodal',
+    lock_profile='inverse_correlated',
     seed=42,
     budget_enabled=True,
 )
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'output')
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, 'sim_a.png')
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, 'sim_b.png')
 
 # ── Run simulation ───────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ def main():
     # ── Print summary ────────────────────────────────────────────────────────
 
     print('\n' + '=' * 60)
-    print('  SIM A — Whale-dominated DAO (Pareto stakes)')
+    print('  SIM B — Heterogeneous Returns (Whale Short / Retail Long)')
     print('=' * 60)
 
     print(f'\n  Flip rate:          {flip.aggregate:.1%} of proposals changed outcome')
@@ -140,7 +141,7 @@ def main():
         dest_ax.set_title(title, fontsize=12, fontweight='bold')
 
     fig.suptitle(
-        'Simulation A — Whale-dominated DAO: Legacy vs Signals Governance',
+        'Simulation B — Heterogeneous Returns: Whale Short-Lock vs Retail Long-Lock',
         fontsize=16, fontweight='bold', y=0.98,
     )
     fig.tight_layout(rect=[0, 0, 1, 0.94])
@@ -184,7 +185,7 @@ def _copy_ax(src, dest):
     if src.get_xticklabels():
         labels = [t.get_text() for t in src.get_xticklabels()]
         if any(labels):
-            dest.set_xticklabels(labels, fontsize=8, rotation=45, ha='right')
+            dest_ax_labels = dest.set_xticklabels(labels, fontsize=8, rotation=45, ha='right')
     if src.get_legend_handles_labels()[1]:
         dest.legend(fontsize=8)
 

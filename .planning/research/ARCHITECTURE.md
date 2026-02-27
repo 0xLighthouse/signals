@@ -166,6 +166,7 @@ apps/simulations/src/
 **Trade-offs:** Pro: clean cadCAD semantics, no special hooks needed. Con: the entire event stream must fit in memory as a Python list in `M`; for very large event sets, chunk the stream across multiple cadCAD runs.
 
 **Example:**
+
 ```python
 # In backtesting/experiment/config.py
 def build_sim_params(events: list[dict], sweep: SweepParams) -> dict:
@@ -215,6 +216,7 @@ def s_apply_vote_event(params, substep, state_history, previous_state, policy_in
 **Trade-offs:** Pro: one simulation run produces both comparison columns. Con: state is slightly wider (stores both `legacy_tally` and `signals_tally` per proposal). Acceptable trade-off.
 
 **Example:**
+
 ```python
 # BacktestState initial state fields
 {
@@ -235,6 +237,7 @@ def s_apply_vote_event(params, substep, state_history, previous_state, policy_in
 **Trade-offs:** Pro: unit-testable in isolation, callable from SUFs and metrics, easy to swap the curve. Con: none meaningful for this use case.
 
 **Example:**
+
 ```python
 # backtesting/weighting/signals.py
 import numpy as np
@@ -265,6 +268,7 @@ def compute_legacy_weight(stake: float) -> float:
 **Trade-offs:** Pro: zero-cost swap to real DAO data later — only the loader changes. Con: requires upfront schema design, but the Governor event log format is well-understood.
 
 **Example:**
+
 ```python
 # backtesting/data/schema.py
 from dataclasses import dataclass
@@ -489,40 +493,40 @@ Build order respects hard dependencies: data schema before generators, weighting
 
 ### Phase 2: cadCAD Integration (depends on Phase 1)
 
-5. `cadcad/config.py` — append `BacktestConfig`
-6. `cadcad/state.py` — append `BacktestState`, `generate_backtest_initial_state()`
-7. `cadcad/sufs/replay.py` — `s_advance_event_index`, `s_apply_vote_event`, `s_finalize_proposal`
+1. `cadcad/config.py` — append `BacktestConfig`
+2. `cadcad/state.py` — append `BacktestState`, `generate_backtest_initial_state()`
+3. `cadcad/sufs/replay.py` — `s_advance_event_index`, `s_apply_vote_event`, `s_finalize_proposal`
    - `s_apply_vote_event` imports from `backtesting/weighting/signals.py`
-8. `cadcad/policies.py` — append `p_replay_event`
-9. `backtesting/experiment/config.py` — `build_sim_params()`, `SweepParams`
-10. `cadcad/model.py` — append `run_backtest_simulation()` using `Experiment` API
-11. `cadcad/helpers.py` — append `backtest_results_to_dataframe()`
+4. `cadcad/policies.py` — append `p_replay_event`
+5. `backtesting/experiment/config.py` — `build_sim_params()`, `SweepParams`
+6. `cadcad/model.py` — append `run_backtest_simulation()` using `Experiment` API
+7. `cadcad/helpers.py` — append `backtest_results_to_dataframe()`
 
 **Integration test:** Run a minimal event stream (3 proposals, 10 votes each) through the full cadCAD pipeline and verify the output DataFrame has the expected columns.
 
 ### Phase 3: Metrics (depends on Phase 2)
 
-12. `backtesting/metrics/concentration.py` — `gini_coefficient()`, `enp()`
-13. `backtesting/metrics/timing.py` — `time_to_quorum()`, `vote_arrival_distribution()`
-14. `backtesting/metrics/flips.py` — `outcome_flip_rate()` (requires both tallies from Phase 2)
-15. `backtesting/metrics/sensitivity.py` — `sensitivity_to_lock_curve()` (requires sweep results)
-16. `backtesting/metrics/__init__.py` — `compute_all_metrics()` orchestrator
+1. `backtesting/metrics/concentration.py` — `gini_coefficient()`, `enp()`
+2. `backtesting/metrics/timing.py` — `time_to_quorum()`, `vote_arrival_distribution()`
+3. `backtesting/metrics/flips.py` — `outcome_flip_rate()` (requires both tallies from Phase 2)
+4. `backtesting/metrics/sensitivity.py` — `sensitivity_to_lock_curve()` (requires sweep results)
+5. `backtesting/metrics/__init__.py` — `compute_all_metrics()` orchestrator
 
 ### Phase 4: Plots (depends on Phase 3)
 
-17. `backtesting/plots/base.py` — shared style, `save_figure()`
-18. `backtesting/plots/power_distribution.py` — Lorenz curve, Gini comparison
-19. `backtesting/plots/tally_comparison.py` — Legacy vs Signals bar chart per proposal
-20. `backtesting/plots/flip_analysis.py` — outcome flip scatter / histogram
-21. `backtesting/plots/parameter_sweep.py` — heatmap, sensitivity curves
-22. `backtesting/plots/timing.py` — vote timing distribution
-23. `backtesting/plots/__init__.py` — `generate_publication_suite()`
+1. `backtesting/plots/base.py` — shared style, `save_figure()`
+2. `backtesting/plots/power_distribution.py` — Lorenz curve, Gini comparison
+3. `backtesting/plots/tally_comparison.py` — Legacy vs Signals bar chart per proposal
+4. `backtesting/plots/flip_analysis.py` — outcome flip scatter / histogram
+5. `backtesting/plots/parameter_sweep.py` — heatmap, sensitivity curves
+6. `backtesting/plots/timing.py` — vote timing distribution
+7. `backtesting/plots/__init__.py` — `generate_publication_suite()`
 
 ### Phase 5: Orchestration + Config Registration
 
-24. `backtesting/pipeline.py` — `BacktestPipeline`, `BacktestResult`
-25. `backtesting/__init__.py` — public exports
-26. `pyproject.toml` — add `"src/backtesting"` to build packages
+1. `backtesting/pipeline.py` — `BacktestPipeline`, `BacktestResult`
+2. `backtesting/__init__.py` — public exports
+3. `pyproject.toml` — add `"src/backtesting"` to build packages
 
 ---
 

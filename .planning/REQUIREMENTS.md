@@ -156,6 +156,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | PIPE-03 | Phase 7 | Pending |
 
 **Coverage:**
+
 - v2.0 requirements: 46 total
 - Mapped to phases: 46
 - Unmapped: 0 ✓

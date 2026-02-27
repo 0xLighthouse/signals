@@ -13,6 +13,7 @@ Produce credible, quantitative evidence that commitment-weighted voting improves
 **Goal:** Build a complete simulation + analysis pipeline: synthetic data → cadCAD replay → Signals weighting → metrics → publication-grade plots.
 
 **Target features:**
+
 - Synthetic Governor-compatible data generation
 - Event-based cadCAD replay simulation with Signals weighting
 - Legacy vs Signals tally comparison
