@@ -13,4 +13,4 @@ watchPatterns = [
 [deploy]
 startCommand = "node scripts/prune-schemas.mjs && pnpm start --schema deploy_$(date -u +%y%m%d_%H%M%S) --views-schema indexer"
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 5
+restartPolicyMaxRetries = 10
