@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { openSauce } from './fonts'
+import { apercu, openSauce } from './fonts'
 
 import './globals.css'
 
@@ -49,7 +49,7 @@ export default async function RootLayout({
   ) satisfies ChainKey
 
   return (
-    <html lang="en" className={`theme ${openSauce.variable}`}>
+    <html lang="en" className={`theme ${apercu.variable}`}>
       <body>
         <p>
           Prölss’s publication <em>Schriften für Architekten</em> (1957) [1] inspired a study of
