@@ -111,7 +111,7 @@
 | 6. Plots | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
-| 9. Monte Carlo Allocation Modeling | v3.0 | 0/2 | Not started | - |
+| 9. Monte Carlo Allocation Modeling | 1/2 | In Progress|  | - |
 | 10. Sweep Runner | v3.0 | 0/TBD | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |

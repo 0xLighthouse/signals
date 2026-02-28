@@ -19,11 +19,11 @@ Research annotations (italicized) justify decisions for future reference.
 
 ### Monte Carlo Allocation
 
-- [ ] **MCAL-01**: Replace fixed allocation strategies with `rng.beta(a, b)` distribution draws parameterized by `AllocationDistribution` *(Research: Beta distribution bounded [0,1], shape-tunable — STACK.md)*
+- [x] **MCAL-01**: Replace fixed allocation strategies with `rng.beta(a, b)` distribution draws parameterized by `AllocationDistribution` *(Research: Beta distribution bounded [0,1], shape-tunable — STACK.md)*
 - [ ] **MCAL-02**: Use `np.random.SeedSequence(base_seed).spawn(n_samples)` for independent MC generators *(Research: P2 — calling default_rng(seed) N times produces N identical sequences — PITFALLS.md)*
-- [ ] **MCAL-03**: `generate_scenario()` accepts optional `mc_dist` parameter for allocation distribution (backward compatible)
+- [x] **MCAL-03**: `generate_scenario()` accepts optional `mc_dist` parameter for allocation distribution (backward compatible)
 - [ ] **MCAL-04**: MC runner produces N independent samples per configuration with distinct seeds
-- [ ] **MCAL-05**: Expose `early_frac`/`mid_frac` vote-timing parameters through `generate_scenario()` *(Research: currently hidden in `_generate_vote_timing` — FEATURES.md)*
+- [x] **MCAL-05**: Expose `early_frac`/`mid_frac` vote-timing parameters through `generate_scenario()` *(Research: currently hidden in `_generate_vote_timing` — FEATURES.md)*
 
 > **v3.1 expansion notes:** QMC via `scipy.stats.qmc.Sobol`/`Halton` for variance reduction at same sample count; convergence diagnostics (running mean/std to detect when N is sufficient); per-proposal timing variation via `rng.dirichlet()`.
 
@@ -93,11 +93,11 @@ Research annotations (italicized) justify decisions for future reference.
 | BUDG-04 | Phase 8 | Complete |
 | BUDG-05 | Phase 8 | Complete |
 | BUDG-06 | Phase 8 | Complete |
-| MCAL-01 | Phase 9 | Pending |
+| MCAL-01 | Phase 9 | Complete |
 | MCAL-02 | Phase 9 | Pending |
-| MCAL-03 | Phase 9 | Pending |
+| MCAL-03 | Phase 9 | Complete |
 | MCAL-04 | Phase 9 | Pending |
-| MCAL-05 | Phase 9 | Pending |
+| MCAL-05 | Phase 9 | Complete |
 | SWEP-01 | Phase 10 | Pending |
 | SWEP-02 | Phase 10 | Pending |
 | SWEP-03 | Phase 10 | Pending |

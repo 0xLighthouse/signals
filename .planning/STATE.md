@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T00:32:56.482Z"
+last_updated: "2026-02-28T01:17:24.764Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** v3.0 Phase 8 — Foundation Fixes & Budget Promotion
+**Current focus:** v3.0 Phase 9 — Monte Carlo Allocation Modeling
 
 ## Current Position
 
-Phase: 8 of 12 (Foundation Fixes & Budget Promotion)
-Plan: 03 complete (phase complete)
-Status: Phase complete
-Last activity: 2026-02-28 — Completed 08-03: curve_type threading through factory, runner, SUFs, metrics, pipeline
+Phase: 9 of 12 (Monte Carlo Allocation Modeling)
+Plan: 01 complete (plan 1 of 2)
+Status: In Progress
+Last activity: 2026-02-28 — Completed 09-01: VoteTimingConfig + mc_dist/vote_timing params in generate_scenario()
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [█░░░░░░░░░] 8%
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [█░░░░░░░░░] 5%
 *Updated after each plan completion*
 | Phase 08-foundation-fixes-budget-promotion P02 | 2 | 2 tasks | 4 files |
 | Phase 08-foundation-fixes-budget-promotion P03 | 4 | 3 tasks | 6 files |
+| Phase 09-monte-carlo-allocation-modeling P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,8 @@ Recent decisions affecting current work:
 - [Phase 08-foundation-fixes-budget-promotion]: AllocationDistribution ABC with BetaDistribution/UniformDistribution/TruncnormDistribution uses dataclass+__post_init__ for validated construction
 - [08-03]: curve_type validated at generate_scenario() boundary only — 'exp' excluded from ScenarioCurveType per Phase 8 restriction even though weighting/signals.py supports it
 - [08-03]: curve_type passes through cadCAD M dict (not initial_state) — M dict is the correct parameter carrier in cadCAD for per-run parameters
+- [Phase 09-monte-carlo-allocation-modeling]: alloc_frac drawn once per scenario via SeedSequence.spawn(2) two-RNG split — mc_dist=None path bit-identical to v2.0
+- [Phase 09-monte-carlo-allocation-modeling]: VoteTimingConfig placed in factory.py not budget.py — keeps budget.py a leaf module
 
 ### Pending Todos
 
@@ -74,5 +77,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 08-03-PLAN.md — curve_type threading through factory, runner, SUFs, metrics, and pipeline
-Resume action: Run `/gsd:execute-phase 9` for next phase (09-monte-carlo-sweep)
+Stopped at: Completed 09-01-PLAN.md — VoteTimingConfig and mc_dist/vote_timing params wired into generate_scenario()
+Resume action: Continue phase 9 with plan 02 (sweep runner)
