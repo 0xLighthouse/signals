@@ -350,7 +350,8 @@ class TestBudgetAllocation:
 
     def test_zero_balance_voters_skipped(self):
         """With aggressive allocation, individual vote weights never exceed available balance."""
-        from backtesting.data.factory import _generate_stakes, _VoterLedger, BLOCKS_PER_DAY
+        from backtesting.data.factory import _generate_stakes, BLOCKS_PER_DAY
+        from backtesting.data.budget import VoterLedger
 
         events = generate_scenario(
             n_voters=200, n_proposals=30, seed=42,
@@ -364,8 +365,8 @@ class TestBudgetAllocation:
         stakes = _generate_stakes(200, 1_000_000.0, 'pareto', 0.7, rng)
         voters = [f'0x{i:040x}' for i in range(200)]
         stake_map = dict(zip(voters, (float(s) for s in stakes)))
-        ledgers: dict[str, _VoterLedger] = {
-            v: _VoterLedger(total_stake=stake_map[v]) for v in voters
+        ledgers: dict[str, VoterLedger] = {
+            v: VoterLedger(total_stake=stake_map[v]) for v in voters
         }
 
         for e in vote_events:

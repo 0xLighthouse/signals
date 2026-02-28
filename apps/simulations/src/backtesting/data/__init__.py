@@ -2,6 +2,15 @@
 backtesting.data — Governor-compatible event schema, synthetic factory, and data loaders.
 """
 
+from backtesting.data.budget import (
+    AllocationDistribution,
+    BetaDistribution,
+    LockEntry,
+    TruncnormDistribution,
+    UniformDistribution,
+    VoterLedger,
+    compute_allocation_fraction,
+)
 from backtesting.data.factory import (
     AllocationStrategy,
     LockProfile,
@@ -43,4 +52,12 @@ __all__ = [
     'ParquetLoader',
     'events_to_dataframe',
     'validate_event_stream',
+    # Budget
+    'VoterLedger',
+    'LockEntry',
+    'AllocationDistribution',
+    'BetaDistribution',
+    'UniformDistribution',
+    'TruncnormDistribution',
+    'compute_allocation_fraction',
 ]
