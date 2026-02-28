@@ -32,7 +32,7 @@
 **Milestone Goal:** Build a dedicated parameter sweep engine with Monte Carlo allocation modeling, formalize budget/lock mechanics, and produce deep governance analysis with a structured heatmap report bundle.
 
 - [x] **Phase 8: Foundation Fixes & Budget Promotion** - Fix NaN bugs, promote budget module, thread curve_type (completed 2026-02-28)
-- [ ] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws
+- [x] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws (completed 2026-02-28)
 - [ ] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management
 - [ ] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
@@ -73,7 +73,9 @@
   2. Memory usage does not accumulate unboundedly — raw cadCAD results are released after each config's metrics are computed
   3. Sweep execution shows a tqdm progress bar indicating cells completed out of total
   4. Sweep grid parameters (curve types, alpha values, lock profiles) are configurable via TOML without code changes
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 10-01-PLAN.md — SweepConfig/SweepCell/SweepResult dataclasses, cartesian grid enumeration, TOML config loading
+- [ ] 10-02-PLAN.md — run_sweep() with ProcessPoolExecutor parallelism, tqdm progress, memory management
 
 ### Phase 11: Extended Analysis
 **Goal**: The simulation produces deep governance statistics — proposal flip breakdowns by margin class, per-voter influence shifts with a proper counterfactual baseline, 2D timing sensitivity, voter archetypes, and statistical significance tests — all operating on `SweepResult` output
@@ -111,7 +113,7 @@
 | 6. Plots | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
-| 9. Monte Carlo Allocation Modeling | 1/2 | In Progress|  | - |
-| 10. Sweep Runner | v3.0 | 0/TBD | Not started | - |
+| 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
+| 10. Sweep Runner | v3.0 | 0/2 | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
