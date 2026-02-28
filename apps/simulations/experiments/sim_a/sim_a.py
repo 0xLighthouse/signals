@@ -8,7 +8,7 @@ metrics.
 
 Usage:
     cd apps/simulations
-    uv run python src/figs/sim_a.py
+    uv run python experiments/sim_a/sim_a.py
 """
 import warnings
 import os
