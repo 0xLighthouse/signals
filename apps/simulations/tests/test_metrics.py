@@ -111,9 +111,9 @@ def test_enp(metrics_results_df):
 
     # ENP >= 1 when votes exist (single voter has ENP = 1)
     for pid, enp_val in result.legacy.items():
-        assert enp_val >= 1.0, f"legacy ENP[{pid}] = {enp_val} < 1.0"
+        assert math.isnan(enp_val) or enp_val >= 1.0, f"legacy ENP[{pid}] = {enp_val} < 1.0"
     for pid, enp_val in result.signals.items():
-        assert enp_val >= 1.0, f"signals ENP[{pid}] = {enp_val} < 1.0"
+        assert math.isnan(enp_val) or enp_val >= 1.0, f"signals ENP[{pid}] = {enp_val} < 1.0"
 
     vote_df = metrics_results_df[metrics_results_df['event_type'] == 'VOTE_CAST']
     n_proposals = vote_df['proposal_id'].nunique()
@@ -357,3 +357,28 @@ def test_tie_is_fail():
     # Tie = Fail in both regimes: should be in FF cell
     assert ff == 1
     assert pp + pf + fp == 0
+
+
+# ---------------------------------------------------------------------------
+# NaN-for-degenerate-inputs regression tests (BUDG-02, BUDG-03)
+# ---------------------------------------------------------------------------
+
+def test_gini_zero_sum_returns_nan():
+    """BUDG-02: _gini() returns np.nan for zero-sum arrays."""
+    from backtesting.metrics import _gini
+    result = _gini(np.array([0.0, 0.0, 0.0]))
+    assert math.isnan(result), f'Expected nan for zero-sum, got {result}'
+
+
+def test_gini_empty_array_returns_nan():
+    """BUDG-02: _gini() returns np.nan for empty arrays."""
+    from backtesting.metrics import _gini
+    result = _gini(np.array([]))
+    assert math.isnan(result), f'Expected nan for empty, got {result}'
+
+
+def test_enp_zero_weight_returns_nan():
+    """BUDG-03: _enp() returns np.nan for zero-weight arrays."""
+    from backtesting.metrics import _enp
+    result = _enp(np.array([0.0, 0.0, 0.0]))
+    assert math.isnan(result), f'Expected nan for zero-weight, got {result}'
