@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T15:48:23.488Z"
+last_updated: "2026-02-28T16:16:22.086Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** v3.0 Phase 11.1 — Vote Timing Sweep Wiring
+**Current focus:** v3.0 Phase 12 — Report Bundle
 
 ## Current Position
 
-Phase: 11.1 of 12 (Vote Timing Sweep Wiring)
-Plan: 01 complete (plan 1 of 1) — Phase 11.1 Complete
+Phase: 12 of 12 (Report Bundle)
+Plan: 01 complete (plan 1 of N) — generate_sweep_report orchestrator with heatmaps and CSV/JSON exports
 Status: In Progress
-Last activity: 2026-02-28 — Completed 11.1-01: VoteTimingConfig wired through sweep engine as cartesian axis (MCAL-05)
+Last activity: 2026-02-28 — Completed 12-01: report.py core module with generate_sweep_report, heatmaps, exports (REPT-01/02/03/04/07/08)
 
-Progress: [██████████] 100%
+Progress: [██████████] ~85%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100%
 | Phase 11-extended-analysis P01 | 2 | 2 tasks | 2 files |
 | Phase 11-extended-analysis P02 | 4 | 2 tasks | 2 files |
 | Phase 11.1-vote-timing-sweep-wiring P01 | 5 | 2 tasks | 3 files |
+| Phase 12-report-bundle P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 11-extended-analysis P02]: timing_sensitivity uses observed=True in pivot_table to suppress pandas 2.x FutureWarning for categorical axes
 - [Phase 11.1-vote-timing-sweep-wiring]: VoteTimingConfig imported at module level in sweep.py — factory.py is a leaf module with no circular dependency risk
 - [Phase 11.1-vote-timing-sweep-wiring]: vote_timings uses [None] sentinel in itertools.product (same pattern as mc_dists) — prevents TypeError from passing None to itertools.product
+- [Phase 12-report-bundle P01]: _nan_to_none_extended casts np.integer to int() — np.int64 is NOT a Python int subclass and causes json.dumps() TypeError without this cast
+- [Phase 12-report-bundle P01]: origin='lower' is mandatory for heatmaps — default 'upper' inverts the row axis visually
 
 ### Pending Todos
 
@@ -100,5 +103,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 11.1-01-PLAN.md — vote_timing wiring through sweep engine (MCAL-05)
-Resume action: Phase 11.1 complete — VoteTimingConfig wired as cartesian sweep axis. Proceed to next phase.
+Stopped at: Completed 12-01-PLAN.md — report.py core module (REPT-01/02/03/04/07/08)
+Resume action: Phase 12 Plan 01 complete — report.py with generate_sweep_report, heatmaps, CSV/JSON exports. Proceed to Plan 02 (composite figures, detail plots).
