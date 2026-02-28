@@ -29,13 +29,13 @@ Research annotations (italicized) justify decisions for future reference.
 
 ### Parameter Sweep Engine
 
-- [ ] **SWEP-01**: `SweepConfig` dataclass defining grid axes: curve_type, alpha, lock_profile, allocation_strategy
-- [ ] **SWEP-02**: Dedicated `sweep.py` runner using `itertools.product` for cartesian grid enumeration *(Research: cadCAD M-param zips element-wise, not factorial — PITFALLS.md P3)*
+- [x] **SWEP-01**: `SweepConfig` dataclass defining grid axes: curve_type, alpha, lock_profile, allocation_strategy
+- [x] **SWEP-02**: Dedicated `sweep.py` runner using `itertools.product` for cartesian grid enumeration *(Research: cadCAD M-param zips element-wise, not factorial — PITFALLS.md P3)*
 - [ ] **SWEP-03**: `ProcessPoolExecutor` parallelism across sweep cells *(Research: ~192 cells, stdlib sufficient — STACK.md)*
 - [ ] **SWEP-04**: Memory management: compute metrics per-cell and release cadCAD raw results *(Research: P1 — 500MB+ accumulation without cleanup — PITFALLS.md)*
-- [ ] **SWEP-05**: `SweepResult` with summary DataFrame (one row per config, columns = metrics)
+- [x] **SWEP-05**: `SweepResult` with summary DataFrame (one row per config, columns = metrics)
 - [ ] **SWEP-06**: tqdm progress reporting during sweep execution
-- [ ] **SWEP-07**: TOML configuration for sweep grid parameters
+- [x] **SWEP-07**: TOML configuration for sweep grid parameters
 
 ### Extended Analysis
 
@@ -98,13 +98,13 @@ Research annotations (italicized) justify decisions for future reference.
 | MCAL-03 | Phase 9 | Complete |
 | MCAL-04 | Phase 9 | Complete |
 | MCAL-05 | Phase 9 | Complete |
-| SWEP-01 | Phase 10 | Pending |
-| SWEP-02 | Phase 10 | Pending |
+| SWEP-01 | Phase 10 | Complete |
+| SWEP-02 | Phase 10 | Complete |
 | SWEP-03 | Phase 10 | Pending |
 | SWEP-04 | Phase 10 | Pending |
-| SWEP-05 | Phase 10 | Pending |
+| SWEP-05 | Phase 10 | Complete |
 | SWEP-06 | Phase 10 | Pending |
-| SWEP-07 | Phase 10 | Pending |
+| SWEP-07 | Phase 10 | Complete |
 | ANAL-01 | Phase 11 | Pending |
 | ANAL-02 | Phase 11 | Pending |
 | ANAL-03 | Phase 11 | Pending |
