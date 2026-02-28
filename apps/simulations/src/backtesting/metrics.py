@@ -75,12 +75,13 @@ def _get_final_tallies(results_df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _add_signals_weight_column(vote_df: pd.DataFrame) -> pd.DataFrame:
+def _add_signals_weight_column(vote_df: pd.DataFrame, curve_type: str = 'sqrt') -> pd.DataFrame:
     """Return a copy of vote_df with a new `signals_w` column computed per row."""
     vote_df = vote_df.copy()
     vote_df['signals_w'] = np.vectorize(_compute_signals_weight)(
         vote_df['weight'].values,
         vote_df['lock_duration_days'].fillna(0.0).values,
+        curve_type,
     )
     return vote_df
 
@@ -246,7 +247,7 @@ def compute_flip_rate(results_df: pd.DataFrame) -> FlipRateResult:
     return FlipRateResult(per_proposal=per_proposal, aggregate=aggregate)
 
 
-def compute_gini(results_df: pd.DataFrame) -> GiniResult:
+def compute_gini(results_df: pd.DataFrame, curve_type: str = 'sqrt') -> GiniResult:
     """
     METR-02: Gini coefficient of voting power for participating voters.
 
@@ -254,7 +255,7 @@ def compute_gini(results_df: pd.DataFrame) -> GiniResult:
     weighted stake). Only voters who actually cast a vote are included.
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST'].copy()
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
     legacy_gini = _gini(vote_df['weight'].values)
     signals_gini = _gini(vote_df['signals_w'].values)
     return GiniResult(legacy=legacy_gini, signals=signals_gini)
@@ -277,7 +278,7 @@ def compute_participation_rate(results_df: pd.DataFrame) -> ParticipationResult:
     return ParticipationResult(per_proposal=per_proposal, aggregate=aggregate)
 
 
-def compute_enp(results_df: pd.DataFrame) -> ENPResult:
+def compute_enp(results_df: pd.DataFrame, curve_type: str = 'sqrt') -> ENPResult:
     """
     METR-04: Effective Number of Parties per proposal.
 
@@ -286,7 +287,7 @@ def compute_enp(results_df: pd.DataFrame) -> ENPResult:
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST']
     vote_df = vote_df[vote_df['support'].isin(['FOR', 'AGAINST'])]
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
 
     legacy: dict[str, float] = {}
     signals: dict[str, float] = {}
@@ -296,7 +297,7 @@ def compute_enp(results_df: pd.DataFrame) -> ENPResult:
     return ENPResult(legacy=legacy, signals=signals)
 
 
-def compute_nakamoto_coefficient(results_df: pd.DataFrame) -> NakamotoResult:
+def compute_nakamoto_coefficient(results_df: pd.DataFrame, curve_type: str = 'sqrt') -> NakamotoResult:
     """
     METR-05: Nakamoto coefficient per proposal.
 
@@ -306,7 +307,7 @@ def compute_nakamoto_coefficient(results_df: pd.DataFrame) -> NakamotoResult:
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST']
     vote_df = vote_df[vote_df['support'].isin(['FOR', 'AGAINST'])]
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
 
     legacy: dict[str, int] = {}
     signals: dict[str, int] = {}
@@ -378,6 +379,7 @@ def compute_transition_matrix(results_df: pd.DataFrame) -> TransitionMatrix:
 def compute_late_vote_share(
     results_df: pd.DataFrame,
     windows_df: pd.DataFrame,
+    curve_type: str = 'sqrt',
 ) -> LateVoteShareResult:
     """
     METR-08: Fraction of total voting weight cast in the final third of the
@@ -388,7 +390,7 @@ def compute_late_vote_share(
     period divided by total weight for that proposal.
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST'].copy()
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
     vote_df = _merge_windows(vote_df, windows_df)
 
     vote_df['late_threshold'] = (
@@ -412,6 +414,7 @@ def compute_late_vote_share(
 def compute_lockin_timing(
     results_df: pd.DataFrame,
     windows_df: pd.DataFrame,
+    curve_type: str = 'sqrt',
 ) -> LockinTimingResult:
     """
     METR-09: Fraction of voting window elapsed when outcome was mathematically
@@ -421,7 +424,7 @@ def compute_lockin_timing(
     NaN if the proposal had no votes.
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST'].copy()
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
     vote_df = _merge_windows(vote_df, windows_df)
 
     legacy: dict[str, float] = {}
@@ -433,7 +436,7 @@ def compute_lockin_timing(
     return LockinTimingResult(legacy=legacy, signals=signals)
 
 
-def compute_top_k_concentration(results_df: pd.DataFrame) -> TopKConcentrationResult:
+def compute_top_k_concentration(results_df: pd.DataFrame, curve_type: str = 'sqrt') -> TopKConcentrationResult:
     """
     METR-10: Top-k voting power concentration per proposal.
 
@@ -443,7 +446,7 @@ def compute_top_k_concentration(results_df: pd.DataFrame) -> TopKConcentrationRe
     """
     vote_df = results_df[results_df['event_type'] == 'VOTE_CAST']
     vote_df = vote_df[vote_df['support'].isin(['FOR', 'AGAINST'])]
-    vote_df = _add_signals_weight_column(vote_df)
+    vote_df = _add_signals_weight_column(vote_df, curve_type)
 
     legacy: dict[int, dict[str, float]] = {k: {} for k in K_VALUES}
     signals: dict[int, dict[str, float]] = {k: {} for k in K_VALUES}
