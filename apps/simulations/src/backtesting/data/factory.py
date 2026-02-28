@@ -19,6 +19,9 @@ from typing import Literal
 
 import numpy as np
 
+ScenarioCurveType = Literal['sqrt', 'log', 'linear']
+_VALID_CURVE_TYPES: tuple[str, ...] = ('sqrt', 'log', 'linear')
+
 from backtesting.data.budget import (
     AllocationStrategy,
     LockEntry,
@@ -212,6 +215,7 @@ def generate_scenario(
     budget_enabled: bool = True,
     allocation_strategy: AllocationStrategy = 'uniform_fraction',
     blocks_per_day: int = BLOCKS_PER_DAY,
+    curve_type: ScenarioCurveType = 'sqrt',
 ) -> list[GovernorEvent]:
     """
     Generate a synthetic Governor-compatible event stream.
@@ -246,6 +250,9 @@ def generate_scenario(
         'conviction_weighted' (scales with lock duration), or 'aggressive' (60-100%).
     blocks_per_day : int
         Blocks per day for lock duration conversion (default 7200 for L2).
+    curve_type : ScenarioCurveType
+        Lock curve shape used by the simulation: 'sqrt', 'log', or 'linear'.
+        'exp' is not supported at scenario level. Default 'sqrt' (backward-compatible).
 
     Returns
     -------
@@ -253,6 +260,12 @@ def generate_scenario(
         Events sorted by block_number. Contains ProposalCreatedEvent,
         VoteCastEvent, and ProposalFinalizedEvent objects.
     """
+    if curve_type not in _VALID_CURVE_TYPES:
+        raise ValueError(
+            f'curve_type={curve_type!r} is invalid. '
+            f'Must be one of: {_VALID_CURVE_TYPES}'
+        )
+
     if n_voters < 100 and stake_profile == 'pareto':
         warnings.warn(
             f'n_voters={n_voters} < 100 with stake_profile=pareto: '

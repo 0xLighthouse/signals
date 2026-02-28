@@ -23,13 +23,15 @@ def _to_dict(event: Any) -> dict:
     return {k: (v.value if hasattr(v, 'value') else v) for k, v in event.model_dump().items()}
 
 
-def run_backtest(event_records: list) -> list[dict]:
+def run_backtest(event_records: list, curve_type: str = 'sqrt') -> list[dict]:
     """Run a cadCAD event-replay simulation over the given event records.
 
     Args:
         event_records: List of event dicts (or Pydantic GovernorEvent objects)
             with fields: event_type, proposal_id, block_number, voter, support,
             weight, lock_duration_days.
+        curve_type: Lock curve shape for signals weight computation.
+            One of 'sqrt', 'log', 'linear'. Default 'sqrt' (backward-compatible).
 
     Returns:
         raw_result: List of N+1 state dicts.
@@ -46,7 +48,10 @@ def run_backtest(event_records: list) -> list[dict]:
         sim_config=config_sim({
             'T': range(n_events),
             'N': 1,
-            'M': {'event_stream': tuple(event_records)},  # CRITICAL: tuple, not list
+            'M': {
+                'event_stream': tuple(event_records),  # CRITICAL: tuple, not list
+                'curve_type': curve_type,
+            },
         }),
         user_id='backtesting',
         model_id='governor-replay',
