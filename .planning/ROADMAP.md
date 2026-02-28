@@ -151,4 +151,4 @@
 | 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
 | 11. Extended Analysis | 2/2 | Complete    | 2026-02-28 | - |
 | 11.1 Wire vote_timing Through Sweep | 1/1 | Complete    | 2026-02-28 | - |
-| 12. Report Bundle | 2/2 | Complete   | 2026-02-28 | - |
+| 12. Report Bundle | 2/2 | Complete    | 2026-02-28 | - |
