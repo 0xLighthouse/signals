@@ -1,12 +1,16 @@
 """
-Tests for backtesting.sweep data model and configuration layer.
+Tests for backtesting.sweep data model, configuration layer, and execution engine.
 
 Requirement traces:
 - test_swep01: SWEP-01 — cartesian product enumeration
 - test_swep02: SWEP-02 — cartesian not zip
+- test_swep03: SWEP-03 — parallel execution via ProcessPoolExecutor
+- test_swep04: SWEP-04 — memory release after each cell
 - test_swep05: SWEP-05 — SweepResult summary_df shape
+- test_swep06: SWEP-06 — tqdm progress bar
 - test_swep07: SWEP-07 — TOML config loading
 """
+import inspect
 import pathlib
 
 import pandas as pd
@@ -17,7 +21,9 @@ from backtesting.sweep import (
     SweepCell,
     SweepResult,
     _enumerate_cells,
+    _run_cell,
     load_sweep_config,
+    run_sweep,
 )
 
 
@@ -193,3 +199,116 @@ long = 365
 
     with pytest.raises(KeyError):
         load_sweep_config(toml_path)
+
+
+# ---------------------------------------------------------------------------
+# SWEP-03: Parallel execution via ProcessPoolExecutor (integration tests)
+# ---------------------------------------------------------------------------
+
+
+def test_swep03_parallel_execution(tmp_path: pathlib.Path):
+    """SWEP-03: run_sweep() executes a single cell successfully via ProcessPoolExecutor.
+
+    Integration test — runs actual simulation with small n_voters=20 and n_proposals=3.
+    """
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[0.5],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        base={'n_voters': 20, 'n_proposals': 3, 'seed': 42},
+    )
+    result = run_sweep(config, output_dir=str(tmp_path))
+
+    # One row in summary_df — one cell in grid
+    assert len(result.summary_df) == 1, (
+        f'Expected 1 row, got {len(result.summary_df)}'
+    )
+    # No failures
+    assert result.failed_cells == [], (
+        f'Expected no failed cells, got {result.failed_cells}'
+    )
+    # Cell not marked failed
+    assert result.summary_df['failed'].iloc[0] == False, (
+        f"Expected failed=False, got {result.summary_df['failed'].iloc[0]}"
+    )
+    # Metrics were computed (flip_rate is not NaN)
+    assert result.summary_df['flip_rate'].notna().all(), (
+        f"Expected flip_rate to be non-NaN: {result.summary_df['flip_rate'].tolist()}"
+    )
+
+    # Auto-export files exist
+    out = pathlib.Path(result.output_dir)
+    assert (out / 'summary.csv').exists(), f'summary.csv missing from {out}'
+    assert (out / 'config.json').exists(), f'config.json missing from {out}'
+
+
+def test_swep03_multi_cell_sweep(tmp_path: pathlib.Path):
+    """SWEP-03: run_sweep() produces exactly 12 rows for 2x3x1x2 grid.
+
+    Integration test — runs actual simulations with small n_voters=20 and n_proposals=3.
+    Validates SWEP-01 end-to-end: '2 curve types, 3 alpha values, and 2 allocation
+    strategies produces exactly 12 result rows.'
+    """
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[0.5, 1.0, 2.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction', 'conviction_weighted'],
+        max_workers=2,
+        base={'n_voters': 20, 'n_proposals': 3, 'seed': 42},
+    )
+    result = run_sweep(config, output_dir=str(tmp_path))
+
+    # Exactly 12 cells from 2*3*1*2 cartesian product
+    assert len(result.summary_df) == 12, (
+        f'Expected 12 rows, got {len(result.summary_df)}'
+    )
+
+    # All expected metric columns are present
+    expected_cols = {
+        'cell_id', 'curve_type', 'alpha', 'lock_profile_short', 'lock_profile_long',
+        'allocation_strategy', 'flip_rate', 'gini_legacy', 'gini_signals',
+        'participation_rate', 'margin_shift_mean', 'margin_shift_std',
+        'enp_legacy_mean', 'enp_signals_mean', 'nakamoto_legacy_mean',
+        'nakamoto_signals_mean', 'failed',
+    }
+    actual_cols = set(result.summary_df.columns)
+    missing_cols = expected_cols - actual_cols
+    assert not missing_cols, f'Missing columns: {missing_cols}'
+
+
+# ---------------------------------------------------------------------------
+# SWEP-04: Memory release after each cell
+# ---------------------------------------------------------------------------
+
+
+def test_swep04_memory_release():
+    """SWEP-04: _run_cell() contains del raw and gc.collect() for memory management.
+
+    Static source inspection — dynamic memory profiling is fragile in CI.
+    """
+    src = inspect.getsource(_run_cell)
+    assert 'del raw' in src, (
+        '_run_cell() must contain "del raw" for memory management (SWEP-04)'
+    )
+    assert 'gc.collect()' in src, (
+        '_run_cell() must contain "gc.collect()" for memory management (SWEP-04)'
+    )
+
+
+# ---------------------------------------------------------------------------
+# SWEP-06: tqdm progress bar
+# ---------------------------------------------------------------------------
+
+
+def test_swep06_tqdm_progress():
+    """SWEP-06: run_sweep() uses tqdm for progress reporting.
+
+    Static source inspection verifies tqdm is used in the orchestrator.
+    """
+    src = inspect.getsource(run_sweep)
+    assert 'tqdm(' in src, (
+        'run_sweep() must use tqdm() for progress reporting (SWEP-06)'
+    )
