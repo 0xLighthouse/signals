@@ -130,7 +130,9 @@
   3. Full sweep results are exported as both `results.csv` (all rows, all metric columns) and `summary.json` (NaN-safe, no float NaN in JSON output)
   4. A multi-panel composite figure combining heatmaps, flip breakdown, and timing sensitivity exists as a single saved file
   5. Per-config detail plots are generated for the best and worst N configurations by a configurable metric
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 12-01-PLAN.md — Core report module: generate_sweep_report orchestrator, heatmaps (origin='lower', annotated), CSV/JSON export, directory structure
+- [ ] 12-02-PLAN.md — Per-config detail plots (best/worst N) and multi-panel composite figure
 
 ## Progress
 
