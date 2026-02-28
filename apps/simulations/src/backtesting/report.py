@@ -27,7 +27,7 @@ from matplotlib.figure import Figure   # noqa: E402
 
 from backtesting.sweep import SweepResult  # noqa: E402
 
-__all__ = ['generate_sweep_report', 'ReportResult']
+__all__ = ['generate_sweep_report', 'ReportResult', '_plot_cell_detail', '_build_composite']
 
 # ---------------------------------------------------------------------------
 # Dataclass
@@ -245,6 +245,161 @@ def _build_summary_dict(df: pd.DataFrame) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Per-config detail plot — REPT-06
+# ---------------------------------------------------------------------------
+
+_DETAIL_METRICS: list[str] = [
+    'flip_rate',
+    'gini_legacy',
+    'gini_signals',
+    'participation_rate',
+    'enp_legacy_mean',
+    'enp_signals_mean',
+    'nakamoto_legacy_mean',
+    'nakamoto_signals_mean',
+    'margin_shift_mean',
+]
+
+_ORANGE = '#FF9800'
+
+
+def _plot_cell_detail(row: pd.Series, title: str) -> Figure:
+    """Plot a bar chart showing all metric values for a single sweep cell.
+
+    NaN metric values are replaced with 0.0 for bar height. Uses ORANGE bars
+    and rotates x-axis labels 45 degrees for readability.
+
+    Args:
+        row: A single row from summary_df with metric columns.
+        title: Title identifying the cell (e.g. "Best #1 — cell 7 (sqrt, alpha=0.5)").
+
+    Returns:
+        Figure with the bar chart.
+    """
+    # Collect metric values from the row, replacing NaN with 0.0
+    labels: list[str] = []
+    values: list[float] = []
+    for metric in _DETAIL_METRICS:
+        if metric not in row.index:
+            continue
+        val = row[metric]
+        labels.append(metric)
+        values.append(0.0 if (isinstance(val, float) and math.isnan(val)) or
+                      (isinstance(val, np.floating) and np.isnan(val)) else float(val))
+
+    fig = Figure(figsize=(10, 5))
+    ax = fig.add_subplot(1, 1, 1)
+
+    x_positions = range(len(labels))
+    ax.bar(x_positions, values, color=_ORANGE)
+
+    ax.set_xticks(list(x_positions))
+    ax.set_xticklabels(labels, rotation=45, ha='right')
+    ax.set_ylabel('Value')
+    ax.set_title(title)
+
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Multi-panel composite figure — REPT-05
+# ---------------------------------------------------------------------------
+
+# The four metrics shown in the composite 2x2 layout
+_COMPOSITE_METRICS: list[tuple[str, str]] = [
+    ('flip_heatmap', 'flip_rate'),
+    ('gini_heatmap', 'gini_legacy'),
+    ('enp_heatmap', 'enp_signals_mean'),
+    ('margin_heatmap', 'margin_shift_mean'),
+]
+
+
+def _build_composite(
+    summary_df: pd.DataFrame,
+    row_axis: str,
+    col_axis: str,
+) -> Figure:
+    """Build a multi-panel composite figure combining key heatmaps.
+
+    Uses Figure.subplot_mosaic for a 2x2 layout. Renders heatmap data
+    directly into each axes (no per-metric Figure allocation). Filters out
+    failed cells before pivoting.
+
+    Args:
+        summary_df: DataFrame with one row per sweep cell.
+        row_axis: Column to use as the heatmap row axis.
+        col_axis: Column to use as the heatmap column axis.
+
+    Returns:
+        Figure with 4 heatmap panels.
+    """
+    layout = [
+        ['flip_heatmap', 'gini_heatmap'],
+        ['enp_heatmap',  'margin_heatmap'],
+    ]
+
+    fig = Figure(figsize=(18, 12))
+    axes_dict = fig.subplot_mosaic(layout)
+
+    df = summary_df[summary_df['failed'] == False].copy()  # noqa: E712
+
+    for panel_key, metric in _COMPOSITE_METRICS:
+        ax = axes_dict[panel_key]
+
+        if metric not in df.columns or row_axis not in df.columns or col_axis not in df.columns:
+            ax.set_title(f'{metric} (no data)')
+            continue
+
+        try:
+            pivot = pd.pivot_table(
+                df,
+                values=metric,
+                index=row_axis,
+                columns=col_axis,
+                aggfunc='mean',
+            )
+        except Exception:
+            ax.set_title(f'{metric} (pivot error)')
+            continue
+
+        data = pivot.values
+        row_labels = list(pivot.index)
+        col_labels = list(pivot.columns)
+
+        cmap = _METRIC_CMAPS.get(metric, 'Blues')
+        im = ax.imshow(data, origin='lower', cmap=cmap, aspect='auto')
+        fig.colorbar(im, ax=ax, label=metric)
+
+        # Annotate cells
+        vmin = np.nanmin(data)
+        vmax = np.nanmax(data)
+        v_range = vmax - vmin if (vmax - vmin) > 0 else 1.0
+        n_rows, n_cols = data.shape
+        for i in range(n_rows):
+            for j in range(n_cols):
+                val = data[i, j]
+                if np.isnan(val):
+                    continue
+                normalized = (val - vmin) / v_range
+                text_color = 'white' if normalized > 0.6 else 'black'
+                ax.text(j, i, f'{val:.3f}', ha='center', va='center',
+                        fontsize=8, color=text_color)
+
+        ax.set_xticks(range(n_cols))
+        ax.set_xticklabels([str(c) for c in col_labels], rotation=45, ha='right')
+        ax.set_yticks(range(n_rows))
+        ax.set_yticklabels([str(r) for r in row_labels])
+        ax.set_xlabel(col_axis)
+        ax.set_ylabel(row_axis)
+        ax.set_title(metric)
+
+    fig.suptitle('Sweep Report Summary', fontsize=16, fontweight='bold')
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Main orchestrator — REPT-08
 # ---------------------------------------------------------------------------
 
@@ -326,10 +481,52 @@ def generate_sweep_report(
             png_path = heatmaps_dir / f'{metric}.png'
             fig.savefig(str(png_path), dpi=300, bbox_inches='tight')
             saved_paths.append(str(png_path))
-            # Explicitly delete Figure to release memory
             del fig
         except Exception:
             # Skip metrics that can't be pivoted (e.g. all NaN after filtering)
+            pass
+
+    # REPT-06: Per-config detail plots for best/worst N configurations
+    if not df.empty:
+        valid_df = df[df['failed'] == False]  # noqa: E712
+        if not valid_df.empty and ranking_metric in valid_df.columns:
+            # Best N configs (highest ranking metric)
+            for rank, (_, row) in enumerate(
+                valid_df.nlargest(best_n, ranking_metric).iterrows(), start=1
+            ):
+                cell_id = int(row['cell_id']) if 'cell_id' in row.index else rank
+                title = f'Best #{rank} — cell {cell_id}'
+                if 'curve_type' in row.index and 'alpha' in row.index:
+                    title += f' ({row["curve_type"]}, alpha={row["alpha"]})'
+                fig = _plot_cell_detail(row, title)
+                png_path = detail_dir / f'best_{rank:02d}_cell_{cell_id}.png'
+                fig.savefig(str(png_path), dpi=300, bbox_inches='tight')
+                saved_paths.append(str(png_path))
+                del fig
+
+            # Worst N configs (lowest ranking metric)
+            for rank, (_, row) in enumerate(
+                valid_df.nsmallest(worst_n, ranking_metric).iterrows(), start=1
+            ):
+                cell_id = int(row['cell_id']) if 'cell_id' in row.index else rank
+                title = f'Worst #{rank} — cell {cell_id}'
+                if 'curve_type' in row.index and 'alpha' in row.index:
+                    title += f' ({row["curve_type"]}, alpha={row["alpha"]})'
+                fig = _plot_cell_detail(row, title)
+                png_path = detail_dir / f'worst_{rank:02d}_cell_{cell_id}.png'
+                fig.savefig(str(png_path), dpi=300, bbox_inches='tight')
+                saved_paths.append(str(png_path))
+                del fig
+
+    # REPT-05: Multi-panel composite figure
+    if not df.empty:
+        try:
+            fig = _build_composite(df, row_axis, col_axis)
+            composite_path = out_dir / 'composite.png'
+            fig.savefig(str(composite_path), dpi=200, bbox_inches='tight')
+            saved_paths.append(str(composite_path))
+            del fig
+        except Exception:
             pass
 
     return ReportResult(
