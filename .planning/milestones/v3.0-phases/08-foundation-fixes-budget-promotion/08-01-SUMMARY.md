@@ -91,6 +91,14 @@ None - no external service configuration required.
 - All 14 test_metrics.py tests pass
 - Phase 10 sweep heatmaps can safely use np.nanmean over ENP/Gini outputs without risk of 0.0 corrupting averages
 
+## Self-Check: PASSED
+
+- FOUND: apps/simulations/src/backtesting/metrics.py
+- FOUND: apps/simulations/tests/test_metrics.py
+- FOUND: .planning/phases/08-foundation-fixes-budget-promotion/08-01-SUMMARY.md
+- FOUND: commit cec4d44 (fix: _gini/_enp NaN returns)
+- FOUND: commit 55d5f7c (test: NaN regression tests)
+
 ---
 *Phase: 08-foundation-fixes-budget-promotion*
 *Completed: 2026-02-28*

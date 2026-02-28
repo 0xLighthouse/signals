@@ -94,6 +94,57 @@
 
 ---
 
+## Milestone: v3.0 — Sweep Engine & Extended Analysis
+
+**Shipped:** 2026-02-28
+**Phases:** 7 (including 2 decimal phases) | **Plans:** 13 | **Sessions:** ~6
+
+### What Was Built
+
+- Public `budget.py` module with AllocationDistribution hierarchy (Beta/truncnorm/uniform)
+- Monte Carlo allocation modeling with SeedSequence-spawned independent generators
+- Dedicated cartesian sweep engine with ProcessPoolExecutor parallelism and memory management
+- 6-function extended analysis module (margin flips, influence, timing sensitivity, archetypes, significance, bootstrap CI)
+- Report bundle: annotated heatmaps, detail plots, composite figure, CSV/JSON export
+
+### What Worked
+
+- NaN-for-degenerate convention established in Phase 8 and enforced consistently through all subsequent phases — prevented silent metric corruption across the entire sweep
+- Decimal phase numbering (10.1, 11.1) cleanly addressed mid-milestone integration gaps without disrupting the phase sequence
+- Phase verification caught all cross-phase wiring issues before they accumulated — integration gaps in 10.1 and 11.1 were caught by audit and resolved promptly
+- budget.py as a leaf module (no backtesting.* imports) prevented circular dependency chains across MC, sweep, and pipeline consumers
+- The [None] sentinel pattern in `_enumerate_cells()` for optional cartesian axes (mc_dists, vote_timings) was clean and reusable
+
+### What Was Inefficient
+
+- `analysis.py` was built as a standalone module (Phase 11) but never wired into `report.py` (Phase 12) — 6 tested functions with zero production callers. The timing_sensitivity/ directory is created but always empty
+- 11.1-01-SUMMARY.md had empty `requirements_completed` frontmatter (same pattern as v2.0's 03-02 SUMMARY) — lesson from v2.0 not applied
+- mc_dists TOML loading was deferred in Phase 10.1 as a scoping decision, but this leaves a gap for TOML-only users
+- Two mid-milestone audits were needed: one after Phase 10 (which spawned 10.1 and 11.1), and the final audit after Phase 12. The first audit added 30+ minutes but was valuable
+
+### Patterns Established
+
+- `_run_cell()` as a module-level function for ProcessPoolExecutor picklability — deferred imports inside the function body
+- `np.nanmean` for all metric aggregation in sweep results (pair with NaN-for-degenerate returns)
+- `_nan_to_none_extended()` handles np.integer, np.floating, and Python float NaN/Inf recursively before JSON serialization
+- `origin='lower'` mandatory for all heatmaps — default 'upper' inverts the y-axis
+- TOML `[[sweep.vote_timings]]` table array pattern for list-of-dataclass config
+
+### Key Lessons
+
+1. When an analysis module is built in one phase and consumed in the next, the consumer phase plan MUST explicitly import and call the analysis functions — don't assume the wiring will happen naturally
+2. Mid-milestone audits are valuable — they catch integration gaps early enough to fix them with targeted decimal phases rather than discovering them at milestone completion
+3. The `requirements_completed` frontmatter gap keeps recurring — this should be enforced by the executor, not left to the plan author
+4. Memory management (`del + gc.collect()`) in the sweep runner was critical — without it, 192-cell sweeps would accumulate 500MB+ of cadCAD raw results
+
+### Cost Observations
+
+- Model mix: ~80% sonnet (executors, verifiers, integration checker), ~20% opus (orchestration, audit, completion)
+- Sessions: ~6 (phase executions + 2 audits + completion)
+- Notable: 7 phases (13 plans) executed in a single day. Decimal phases (10.1, 11.1) added ~20% overhead but prevented integration debt
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -102,6 +153,7 @@
 |-----------|----------|--------|------------|
 | v1.0 | 1 | 1/2 | Initial project setup, quick depth |
 | v2.0 | ~5 | 5/5 | Full pipeline, balanced profile, wave execution |
+| v3.0 | ~6 | 7/7 | Decimal phases for integration gaps, mid-milestone audits |
 
 ### Cumulative Quality
 
@@ -109,8 +161,11 @@
 |-----------|-------|-----------|------------|
 | v1.0 | — | — | — |
 | v2.0 | 147 | 2,621 | 2,398 |
+| v3.0 | 207+ | 5,718 | 4,147 |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Verification should match the scope of work — don't plan separate verify phases for simple tasks (v1.0), but do verify every phase in multi-phase milestones (v2.0)
-2. Pure function architecture + frozen dataclasses = easy testing and composition
+1. Verification should match the scope of work — don't plan separate verify phases for simple tasks (v1.0), but do verify every phase in multi-phase milestones (v2.0, v3.0)
+2. Pure function architecture + frozen dataclasses = easy testing and composition (v2.0, v3.0)
+3. `requirements_completed` frontmatter must be populated by executors — empty frontmatter recurred in v2.0 and v3.0, requiring audit to catch
+4. Mid-milestone audits + decimal phases are the right pattern for fixing cross-phase integration gaps without disrupting the main sequence (v3.0)

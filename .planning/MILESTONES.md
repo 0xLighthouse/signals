@@ -44,3 +44,23 @@ These should be manually verified before relying on the migrated environment.
 
 ---
 
+
+## v3.0 Sweep Engine & Extended Analysis (Shipped: 2026-02-28)
+
+**Phases:** 7 (Phases 8-12 including 10.1 and 11.1) | **Plans:** 13 | **Tests:** 207+ passing
+**Source:** 5,718 LOC Python (src/) | **Tests:** 4,147 LOC (tests/)
+**Timeline:** 2026-02-28 (single day)
+**Git range:** `24158b9` → `e0cc1a4` (26 feat/fix/test commits, 60 files changed, +11,854 lines)
+
+**Key accomplishments:**
+- Formalized budget/lock constraint system as public `budget.py` module with AllocationDistribution hierarchy (Beta/truncnorm/uniform), fixing NaN-corrupting bugs in `_gini`, `_enp`, `_nakamoto`
+- Monte Carlo allocation modeling with `mc_dist` distribution draws, seed-safe via `SeedSequence.spawn()`, plus `VoteTimingConfig` for vote timing control
+- Dedicated cartesian sweep engine (`sweep.py`) with `ProcessPoolExecutor` parallelism, tqdm progress, memory management, TOML config — handles curve_type × alpha × lock_profile × vote_timing × mc_dist grid
+- Deep governance analysis module (`analysis.py`): margin-class flip breakdown, median-lock counterfactual address influence, 2D timing sensitivity, voter archetypes, Mann-Whitney U significance, bootstrap confidence intervals
+- Report bundle (`report.py`): `generate_sweep_report()` producing annotated heatmaps (origin='lower', RdYlGn), best/worst detail plots, multi-panel composite figure, CSV/JSON export with NaN sanitization
+- Zero-regression test growth: 147 → 207+ tests across all 7 phases
+
+**Audit:** tech_debt — 33/33 requirements satisfied, 7/7 phases passed, 2 non-critical integration gaps (analysis→report wiring, mc_dists TOML loading)
+
+---
+
