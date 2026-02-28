@@ -356,8 +356,8 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
         'margin_shift_std': margin.aggregate_std,
         'enp_legacy_mean': float(np.nanmean(list(enp.legacy.values()))) if enp.legacy else float('nan'),
         'enp_signals_mean': float(np.nanmean(list(enp.signals.values()))) if enp.signals else float('nan'),
-        'nakamoto_legacy_mean': float(np.mean(list(nakamoto.legacy.values()))) if nakamoto.legacy else float('nan'),
-        'nakamoto_signals_mean': float(np.mean(list(nakamoto.signals.values()))) if nakamoto.signals else float('nan'),
+        'nakamoto_legacy_mean': float(np.nanmean(list(nakamoto.legacy.values()))) if nakamoto.legacy else float('nan'),
+        'nakamoto_signals_mean': float(np.nanmean(list(nakamoto.signals.values()))) if nakamoto.signals else float('nan'),
         'failed': False,
     }
 

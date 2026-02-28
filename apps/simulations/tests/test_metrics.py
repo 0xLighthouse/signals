@@ -382,3 +382,29 @@ def test_enp_zero_weight_returns_nan():
     from backtesting.metrics import _enp
     result = _enp(np.array([0.0, 0.0, 0.0]))
     assert math.isnan(result), f'Expected nan for zero-weight, got {result}'
+
+
+# ---------------------------------------------------------------------------
+# INT-02: _nakamoto() NaN-for-degenerate-inputs convention
+# ---------------------------------------------------------------------------
+
+def test_nakamoto_nan_for_zero_weight():
+    """INT-02: _nakamoto() returns float(np.nan) for zero-weight arrays (NaN convention)."""
+    from backtesting.metrics import _nakamoto
+    result = _nakamoto(np.array([0.0, 0.0, 0.0]))
+    assert math.isnan(result), f'Expected nan for zero-weight array, got {result}'
+
+
+def test_nakamoto_nan_for_empty_array():
+    """INT-02: _nakamoto() returns float(np.nan) for empty arrays (NaN convention)."""
+    from backtesting.metrics import _nakamoto
+    result = _nakamoto(np.array([]))
+    assert math.isnan(result), f'Expected nan for empty array, got {result}'
+
+
+def test_nakamoto_returns_int_for_valid_weights():
+    """INT-02: _nakamoto() still returns int for valid (non-degenerate) weight arrays."""
+    from backtesting.metrics import _nakamoto
+    result = _nakamoto(np.array([10.0, 5.0, 3.0]))
+    assert isinstance(result, int), f'Expected int for valid weights, got {type(result)}'
+    assert result >= 1, f'Expected nakamoto >= 1, got {result}'

@@ -11,6 +11,7 @@ Requirement traces:
 - test_swep07: SWEP-07 — TOML config loading
 """
 import inspect
+import math
 import pathlib
 
 import pandas as pd
@@ -21,6 +22,7 @@ from backtesting.sweep import (
     SweepCell,
     SweepResult,
     _enumerate_cells,
+    _make_failed_row,
     _run_cell,
     load_sweep_config,
     run_sweep,
@@ -311,4 +313,27 @@ def test_swep06_tqdm_progress():
     src = inspect.getsource(run_sweep)
     assert 'tqdm(' in src, (
         'run_sweep() must use tqdm() for progress reporting (SWEP-06)'
+    )
+
+
+# ---------------------------------------------------------------------------
+# INT-02: _make_failed_row has NaN nakamoto (schema consistency)
+# ---------------------------------------------------------------------------
+
+
+def test_make_failed_row_has_nan_nakamoto():
+    """INT-02: _make_failed_row returns NaN for nakamoto columns (schema consistency)."""
+    cell = SweepCell(
+        cell_id=0,
+        curve_type='sqrt',
+        alpha=0.5,
+        lock_profile={'short': 30, 'long': 365},
+        allocation_strategy='uniform_fraction',
+    )
+    row = _make_failed_row(cell)
+    assert math.isnan(row['nakamoto_legacy_mean']), (
+        f'Expected NaN for nakamoto_legacy_mean in failed row, got {row["nakamoto_legacy_mean"]}'
+    )
+    assert math.isnan(row['nakamoto_signals_mean']), (
+        f'Expected NaN for nakamoto_signals_mean in failed row, got {row["nakamoto_signals_mean"]}'
     )
