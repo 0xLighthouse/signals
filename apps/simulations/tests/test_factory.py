@@ -425,3 +425,47 @@ class TestBudgetAllocation:
             assert a.block_number == b.block_number, f'Block mismatch at {i}'
             if hasattr(a, 'weight') and hasattr(b, 'weight'):
                 assert abs(a.weight - b.weight) < 1e-9, f'Weight mismatch at {i}'
+
+
+# ---------------------------------------------------------------------------
+# BUDG-04: curve_type parameter validation and functional impact
+# ---------------------------------------------------------------------------
+
+def test_generate_scenario_curve_type_validation():
+    """BUDG-04: curve_type is validated at generate_scenario boundary."""
+    import warnings
+
+    # Valid types should not raise
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='sqrt')
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='log')
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='linear')
+
+    # Invalid types should raise ValueError
+    with pytest.raises(ValueError, match='curve_type'):
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='exp')
+    with pytest.raises(ValueError, match='curve_type'):
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='invalid')
+
+
+def test_generate_scenario_curve_type_affects_tallies():
+    """BUDG-04: Different curve_types produce different signals tallies."""
+    from backtesting.simulation.runner import run_backtest, build_results_dataframe
+
+    events = generate_scenario(n_voters=50, n_proposals=5, seed=42, curve_type='sqrt')
+    raw_sqrt = run_backtest(events, curve_type='sqrt')
+    df_sqrt = build_results_dataframe(raw_sqrt, events)
+
+    raw_log = run_backtest(events, curve_type='log')
+    df_log = build_results_dataframe(raw_log, events)
+
+    # Legacy tallies should be identical (curve_type only affects signals)
+    sqrt_legacy = df_sqrt['legacy_for'].dropna().sum()
+    log_legacy = df_log['legacy_for'].dropna().sum()
+    assert abs(sqrt_legacy - log_legacy) < 1e-6, 'Legacy tallies should be identical'
+
+    # Signals tallies should differ (different curve functions)
+    sqrt_signals = df_sqrt['signals_for'].dropna().sum()
+    log_signals = df_log['signals_for'].dropna().sum()
+    assert sqrt_signals != log_signals, 'Signals tallies should differ between sqrt and log curves'
