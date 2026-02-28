@@ -49,14 +49,14 @@ Research annotations (italicized) justify decisions for future reference.
 
 ### Report Bundle
 
-- [ ] **REPT-01**: Heatmap plots per metric across parameter grid with correct orientation and diverging colormaps *(Research: P5 — origin='lower', RdYlGn for signed metrics — PITFALLS.md)*
-- [ ] **REPT-02**: CSV export of full sweep results table
-- [ ] **REPT-03**: JSON export of summary metrics with NaN sanitization
-- [ ] **REPT-04**: Structured output directory (`heatmaps/`, `detail/`, `timing_sensitivity/`)
+- [x] **REPT-01**: Heatmap plots per metric across parameter grid with correct orientation and diverging colormaps *(Research: P5 — origin='lower', RdYlGn for signed metrics — PITFALLS.md)*
+- [x] **REPT-02**: CSV export of full sweep results table
+- [x] **REPT-03**: JSON export of summary metrics with NaN sanitization
+- [x] **REPT-04**: Structured output directory (`heatmaps/`, `detail/`, `timing_sensitivity/`)
 - [ ] **REPT-05**: Multi-panel composite figure combining heatmaps + flip breakdown + timing
 - [ ] **REPT-06**: Per-config detail plots for best/worst N configurations
-- [ ] **REPT-07**: Annotated heatmaps showing cell values + color encoding
-- [ ] **REPT-08**: `generate_sweep_report()` orchestrator in `report.py`
+- [x] **REPT-07**: Annotated heatmaps showing cell values + color encoding
+- [x] **REPT-08**: `generate_sweep_report()` orchestrator in `report.py`
 
 ## Future Requirements (v3.1+)
 
@@ -112,14 +112,14 @@ Research annotations (italicized) justify decisions for future reference.
 | ANAL-05 | Phase 11 | Complete |
 | ANAL-06 | Phase 11 | Complete |
 | ANAL-07 | Phase 11 | Complete |
-| REPT-01 | Phase 12 | Pending |
-| REPT-02 | Phase 12 | Pending |
-| REPT-03 | Phase 12 | Pending |
-| REPT-04 | Phase 12 | Pending |
+| REPT-01 | Phase 12 | Complete |
+| REPT-02 | Phase 12 | Complete |
+| REPT-03 | Phase 12 | Complete |
+| REPT-04 | Phase 12 | Complete |
 | REPT-05 | Phase 12 | Pending |
 | REPT-06 | Phase 12 | Pending |
-| REPT-07 | Phase 12 | Pending |
-| REPT-08 | Phase 12 | Pending |
+| REPT-07 | Phase 12 | Complete |
+| REPT-08 | Phase 12 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 33 total
