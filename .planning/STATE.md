@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T13:32:39.032Z"
+last_updated: "2026-02-28T13:57:47.326Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** v3.0 Phase 10 — Sweep Runner
+**Current focus:** v3.0 Phase 11 — Extended Analysis
 
 ## Current Position
 
-Phase: 10.1 of 12 (Integration Wiring Fixes — gap closure)
-Plan: 01 complete (plan 1 of 1) — Phase 10.1 COMPLETE
-Status: Complete
-Last activity: 2026-02-28 — Completed 10.1-01: INT-01/02/03/04 integration wiring fixes (mc_dist sweep/pipeline wiring, _nakamoto NaN convention, VoteTimingConfig re-export)
+Phase: 11 of 12 (Extended Analysis)
+Plan: 01 complete (plan 1 of 2) — Phase 11 In Progress
+Status: In Progress
+Last activity: 2026-02-28 — Completed 11-01: ANAL-01/04/07 analysis.py with margin_class_breakdown and voter_archetypes
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [████░░░░░░] 40%
 | Phase 10-sweep-runner P01 | 2 | 2 tasks | 2 files |
 | Phase 10-sweep-runner P02 | 3 | 2 tasks | 3 files |
 | Phase 10.1-integration-wiring-fixes P01 | 5 | 2 tasks | 7 files |
+| Phase 11-extended-analysis P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 10.1-integration-wiring-fixes]: _nakamoto() returns float(np.nan) for degenerate inputs — NaN-for-degenerate convention applied consistently with _gini/_enp
 - [Phase 10.1-integration-wiring-fixes]: mc_dists TOML loader left as-is (sets None by default) — programmatic API only for mc_dist in Phase 10.1
 - [Phase 10.1-integration-wiring-fixes]: VoteTimingConfig re-exported from backtesting.data.__init__ — consistent with existing factory export pattern
+- [Phase 11-extended-analysis]: analysis.py is independent of metrics.py — _get_final_tallies replicated inline to keep module boundaries clean
+- [Phase 11-extended-analysis]: pd.qcut with duplicates='drop' handles Pareto-distributed stake edge cases without full fallback
 
 ### Pending Todos
 
@@ -91,5 +94,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 10.1-01-PLAN.md — INT-01/02/03/04 integration wiring fixes (mc_dist sweep wiring, _nakamoto NaN, VoteTimingConfig re-export)
-Resume action: Phase 10.1 plan 01 complete — proceed to Phase 11 extended analysis
+Stopped at: Completed 11-01-PLAN.md — ANAL-01/04/07 analysis.py with margin_class_breakdown and voter_archetypes
+Resume action: Phase 11 plan 01 complete — proceed to Phase 11 plan 02 (ANAL-02/03/05/06)
