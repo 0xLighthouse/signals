@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T14:06:59.058Z"
+last_updated: "2026-02-28T15:48:23.488Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** v3.0 Phase 11 — Extended Analysis
+**Current focus:** v3.0 Phase 11.1 — Vote Timing Sweep Wiring
 
 ## Current Position
 
-Phase: 11 of 12 (Extended Analysis)
-Plan: 02 complete (plan 2 of 2) — Phase 11 Complete
+Phase: 11.1 of 12 (Vote Timing Sweep Wiring)
+Plan: 01 complete (plan 1 of 1) — Phase 11.1 Complete
 Status: In Progress
-Last activity: 2026-02-28 — Completed 11-02: ANAL-02/03/05/06 with address_influence, timing_sensitivity, influence_significance, bootstrap_ci
+Last activity: 2026-02-28 — Completed 11.1-01: VoteTimingConfig wired through sweep engine as cartesian axis (MCAL-05)
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 | Phase 10.1-integration-wiring-fixes P01 | 5 | 2 tasks | 7 files |
 | Phase 11-extended-analysis P01 | 2 | 2 tasks | 2 files |
 | Phase 11-extended-analysis P02 | 4 | 2 tasks | 2 files |
+| Phase 11.1-vote-timing-sweep-wiring P01 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 11-extended-analysis]: pd.qcut with duplicates='drop' handles Pareto-distributed stake edge cases without full fallback
 - [Phase 11-extended-analysis P02]: delta = signals_share - counterfactual_share (not legacy_share) — median-lock counterfactual isolates commitment signal
 - [Phase 11-extended-analysis P02]: timing_sensitivity uses observed=True in pivot_table to suppress pandas 2.x FutureWarning for categorical axes
+- [Phase 11.1-vote-timing-sweep-wiring]: VoteTimingConfig imported at module level in sweep.py — factory.py is a leaf module with no circular dependency risk
+- [Phase 11.1-vote-timing-sweep-wiring]: vote_timings uses [None] sentinel in itertools.product (same pattern as mc_dists) — prevents TypeError from passing None to itertools.product
 
 ### Pending Todos
 
@@ -97,5 +100,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 11-02-PLAN.md — ANAL-02/03/05/06 with address_influence, timing_sensitivity, influence_significance, bootstrap_ci
-Resume action: Phase 11 complete — all 6 analysis functions implemented. Proceed to next phase.
+Stopped at: Completed 11.1-01-PLAN.md — vote_timing wiring through sweep engine (MCAL-05)
+Resume action: Phase 11.1 complete — VoteTimingConfig wired as cartesian sweep axis. Proceed to next phase.

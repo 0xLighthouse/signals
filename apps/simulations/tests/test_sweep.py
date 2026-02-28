@@ -18,6 +18,7 @@ import pandas as pd
 import pytest
 
 from backtesting.data.budget import BetaDistribution
+from backtesting.data.factory import VoteTimingConfig
 from backtesting.sweep import (
     SweepConfig,
     SweepCell,
@@ -399,3 +400,164 @@ def test_enumerate_cells_mc_dists_cartesian():
     mc_dist_labels = [c.mc_dist for c in cells]
     assert mc_dist1 in mc_dist_labels, 'mc_dist1 not in cells'
     assert mc_dist2 in mc_dist_labels, 'mc_dist2 not in cells'
+
+
+# ---------------------------------------------------------------------------
+# MCAL-05: vote_timing axis in SweepConfig/SweepCell and _enumerate_cells
+# ---------------------------------------------------------------------------
+
+
+def test_enumerate_cells_with_vote_timings():
+    """MCAL-05: _enumerate_cells includes vote_timing axis when SweepConfig.vote_timings is set."""
+    vt = VoteTimingConfig(early=0.80, mid=0.10)
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        vote_timings=[vt],
+    )
+    cells = _enumerate_cells(config)
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].vote_timing is vt, 'cell.vote_timing should be the VoteTimingConfig instance'
+
+
+def test_enumerate_cells_vote_timings_none_backward_compat():
+    """MCAL-05: _enumerate_cells with vote_timings=None produces cells with vote_timing=None (backward compat)."""
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        vote_timings=None,
+    )
+    cells = _enumerate_cells(config)
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].vote_timing is None, f'cell.vote_timing should be None, got {cells[0].vote_timing}'
+
+
+def test_enumerate_cells_vote_timings_cartesian():
+    """MCAL-05: _enumerate_cells produces cartesian product with vote_timings axis."""
+    vt1 = VoteTimingConfig(early=0.30, mid=0.40)
+    vt2 = VoteTimingConfig(early=0.80, mid=0.10)
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[0.5],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        vote_timings=[vt1, vt2],
+    )
+    cells = _enumerate_cells(config)
+    # 2 curve_types x 1 x 1 x 1 x 2 vote_timings = 4 cells
+    assert len(cells) == 4, f'Expected 4 cells, got {len(cells)}'
+    vt_values = [c.vote_timing for c in cells]
+    assert vt1 in vt_values, 'vt1 not in cells'
+    assert vt2 in vt_values, 'vt2 not in cells'
+
+
+def test_make_failed_row_has_vote_timing_label():
+    """MCAL-05: _make_failed_row includes vote_timing_label for schema consistency."""
+    vt = VoteTimingConfig(early=0.80, mid=0.10)
+    cell = SweepCell(
+        cell_id=0,
+        curve_type='sqrt',
+        alpha=0.5,
+        lock_profile={'short': 30, 'long': 365},
+        allocation_strategy='uniform_fraction',
+        vote_timing=vt,
+    )
+    row = _make_failed_row(cell)
+    assert 'vote_timing_label' in row, 'vote_timing_label missing from failed row'
+    assert row['vote_timing_label'] is not None, 'vote_timing_label should not be None when vote_timing is set'
+
+    # Also test None case
+    cell_none = SweepCell(
+        cell_id=1,
+        curve_type='sqrt',
+        alpha=0.5,
+        lock_profile={'short': 30, 'long': 365},
+        allocation_strategy='uniform_fraction',
+    )
+    row_none = _make_failed_row(cell_none)
+    assert row_none['vote_timing_label'] is None, 'vote_timing_label should be None when vote_timing is not set'
+
+
+def test_swep07_toml_vote_timings(tmp_path: pathlib.Path):
+    """MCAL-05: load_sweep_config parses [[sweep.vote_timings]] table array."""
+    toml_content = """\
+[base]
+n_voters = 50
+seed = 42
+
+[sweep]
+curve_types = ["sqrt"]
+alphas = [0.5]
+max_workers = 1
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+
+[[sweep.vote_timings]]
+early = 0.30
+mid = 0.40
+
+[[sweep.vote_timings]]
+early = 0.80
+mid = 0.10
+"""
+    toml_path = tmp_path / 'sweep_vt.toml'
+    toml_path.write_text(toml_content)
+    config = load_sweep_config(toml_path)
+    assert config.vote_timings is not None, 'vote_timings should be parsed from TOML'
+    assert len(config.vote_timings) == 2, f'Expected 2 vote_timings, got {len(config.vote_timings)}'
+    assert config.vote_timings[0].early == 0.30
+    assert config.vote_timings[0].mid == 0.40
+    assert config.vote_timings[1].early == 0.80
+    assert config.vote_timings[1].mid == 0.10
+
+
+def test_swep07_toml_no_vote_timings(tmp_path: pathlib.Path):
+    """MCAL-05: load_sweep_config with no vote_timings in TOML sets vote_timings=None."""
+    toml_content = """\
+[sweep]
+curve_types = ["sqrt"]
+alphas = [0.5]
+max_workers = 1
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+"""
+    toml_path = tmp_path / 'sweep_no_vt.toml'
+    toml_path.write_text(toml_content)
+    config = load_sweep_config(toml_path)
+    assert config.vote_timings is None, f'Expected vote_timings=None, got {config.vote_timings}'
+
+
+def test_mcal05_sweep_distinct_results(tmp_path: pathlib.Path):
+    """MCAL-05: A sweep with 2 vote_timing configs produces distinct results per timing config."""
+    vt1 = VoteTimingConfig(early=0.30, mid=0.40)
+    vt2 = VoteTimingConfig(early=0.80, mid=0.10)
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        vote_timings=[vt1, vt2],
+        base={'n_voters': 20, 'n_proposals': 3, 'seed': 42},
+    )
+    result = run_sweep(config, output_dir=str(tmp_path))
+
+    # 2 cells: 1 x 1 x 1 x 1 x 2 vote_timings
+    assert len(result.summary_df) == 2, f'Expected 2 rows, got {len(result.summary_df)}'
+    assert result.failed_cells == [], f'Expected no failures, got {result.failed_cells}'
+
+    # vote_timing_label column exists and has 2 distinct values
+    assert 'vote_timing_label' in result.summary_df.columns, 'vote_timing_label column missing'
+    labels = result.summary_df['vote_timing_label'].tolist()
+    assert len(set(labels)) == 2, f'Expected 2 distinct labels, got {set(labels)}'

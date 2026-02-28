@@ -36,7 +36,7 @@
 - [x] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management (completed 2026-02-28)
 - [x] **Phase 10.1: Integration Wiring Fixes** - Fix NaN handling, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig (completed 2026-02-28)
 - [x] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests (completed 2026-02-28)
-- [ ] **Phase 11.1: Wire vote_timing Through Sweep** - Add vote_timing to SweepCell/SweepConfig, pass through _run_cell()
+- [x] **Phase 11.1: Wire vote_timing Through Sweep** - Add vote_timing to SweepCell/SweepConfig, pass through _run_cell() (completed 2026-02-28)
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
 
 ## Phase Details
@@ -130,7 +130,9 @@
   3. Full sweep results are exported as both `results.csv` (all rows, all metric columns) and `summary.json` (NaN-safe, no float NaN in JSON output)
   4. A multi-panel composite figure combining heatmaps, flip breakdown, and timing sensitivity exists as a single saved file
   5. Per-config detail plots are generated for the best and worst N configurations by a configurable metric
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 12-01-PLAN.md — Core report module: generate_sweep_report orchestrator, heatmaps (origin='lower', annotated), CSV/JSON export, directory structure
+- [ ] 12-02-PLAN.md — Per-config detail plots (best/worst N) and multi-panel composite figure
 
 ## Progress
 
@@ -148,5 +150,5 @@
 | 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
 | 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
 | 11. Extended Analysis | 2/2 | Complete    | 2026-02-28 | - |
-| 11.1 Wire vote_timing Through Sweep | v3.0 | 0/TBD | Not started | - |
+| 11.1 Wire vote_timing Through Sweep | 1/1 | Complete    | 2026-02-28 | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |

@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 
 from backtesting.data.budget import AllocationDistribution
+from backtesting.data.factory import VoteTimingConfig
 
 __all__ = ['SweepConfig', 'SweepCell', 'SweepResult', 'load_sweep_config', 'run_sweep']
 
@@ -62,6 +63,7 @@ class SweepConfig:
     cell_timeout_seconds: int = 120
     base: dict = field(default_factory=dict)
     mc_dists: list[AllocationDistribution] | None = None
+    vote_timings: list[VoteTimingConfig] | None = None
 
 
 @dataclass
@@ -83,6 +85,7 @@ class SweepCell:
     lock_profile: dict
     allocation_strategy: str
     mc_dist: AllocationDistribution | None = None
+    vote_timing: VoteTimingConfig | None = None
 
 
 @dataclass
@@ -122,14 +125,16 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
     """
     cells = []
     mc_dist_values = config.mc_dists if config.mc_dists else [None]
+    vote_timing_values = config.vote_timings if config.vote_timings else [None]
     combos = itertools.product(
         config.curve_types,
         config.alphas,
         config.lock_profiles,
         config.allocation_strategies,
         mc_dist_values,
+        vote_timing_values,
     )
-    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy, mc_dist) in enumerate(combos):
+    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy, mc_dist, vote_timing) in enumerate(combos):
         cells.append(
             SweepCell(
                 cell_id=cell_id,
@@ -138,6 +143,7 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
                 lock_profile=lock_profile,
                 allocation_strategy=allocation_strategy,
                 mc_dist=mc_dist,
+                vote_timing=vote_timing,
             )
         )
     return cells
@@ -166,6 +172,14 @@ def load_sweep_config(path: str | pathlib.Path) -> SweepConfig:
         short = 30
         long = 365
 
+        [[sweep.vote_timings]]
+        early = 0.30
+        mid = 0.40
+
+        [[sweep.vote_timings]]
+        early = 0.80
+        mid = 0.10
+
     Args:
         path: Path to the TOML configuration file.
 
@@ -186,6 +200,11 @@ def load_sweep_config(path: str | pathlib.Path) -> SweepConfig:
     # max_workers is required — raise KeyError if missing (no auto-detection)
     max_workers = sweep['max_workers']
 
+    raw_timings = sweep.get('vote_timings', None)
+    vote_timings = None
+    if raw_timings:
+        vote_timings = [VoteTimingConfig(early=t['early'], mid=t['mid']) for t in raw_timings]
+
     return SweepConfig(
         curve_types=sweep['curve_types'],
         alphas=sweep['alphas'],
@@ -194,6 +213,7 @@ def load_sweep_config(path: str | pathlib.Path) -> SweepConfig:
         max_workers=max_workers,
         cell_timeout_seconds=sweep.get('cell_timeout_seconds', 120),
         base=base,
+        vote_timings=vote_timings,
     )
 
 
@@ -272,6 +292,7 @@ def _make_failed_row(cell: SweepCell) -> dict:
         'lock_profile_long': cell.lock_profile.get('long'),
         'allocation_strategy': cell.allocation_strategy,
         'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
+        'vote_timing_label': repr(cell.vote_timing) if cell.vote_timing is not None else None,
         'failed': True,
         'flip_rate': float('nan'),
         'gini_legacy': float('nan'),
@@ -334,6 +355,10 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
     if cell.mc_dist is not None:
         kwargs['mc_dist'] = cell.mc_dist
 
+    # Wire vote_timing from cell into generate_scenario when provided (MCAL-05)
+    if cell.vote_timing is not None:
+        kwargs['vote_timing'] = cell.vote_timing
+
     # Run simulation
     events = generate_scenario(**kwargs)
     with warnings.catch_warnings():
@@ -361,6 +386,7 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
         'lock_profile_long': cell.lock_profile['long'],
         'allocation_strategy': cell.allocation_strategy,
         'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
+        'vote_timing_label': repr(cell.vote_timing) if cell.vote_timing is not None else None,
         'flip_rate': flip.aggregate,
         'gini_legacy': gini.legacy,
         'gini_signals': gini.signals,
@@ -455,6 +481,7 @@ def run_sweep(
         'cell_timeout_seconds': config.cell_timeout_seconds,
         'base': config.base,
         'mc_dists': [repr(d) for d in config.mc_dists] if config.mc_dists else None,
+        'vote_timings': [repr(t) for t in config.vote_timings] if config.vote_timings else None,
     }
     with open(out_dir / 'config.json', 'w') as f:
         json.dump(config_dict, f, indent=2)
