@@ -117,7 +117,8 @@
   2. `_run_cell()` passes `vote_timing` to `generate_scenario()` when present
   3. `SweepConfig` accepts a `vote_timings` axis for cartesian enumeration
   4. A sweep with 2 vote_timing configs produces distinct results per timing config
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 11.1-01-PLAN.md — Wire vote_timing through SweepConfig, SweepCell, _enumerate_cells, _run_cell, load_sweep_config + tests
 
 ### Phase 12: Report Bundle
 **Goal**: A single `generate_sweep_report()` call produces a fully structured output directory with heatmaps, per-config detail plots, timing sensitivity figures, CSV/JSON exports, and a multi-panel composite figure — all visualization using correct orientation and colormaps
