@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T12:39:52.552Z"
+last_updated: "2026-02-28T13:28:34.051Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 ## Current Position
 
-Phase: 10 of 12 (Sweep Runner)
-Plan: 02 complete (plan 2 of 2) — Phase 10 COMPLETE
+Phase: 10.1 of 12 (Integration Wiring Fixes — gap closure)
+Plan: 01 complete (plan 1 of 1) — Phase 10.1 COMPLETE
 Status: Complete
-Last activity: 2026-02-28 — Completed 10-02: run_sweep() engine with ProcessPoolExecutor, tqdm, memory management, auto-export
+Last activity: 2026-02-28 — Completed 10.1-01: INT-01/02/03/04 integration wiring fixes (mc_dist sweep/pipeline wiring, _nakamoto NaN convention, VoteTimingConfig re-export)
 
 Progress: [████░░░░░░] 40%
 
@@ -49,6 +49,7 @@ Progress: [████░░░░░░] 40%
 | Phase 09-monte-carlo-allocation-modeling P02 | 1 | 2 tasks | 2 files |
 | Phase 10-sweep-runner P01 | 2 | 2 tasks | 2 files |
 | Phase 10-sweep-runner P02 | 3 | 2 tasks | 3 files |
+| Phase 10.1-integration-wiring-fixes P01 | 5 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [10-02]: _run_cell() must be module-level (not nested) for ProcessPoolExecutor picklability — pickle cannot serialize closures
 - [10-02]: Deferred imports inside _run_cell() body to avoid circular imports across worker process boundaries
 - [10-02]: _make_failed_row extended with enp/nakamoto columns to match successful row schema for consistent DataFrame construction
+- [Phase 10.1-integration-wiring-fixes]: _nakamoto() returns float(np.nan) for degenerate inputs — NaN-for-degenerate convention applied consistently with _gini/_enp
+- [Phase 10.1-integration-wiring-fixes]: mc_dists TOML loader left as-is (sets None by default) — programmatic API only for mc_dist in Phase 10.1
+- [Phase 10.1-integration-wiring-fixes]: VoteTimingConfig re-exported from backtesting.data.__init__ — consistent with existing factory export pattern
 
 ### Pending Todos
 
@@ -87,5 +91,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 10-02-PLAN.md — run_sweep() engine with ProcessPoolExecutor parallelism, tqdm progress, memory management
-Resume action: Phase 10 complete — proceed to Phase 11 extended analysis
+Stopped at: Completed 10.1-01-PLAN.md — INT-01/02/03/04 integration wiring fixes (mc_dist sweep wiring, _nakamoto NaN, VoteTimingConfig re-export)
+Resume action: Phase 10.1 plan 01 complete — proceed to Phase 11 extended analysis
