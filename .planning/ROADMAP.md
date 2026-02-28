@@ -133,5 +133,5 @@
 | 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
 | 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
 | 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
-| 11. Extended Analysis | 2/2 | Complete   | 2026-02-28 | - |
+| 11. Extended Analysis | 2/2 | Complete    | 2026-02-28 | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
