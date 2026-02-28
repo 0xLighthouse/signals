@@ -22,7 +22,8 @@ import warnings
 from dataclasses import dataclass
 from typing import Any
 
-from backtesting.data.factory import generate_scenario
+from backtesting.data.budget import AllocationDistribution
+from backtesting.data.factory import VoteTimingConfig, generate_scenario
 from backtesting.data.loader import events_to_dataframe
 from backtesting.metrics import (
     compute_enp,
@@ -207,11 +208,16 @@ _GENERATE_SCENARIO_KEYS = frozenset({
     'n_voters', 'n_proposals', 'total_supply', 'avg_participation_rate',
     'stake_profile', 'lock_profile', 'pareto_alpha', 'l_max_days',
     'proposal_window_blocks', 'seed', 'budget_enabled', 'allocation_strategy',
-    'blocks_per_day', 'curve_type',
+    'blocks_per_day', 'curve_type', 'mc_dist', 'vote_timing',
 })
 
 
-def run_pipeline(config: Any = None, verbose: bool = False) -> PipelineResult:
+def run_pipeline(
+    config: Any = None,
+    verbose: bool = False,
+    mc_dist: AllocationDistribution | None = None,
+    vote_timing: VoteTimingConfig | None = None,
+) -> PipelineResult:
     """Execute the full data -> simulation -> metrics -> plots pipeline.
 
     Parameters
@@ -220,6 +226,14 @@ def run_pipeline(config: Any = None, verbose: bool = False) -> PipelineResult:
         Configuration source. See _resolve_config for details.
     verbose : bool
         If True, print stage progress to stdout.
+    mc_dist : AllocationDistribution | None
+        Optional Monte Carlo allocation distribution object. When provided,
+        injected directly into generate_scenario() as mc_dist= kwarg.
+        Bypasses TOML config — programmatic API only.
+    vote_timing : VoteTimingConfig | None
+        Optional vote timing configuration object. When provided, injected
+        directly into generate_scenario() as vote_timing= kwarg.
+        Bypasses TOML config — programmatic API only.
 
     Returns
     -------
@@ -241,6 +255,11 @@ def run_pipeline(config: Any = None, verbose: bool = False) -> PipelineResult:
         print('Generating data...')
     try:
         data_cfg = {k: v for k, v in cfg.get('data', {}).items() if k in _GENERATE_SCENARIO_KEYS}
+        # Inject object params from programmatic API (bypass TOML, which can't encode them)
+        if mc_dist is not None:
+            data_cfg['mc_dist'] = mc_dist
+        if vote_timing is not None:
+            data_cfg['vote_timing'] = vote_timing
         events = generate_scenario(**data_cfg)
     except Exception as e:
         raise RuntimeError(f'Pipeline stage "data" failed: {e}') from e

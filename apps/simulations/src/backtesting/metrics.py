@@ -54,10 +54,16 @@ def _enp(weights: np.ndarray) -> float:
     return float(1.0 / (shares ** 2).sum())
 
 
-def _nakamoto(weights: np.ndarray) -> int:
-    """Minimum number of voters controlling > 50% of total weight."""
+def _nakamoto(weights: np.ndarray) -> int | float:
+    """Minimum number of voters controlling > 50% of total weight.
+
+    Returns np.nan for zero-weight or empty arrays (NaN-for-degenerate-inputs
+    convention). Zero participation is a valid but degenerate case — returning
+    0 would be outside the valid range [1, n_voters] and corrupt sweep heatmaps.
+    For valid weight arrays, returns an int >= 1.
+    """
     if len(weights) == 0 or weights.sum() == 0:
-        return 0
+        return float(np.nan)
     sorted_w = np.sort(weights)[::-1]
     cumsum = np.cumsum(sorted_w)
     threshold = 0.5 * sorted_w.sum()
@@ -171,8 +177,8 @@ class ENPResult:
 @dataclass(frozen=True)
 class NakamotoResult:
     """Nakamoto coefficient per proposal (FOR/AGAINST voters only)."""
-    legacy: dict[str, int]   # proposal_id -> min voters controlling > 50%
-    signals: dict[str, int]
+    legacy: dict[str, int | float]   # proposal_id -> min voters controlling > 50% (NaN for degenerate)
+    signals: dict[str, int | float]
 
 
 @dataclass(frozen=True)
@@ -309,8 +315,8 @@ def compute_nakamoto_coefficient(results_df: pd.DataFrame, curve_type: str = 'sq
     vote_df = vote_df[vote_df['support'].isin(['FOR', 'AGAINST'])]
     vote_df = _add_signals_weight_column(vote_df, curve_type)
 
-    legacy: dict[str, int] = {}
-    signals: dict[str, int] = {}
+    legacy: dict[str, int | float] = {}
+    signals: dict[str, int | float] = {}
     for proposal_id, group in vote_df.groupby('proposal_id'):
         legacy[proposal_id] = _nakamoto(group['weight'].values)
         signals[proposal_id] = _nakamoto(group['signals_w'].values)

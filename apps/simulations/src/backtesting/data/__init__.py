@@ -15,6 +15,7 @@ from backtesting.data.factory import (
     AllocationStrategy,
     LockProfile,
     StakeProfile,
+    VoteTimingConfig,
     generate_scenario,
 )
 from backtesting.data.loader import (
@@ -47,6 +48,7 @@ __all__ = [
     'StakeProfile',
     'LockProfile',
     'AllocationStrategy',
+    'VoteTimingConfig',
     # Loader
     'SyntheticLoader',
     'ParquetLoader',

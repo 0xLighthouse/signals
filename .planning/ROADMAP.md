@@ -33,7 +33,8 @@
 
 - [x] **Phase 8: Foundation Fixes & Budget Promotion** - Fix NaN bugs, promote budget module, thread curve_type (completed 2026-02-28)
 - [x] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws (completed 2026-02-28)
-- [ ] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management
+- [x] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management (completed 2026-02-28)
+- [x] **Phase 10.1: Integration Wiring Fixes** - Fix NaN handling, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig (completed 2026-02-28)
 - [ ] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
 
@@ -77,6 +78,20 @@
 - [ ] 10-01-PLAN.md — SweepConfig/SweepCell/SweepResult dataclasses, cartesian grid enumeration, TOML config loading
 - [ ] 10-02-PLAN.md — run_sweep() with ProcessPoolExecutor parallelism, tqdm progress, memory management
 
+### Phase 10.1: Integration Wiring Fixes
+**Goal**: Cross-phase integration issues in completed phases 8-10 are resolved — _nakamoto() follows the NaN-for-degenerate convention, mc_dist is reachable from the sweep grid and pipeline, and VoteTimingConfig is properly exported
+**Depends on**: Phase 10
+**Requirements**: Closes INT-01, INT-02, INT-03, INT-04
+**Gap Closure:** Closes integration gaps from v3.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `_nakamoto()` returns `np.nan` (not `0`) when called with zero-weight arrays
+  2. `sweep.py` uses `np.nanmean` for all metric aggregation (not `np.mean`)
+  3. `SweepConfig` accepts `mc_dists` axis and `_run_cell()` passes `mc_dist` to `generate_scenario()`
+  4. `run_pipeline()` accepts and passes through `mc_dist` and `vote_timing` parameters
+  5. `VoteTimingConfig` is importable from `backtesting.data`
+**Plans**: 1 plan
+- [ ] 10.1-01-PLAN.md — Fix _nakamoto() NaN convention, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig
+
 ### Phase 11: Extended Analysis
 **Goal**: The simulation produces deep governance statistics — proposal flip breakdowns by margin class, per-voter influence shifts with a proper counterfactual baseline, 2D timing sensitivity, voter archetypes, and statistical significance tests — all operating on `SweepResult` output
 **Depends on**: Phase 10
@@ -87,7 +102,9 @@
   3. `timing_sensitivity()` produces a 2D heatmap matrix indexed by timing quantile and lock quantile (not a single aggregated number)
   4. Voters are classified into whale / medium / retail archetypes by stake quantile, and these labels are present in the analysis output
   5. Mann-Whitney U p-values and bootstrap confidence intervals are computed on influence distribution differences across configurations
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 11-01-PLAN.md — Create analysis.py with margin_class_breakdown, voter_archetypes, module structure (ANAL-01, ANAL-04, ANAL-07)
+- [ ] 11-02-PLAN.md — Add address_influence, timing_sensitivity, influence_significance, bootstrap_ci (ANAL-02, ANAL-03, ANAL-05, ANAL-06)
 
 ### Phase 12: Report Bundle
 **Goal**: A single `generate_sweep_report()` call produces a fully structured output directory with heatmaps, per-config detail plots, timing sensitivity figures, CSV/JSON exports, and a multi-panel composite figure — all visualization using correct orientation and colormaps
@@ -114,6 +131,7 @@
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
 | 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
-| 10. Sweep Runner | 1/2 | In Progress|  | - |
+| 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
+| 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
