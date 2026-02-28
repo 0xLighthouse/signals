@@ -72,7 +72,7 @@ export function StickyFooter({ stats }: StickyFooterProps) {
           <div className="relative flex flex-row w-full justify-between items-center h-full text-sm font-medium text-stone-500 dark:text-stone-400">
             {/* Left section - Logo */}
             <div className="flex items-center justify-start">
-              <div className="flex gap-8 pl-2">
+              <div className="flex gap-8 pl-6">
                 <div className="flex items-center">
                   <a
                     href="https://lighthouse.cx"
