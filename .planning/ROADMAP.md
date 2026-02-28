@@ -34,6 +34,7 @@
 - [x] **Phase 8: Foundation Fixes & Budget Promotion** - Fix NaN bugs, promote budget module, thread curve_type (completed 2026-02-28)
 - [x] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws (completed 2026-02-28)
 - [x] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management (completed 2026-02-28)
+- [ ] **Phase 10.1: Integration Wiring Fixes** - Fix NaN handling, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig
 - [ ] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
 
@@ -77,6 +78,19 @@
 - [ ] 10-01-PLAN.md — SweepConfig/SweepCell/SweepResult dataclasses, cartesian grid enumeration, TOML config loading
 - [ ] 10-02-PLAN.md — run_sweep() with ProcessPoolExecutor parallelism, tqdm progress, memory management
 
+### Phase 10.1: Integration Wiring Fixes
+**Goal**: Cross-phase integration issues in completed phases 8-10 are resolved — _nakamoto() follows the NaN-for-degenerate convention, mc_dist is reachable from the sweep grid and pipeline, and VoteTimingConfig is properly exported
+**Depends on**: Phase 10
+**Requirements**: Closes INT-01, INT-02, INT-03, INT-04
+**Gap Closure:** Closes integration gaps from v3.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `_nakamoto()` returns `np.nan` (not `0`) when called with zero-weight arrays
+  2. `sweep.py` uses `np.nanmean` for all metric aggregation (not `np.mean`)
+  3. `SweepConfig` accepts `mc_dists` axis and `_run_cell()` passes `mc_dist` to `generate_scenario()`
+  4. `run_pipeline()` accepts and passes through `mc_dist` and `vote_timing` parameters
+  5. `VoteTimingConfig` is importable from `backtesting.data`
+**Plans**: TBD
+
 ### Phase 11: Extended Analysis
 **Goal**: The simulation produces deep governance statistics — proposal flip breakdowns by margin class, per-voter influence shifts with a proper counterfactual baseline, 2D timing sensitivity, voter archetypes, and statistical significance tests — all operating on `SweepResult` output
 **Depends on**: Phase 10
@@ -115,5 +129,6 @@
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
 | 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
 | 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
+| 10.1 Integration Wiring Fixes | v3.0 | 0/TBD | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
