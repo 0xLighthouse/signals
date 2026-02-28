@@ -60,7 +60,9 @@
   2. Running 50 MC samples with the same base seed produces 50 distinct allocation sequences (not 50 identical sequences)
   3. `generate_scenario()` called without `mc_dist` behaves identically to v2.0 (backward-compatible)
   4. `early_frac` and `mid_frac` vote-timing parameters are accepted by `generate_scenario()` and alter the timing distribution of votes
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 09-01-PLAN.md — Extend generate_scenario() with mc_dist + VoteTimingConfig
+- [ ] 09-02-PLAN.md — Build MC runner module (backtesting/mc.py)
 
 ### Phase 10: Sweep Runner
 **Goal**: A dedicated sweep engine enumerates a cartesian parameter grid, runs cadCAD once per simulation config, computes metrics across the full curve_type/alpha axis without re-simulation, and collects results in a single `SweepResult` with bounded memory use
@@ -109,7 +111,7 @@
 | 6. Plots | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
-| 9. Monte Carlo Allocation Modeling | v3.0 | 0/TBD | Not started | - |
+| 9. Monte Carlo Allocation Modeling | v3.0 | 0/2 | Not started | - |
 | 10. Sweep Runner | v3.0 | 0/TBD | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
