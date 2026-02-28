@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { apercu, openSauce } from './fonts'
+import { apercu } from './fonts'
 
 import './globals.css'
 

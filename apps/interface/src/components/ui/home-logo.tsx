@@ -4,7 +4,7 @@ import { UITheme } from '@/config/theme'
 import React from 'react'
 
 import Image from 'next/image'
-import logoDark from '@/public/images/dark-logo.png'
+import logoDark from '@/public/images/logo-v3.png'
 import logoOrange from '@/public/images/orange-logo.png'
 import { useTheme } from '@/contexts/ThemeContext'
 
