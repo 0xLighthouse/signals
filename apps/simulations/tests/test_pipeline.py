@@ -178,6 +178,33 @@ def test_pipe03_importable_api():
     assert 'output_dir' in fields, 'PipelineResult missing .output_dir field'
 
 
+# ---------------------------------------------------------------------------
+# INT-03: _GENERATE_SCENARIO_KEYS includes mc_dist and vote_timing
+# ---------------------------------------------------------------------------
+
+def test_generate_scenario_keys_include_mc_dist_vote_timing():
+    """INT-03: _GENERATE_SCENARIO_KEYS frozenset includes 'mc_dist' and 'vote_timing'."""
+    from backtesting.pipeline import _GENERATE_SCENARIO_KEYS
+    assert 'mc_dist' in _GENERATE_SCENARIO_KEYS, (
+        "'mc_dist' must be in _GENERATE_SCENARIO_KEYS for pipeline to pass it to generate_scenario"
+    )
+    assert 'vote_timing' in _GENERATE_SCENARIO_KEYS, (
+        "'vote_timing' must be in _GENERATE_SCENARIO_KEYS for pipeline to pass it to generate_scenario"
+    )
+
+
+# ---------------------------------------------------------------------------
+# INT-04: VoteTimingConfig re-export from backtesting.data
+# ---------------------------------------------------------------------------
+
+def test_vote_timing_config_importable_from_data():
+    """INT-04: VoteTimingConfig is importable from backtesting.data (re-export)."""
+    from backtesting.data import VoteTimingConfig
+    vtc = VoteTimingConfig(early=0.25, mid=0.45)
+    assert vtc.early == 0.25, f'Expected early=0.25, got {vtc.early}'
+    assert vtc.mid == 0.45, f'Expected mid=0.45, got {vtc.mid}'
+
+
 @pytest.mark.slow
 def test_pipe03_init_flag(tmp_path):
     """PIPE-03: --init flag writes a valid backtesting.toml template."""

@@ -1,23 +1,32 @@
 """
-Tests for backtesting.sweep data model and configuration layer.
+Tests for backtesting.sweep data model, configuration layer, and execution engine.
 
 Requirement traces:
 - test_swep01: SWEP-01 — cartesian product enumeration
 - test_swep02: SWEP-02 — cartesian not zip
+- test_swep03: SWEP-03 — parallel execution via ProcessPoolExecutor
+- test_swep04: SWEP-04 — memory release after each cell
 - test_swep05: SWEP-05 — SweepResult summary_df shape
+- test_swep06: SWEP-06 — tqdm progress bar
 - test_swep07: SWEP-07 — TOML config loading
 """
+import inspect
+import math
 import pathlib
 
 import pandas as pd
 import pytest
 
+from backtesting.data.budget import BetaDistribution
 from backtesting.sweep import (
     SweepConfig,
     SweepCell,
     SweepResult,
     _enumerate_cells,
+    _make_failed_row,
+    _run_cell,
     load_sweep_config,
+    run_sweep,
 )
 
 
@@ -193,3 +202,200 @@ long = 365
 
     with pytest.raises(KeyError):
         load_sweep_config(toml_path)
+
+
+# ---------------------------------------------------------------------------
+# SWEP-03: Parallel execution via ProcessPoolExecutor (integration tests)
+# ---------------------------------------------------------------------------
+
+
+def test_swep03_parallel_execution(tmp_path: pathlib.Path):
+    """SWEP-03: run_sweep() executes a single cell successfully via ProcessPoolExecutor.
+
+    Integration test — runs actual simulation with small n_voters=20 and n_proposals=3.
+    """
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[0.5],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        base={'n_voters': 20, 'n_proposals': 3, 'seed': 42},
+    )
+    result = run_sweep(config, output_dir=str(tmp_path))
+
+    # One row in summary_df — one cell in grid
+    assert len(result.summary_df) == 1, (
+        f'Expected 1 row, got {len(result.summary_df)}'
+    )
+    # No failures
+    assert result.failed_cells == [], (
+        f'Expected no failed cells, got {result.failed_cells}'
+    )
+    # Cell not marked failed
+    assert result.summary_df['failed'].iloc[0] == False, (
+        f"Expected failed=False, got {result.summary_df['failed'].iloc[0]}"
+    )
+    # Metrics were computed (flip_rate is not NaN)
+    assert result.summary_df['flip_rate'].notna().all(), (
+        f"Expected flip_rate to be non-NaN: {result.summary_df['flip_rate'].tolist()}"
+    )
+
+    # Auto-export files exist
+    out = pathlib.Path(result.output_dir)
+    assert (out / 'summary.csv').exists(), f'summary.csv missing from {out}'
+    assert (out / 'config.json').exists(), f'config.json missing from {out}'
+
+
+def test_swep03_multi_cell_sweep(tmp_path: pathlib.Path):
+    """SWEP-03: run_sweep() produces exactly 12 rows for 2x3x1x2 grid.
+
+    Integration test — runs actual simulations with small n_voters=20 and n_proposals=3.
+    Validates SWEP-01 end-to-end: '2 curve types, 3 alpha values, and 2 allocation
+    strategies produces exactly 12 result rows.'
+    """
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[0.5, 1.0, 2.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction', 'conviction_weighted'],
+        max_workers=2,
+        base={'n_voters': 20, 'n_proposals': 3, 'seed': 42},
+    )
+    result = run_sweep(config, output_dir=str(tmp_path))
+
+    # Exactly 12 cells from 2*3*1*2 cartesian product
+    assert len(result.summary_df) == 12, (
+        f'Expected 12 rows, got {len(result.summary_df)}'
+    )
+
+    # All expected metric columns are present
+    expected_cols = {
+        'cell_id', 'curve_type', 'alpha', 'lock_profile_short', 'lock_profile_long',
+        'allocation_strategy', 'flip_rate', 'gini_legacy', 'gini_signals',
+        'participation_rate', 'margin_shift_mean', 'margin_shift_std',
+        'enp_legacy_mean', 'enp_signals_mean', 'nakamoto_legacy_mean',
+        'nakamoto_signals_mean', 'failed',
+    }
+    actual_cols = set(result.summary_df.columns)
+    missing_cols = expected_cols - actual_cols
+    assert not missing_cols, f'Missing columns: {missing_cols}'
+
+
+# ---------------------------------------------------------------------------
+# SWEP-04: Memory release after each cell
+# ---------------------------------------------------------------------------
+
+
+def test_swep04_memory_release():
+    """SWEP-04: _run_cell() contains del raw and gc.collect() for memory management.
+
+    Static source inspection — dynamic memory profiling is fragile in CI.
+    """
+    src = inspect.getsource(_run_cell)
+    assert 'del raw' in src, (
+        '_run_cell() must contain "del raw" for memory management (SWEP-04)'
+    )
+    assert 'gc.collect()' in src, (
+        '_run_cell() must contain "gc.collect()" for memory management (SWEP-04)'
+    )
+
+
+# ---------------------------------------------------------------------------
+# SWEP-06: tqdm progress bar
+# ---------------------------------------------------------------------------
+
+
+def test_swep06_tqdm_progress():
+    """SWEP-06: run_sweep() uses tqdm for progress reporting.
+
+    Static source inspection verifies tqdm is used in the orchestrator.
+    """
+    src = inspect.getsource(run_sweep)
+    assert 'tqdm(' in src, (
+        'run_sweep() must use tqdm() for progress reporting (SWEP-06)'
+    )
+
+
+# ---------------------------------------------------------------------------
+# INT-02: _make_failed_row has NaN nakamoto (schema consistency)
+# ---------------------------------------------------------------------------
+
+
+def test_make_failed_row_has_nan_nakamoto():
+    """INT-02: _make_failed_row returns NaN for nakamoto columns (schema consistency)."""
+    cell = SweepCell(
+        cell_id=0,
+        curve_type='sqrt',
+        alpha=0.5,
+        lock_profile={'short': 30, 'long': 365},
+        allocation_strategy='uniform_fraction',
+    )
+    row = _make_failed_row(cell)
+    assert math.isnan(row['nakamoto_legacy_mean']), (
+        f'Expected NaN for nakamoto_legacy_mean in failed row, got {row["nakamoto_legacy_mean"]}'
+    )
+    assert math.isnan(row['nakamoto_signals_mean']), (
+        f'Expected NaN for nakamoto_signals_mean in failed row, got {row["nakamoto_signals_mean"]}'
+    )
+
+
+# ---------------------------------------------------------------------------
+# INT-01: mc_dists axis in SweepConfig/SweepCell and _enumerate_cells
+# ---------------------------------------------------------------------------
+
+
+def test_enumerate_cells_with_mc_dists():
+    """INT-01: _enumerate_cells includes mc_dist axis when SweepConfig.mc_dists is set."""
+    mc_dist = BetaDistribution(a=2.0, b=5.0)
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=[mc_dist],
+    )
+    cells = _enumerate_cells(config)
+
+    # 1 curve_type x 1 alpha x 1 lock_profile x 1 strategy x 1 mc_dist = 1 cell
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].mc_dist is mc_dist, 'cell.mc_dist should be the BetaDistribution instance'
+
+
+def test_enumerate_cells_mc_dists_none_backward_compat():
+    """INT-01: _enumerate_cells with mc_dists=None produces cells with mc_dist=None (backward compat)."""
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=None,
+    )
+    cells = _enumerate_cells(config)
+
+    # Same 1 cell as before
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].mc_dist is None, f'cell.mc_dist should be None, got {cells[0].mc_dist}'
+
+
+def test_enumerate_cells_mc_dists_cartesian():
+    """INT-01: _enumerate_cells produces cartesian product with mc_dists axis."""
+    mc_dist1 = BetaDistribution(a=2.0, b=5.0)
+    mc_dist2 = BetaDistribution(a=1.0, b=1.0)
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[0.5],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=[mc_dist1, mc_dist2],
+    )
+    cells = _enumerate_cells(config)
+
+    # 2 curve_types x 1 x 1 x 1 x 2 mc_dists = 4 cells
+    assert len(cells) == 4, f'Expected 4 cells, got {len(cells)}'
+    mc_dist_labels = [c.mc_dist for c in cells]
+    assert mc_dist1 in mc_dist_labels, 'mc_dist1 not in cells'
+    assert mc_dist2 in mc_dist_labels, 'mc_dist2 not in cells'
