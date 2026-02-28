@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
+import { openSauce } from './fonts'
 
 import './globals.css'
-
-import localFont from 'next/font/local'
-import { Plus_Jakarta_Sans } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/sonner'
 import { getThemeCookie } from '@/lib/nextjs/getThemeCookie'
@@ -19,22 +17,6 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/containers/app-sidebar'
 import { StickyFooter } from '@/components/sticky-footer'
 import { ReactNode } from 'react'
-
-const geistSans = localFont({
-  src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
-})
-const geistMono = localFont({
-  src: './fonts/GeistMonoVF.woff',
-  variable: '--font-geist-mono',
-  weight: '100 900',
-})
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-display',
-  weight: ['500', '600', '700', '800'],
-})
 
 export const metadata: Metadata = {
   title: 'Signals',
@@ -67,8 +49,22 @@ export default async function RootLayout({
   ) satisfies ChainKey
 
   return (
-    <html lang="en" className={theme}>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable}`}>
+    <html lang="en" className={`theme ${openSauce.variable}`}>
+      <body>
+        <p>
+          Prölss’s publication <em>Schriften für Architekten</em> (1957) [1] inspired a study of
+          this typeface genre. It led to an exploration of the relation between form and
+          counter-form which is at the core of the design. Angular counters respond to the letter’s
+          external curves and do so differently for each weight. The forms and counter-forms of the
+          Thin and Black versions are perfectly inverted. The Light and Ultra Light weights offer
+          razor-sharp positive and negative forms.&nbsp;The width of the Medium and Regular weights
+          is adapted, and both offer rounder counter-shapes that recall some aspects of Aldo
+          Novarese’s Microgramma. This makes them just as suitable for text use and captions at
+          smaller sizes. The Bold cut is a detailed exploration of the balance between square
+          counters and organic curves. Finally, the Black is spaced and kerned tightly to create a
+          masterful rhythmic interaction between glyph spacing and counter-shapes, which makes it
+          perfect for typesetting in blocks to the strongest impact.&nbsp;
+        </p>
         <ThemeProvider initialTheme={theme}>
           <ChainProvider initialChainKey={initialChainKey}>
             <WalletProvider>

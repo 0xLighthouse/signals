@@ -48,6 +48,11 @@
 
 @layer base {
   :root {
+
+    /* Font */
+    font-family: var(--font-open-sauce), sans-serif;
+
+
     --background: #F7F7F8;
     --foreground: #1A1A1A;
     --card: #F5F3EE;
@@ -128,7 +133,9 @@
   body {
     color: var(--foreground);
     background: var(--background);
-    @apply font-sans antialiased;
+    font-size: 1.3333em;
+    line-height: 1.2em;
+    @apply antialiased;
   }
 
   * {
