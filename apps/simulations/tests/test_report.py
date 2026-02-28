@@ -16,9 +16,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from matplotlib.figure import Figure
+
 from backtesting.report import (
     ReportResult,
+    _build_composite,
     _nan_to_none_extended,
+    _plot_cell_detail,
     _plot_metric_heatmap,
     generate_sweep_report,
 )
@@ -214,3 +218,104 @@ def test_report_result_type(tmp_path):
         f'Expected output_dir={tmp_path}, got {result.output_dir}'
     )
     assert len(result.saved_paths) > 0, 'saved_paths is empty — no files were saved'
+
+
+# ---------------------------------------------------------------------------
+# REPT-06: Per-config detail plots
+# ---------------------------------------------------------------------------
+
+
+def test_detail_plots_created(tmp_path):
+    """REPT-06: generate_sweep_report creates detail/best_*.png and detail/worst_*.png files."""
+    sweep_result = _make_sweep_result(tmp_path)
+    generate_sweep_report(sweep_result, best_n=2, worst_n=1)
+
+    detail_dir = tmp_path / 'detail'
+    best_files = list(detail_dir.glob('best_*.png'))
+    worst_files = list(detail_dir.glob('worst_*.png'))
+
+    assert len(best_files) == 2, (
+        f'Expected 2 best detail files, found {len(best_files)}: {best_files}'
+    )
+    assert len(worst_files) == 1, (
+        f'Expected 1 worst detail file, found {len(worst_files)}: {worst_files}'
+    )
+
+
+def test_plot_cell_detail_returns_figure(tmp_path):
+    """_plot_cell_detail returns a matplotlib Figure for a valid row."""
+    sweep_result = _make_sweep_result(tmp_path)
+    row = sweep_result.summary_df.iloc[0]
+
+    fig = _plot_cell_detail(row, 'Test Cell')
+
+    assert isinstance(fig, Figure), f'Expected Figure, got {type(fig)}'
+
+
+def test_detail_plot_handles_nan_metrics(tmp_path):
+    """_plot_cell_detail handles NaN metric values by substituting 0.0 without error."""
+    row = pd.Series({
+        'cell_id': 99,
+        'flip_rate': float('nan'),
+        'gini_legacy': 0.55,
+        'gini_signals': float('nan'),
+        'participation_rate': 0.75,
+        'enp_legacy_mean': float('nan'),
+        'enp_signals_mean': 6.1,
+        'nakamoto_legacy_mean': float('nan'),
+        'nakamoto_signals_mean': 9.2,
+        'margin_shift_mean': 0.05,
+    })
+
+    fig = _plot_cell_detail(row, 'NaN Test')
+
+    assert isinstance(fig, Figure), f'Expected Figure, got {type(fig)}'
+
+
+# ---------------------------------------------------------------------------
+# REPT-05: Composite figure
+# ---------------------------------------------------------------------------
+
+
+def test_composite_figure_created(tmp_path):
+    """REPT-05: generate_sweep_report creates composite.png in the output directory."""
+    sweep_result = _make_sweep_result(tmp_path)
+    generate_sweep_report(sweep_result)
+
+    composite_path = tmp_path / 'composite.png'
+    assert composite_path.exists(), 'composite.png not found in output directory'
+
+
+def test_build_composite_returns_figure(tmp_path):
+    """_build_composite returns a Figure with at least 4 axes panels."""
+    sweep_result = _make_sweep_result(tmp_path)
+    df = sweep_result.summary_df
+
+    fig = _build_composite(df, row_axis='curve_type', col_axis='alpha')
+
+    assert isinstance(fig, Figure), f'Expected Figure, got {type(fig)}'
+    axes = fig.get_axes()
+    # subplot_mosaic creates one axes per panel + colorbar axes
+    # At minimum 4 panel axes must be present
+    assert len(axes) >= 4, f'Expected at least 4 axes, found {len(axes)}'
+
+
+# ---------------------------------------------------------------------------
+# REPT-05 / REPT-06: saved_paths includes detail and composite
+# ---------------------------------------------------------------------------
+
+
+def test_saved_paths_include_detail_and_composite(tmp_path):
+    """generate_sweep_report ReportResult.saved_paths includes detail/ and composite.png paths."""
+    sweep_result = _make_sweep_result(tmp_path)
+    result = generate_sweep_report(sweep_result, best_n=1, worst_n=1)
+
+    detail_paths = [p for p in result.saved_paths if 'detail/' in p]
+    composite_paths = [p for p in result.saved_paths if 'composite.png' in p]
+
+    assert len(detail_paths) > 0, (
+        f'No detail/ paths in saved_paths: {result.saved_paths}'
+    )
+    assert len(composite_paths) == 1, (
+        f'Expected 1 composite.png path, found {len(composite_paths)}: {result.saved_paths}'
+    )
