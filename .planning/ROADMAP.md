@@ -102,7 +102,9 @@
   3. `timing_sensitivity()` produces a 2D heatmap matrix indexed by timing quantile and lock quantile (not a single aggregated number)
   4. Voters are classified into whale / medium / retail archetypes by stake quantile, and these labels are present in the analysis output
   5. Mann-Whitney U p-values and bootstrap confidence intervals are computed on influence distribution differences across configurations
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 11-01-PLAN.md — Create analysis.py with margin_class_breakdown, voter_archetypes, module structure (ANAL-01, ANAL-04, ANAL-07)
+- [ ] 11-02-PLAN.md — Add address_influence, timing_sensitivity, influence_significance, bootstrap_ci (ANAL-02, ANAL-03, ANAL-05, ANAL-06)
 
 ### Phase 12: Report Bundle
 **Goal**: A single `generate_sweep_report()` call produces a fully structured output directory with heatmaps, per-config detail plots, timing sensitivity figures, CSV/JSON exports, and a multi-panel composite figure — all visualization using correct orientation and colormaps
