@@ -25,9 +25,10 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
-__all__ = ['SweepConfig', 'SweepCell', 'SweepResult', 'load_sweep_config']
+__all__ = ['SweepConfig', 'SweepCell', 'SweepResult', 'load_sweep_config', 'run_sweep']
 
 logger = logging.getLogger(__name__)
 
@@ -270,4 +271,183 @@ def _make_failed_row(cell: SweepCell) -> dict:
         'participation_rate': float('nan'),
         'margin_shift_mean': float('nan'),
         'margin_shift_std': float('nan'),
+        'enp_legacy_mean': float('nan'),
+        'enp_signals_mean': float('nan'),
+        'nakamoto_legacy_mean': float('nan'),
+        'nakamoto_signals_mean': float('nan'),
     }
+
+
+# ---------------------------------------------------------------------------
+# Module-level cell executor (must be module-level for ProcessPoolExecutor picklability)
+# ---------------------------------------------------------------------------
+
+
+def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
+    """Execute a single sweep cell: generate scenario, run backtest, compute metrics.
+
+    Module-level (not nested) so it is picklable for ProcessPoolExecutor.
+
+    Imports are deferred inside the function to avoid circular imports and
+    ensure picklability across worker processes.
+
+    Memory management (SWEP-04): raw cadCAD results and intermediate DataFrames
+    are deleted and gc.collect() is called after metrics are computed.
+
+    Args:
+        cell: The SweepCell parameter combination to execute.
+        base_cfg: Passthrough kwargs for generate_scenario (n_voters, seed, etc.).
+
+    Returns:
+        Flat dict with grid params and scalar metric values, plus failed=False.
+    """
+    # Deferred imports for picklability and circular import avoidance
+    from backtesting.data.factory import generate_scenario
+    from backtesting.simulation.runner import run_backtest, build_results_dataframe
+    from backtesting.metrics import (
+        compute_flip_rate,
+        compute_gini,
+        compute_participation_rate,
+        compute_margin_shift,
+        compute_enp,
+        compute_nakamoto_coefficient,
+    )
+
+    # Map cell params to generate_scenario kwargs
+    kwargs = dict(base_cfg)  # copy base config
+    kwargs['curve_type'] = cell.curve_type
+    kwargs['pareto_alpha'] = cell.alpha
+    kwargs['l_max_days'] = float(cell.lock_profile['long'])
+    kwargs['allocation_strategy'] = cell.allocation_strategy
+    # Do NOT pass lock_profile key from the dict — use 'independent' or base_cfg value
+    kwargs.setdefault('lock_profile', 'independent')
+
+    # Run simulation
+    events = generate_scenario(**kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        raw = run_backtest(events, curve_type=cell.curve_type)
+    results_df = build_results_dataframe(raw, events)
+
+    # Compute scalar metrics
+    flip = compute_flip_rate(results_df)
+    gini = compute_gini(results_df, curve_type=cell.curve_type)
+    participation = compute_participation_rate(results_df)
+    margin = compute_margin_shift(results_df)
+    enp = compute_enp(results_df, curve_type=cell.curve_type)
+    nakamoto = compute_nakamoto_coefficient(results_df, curve_type=cell.curve_type)
+
+    # CRITICAL memory management (SWEP-04): delete large objects and force GC
+    del raw, events, results_df
+    gc.collect()
+
+    return {
+        'cell_id': cell.cell_id,
+        'curve_type': cell.curve_type,
+        'alpha': cell.alpha,
+        'lock_profile_short': cell.lock_profile['short'],
+        'lock_profile_long': cell.lock_profile['long'],
+        'allocation_strategy': cell.allocation_strategy,
+        'flip_rate': flip.aggregate,
+        'gini_legacy': gini.legacy,
+        'gini_signals': gini.signals,
+        'participation_rate': participation.aggregate,
+        'margin_shift_mean': margin.aggregate_mean,
+        'margin_shift_std': margin.aggregate_std,
+        'enp_legacy_mean': float(np.nanmean(list(enp.legacy.values()))) if enp.legacy else float('nan'),
+        'enp_signals_mean': float(np.nanmean(list(enp.signals.values()))) if enp.signals else float('nan'),
+        'nakamoto_legacy_mean': float(np.mean(list(nakamoto.legacy.values()))) if nakamoto.legacy else float('nan'),
+        'nakamoto_signals_mean': float(np.mean(list(nakamoto.signals.values()))) if nakamoto.signals else float('nan'),
+        'failed': False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Sweep orchestrator
+# ---------------------------------------------------------------------------
+
+
+def run_sweep(
+    config: SweepConfig,
+    *,
+    fail_fast: bool = False,
+    output_dir: str | None = None,
+) -> SweepResult:
+    """Execute a full parameter sweep with parallel cell execution.
+
+    Dispatches cells to a ProcessPoolExecutor with max_workers from config.
+    Uses tqdm for progress reporting (one update per completed cell).
+    Failed cells are logged and added to failed_cells list; sweep continues
+    unless fail_fast=True, which stops on first failure.
+
+    Auto-exports summary.csv and config.json to a timestamped output directory.
+
+    Args:
+        config: SweepConfig defining the sweep axes and execution parameters.
+        fail_fast: If True, stop the sweep on the first cell failure.
+        output_dir: Override output directory base path. Defaults to
+            config.base.get('output_dir', './output').
+
+    Returns:
+        SweepResult with summary_df, failed_cells list, and output_dir path.
+
+    Raises:
+        RuntimeError: If fail_fast=True and a cell times out.
+        Exception: If fail_fast=True and a cell raises an exception.
+    """
+    from concurrent.futures import ProcessPoolExecutor, TimeoutError as FutureTimeout, as_completed
+    from tqdm import tqdm
+
+    cells = _enumerate_cells(config)
+    out_dir = _make_output_dir(output_dir or config.base.get('output_dir', './output'))
+
+    rows: list[dict] = []
+    failed_cells: list[int] = []
+
+    with ProcessPoolExecutor(max_workers=config.max_workers) as ex:
+        futures = {ex.submit(_run_cell, cell, config.base): cell for cell in cells}
+        with tqdm(total=len(futures), desc='Sweep', unit='cell') as pbar:
+            for fut in as_completed(futures):
+                cell = futures[fut]
+                try:
+                    row = fut.result(timeout=config.cell_timeout_seconds)
+                    rows.append(row)
+                except FutureTimeout:
+                    fut.cancel()
+                    logging.error('Cell %d timed out', cell.cell_id)
+                    failed_cells.append(cell.cell_id)
+                    rows.append(_make_failed_row(cell))
+                    if fail_fast:
+                        ex.shutdown(wait=False, cancel_futures=True)
+                        raise RuntimeError(f'Sweep aborted: cell {cell.cell_id} timed out')
+                except Exception as e:
+                    logging.error('Cell %d failed: %s', cell.cell_id, e)
+                    failed_cells.append(cell.cell_id)
+                    rows.append(_make_failed_row(cell))
+                    if fail_fast:
+                        ex.shutdown(wait=False, cancel_futures=True)
+                        raise
+                pbar.update(1)
+
+    summary_df = pd.DataFrame(rows).sort_values('cell_id').reset_index(drop=True)
+
+    # Auto-export results
+    summary_df.to_csv(out_dir / 'summary.csv', index=False)
+    config_dict = {
+        'curve_types': config.curve_types,
+        'alphas': config.alphas,
+        'lock_profiles': config.lock_profiles,
+        'allocation_strategies': config.allocation_strategies,
+        'max_workers': config.max_workers,
+        'cell_timeout_seconds': config.cell_timeout_seconds,
+        'base': config.base,
+    }
+    with open(out_dir / 'config.json', 'w') as f:
+        json.dump(config_dict, f, indent=2)
+
+    return SweepResult(
+        config=config,
+        summary_df=summary_df,
+        failed_cells=failed_cells,
+        output_dir=str(out_dir),
+    )
