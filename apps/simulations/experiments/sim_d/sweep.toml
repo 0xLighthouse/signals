@@ -1,0 +1,86 @@
+# ============================================================================
+# Simulation D — Sybil Splitting Attack
+# ============================================================================
+#
+# Thesis:  A whale could split their stake into many small wallets to game
+#          the sqrt curve (since sqrt gives diminishing returns, splitting into
+#          N wallets each with stake/N could yield higher aggregate weight if
+#          each wallet locks long). Does the budget constraint + lock duration
+#          make this unprofitable?
+#
+# From Section 6 of the litepaper: "locking as sybil resistance"
+#
+# Design: Run two scenarios with identical total stake:
+#   1. Honest: 1 whale with 100k tokens, short lock
+#   2. Sybil:  20 wallets with 5k each, all long-locking
+#
+# Compare: Does the sybil strategy actually gain voting power? At what split
+# ratio does it become profitable? This is the litepaper's open question about
+# sybil resistance limits.
+#
+# IMPORTANT: This sim requires custom scenario generation code that does NOT
+# yet exist. The sweep TOML below is a TEMPLATE for the sweep dimensions once
+# the sybil scenario builder is implemented. See THESIS_GUIDE.md Sim D section
+# for the required `generate_sybil_scenario()` function spec.
+#
+# Required infrastructure (not yet built):
+#   1. generate_sybil_scenario(whale_budget, split_count, lock_duration, ...)
+#   2. Comparison harness for honest-whale vs sybil side-by-side
+#   3. compute_sybil_advantage() metric
+#
+# Key questions:
+#   - Does sqrt(stake/N) * N > sqrt(stake) when each split wallet long-locks?
+#   - At what split count does the advantage plateau or reverse?
+#   - Which curve type is most sybil-resistant? (log should be best —
+#     heaviest diminishing returns)
+#   - Does the budget constraint (finite allocation per wallet) neutralize
+#     the splitting advantage?
+#
+# Key metrics:
+#   - sybil_advantage ratio = signals_share(sybil) / signals_share(honest)
+#   - Gini under sybil attack
+#   - ENP distortion
+#   - Effective weight comparison
+#
+# Run (once infrastructure exists):
+#   cd apps/simulations
+#   uv run python experiments/sim_d/run_sybil.py
+# ============================================================================
+
+# NOTE: This is a TEMPLATE — standard sweep.toml cannot express the sybil
+# attack pattern. The custom runner will use these base parameters for the
+# honest voter population surrounding the whale/sybil actors.
+
+[base]
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+stake_profile = "pareto"
+lock_profile = "independent"
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Test sybil resistance across all 4 curves
+# Expected: log is most resistant (heaviest diminishing returns)
+#           exp is least resistant (back-loaded, rewards splitting + long-lock)
+curve_types = ["sqrt", "linear", "log", "exp"]
+
+# Test with and without generous floor
+# Higher floor may reduce sybil incentive (split wallets already get floor weight)
+floors = [0.0, 0.1, 0.3]
+
+alphas = [0.7]
+allocation_strategies = ["uniform_fraction"]
+max_workers = 4
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+
+# SYBIL-SPECIFIC PARAMETERS (for custom runner, not standard sweep engine)
+# whale_budget = 100_000.0
+# split_counts = [1, 5, 10, 20, 50]
+# sybil_lock_days = 365  (all sybil wallets long-lock for max advantage)
+# honest_lock_days = 30  (honest whale short-locks, as in typical behavior)

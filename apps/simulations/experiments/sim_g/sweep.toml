@@ -1,0 +1,86 @@
+# ============================================================================
+# Simulation G — Scale Sensitivity: 50 vs 500 vs 2000 voters
+# ============================================================================
+#
+# Thesis:  The litepaper warns about heterogeneous token distributions at
+#          different scales. Does the Signals advantage hold as voter count
+#          changes? Small DAOs (50 voters) may behave differently than large
+#          ones (2000).
+#
+# Design: Run separate sweeps for each n_voters value with the Sim B config
+# otherwise fixed. Plot Gini reduction as a function of DAO size. Validates
+# whether the protocol is general-purpose or only works at certain scales.
+#
+# NOTE: n_voters is NOT a sweep axis in SweepConfig — it lives in [base].
+# This file uses n_voters=200 as the default. To run the full scale sweep,
+# create copies with n_voters = 50, 500, 2000 (Approach A), or implement
+# n_voters_list as a sweep axis (Approach B — requires code changes).
+#
+# Approach A (no code changes): Copy this TOML 4 times, change n_voters:
+#   sim_g/sweep_50.toml   → n_voters = 50
+#   sim_g/sweep_200.toml  → n_voters = 200
+#   sim_g/sweep_500.toml  → n_voters = 500
+#   sim_g/sweep_2000.toml → n_voters = 2000
+#   Then compare summary CSVs across runs.
+#
+# Approach B (code change): Add n_voters_list to SweepConfig and enumerate
+#   in cartesian product. More elegant but requires sweep engine changes.
+#
+# Key questions:
+#   - Is the Gini reduction scale-invariant?
+#   - Does ENP improvement hold at n_voters=50 (tiny DAO)?
+#   - Does flip_rate change with scale?
+#   - Performance: is n_voters=2000 feasible within timeout?
+#
+# Performance notes:
+#   - n_voters=2000 x 30 proposals ≈ 60k potential events (6k at 10% participation)
+#   - May need cell_timeout_seconds=300+ for large voter counts
+#   - Memory management (del + gc.collect) already in _run_cell()
+#
+# Warning: n_voters < 100 with pareto stakes may trigger UserWarning about
+# Gini not reaching the 0.65 threshold for realistic inequality modeling.
+#
+# Key metrics:
+#   - Gini delta vs n_voters — should be roughly constant if scale-invariant
+#   - ENP ratio vs n_voters — may increase with scale (more effective participants)
+#   - flip_rate vs n_voters — should stabilize above some minimum scale
+#   - margin_shift vs n_voters
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_g/sweep.toml
+# ============================================================================
+
+[base]
+# DEFAULT: 200 voters — change this value for each scale run
+# Scale sweep: [50, 200, 500, 2000]
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# Same as Sim B — the "favorable case" for Signals
+# Using inverse_correlated so we can see if the Signals effect persists at scale
+stake_profile = "pareto"
+lock_profile = "inverse_correlated"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Use litepaper default (or best curve from Sim C once results are available)
+curve_types = ["sqrt"]
+
+alphas = [0.7]
+allocation_strategies = ["uniform_fraction"]
+floors = [0.1]
+
+# Increase timeout for large voter counts (2000 voters may be slow)
+cell_timeout_seconds = 300
+max_workers = 4
+
+# Total cells per run: 1 (single-cell sweep, varied by n_voters across runs)
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365

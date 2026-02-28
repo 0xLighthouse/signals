@@ -1,0 +1,65 @@
+# ============================================================================
+# Simulation A — Whale-dominated DAO: Does commitment-weighting reduce plutocracy?
+# ============================================================================
+#
+# Thesis:  With Pareto-distributed stakes (80/20 power law) and bimodal lock
+#          durations, does Signals weighting (sqrt curve, floor=0.1) meaningfully
+#          reduce voting power inequality compared to Legacy (stake-only)?
+#
+# This is a single-cell baseline run — no parameter sweeping. It establishes
+# the control metrics that later sims (C-G) compare against.
+#
+# Key metrics to watch:
+#   - Gini delta (legacy vs signals) — did inequality drop?
+#   - ENP ratio — are more voters "effective" under Signals?
+#   - Flip rate — did any proposal outcomes actually change?
+#   - Top-k concentration — did whale dominance decrease?
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_a/sweep.toml
+# ============================================================================
+
+[base]
+# 200 voters casting on 30 proposals with 10% avg participation
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# Pareto stakes = heavy-tailed wealth distribution (whales + retail)
+# This models a typical DAO where ~20% of holders control ~80% of tokens
+stake_profile = "pareto"
+
+# Bimodal locks = two clusters of lock behavior (short-lockers + long-lockers)
+# Unlike inverse_correlated (Sim B), this does NOT correlate lock duration with
+# stake size — whales and retail are equally likely to lock short or long
+lock_profile = "bimodal"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Single curve — sqrt is the litepaper default
+# Sim C will sweep all 4 curves: ["sqrt", "linear", "log", "exp"]
+curve_types = ["sqrt"]
+
+# Pareto alpha controls wealth concentration (lower = more unequal)
+# 0.7 is a reasonable DAO-like distribution
+alphas = [0.7]
+
+# Uniform fraction = each voter splits budget equally across proposals they vote on
+# Sim F will compare against conviction_weighted allocation
+allocation_strategies = ["uniform_fraction"]
+
+# Floor = minimum weight for uncommitted voters (litepaper Section 4: "not silenced")
+# 0.1 means even zero-lock voters get 10% of their stake as voting weight
+# Sim C will sweep floors = [0.0, 0.1, 0.3]
+floors = [0.1]
+
+max_workers = 4
+
+# Single lock profile — short=30d, long=365d defines the bimodal clusters
+[[sweep.lock_profiles]]
+short = 30   # short-lockers commit for ~1 month
+long = 365   # long-lockers commit for ~1 year

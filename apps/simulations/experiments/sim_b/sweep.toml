@@ -1,0 +1,69 @@
+# ============================================================================
+# Simulation B — Heterogeneous Returns: Whale Short-Lock vs Retail Long-Lock
+# ============================================================================
+#
+# Thesis:  When whales short-lock (liquidity-seeking) and retail long-locks
+#          (conviction-driven), does the sqrt curve amplify small holders and
+#          dampen whales enough to produce meaningful Gini reduction and
+#          outcome flips vs Legacy governance?
+#
+# This is the key "inverse correlation" scenario — the most favorable case for
+# Signals. If commitment-weighting doesn't show a clear effect HERE, it won't
+# work anywhere. Compare results against Sim A (bimodal/uncorrelated) to
+# isolate the effect of lock-stake correlation.
+#
+# Key metrics to watch:
+#   - Gini delta vs Sim A — does inverse correlation amplify the effect?
+#   - Flip rate — should be HIGHER than Sim A (more outcomes change)
+#   - ENP — should show larger improvement than Sim A
+#   - Margin shift — expect positive shift (towards more competitive margins)
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_b/sweep.toml
+# ============================================================================
+
+[base]
+# Same voter population as Sim A for direct comparison
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# Same Pareto stakes as Sim A — wealth distribution is identical
+stake_profile = "pareto"
+
+# KEY DIFFERENCE from Sim A: inverse_correlated locks
+# High-stake voters (whales) get SHORT lock durations → low commitment multiplier
+# Low-stake voters (retail) get LONG lock durations → high commitment multiplier
+# This is the scenario where Signals should shine — the curve rewards exactly
+# the voters who demonstrate conviction by locking longer
+lock_profile = "inverse_correlated"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Single curve — sqrt is the litepaper default
+# Compare: sqrt(stake) * lock_curve(duration) penalizes whales twice:
+#   1. sqrt compresses their large stakes
+#   2. short locks give them a low commitment multiplier (~floor)
+curve_types = ["sqrt"]
+
+# Same alpha as Sim A for controlled comparison
+alphas = [0.7]
+
+# Same allocation as Sim A
+allocation_strategies = ["uniform_fraction"]
+
+# Same floor as Sim A — 10% minimum weight for uncommitted voters
+floors = [0.1]
+
+max_workers = 4
+
+# Same lock duration bounds as Sim A
+# But with inverse_correlated profile, whales cluster near short=30d
+# and retail clusters near long=365d
+[[sweep.lock_profiles]]
+short = 30   # whales end up here (high stake → short lock)
+long = 365   # retail ends up here (low stake → long lock)
