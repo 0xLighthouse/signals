@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T13:57:47.326Z"
+last_updated: "2026-02-28T14:06:59.058Z"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 Phase: 11 of 12 (Extended Analysis)
-Plan: 01 complete (plan 1 of 2) — Phase 11 In Progress
+Plan: 02 complete (plan 2 of 2) — Phase 11 Complete
 Status: In Progress
-Last activity: 2026-02-28 — Completed 11-01: ANAL-01/04/07 analysis.py with margin_class_breakdown and voter_archetypes
+Last activity: 2026-02-28 — Completed 11-02: ANAL-02/03/05/06 with address_influence, timing_sensitivity, influence_significance, bootstrap_ci
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [█████░░░░░] 50%
 | Phase 10-sweep-runner P02 | 3 | 2 tasks | 3 files |
 | Phase 10.1-integration-wiring-fixes P01 | 5 | 2 tasks | 7 files |
 | Phase 11-extended-analysis P01 | 2 | 2 tasks | 2 files |
+| Phase 11-extended-analysis P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - [Phase 10.1-integration-wiring-fixes]: VoteTimingConfig re-exported from backtesting.data.__init__ — consistent with existing factory export pattern
 - [Phase 11-extended-analysis]: analysis.py is independent of metrics.py — _get_final_tallies replicated inline to keep module boundaries clean
 - [Phase 11-extended-analysis]: pd.qcut with duplicates='drop' handles Pareto-distributed stake edge cases without full fallback
+- [Phase 11-extended-analysis P02]: delta = signals_share - counterfactual_share (not legacy_share) — median-lock counterfactual isolates commitment signal
+- [Phase 11-extended-analysis P02]: timing_sensitivity uses observed=True in pivot_table to suppress pandas 2.x FutureWarning for categorical axes
 
 ### Pending Todos
 
@@ -94,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 11-01-PLAN.md — ANAL-01/04/07 analysis.py with margin_class_breakdown and voter_archetypes
-Resume action: Phase 11 plan 01 complete — proceed to Phase 11 plan 02 (ANAL-02/03/05/06)
+Stopped at: Completed 11-02-PLAN.md — ANAL-02/03/05/06 with address_influence, timing_sensitivity, influence_significance, bootstrap_ci
+Resume action: Phase 11 complete — all 6 analysis functions implemented. Proceed to next phase.

@@ -40,11 +40,11 @@ Research annotations (italicized) justify decisions for future reference.
 ### Extended Analysis
 
 - [x] **ANAL-01**: Flip breakdown by margin class: tight (<10%), moderate (10-30%), decisive (>30%) *(Research: pd.cut + groupby on existing results — FEATURES.md)*
-- [ ] **ANAL-02**: Address-level influence analysis: per-voter (legacy_share, signals_share, delta) with counterfactual baseline *(Research: P8 — must use median-lock baseline, not raw legacy weight — PITFALLS.md)*
-- [ ] **ANAL-03**: Timing sensitivity analysis with 2D timing-quantile × lock-quantile heatmap *(Research: P9 — separates conflated variables — PITFALLS.md)*
+- [x] **ANAL-02**: Address-level influence analysis: per-voter (legacy_share, signals_share, delta) with counterfactual baseline *(Research: P8 — must use median-lock baseline, not raw legacy weight — PITFALLS.md)*
+- [x] **ANAL-03**: Timing sensitivity analysis with 2D timing-quantile × lock-quantile heatmap *(Research: P9 — separates conflated variables — PITFALLS.md)*
 - [x] **ANAL-04**: Voter archetype classification (whale/medium/retail by stake quantile)
-- [ ] **ANAL-05**: Statistical significance tests (Mann-Whitney U) on influence distribution differences
-- [ ] **ANAL-06**: Bootstrap confidence intervals on aggregate metrics across MC runs *(Research: scipy.stats.bootstrap available since 1.7 — STACK.md)*
+- [x] **ANAL-05**: Statistical significance tests (Mann-Whitney U) on influence distribution differences
+- [x] **ANAL-06**: Bootstrap confidence intervals on aggregate metrics across MC runs *(Research: scipy.stats.bootstrap available since 1.7 — STACK.md)*
 - [x] **ANAL-07**: Cross-run analysis module (`analysis.py`) operating on `SweepResult.summary_df`
 
 ### Report Bundle
@@ -97,7 +97,7 @@ Research annotations (italicized) justify decisions for future reference.
 | MCAL-02 | Phase 9 | Complete |
 | MCAL-03 | Phase 9 | Complete |
 | MCAL-04 | Phase 9 | Complete |
-| MCAL-05 | Phase 9 | Complete |
+| MCAL-05 | Phase 9, Phase 11.1 | Complete (sweep coverage: Phase 11.1) |
 | SWEP-01 | Phase 10 | Complete |
 | SWEP-02 | Phase 10 | Complete |
 | SWEP-03 | Phase 10 | Complete |
@@ -106,11 +106,11 @@ Research annotations (italicized) justify decisions for future reference.
 | SWEP-06 | Phase 10 | Complete |
 | SWEP-07 | Phase 10 | Complete |
 | ANAL-01 | Phase 11 | Complete |
-| ANAL-02 | Phase 11 | Pending |
-| ANAL-03 | Phase 11 | Pending |
+| ANAL-02 | Phase 11 | Complete |
+| ANAL-03 | Phase 11 | Complete |
 | ANAL-04 | Phase 11 | Complete |
-| ANAL-05 | Phase 11 | Pending |
-| ANAL-06 | Phase 11 | Pending |
+| ANAL-05 | Phase 11 | Complete |
+| ANAL-06 | Phase 11 | Complete |
 | ANAL-07 | Phase 11 | Complete |
 | REPT-01 | Phase 12 | Pending |
 | REPT-02 | Phase 12 | Pending |
