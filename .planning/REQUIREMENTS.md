@@ -53,8 +53,8 @@ Research annotations (italicized) justify decisions for future reference.
 - [x] **REPT-02**: CSV export of full sweep results table
 - [x] **REPT-03**: JSON export of summary metrics with NaN sanitization
 - [x] **REPT-04**: Structured output directory (`heatmaps/`, `detail/`, `timing_sensitivity/`)
-- [ ] **REPT-05**: Multi-panel composite figure combining heatmaps + flip breakdown + timing
-- [ ] **REPT-06**: Per-config detail plots for best/worst N configurations
+- [x] **REPT-05**: Multi-panel composite figure combining heatmaps + flip breakdown + timing
+- [x] **REPT-06**: Per-config detail plots for best/worst N configurations
 - [x] **REPT-07**: Annotated heatmaps showing cell values + color encoding
 - [x] **REPT-08**: `generate_sweep_report()` orchestrator in `report.py`
 
@@ -116,8 +116,8 @@ Research annotations (italicized) justify decisions for future reference.
 | REPT-02 | Phase 12 | Complete |
 | REPT-03 | Phase 12 | Complete |
 | REPT-04 | Phase 12 | Complete |
-| REPT-05 | Phase 12 | Pending |
-| REPT-06 | Phase 12 | Pending |
+| REPT-05 | Phase 12 | Complete |
+| REPT-06 | Phase 12 | Complete |
 | REPT-07 | Phase 12 | Complete |
 | REPT-08 | Phase 12 | Complete |
 

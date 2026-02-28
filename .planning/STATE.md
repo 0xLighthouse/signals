@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T16:16:22.086Z"
+last_updated: "2026-02-28T16:21:37.549Z"
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 Phase: 12 of 12 (Report Bundle)
-Plan: 01 complete (plan 1 of N) — generate_sweep_report orchestrator with heatmaps and CSV/JSON exports
-Status: In Progress
-Last activity: 2026-02-28 — Completed 12-01: report.py core module with generate_sweep_report, heatmaps, exports (REPT-01/02/03/04/07/08)
+Plan: 02 complete (plan 2 of 2) — detail plots and composite figure (REPT-05, REPT-06)
+Status: Complete
+Last activity: 2026-02-28 — Completed 12-02: _plot_cell_detail, _build_composite, 14 passing tests
 
-Progress: [██████████] ~85%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] ~85%
 | Phase 11-extended-analysis P02 | 4 | 2 tasks | 2 files |
 | Phase 11.1-vote-timing-sweep-wiring P01 | 5 | 2 tasks | 3 files |
 | Phase 12-report-bundle P01 | 2 | 2 tasks | 2 files |
+| Phase 12-report-bundle P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 11.1-vote-timing-sweep-wiring]: vote_timings uses [None] sentinel in itertools.product (same pattern as mc_dists) — prevents TypeError from passing None to itertools.product
 - [Phase 12-report-bundle P01]: _nan_to_none_extended casts np.integer to int() — np.int64 is NOT a Python int subclass and causes json.dumps() TypeError without this cast
 - [Phase 12-report-bundle P01]: origin='lower' is mandatory for heatmaps — default 'upper' inverts the row axis visually
+- [Phase 12-report-bundle]: NaN metric values replaced with 0.0 for bar heights in _plot_cell_detail — bar charts cannot accept NaN as height value
+- [Phase 12-report-bundle]: _build_composite inlines imshow logic per panel — _plot_metric_heatmap creates its own Figure which cannot embed into subplot_mosaic axes
 
 ### Pending Todos
 
@@ -103,5 +106,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 12-01-PLAN.md — report.py core module (REPT-01/02/03/04/07/08)
-Resume action: Phase 12 Plan 01 complete — report.py with generate_sweep_report, heatmaps, CSV/JSON exports. Proceed to Plan 02 (composite figures, detail plots).
+Stopped at: Completed 12-02-PLAN.md — detail plots and composite figure (REPT-05, REPT-06)
+Resume action: Phase 12 complete. All REPT requirements (REPT-01 through REPT-08) implemented. Report bundle is production-ready.
