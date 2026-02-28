@@ -1,0 +1,79 @@
+# ============================================================================
+# Simulation C — Curve Sensitivity: Does the shape matter?
+# ============================================================================
+#
+# Thesis:  The litepaper offers four curves (sqrt, linear, log, exp) but
+#          defaults to sqrt. Which curve best amplifies small holders without
+#          completely silencing whales? The floor parameter is also critical —
+#          the litepaper explicitly says "uncommitted voters still get 10%
+#          weight, not silenced."
+#
+# This is the foundation sim — its results (best curve + optimal floor)
+# determine the fixed curve_type used in Sims D, F, and G downstream.
+#
+# Design: Same base scenario as Sim A/B (pareto stakes, 200 voters, 30
+# proposals), but sweep ALL 4 curves x 3 floor values. Produces a 4x3 matrix
+# of Gini/ENP/flip-rate. Directly validates Section 4 of the litepaper
+# (mechanism design).
+#
+# Key questions:
+#   - Is sqrt actually optimal, or does log (most front-loaded) give better
+#     inclusivity?
+#   - Does floor=0.0 silence uncommitted voters too aggressively?
+#   - Does floor=0.3 over-compensate, diluting the commitment signal?
+#
+# Curve behaviors:
+#   sqrt(x)  — moderate compression, litepaper default
+#   linear(x) — no compression, commitment only (control)
+#   log(1+x) — heaviest front-loading, most egalitarian
+#   exp(x)   — back-loaded, rewards long locks disproportionately
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_c/sweep.toml
+# ============================================================================
+
+[base]
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# Pareto stakes — same as Sim A/B for controlled comparison
+stake_profile = "pareto"
+
+# Independent locks — no correlation between stake size and lock duration
+# This isolates the curve shape effect from the lock-correlation effect
+# (Sim B already tested inverse_correlated; here we want pure curve comparison)
+lock_profile = "independent"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# THE KEY AXIS — all four curve shapes head-to-head
+# sqrt: moderate compression (litepaper default)
+# linear: no compression (commitment-only control)
+# log: heaviest front-loading (most egalitarian)
+# exp: back-loaded (rewards long locks disproportionately)
+curve_types = ["sqrt", "linear", "log", "exp"]
+
+# THE SECOND KEY AXIS — floor sensitivity
+# 0.0 = uncommitted voters are completely silenced (weight → 0)
+# 0.1 = litepaper default ("not silenced" — 10% minimum weight)
+# 0.3 = generous floor (30% minimum weight, weaker commitment signal)
+floors = [0.0, 0.1, 0.3]
+
+# Fixed alpha — same as Sim A/B
+alphas = [0.7]
+
+# Single allocation strategy — isolating curve + floor effects
+allocation_strategies = ["uniform_fraction"]
+
+max_workers = 4
+
+# Total cells: 4 curves x 3 floors x 1 alpha x 1 alloc x 1 lock = 12 cells
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365

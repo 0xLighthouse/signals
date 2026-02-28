@@ -1,0 +1,83 @@
+# ============================================================================
+# Simulation F — Bimodal Stakes with Conviction-Weighted Allocation
+# ============================================================================
+#
+# Thesis:  The litepaper's concern about "committees that drift or concentrate
+#          power." With bimodal stakes (top 10% hold 90% of supply) and
+#          conviction_weighted allocation (longer lock → bigger commitment
+#          fraction), does the budget mechanism force whales to spread thin
+#          across proposals while retail can go deep on fewer?
+#
+# THIS SIM CAN RUN TODAY — all infrastructure exists, zero code changes needed.
+#
+# Design:
+#   - stake_profile = 'bimodal' (10% whales / 90% retail, extreme inequality)
+#   - allocation_strategy = 'conviction_weighted' vs 'uniform_fraction' (control)
+#   - Cross with curve_types to see which curve maximizes the conviction effect
+#   - inverse_correlated locks: whales short-lock → low conviction → small
+#     allocations per proposal. Retail long-locks → high conviction → can
+#     concentrate budget on proposals they care about.
+#
+# The conviction_weighted strategy should amplify the inverse-correlation
+# effect: whales get penalized THREE ways:
+#   1. Sublinear curve compresses their large stakes
+#   2. Short locks give them low commitment multiplier
+#   3. Low conviction (short lock) means they spread budget thinly
+#
+# Key questions:
+#   - Does conviction_weighted allocation produce larger Gini reduction than
+#     uniform_fraction under bimodal stakes?
+#   - Do whales actually spread thin (low per-proposal allocation)?
+#   - Does retail go deep (high per-proposal allocation on fewer proposals)?
+#   - Which curve_type + conviction_weighted combo is most equalizing?
+#
+# Key metrics:
+#   - flip_rate by margin class — more flips in tight margins?
+#   - Gini delta — bimodal has very high legacy Gini; how much does Signals fix?
+#   - per-archetype influence (address_influence x voter_archetypes overlay)
+#   - budget utilization by archetype
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_f/sweep.toml
+# ============================================================================
+
+[base]
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# BIMODAL stakes — extreme inequality: top 10% hold 90% of supply
+# This is worse than Pareto — it models DAOs where a small committee
+# controls nearly all tokens (the "drifting committee" concern)
+stake_profile = "bimodal"
+
+# Inverse correlated — whales short-lock (liquidity), retail long-locks (conviction)
+# This creates the strongest signal for conviction_weighted allocation to act on
+lock_profile = "inverse_correlated"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Test across 3 curves (exp optional — add if Sim C shows it's interesting)
+# log should produce the strongest whale-dampening with conviction_weighted
+curve_types = ["sqrt", "linear", "log"]
+
+# THE KEY COMPARISON — conviction_weighted vs uniform_fraction
+# conviction_weighted: allocation_fraction = lock_days / l_max_days
+#   → whale (30d lock): 30/365 = 8.2% allocation per proposal
+#   → retail (365d lock): 365/365 = 100% allocation per proposal
+# uniform_fraction: everyone splits budget equally across voted proposals
+allocation_strategies = ["conviction_weighted", "uniform_fraction"]
+
+alphas = [0.7]
+floors = [0.1]
+max_workers = 4
+
+# Total cells: 3 curves x 2 strategies x 1 alpha x 1 floor x 1 lock = 6 cells
+
+[[sweep.lock_profiles]]
+short = 30   # whale conviction: 30/365 = 8.2%
+long = 365   # retail conviction: 365/365 = 100%
