@@ -108,7 +108,7 @@
 | 5. Metrics | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 6. Plots | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
-| 8. Foundation Fixes & Budget Promotion | v3.0 | 0/TBD | Not started | - |
+| 8. Foundation Fixes & Budget Promotion | 1/3 | In Progress|  | - |
 | 9. Monte Carlo Allocation Modeling | v3.0 | 0/TBD | Not started | - |
 | 10. Sweep Runner | v3.0 | 0/TBD | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
