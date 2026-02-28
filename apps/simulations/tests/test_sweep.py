@@ -561,3 +561,124 @@ def test_mcal05_sweep_distinct_results(tmp_path: pathlib.Path):
     assert 'vote_timing_label' in result.summary_df.columns, 'vote_timing_label column missing'
     labels = result.summary_df['vote_timing_label'].tolist()
     assert len(set(labels)) == 2, f'Expected 2 distinct labels, got {set(labels)}'
+
+
+# ---------------------------------------------------------------------------
+# SIMC-03: floors sweep axis
+# ---------------------------------------------------------------------------
+
+
+def test_enumerate_cells_with_floors():
+    """SIMC-03: SweepConfig with floors=[0.0, 0.1, 0.3] produces 3 cells in cartesian product."""
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        floors=[0.0, 0.1, 0.3],
+    )
+    cells = _enumerate_cells(config)
+
+    # 1 x 1 x 1 x 1 x 1 x 1 x 3 floors = 3 cells
+    assert len(cells) == 3, f'Expected 3 cells, got {len(cells)}'
+
+    floor_values = [c.floor for c in cells]
+    assert 0.0 in floor_values, f'floor=0.0 missing from cells: {floor_values}'
+    assert 0.1 in floor_values, f'floor=0.1 missing from cells: {floor_values}'
+    assert 0.3 in floor_values, f'floor=0.3 missing from cells: {floor_values}'
+
+
+def test_enumerate_cells_floors_default_backward_compat():
+    """SIMC-03: SweepConfig with default floors produces cells with floor=0.1."""
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+    )
+    cells = _enumerate_cells(config)
+
+    # Default floors=[0.1] -> 1 cell with floor=0.1
+    assert len(cells) == 1, f'Expected 1 cell with default floors, got {len(cells)}'
+    assert cells[0].floor == 0.1, f'Expected floor=0.1, got {cells[0].floor}'
+
+
+def test_enumerate_cells_floors_cartesian():
+    """SIMC-03: 2 curve_types x 2 floors = 4 cells (cartesian product)."""
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        floors=[0.1, 0.5],
+    )
+    cells = _enumerate_cells(config)
+
+    # 2 curve_types x 1 x 1 x 1 x 1 x 1 x 2 floors = 4 cells
+    assert len(cells) == 4, f'Expected 4 cells, got {len(cells)}'
+
+    # Each (curve_type, floor) combination appears exactly once
+    combos = set((c.curve_type, c.floor) for c in cells)
+    expected = {('sqrt', 0.1), ('sqrt', 0.5), ('log', 0.1), ('log', 0.5)}
+    assert combos == expected, f'Missing combos: {expected - combos}'
+
+
+def test_make_failed_row_has_floor():
+    """SIMC-03: _make_failed_row includes 'floor' key."""
+    cell = SweepCell(
+        cell_id=0,
+        curve_type='sqrt',
+        alpha=0.5,
+        lock_profile={'short': 30, 'long': 365},
+        allocation_strategy='uniform_fraction',
+        floor=0.3,
+    )
+    row = _make_failed_row(cell)
+    assert 'floor' in row, "'floor' key missing from _make_failed_row output"
+    assert row['floor'] == 0.3, f"Expected floor=0.3, got {row['floor']}"
+
+
+def test_swep07_toml_floors(tmp_path: pathlib.Path):
+    """SIMC-03: TOML with floors = [0.0, 0.1, 0.3] parses correctly."""
+    toml_content = """\
+[sweep]
+curve_types = ["sqrt"]
+alphas = [0.5]
+max_workers = 1
+floors = [0.0, 0.1, 0.3]
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+"""
+    toml_path = tmp_path / 'sweep_floors.toml'
+    toml_path.write_text(toml_content)
+    config = load_sweep_config(toml_path)
+
+    assert config.floors == [0.0, 0.1, 0.3], (
+        f'Expected floors=[0.0, 0.1, 0.3], got {config.floors}'
+    )
+
+
+def test_swep07_toml_no_floors(tmp_path: pathlib.Path):
+    """SIMC-03: TOML without floors key defaults to [0.1]."""
+    toml_content = """\
+[sweep]
+curve_types = ["sqrt"]
+alphas = [0.5]
+max_workers = 1
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+"""
+    toml_path = tmp_path / 'sweep_no_floors.toml'
+    toml_path.write_text(toml_content)
+    config = load_sweep_config(toml_path)
+
+    assert config.floors == [0.1], (
+        f'Expected default floors=[0.1], got {config.floors}'
+    )
