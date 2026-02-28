@@ -23,7 +23,7 @@ def _to_dict(event: Any) -> dict:
     return {k: (v.value if hasattr(v, 'value') else v) for k, v in event.model_dump().items()}
 
 
-def run_backtest(event_records: list, curve_type: str = 'sqrt') -> list[dict]:
+def run_backtest(event_records: list, curve_type: str = 'sqrt', floor: float = 0.1) -> list[dict]:
     """Run a cadCAD event-replay simulation over the given event records.
 
     Args:
@@ -31,7 +31,8 @@ def run_backtest(event_records: list, curve_type: str = 'sqrt') -> list[dict]:
             with fields: event_type, proposal_id, block_number, voter, support,
             weight, lock_duration_days.
         curve_type: Lock curve shape for signals weight computation.
-            One of 'sqrt', 'log', 'linear'. Default 'sqrt' (backward-compatible).
+            One of 'sqrt', 'log', 'linear', 'exp'. Default 'sqrt' (backward-compatible).
+        floor: Floor value for compute_signals_weight. Default 0.1 (backward-compatible).
 
     Returns:
         raw_result: List of N+1 state dicts.
@@ -51,6 +52,7 @@ def run_backtest(event_records: list, curve_type: str = 'sqrt') -> list[dict]:
             'M': {
                 'event_stream': tuple(event_records),  # CRITICAL: tuple, not list
                 'curve_type': curve_type,
+                'floor': floor,
             },
         }),
         user_id='backtesting',

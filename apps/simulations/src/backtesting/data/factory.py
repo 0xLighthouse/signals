@@ -20,8 +20,8 @@ from typing import Literal
 
 import numpy as np
 
-ScenarioCurveType = Literal['sqrt', 'log', 'linear']
-_VALID_CURVE_TYPES: tuple[str, ...] = ('sqrt', 'log', 'linear')
+ScenarioCurveType = Literal['sqrt', 'log', 'linear', 'exp']
+_VALID_CURVE_TYPES: tuple[str, ...] = ('sqrt', 'log', 'linear', 'exp')
 
 from backtesting.data.budget import (
     AllocationDistribution,
@@ -234,6 +234,7 @@ def generate_scenario(
     allocation_strategy: AllocationStrategy = 'uniform_fraction',
     blocks_per_day: int = BLOCKS_PER_DAY,
     curve_type: ScenarioCurveType = 'sqrt',
+    floor: float = 0.1,
     mc_dist: AllocationDistribution | None = None,
     vote_timing: VoteTimingConfig | None = None,
 ) -> list[GovernorEvent]:
@@ -271,8 +272,12 @@ def generate_scenario(
     blocks_per_day : int
         Blocks per day for lock duration conversion (default 7200 for L2).
     curve_type : ScenarioCurveType
-        Lock curve shape used by the simulation: 'sqrt', 'log', or 'linear'.
-        'exp' is not supported at scenario level. Default 'sqrt' (backward-compatible).
+        Lock curve shape used by the simulation: 'sqrt', 'log', 'linear', or 'exp'.
+        Default 'sqrt' (backward-compatible).
+    floor : float
+        Floor value for compute_signals_weight in the cadCAD simulation.
+        Passed through to run_backtest via the caller; not used in event generation.
+        Default 0.1 (backward-compatible).
     mc_dist : AllocationDistribution | None
         If provided, draw ONE allocation fraction for the entire scenario from this
         distribution using a separate RNG stream (two-RNG split). When None, the
