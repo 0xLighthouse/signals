@@ -64,6 +64,7 @@ class SweepConfig:
     base: dict = field(default_factory=dict)
     mc_dists: list[AllocationDistribution] | None = None
     vote_timings: list[VoteTimingConfig] | None = None
+    floors: list[float] = field(default_factory=lambda: [0.1])
 
 
 @dataclass
@@ -86,6 +87,7 @@ class SweepCell:
     allocation_strategy: str
     mc_dist: AllocationDistribution | None = None
     vote_timing: VoteTimingConfig | None = None
+    floor: float = 0.1
 
 
 @dataclass
@@ -133,8 +135,9 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
         config.allocation_strategies,
         mc_dist_values,
         vote_timing_values,
+        config.floors,
     )
-    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy, mc_dist, vote_timing) in enumerate(combos):
+    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy, mc_dist, vote_timing, floor) in enumerate(combos):
         cells.append(
             SweepCell(
                 cell_id=cell_id,
@@ -144,6 +147,7 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
                 allocation_strategy=allocation_strategy,
                 mc_dist=mc_dist,
                 vote_timing=vote_timing,
+                floor=floor,
             )
         )
     return cells
@@ -205,6 +209,8 @@ def load_sweep_config(path: str | pathlib.Path) -> SweepConfig:
     if raw_timings:
         vote_timings = [VoteTimingConfig(early=t['early'], mid=t['mid']) for t in raw_timings]
 
+    floors = sweep.get('floors', [0.1])
+
     return SweepConfig(
         curve_types=sweep['curve_types'],
         alphas=sweep['alphas'],
@@ -214,6 +220,7 @@ def load_sweep_config(path: str | pathlib.Path) -> SweepConfig:
         cell_timeout_seconds=sweep.get('cell_timeout_seconds', 120),
         base=base,
         vote_timings=vote_timings,
+        floors=floors,
     )
 
 
@@ -291,6 +298,7 @@ def _make_failed_row(cell: SweepCell) -> dict:
         'lock_profile_short': cell.lock_profile.get('short'),
         'lock_profile_long': cell.lock_profile.get('long'),
         'allocation_strategy': cell.allocation_strategy,
+        'floor': cell.floor,
         'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
         'vote_timing_label': repr(cell.vote_timing) if cell.vote_timing is not None else None,
         'failed': True,
@@ -359,11 +367,14 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
     if cell.vote_timing is not None:
         kwargs['vote_timing'] = cell.vote_timing
 
+    # Wire floor from cell into generate_scenario (SIMC-03)
+    kwargs['floor'] = cell.floor
+
     # Run simulation
     events = generate_scenario(**kwargs)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        raw = run_backtest(events, curve_type=cell.curve_type)
+        raw = run_backtest(events, curve_type=cell.curve_type, floor=cell.floor)
     results_df = build_results_dataframe(raw, events)
 
     # Compute scalar metrics
@@ -385,6 +396,7 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
         'lock_profile_short': cell.lock_profile['short'],
         'lock_profile_long': cell.lock_profile['long'],
         'allocation_strategy': cell.allocation_strategy,
+        'floor': cell.floor,
         'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
         'vote_timing_label': repr(cell.vote_timing) if cell.vote_timing is not None else None,
         'flip_rate': flip.aggregate,
