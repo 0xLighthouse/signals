@@ -97,7 +97,7 @@ Research annotations (italicized) justify decisions for future reference.
 | MCAL-02 | Phase 9 | Complete |
 | MCAL-03 | Phase 9 | Complete |
 | MCAL-04 | Phase 9 | Complete |
-| MCAL-05 | Phase 9 | Complete |
+| MCAL-05 | Phase 9, Phase 11.1 | Complete (sweep coverage: Phase 11.1) |
 | SWEP-01 | Phase 10 | Complete |
 | SWEP-02 | Phase 10 | Complete |
 | SWEP-03 | Phase 10 | Complete |

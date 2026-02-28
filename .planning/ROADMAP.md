@@ -36,6 +36,7 @@
 - [x] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management (completed 2026-02-28)
 - [x] **Phase 10.1: Integration Wiring Fixes** - Fix NaN handling, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig (completed 2026-02-28)
 - [x] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests (completed 2026-02-28)
+- [ ] **Phase 11.1: Wire vote_timing Through Sweep** - Add vote_timing to SweepCell/SweepConfig, pass through _run_cell()
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
 
 ## Phase Details
@@ -106,6 +107,18 @@
 - [ ] 11-01-PLAN.md — Create analysis.py with margin_class_breakdown, voter_archetypes, module structure (ANAL-01, ANAL-04, ANAL-07)
 - [ ] 11-02-PLAN.md — Add address_influence, timing_sensitivity, influence_significance, bootstrap_ci (ANAL-02, ANAL-03, ANAL-05, ANAL-06)
 
+### Phase 11.1: Wire vote_timing Through Sweep
+**Goal**: vote_timing is a first-class sweep axis — SweepConfig accepts vote_timings, SweepCell carries vote_timing, and _run_cell() passes it to generate_scenario(), enabling cartesian sweep across timing distributions
+**Depends on**: Phase 11
+**Requirements**: MCAL-05 (sweep coverage)
+**Gap Closure:** Closes GAP-1 (vote_timing not wired through sweep) and Flow "VoteTimingConfig sweep axis" from v3.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `SweepCell` has a `vote_timing` field (optional `VoteTimingConfig`)
+  2. `_run_cell()` passes `vote_timing` to `generate_scenario()` when present
+  3. `SweepConfig` accepts a `vote_timings` axis for cartesian enumeration
+  4. A sweep with 2 vote_timing configs produces distinct results per timing config
+**Plans**: TBD
+
 ### Phase 12: Report Bundle
 **Goal**: A single `generate_sweep_report()` call produces a fully structured output directory with heatmaps, per-config detail plots, timing sensitivity figures, CSV/JSON exports, and a multi-panel composite figure — all visualization using correct orientation and colormaps
 **Depends on**: Phase 11
@@ -134,4 +147,5 @@
 | 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
 | 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
 | 11. Extended Analysis | 2/2 | Complete    | 2026-02-28 | - |
+| 11.1 Wire vote_timing Through Sweep | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
