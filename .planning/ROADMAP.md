@@ -35,7 +35,7 @@
 - [x] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws (completed 2026-02-28)
 - [x] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management (completed 2026-02-28)
 - [x] **Phase 10.1: Integration Wiring Fixes** - Fix NaN handling, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig (completed 2026-02-28)
-- [ ] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests
+- [x] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests (completed 2026-02-28)
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
 
 ## Phase Details
@@ -133,5 +133,5 @@
 | 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
 | 10. Sweep Runner | 2/2 | Complete    | 2026-02-28 | - |
 | 10.1 Integration Wiring Fixes | 1/1 | Complete    | 2026-02-28 | - |
-| 11. Extended Analysis | 1/2 | In Progress|  | - |
+| 11. Extended Analysis | 2/2 | Complete   | 2026-02-28 | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |
