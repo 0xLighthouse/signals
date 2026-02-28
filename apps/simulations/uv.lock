@@ -967,6 +967,7 @@ dependencies = [
     { name = "scipy" },
     { name = "seaborn" },
     { name = "tabulate" },
+    { name = "tqdm" },
 ]
 
 [package.dev-dependencies]
@@ -987,6 +988,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.13.0,<2" },
     { name = "seaborn", specifier = ">=0.13.2,<0.14" },
     { name = "tabulate", specifier = ">=0.9.0,<0.10" },
+    { name = "tqdm", specifier = ">=4.60.0,<5" },
 ]
 
 [package.metadata.requires-dev]

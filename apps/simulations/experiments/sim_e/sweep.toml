@@ -1,0 +1,99 @@
+# ============================================================================
+# Simulation E — Participation Incentive Effect (Early vs Late)
+# ============================================================================
+#
+# Thesis:  The litepaper's incentive design (Section 5, IncentivesPool) rewards
+#          early supporters more via time-bucketed weighting. Sim E tests
+#          whether the timing of votes matters for outcome fairness — do late
+#          voters (whales waiting to see sentiment) get dampened by decay?
+#
+# Design: Two lock profiles crossed with multiple vote timing distributions:
+#   1. Whales vote late in the window, retail votes early
+#   2. Uniform timing (control)
+#
+# Uses the existing tri-modal timing infrastructure (VoteTimingConfig with
+# early/mid/late fractions) but correlates timing with stake rank.
+#
+# Path A (this config): Analyze existing behavior — no timing decay mechanism.
+#   Sweep vote_timings and analyze how timing patterns interact with the
+#   commitment-weighting curve. Uses timing_sensitivity() heatmap (ANAL-03)
+#   and voter_archetypes() (ANAL-04) for post-hoc analysis.
+#
+# Path B (NOT implemented): Would require a NEW timing_decay() function in
+#   weighting/signals.py that penalizes late votes. This does not exist in
+#   the codebase and would be a significant design decision.
+#
+# Key questions:
+#   - Under current Signals weighting, does vote timing affect outcome fairness?
+#   - If whales vote late (strategic timing), does the commitment-weight still
+#     dampen their outsized influence?
+#   - Is there a natural "early voter advantage" from the timing distribution
+#     even without explicit timing decay?
+#
+# Key metrics:
+#   - timing_sensitivity heatmap (weight_ratio by timing quantile x lock quantile)
+#   - address_influence by archetype (whale vs retail)
+#   - late_vote_share (METR-08) — fraction of weight cast in final 1/3
+#   - correlation of vote_block_rank with stake_rank
+#
+# Run:
+#   cd apps/simulations
+#   uv run python -m backtesting.sweep experiments/sim_e/sweep.toml
+# ============================================================================
+
+[base]
+n_voters = 200
+n_proposals = 30
+total_supply = 1_000_000.0
+avg_participation_rate = 0.10
+
+# Pareto stakes — whales and retail present
+stake_profile = "pareto"
+
+# Inverse correlated locks — whales short-lock, retail long-locks
+# This is the Sim B setup, combined with timing variation
+lock_profile = "inverse_correlated"
+
+seed = 42
+budget_enabled = true
+
+[sweep]
+# Single curve — use litepaper default (or best from Sim C once available)
+curve_types = ["sqrt"]
+
+alphas = [0.7]
+allocation_strategies = ["uniform_fraction"]
+floors = [0.1]
+max_workers = 4
+
+[[sweep.lock_profiles]]
+short = 30
+long = 365
+
+# TIMING DISTRIBUTIONS — the key sweep axis for this sim
+
+# Early-heavy: 80% of votes cast early, 10% mid, 10% late
+# Models: retail votes early (conviction-driven, doesn't wait for sentiment)
+[[sweep.vote_timings]]
+early = 0.80
+mid = 0.10
+
+# Uniform: 33/33/33 split across early/mid/late
+# Control group — no timing bias
+[[sweep.vote_timings]]
+early = 0.33
+mid = 0.34
+
+# Late-heavy: 10% early, 10% mid, 80% late
+# Models: whales vote late (strategic, waiting to see sentiment before committing)
+[[sweep.vote_timings]]
+early = 0.10
+mid = 0.10
+
+# Mid-heavy: 20% early, 60% mid, 20% late
+# Models: most voters follow the crowd, voting during peak activity
+[[sweep.vote_timings]]
+early = 0.20
+mid = 0.60
+
+# Total cells: 1 curve x 1 alpha x 1 lock x 1 alloc x 1 floor x 4 timings = 4 cells
