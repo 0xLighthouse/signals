@@ -32,7 +32,7 @@
 **Milestone Goal:** Build a dedicated parameter sweep engine with Monte Carlo allocation modeling, formalize budget/lock mechanics, and produce deep governance analysis with a structured heatmap report bundle.
 
 - [x] **Phase 8: Foundation Fixes & Budget Promotion** - Fix NaN bugs, promote budget module, thread curve_type (completed 2026-02-28)
-- [ ] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws
+- [x] **Phase 9: Monte Carlo Allocation Modeling** - Replace fixed allocations with Beta distribution draws (completed 2026-02-28)
 - [ ] **Phase 10: Sweep Runner** - Cartesian grid sweep engine with parallelism and memory management
 - [ ] **Phase 11: Extended Analysis** - Flip breakdown, address influence, timing sensitivity, statistical tests
 - [ ] **Phase 12: Report Bundle** - Heatmaps, exports, multi-panel figures, orchestrating report.py
@@ -111,7 +111,7 @@
 | 6. Plots | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 7. Pipeline | v2.0 | 1/1 | Complete | 2026-02-27 |
 | 8. Foundation Fixes & Budget Promotion | 3/3 | Complete   | 2026-02-28 | - |
-| 9. Monte Carlo Allocation Modeling | 1/2 | In Progress|  | - |
+| 9. Monte Carlo Allocation Modeling | 2/2 | Complete   | 2026-02-28 | - |
 | 10. Sweep Runner | v3.0 | 0/TBD | Not started | - |
 | 11. Extended Analysis | v3.0 | 0/TBD | Not started | - |
 | 12. Report Bundle | v3.0 | 0/TBD | Not started | - |

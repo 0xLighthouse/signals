@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T01:17:24.764Z"
+last_updated: "2026-02-28T01:21:17.773Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 Phase: 9 of 12 (Monte Carlo Allocation Modeling)
-Plan: 01 complete (plan 1 of 2)
+Plan: 02 complete (plan 2 of 2)
 Status: In Progress
-Last activity: 2026-02-28 — Completed 09-01: VoteTimingConfig + mc_dist/vote_timing params in generate_scenario()
+Last activity: 2026-02-28 — Completed 09-02: MC runner module with MCSample/MCResult and run_mc_samples()
 
-Progress: [█░░░░░░░░░] 8%
+Progress: [██░░░░░░░░] 16%
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Progress: [█░░░░░░░░░] 8%
 | Phase 08-foundation-fixes-budget-promotion P02 | 2 | 2 tasks | 4 files |
 | Phase 08-foundation-fixes-budget-promotion P03 | 4 | 3 tasks | 6 files |
 | Phase 09-monte-carlo-allocation-modeling P01 | 2 | 2 tasks | 2 files |
+| Phase 09-monte-carlo-allocation-modeling P02 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@ Recent decisions affecting current work:
 - [08-03]: curve_type passes through cadCAD M dict (not initial_state) — M dict is the correct parameter carrier in cadCAD for per-run parameters
 - [Phase 09-monte-carlo-allocation-modeling]: alloc_frac drawn once per scenario via SeedSequence.spawn(2) two-RNG split — mc_dist=None path bit-identical to v2.0
 - [Phase 09-monte-carlo-allocation-modeling]: VoteTimingConfig placed in factory.py not budget.py — keeps budget.py a leaf module
+- [Phase 09-monte-carlo-allocation-modeling]: Pass int seed (child.generate_state(1)[0]) to generate_scenario — generate_scenario wraps seed in SeedSequence internally, expects int not SeedSequence child
+- [Phase 09-monte-carlo-allocation-modeling]: alloc_frac captured externally by mirroring generate_scenario's SeedSequence.spawn(2) split — avoids changing factory return type
 
 ### Pending Todos
 
@@ -77,5 +80,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 09-01-PLAN.md — VoteTimingConfig and mc_dist/vote_timing params wired into generate_scenario()
-Resume action: Continue phase 9 with plan 02 (sweep runner)
+Stopped at: Completed 09-02-PLAN.md — MC runner module with MCSample/MCResult and run_mc_samples()
+Resume action: Phase 9 complete — all 2 plans done, proceed to Phase 10 planning
