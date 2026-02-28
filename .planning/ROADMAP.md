@@ -89,7 +89,8 @@
   3. `SweepConfig` accepts `mc_dists` axis and `_run_cell()` passes `mc_dist` to `generate_scenario()`
   4. `run_pipeline()` accepts and passes through `mc_dist` and `vote_timing` parameters
   5. `VoteTimingConfig` is importable from `backtesting.data`
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 10.1-01-PLAN.md — Fix _nakamoto() NaN convention, wire mc_dist through sweep/pipeline, re-export VoteTimingConfig
 
 ### Phase 11: Extended Analysis
 **Goal**: The simulation produces deep governance statistics — proposal flip breakdowns by margin class, per-voter influence shifts with a proper counterfactual baseline, 2D timing sensitivity, voter archetypes, and statistical significance tests — all operating on `SweepResult` output
