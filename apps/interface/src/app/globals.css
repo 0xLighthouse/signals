@@ -50,7 +50,8 @@
   :root {
 
     /* Font */
-    font-family: var(--font-open-sauce), sans-serif;
+    /* font-family: var(--font-open-sauce), sans-serif; */
+    font-family: var(--font-apercu), sans-serif;
 
 
     --background: #F7F7F8;
