@@ -47,9 +47,10 @@ None — milestone complete.
 |---|-------------|------|--------|-----------|
 | 1 | Build thesis guide from milestones for proposed simulation suite (Sims C-G) | 2026-02-28 | 072327a | [1-build-thesis-guide-from-milestones-for-p](./quick/1-build-thesis-guide-from-milestones-for-p/) |
 | 2 | Add exp curve type, thread floor param, and add floors sweep axis (unblocks Sim C) | 2026-02-28 | de5285e | [2-sim-c-add-exp-to-factory-thread-floor-pa](./quick/2-sim-c-add-exp-to-factory-thread-floor-pa/) |
+| 3 | Create experiments folder, migrate sim_a.py and sim_b.py using git mv, placeholder READMEs for sims C-G | 2026-02-28 | 415398c | [3-create-experiments-folder-migrate-sim-a-](./quick/3-create-experiments-folder-migrate-sim-a-/) |
 
 ## Session Continuity
 
-Last activity: 2026-02-28 - Completed quick task 2: Add exp curve type, thread floor param, and floors sweep axis (unblocks Sim C)
-Stopped at: Quick task 2 complete
+Last activity: 2026-02-28 - Completed quick task 3: Create experiments folder and migrate sim A/B
+Stopped at: Quick task 3 complete
 Resume action: Start next milestone with `/gsd:new-milestone`

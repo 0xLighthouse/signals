@@ -9,7 +9,7 @@ compared to Legacy governance.
 
 Usage:
     cd apps/simulations
-    uv run python src/figs/sim_b.py
+    uv run python experiments/sim_b/sim_b.py
 """
 import warnings
 import os
