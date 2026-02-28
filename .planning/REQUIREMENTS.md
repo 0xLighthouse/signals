@@ -10,11 +10,11 @@ Research annotations (italicized) justify decisions for future reference.
 
 ### Budget & Lock Mechanics
 
-- [ ] **BUDG-01**: Promote `_VoterLedger` and `_compute_allocation_fraction` to public `backtesting/data/budget.py` module *(Research: private internals in factory.py block testability and MC parameterization — ARCHITECTURE.md)*
+- [x] **BUDG-01**: Promote `_VoterLedger` and `_compute_allocation_fraction` to public `backtesting/data/budget.py` module *(Research: private internals in factory.py block testability and MC parameterization — ARCHITECTURE.md)*
 - [x] **BUDG-02**: Fix `_gini()` to return `np.nan` for zero-sum arrays instead of `0.0` *(Research: P4 — returns false "perfect equality" for zero-participation proposals, corrupts sweep heatmaps — PITFALLS.md)*
 - [x] **BUDG-03**: Fix `_enp()` to return `np.nan` for zero-weight arrays instead of `0.0` *(Research: P4 — ENP=0 is outside valid range [1, n_voters], corrupts sweep edge cases — PITFALLS.md)*
 - [ ] **BUDG-04**: Thread `curve_type` as a parameter through `generate_scenario()` → metrics computation *(Research: currently hardcoded to 'sqrt' — FEATURES.md critical gap; prerequisite for sweep)*
-- [ ] **BUDG-05**: Add `AllocationDistribution` dataclass to `budget.py` supporting Beta/truncnorm/uniform parameterization *(Research: enables MC allocation as continuous sweep axis — ARCHITECTURE.md)*
+- [x] **BUDG-05**: Add `AllocationDistribution` dataclass to `budget.py` supporting Beta/truncnorm/uniform parameterization *(Research: enables MC allocation as continuous sweep axis — ARCHITECTURE.md)*
 - [ ] **BUDG-06**: All existing tests pass after budget promotion refactor
 
 ### Monte Carlo Allocation
@@ -87,11 +87,11 @@ Research annotations (italicized) justify decisions for future reference.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUDG-01 | Phase 8 | Pending |
+| BUDG-01 | Phase 8 | Complete |
 | BUDG-02 | Phase 8 | Complete |
 | BUDG-03 | Phase 8 | Complete |
 | BUDG-04 | Phase 8 | Pending |
-| BUDG-05 | Phase 8 | Pending |
+| BUDG-05 | Phase 8 | Complete |
 | BUDG-06 | Phase 8 | Pending |
 | MCAL-01 | Phase 9 | Pending |
 | MCAL-02 | Phase 9 | Pending |
