@@ -207,7 +207,7 @@ _GENERATE_SCENARIO_KEYS = frozenset({
     'n_voters', 'n_proposals', 'total_supply', 'avg_participation_rate',
     'stake_profile', 'lock_profile', 'pareto_alpha', 'l_max_days',
     'proposal_window_blocks', 'seed', 'budget_enabled', 'allocation_strategy',
-    'blocks_per_day',
+    'blocks_per_day', 'curve_type',
 })
 
 
@@ -260,9 +260,11 @@ def run_pipeline(config: Any = None, verbose: bool = False) -> PipelineResult:
             .reset_index(drop=True)
         )
 
+        curve_type = cfg.get('data', {}).get('curve_type', 'sqrt')
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            raw = run_backtest(events)
+            raw = run_backtest(events, curve_type=curve_type)
 
         results_df = build_results_dataframe(raw, events)
     except Exception as e:
@@ -275,15 +277,15 @@ def run_pipeline(config: Any = None, verbose: bool = False) -> PipelineResult:
         print('Computing metrics...')
     try:
         flip_result = compute_flip_rate(results_df)
-        gini_result = compute_gini(results_df)
+        gini_result = compute_gini(results_df, curve_type=curve_type)
         participation_result = compute_participation_rate(results_df)
-        enp_result = compute_enp(results_df)
-        nakamoto_result = compute_nakamoto_coefficient(results_df)
+        enp_result = compute_enp(results_df, curve_type=curve_type)
+        nakamoto_result = compute_nakamoto_coefficient(results_df, curve_type=curve_type)
         margin_shift_result = compute_margin_shift(results_df)
         transition_result = compute_transition_matrix(results_df)
-        late_vote_result = compute_late_vote_share(results_df, windows_df)
-        lockin_result = compute_lockin_timing(results_df, windows_df)
-        topk_result = compute_top_k_concentration(results_df)
+        late_vote_result = compute_late_vote_share(results_df, windows_df, curve_type=curve_type)
+        lockin_result = compute_lockin_timing(results_df, windows_df, curve_type=curve_type)
+        topk_result = compute_top_k_concentration(results_df, curve_type=curve_type)
 
         metrics_dict = {
             'flip_rate': _nan_to_none(dataclasses.asdict(flip_result)),
