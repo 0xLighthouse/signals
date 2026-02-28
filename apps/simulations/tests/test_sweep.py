@@ -17,6 +17,7 @@ import pathlib
 import pandas as pd
 import pytest
 
+from backtesting.data.budget import BetaDistribution
 from backtesting.sweep import (
     SweepConfig,
     SweepCell,
@@ -337,3 +338,64 @@ def test_make_failed_row_has_nan_nakamoto():
     assert math.isnan(row['nakamoto_signals_mean']), (
         f'Expected NaN for nakamoto_signals_mean in failed row, got {row["nakamoto_signals_mean"]}'
     )
+
+
+# ---------------------------------------------------------------------------
+# INT-01: mc_dists axis in SweepConfig/SweepCell and _enumerate_cells
+# ---------------------------------------------------------------------------
+
+
+def test_enumerate_cells_with_mc_dists():
+    """INT-01: _enumerate_cells includes mc_dist axis when SweepConfig.mc_dists is set."""
+    mc_dist = BetaDistribution(a=2.0, b=5.0)
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=[mc_dist],
+    )
+    cells = _enumerate_cells(config)
+
+    # 1 curve_type x 1 alpha x 1 lock_profile x 1 strategy x 1 mc_dist = 1 cell
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].mc_dist is mc_dist, 'cell.mc_dist should be the BetaDistribution instance'
+
+
+def test_enumerate_cells_mc_dists_none_backward_compat():
+    """INT-01: _enumerate_cells with mc_dists=None produces cells with mc_dist=None (backward compat)."""
+    config = SweepConfig(
+        curve_types=['sqrt'],
+        alphas=[1.0],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=None,
+    )
+    cells = _enumerate_cells(config)
+
+    # Same 1 cell as before
+    assert len(cells) == 1, f'Expected 1 cell, got {len(cells)}'
+    assert cells[0].mc_dist is None, f'cell.mc_dist should be None, got {cells[0].mc_dist}'
+
+
+def test_enumerate_cells_mc_dists_cartesian():
+    """INT-01: _enumerate_cells produces cartesian product with mc_dists axis."""
+    mc_dist1 = BetaDistribution(a=2.0, b=5.0)
+    mc_dist2 = BetaDistribution(a=1.0, b=1.0)
+    config = SweepConfig(
+        curve_types=['sqrt', 'log'],
+        alphas=[0.5],
+        lock_profiles=[{'short': 30, 'long': 365}],
+        allocation_strategies=['uniform_fraction'],
+        max_workers=1,
+        mc_dists=[mc_dist1, mc_dist2],
+    )
+    cells = _enumerate_cells(config)
+
+    # 2 curve_types x 1 x 1 x 1 x 2 mc_dists = 4 cells
+    assert len(cells) == 4, f'Expected 4 cells, got {len(cells)}'
+    mc_dist_labels = [c.mc_dist for c in cells]
+    assert mc_dist1 in mc_dist_labels, 'mc_dist1 not in cells'
+    assert mc_dist2 in mc_dist_labels, 'mc_dist2 not in cells'

@@ -28,6 +28,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from backtesting.data.budget import AllocationDistribution
+
 __all__ = ['SweepConfig', 'SweepCell', 'SweepResult', 'load_sweep_config', 'run_sweep']
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,7 @@ class SweepConfig:
     max_workers: int
     cell_timeout_seconds: int = 120
     base: dict = field(default_factory=dict)
+    mc_dists: list[AllocationDistribution] | None = None
 
 
 @dataclass
@@ -79,6 +82,7 @@ class SweepCell:
     alpha: float
     lock_profile: dict
     allocation_strategy: str
+    mc_dist: AllocationDistribution | None = None
 
 
 @dataclass
@@ -117,13 +121,15 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
         List of SweepCell objects with sequential cell_ids starting from 0.
     """
     cells = []
+    mc_dist_values = config.mc_dists if config.mc_dists else [None]
     combos = itertools.product(
         config.curve_types,
         config.alphas,
         config.lock_profiles,
         config.allocation_strategies,
+        mc_dist_values,
     )
-    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy) in enumerate(combos):
+    for cell_id, (curve_type, alpha, lock_profile, allocation_strategy, mc_dist) in enumerate(combos):
         cells.append(
             SweepCell(
                 cell_id=cell_id,
@@ -131,6 +137,7 @@ def _enumerate_cells(config: SweepConfig) -> list[SweepCell]:
                 alpha=alpha,
                 lock_profile=lock_profile,
                 allocation_strategy=allocation_strategy,
+                mc_dist=mc_dist,
             )
         )
     return cells
@@ -264,6 +271,7 @@ def _make_failed_row(cell: SweepCell) -> dict:
         'lock_profile_short': cell.lock_profile.get('short'),
         'lock_profile_long': cell.lock_profile.get('long'),
         'allocation_strategy': cell.allocation_strategy,
+        'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
         'failed': True,
         'flip_rate': float('nan'),
         'gini_legacy': float('nan'),
@@ -322,6 +330,10 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
     # Do NOT pass lock_profile key from the dict — use 'independent' or base_cfg value
     kwargs.setdefault('lock_profile', 'independent')
 
+    # Wire mc_dist from cell into generate_scenario when provided (INT-01)
+    if cell.mc_dist is not None:
+        kwargs['mc_dist'] = cell.mc_dist
+
     # Run simulation
     events = generate_scenario(**kwargs)
     with warnings.catch_warnings():
@@ -348,6 +360,7 @@ def _run_cell(cell: SweepCell, base_cfg: dict) -> dict:
         'lock_profile_short': cell.lock_profile['short'],
         'lock_profile_long': cell.lock_profile['long'],
         'allocation_strategy': cell.allocation_strategy,
+        'mc_dist_label': repr(cell.mc_dist) if cell.mc_dist is not None else None,
         'flip_rate': flip.aggregate,
         'gini_legacy': gini.legacy,
         'gini_signals': gini.signals,
@@ -441,6 +454,7 @@ def run_sweep(
         'max_workers': config.max_workers,
         'cell_timeout_seconds': config.cell_timeout_seconds,
         'base': config.base,
+        'mc_dists': [repr(d) for d in config.mc_dists] if config.mc_dists else None,
     }
     with open(out_dir / 'config.json', 'w') as f:
         json.dump(config_dict, f, indent=2)
