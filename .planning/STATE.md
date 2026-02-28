@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Sweep Engine & Extended Analysis
 status: unknown
-last_updated: "2026-02-28T01:24:34.726Z"
+last_updated: "2026-02-28T12:31:15.352Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Produce credible, quantitative evidence that commitment-weighted voting improves governance outcomes.
-**Current focus:** v3.0 Phase 9 — Monte Carlo Allocation Modeling
+**Current focus:** v3.0 Phase 10 — Sweep Runner
 
 ## Current Position
 
-Phase: 9 of 12 (Monte Carlo Allocation Modeling)
-Plan: 02 complete (plan 2 of 2)
+Phase: 10 of 12 (Sweep Runner)
+Plan: 01 complete (plan 1 of 2)
 Status: In Progress
-Last activity: 2026-02-28 — Completed 09-02: MC runner module with MCSample/MCResult and run_mc_samples()
+Last activity: 2026-02-28 — Completed 10-01: SweepConfig/SweepCell/SweepResult dataclasses with TOML config loading
 
 Progress: [██░░░░░░░░] 16%
 
@@ -47,6 +47,7 @@ Progress: [██░░░░░░░░] 16%
 | Phase 08-foundation-fixes-budget-promotion P03 | 4 | 3 tasks | 6 files |
 | Phase 09-monte-carlo-allocation-modeling P01 | 2 | 2 tasks | 2 files |
 | Phase 09-monte-carlo-allocation-modeling P02 | 1 | 2 tasks | 2 files |
+| Phase 10-sweep-runner P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 09-monte-carlo-allocation-modeling]: VoteTimingConfig placed in factory.py not budget.py — keeps budget.py a leaf module
 - [Phase 09-monte-carlo-allocation-modeling]: Pass int seed (child.generate_state(1)[0]) to generate_scenario — generate_scenario wraps seed in SeedSequence internally, expects int not SeedSequence child
 - [Phase 09-monte-carlo-allocation-modeling]: alloc_frac captured externally by mirroring generate_scenario's SeedSequence.spawn(2) split — avoids changing factory return type
+- [Phase 10-sweep-runner]: lock_profile.long maps to l_max_days in generate_scenario; short captured for analysis only (no l_min_days param)
+- [Phase 10-sweep-runner]: max_workers required in TOML sweep config — no auto-detection, KeyError if missing
 
 ### Pending Todos
 
@@ -80,5 +83,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 09-02-PLAN.md — MC runner module with MCSample/MCResult and run_mc_samples()
-Resume action: Phase 9 complete — all 2 plans done, proceed to Phase 10 planning
+Stopped at: Completed 10-01-PLAN.md — sweep data model with SweepConfig/SweepCell/SweepResult and TOML loading
+Resume action: Phase 10 Plan 01 complete — proceed to 10-02 run_sweep() executor
