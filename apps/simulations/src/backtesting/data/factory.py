@@ -15,6 +15,7 @@ Usage:
 
 import logging
 import warnings
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -23,6 +24,7 @@ ScenarioCurveType = Literal['sqrt', 'log', 'linear']
 _VALID_CURVE_TYPES: tuple[str, ...] = ('sqrt', 'log', 'linear')
 
 from backtesting.data.budget import (
+    AllocationDistribution,
     AllocationStrategy,
     LockEntry,
     VoterLedger,
@@ -41,6 +43,22 @@ logger = logging.getLogger(__name__)
 
 StakeProfile = Literal['pareto', 'uniform', 'bimodal']
 LockProfile = Literal['correlated', 'inverse_correlated', 'independent', 'bimodal']
+
+
+@dataclass
+class VoteTimingConfig:
+    """Vote timing fraction configuration. late_frac = 1 - early - mid."""
+    early: float = 0.30
+    mid: float = 0.40
+
+    def __post_init__(self) -> None:
+        if self.early < 0 or self.mid < 0:
+            raise ValueError('early and mid must be >= 0')
+        if self.early + self.mid > 1.0:
+            raise ValueError(
+                f'early + mid must be <= 1.0, '
+                f'got {self.early} + {self.mid} = {self.early + self.mid}'
+            )
 
 BLOCKS_PER_DAY = 7200  # L2 default (~12s blocks)
 
@@ -216,6 +234,8 @@ def generate_scenario(
     allocation_strategy: AllocationStrategy = 'uniform_fraction',
     blocks_per_day: int = BLOCKS_PER_DAY,
     curve_type: ScenarioCurveType = 'sqrt',
+    mc_dist: AllocationDistribution | None = None,
+    vote_timing: VoteTimingConfig | None = None,
 ) -> list[GovernorEvent]:
     """
     Generate a synthetic Governor-compatible event stream.
@@ -253,6 +273,13 @@ def generate_scenario(
     curve_type : ScenarioCurveType
         Lock curve shape used by the simulation: 'sqrt', 'log', or 'linear'.
         'exp' is not supported at scenario level. Default 'sqrt' (backward-compatible).
+    mc_dist : AllocationDistribution | None
+        If provided, draw ONE allocation fraction for the entire scenario from this
+        distribution using a separate RNG stream (two-RNG split). When None, the
+        legacy per-voter allocation strategy is used (backward-compatible).
+    vote_timing : VoteTimingConfig | None
+        If provided, override the default early/mid vote timing fractions.
+        When None, defaults to early=0.30, mid=0.40.
 
     Returns
     -------
@@ -274,7 +301,21 @@ def generate_scenario(
             stacklevel=2,
         )
 
-    rng = np.random.default_rng(seed)
+    # --- MC distribution mode: two-RNG split ---
+    alloc_frac: float | None = None
+    if mc_dist is not None:
+        if seed is None:
+            parent_ss = np.random.SeedSequence()
+        else:
+            parent_ss = np.random.SeedSequence(seed)
+        alloc_child, scenario_child = parent_ss.spawn(2)
+        alloc_rng = np.random.default_rng(alloc_child)
+        rng = np.random.default_rng(scenario_child)
+        # Draw ONE allocation fraction for the entire scenario (locked decision)
+        alloc_frac = float(mc_dist.sample(alloc_rng, 1)[0])
+    else:
+        # UNCHANGED: backward-compatible path
+        rng = np.random.default_rng(seed)
 
     # Generate voter addresses
     voters = [f'0x{i:040x}' for i in range(n_voters)]
@@ -324,8 +365,10 @@ def generate_scenario(
 
         n_votes = len(participating_indices)
 
-        # Generate vote timing
-        vote_blocks = _generate_vote_timing(n_votes, start_block, end_block, rng=rng)
+        # Generate vote timing — resolve timing fractions from VoteTimingConfig
+        _early = vote_timing.early if vote_timing is not None else 0.30
+        _mid = vote_timing.mid if vote_timing is not None else 0.40
+        vote_blocks = _generate_vote_timing(n_votes, start_block, end_block, early_frac=_early, mid_frac=_mid, rng=rng)
 
         # Generate contentiousness (FOR bias)
         for_bias = _generate_contentiousness(rng)
@@ -373,9 +416,14 @@ def generate_scenario(
                 if available <= 0.0:
                     continue  # voter is fully locked out
 
-                frac = compute_allocation_fraction(
-                    allocation_strategy, lock_days, l_max_days, rng
-                )
+                if alloc_frac is not None:
+                    # MC mode: use pre-drawn fraction for all voters
+                    frac = alloc_frac
+                else:
+                    # Legacy mode: compute per-voter fraction (unchanged)
+                    frac = compute_allocation_fraction(
+                        allocation_strategy, lock_days, l_max_days, rng
+                    )
                 allocated = available * frac
                 unlock_block = vote_block + int(lock_days * blocks_per_day)
                 ledgers[voter_idx].add_lock(allocated, unlock_block)
