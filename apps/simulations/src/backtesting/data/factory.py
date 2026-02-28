@@ -15,11 +15,16 @@ Usage:
 
 import logging
 import warnings
-from dataclasses import dataclass, field
 from typing import Literal
 
 import numpy as np
 
+from backtesting.data.budget import (
+    AllocationStrategy,
+    LockEntry,
+    VoterLedger,
+    compute_allocation_fraction,
+)
 from backtesting.data.schema import (
     EventType,
     GovernorEvent,
@@ -33,54 +38,8 @@ logger = logging.getLogger(__name__)
 
 StakeProfile = Literal['pareto', 'uniform', 'bimodal']
 LockProfile = Literal['correlated', 'inverse_correlated', 'independent', 'bimodal']
-AllocationStrategy = Literal['uniform_fraction', 'conviction_weighted', 'aggressive']
 
 BLOCKS_PER_DAY = 7200  # L2 default (~12s blocks)
-
-
-@dataclass
-class _LockEntry:
-    """A single token lock: amount locked until unlock_block."""
-    amount: float
-    unlock_block: int
-
-
-@dataclass
-class _VoterLedger:
-    """Tracks a voter's total stake and active locks for budget allocation."""
-    total_stake: float
-    locks: list[_LockEntry] = field(default_factory=list)
-
-    def available_balance(self, at_block: int) -> float:
-        """Return total_stake minus sum of locks still active at at_block."""
-        locked = sum(
-            lock.amount for lock in self.locks if lock.unlock_block > at_block
-        )
-        return max(0.0, self.total_stake - locked)
-
-    def add_lock(self, amount: float, unlock_block: int) -> None:
-        self.locks.append(_LockEntry(amount=amount, unlock_block=unlock_block))
-
-
-def _compute_allocation_fraction(
-    strategy: AllocationStrategy,
-    lock_duration_days: float,
-    l_max_days: float,
-    rng: np.random.Generator,
-) -> float:
-    """Return the fraction of available balance a voter commits to one proposal."""
-    if strategy == 'uniform_fraction':
-        return float(rng.uniform(0.15, 0.45))
-    elif strategy == 'conviction_weighted':
-        # Longer lock → bigger commitment (15-70% range)
-        ratio = min(lock_duration_days / max(l_max_days, 1.0), 1.0)
-        base = 0.15 + 0.55 * ratio
-        noise = float(rng.uniform(-0.05, 0.05))
-        return float(np.clip(base + noise, 0.10, 0.75))
-    elif strategy == 'aggressive':
-        return float(rng.uniform(0.60, 1.00))
-    else:
-        raise ValueError(f'Unknown allocation strategy: {strategy}')
 
 
 def _generate_stakes(
@@ -314,7 +273,7 @@ def generate_scenario(
     participation_probs = _generate_participation_probs(n_voters, avg_participation_rate, rng)
 
     # Initialize per-voter budget ledgers
-    ledgers = [_VoterLedger(total_stake=float(stakes[i])) for i in range(n_voters)]
+    ledgers = [VoterLedger(total_stake=float(stakes[i])) for i in range(n_voters)]
 
     events: list[GovernorEvent] = []
 
@@ -401,7 +360,7 @@ def generate_scenario(
                 if available <= 0.0:
                     continue  # voter is fully locked out
 
-                frac = _compute_allocation_fraction(
+                frac = compute_allocation_fraction(
                     allocation_strategy, lock_days, l_max_days, rng
                 )
                 allocated = available * frac
