@@ -49,9 +49,10 @@ def suf_tallies(
         lock_days = float(evt.get('lock_duration_days') or 0.0)
 
         curve_type = params.get('curve_type', 'sqrt')
+        floor = params.get('floor', 0.1)
         if pid in tallies and support in ('FOR', 'AGAINST', 'ABSTAIN'):
             tallies[pid]['legacy'][support] += compute_legacy_weight(stake)
-            tallies[pid]['signals'][support] += compute_signals_weight(stake, lock_days, curve_type=curve_type)
+            tallies[pid]['signals'][support] += compute_signals_weight(stake, lock_days, curve_type=curve_type, floor=floor)
 
     elif etype == 'PROPOSAL_FINALIZED':
         # No change — deepcopy passthrough

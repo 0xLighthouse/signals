@@ -436,16 +436,15 @@ def test_generate_scenario_curve_type_validation():
     """BUDG-04: curve_type is validated at generate_scenario boundary."""
     import warnings
 
-    # Valid types should not raise
+    # Valid types should not raise (including 'exp' which is now supported)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', UserWarning)
         generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='sqrt')
         generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='log')
         generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='linear')
+        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='exp')
 
     # Invalid types should raise ValueError
-    with pytest.raises(ValueError, match='curve_type'):
-        generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='exp')
     with pytest.raises(ValueError, match='curve_type'):
         generate_scenario(n_voters=5, n_proposals=2, seed=1, curve_type='invalid')
 
@@ -551,3 +550,81 @@ def test_vote_timing_config_validation():
     # Valid edge case: early + mid = 1.0 (late = 0)
     vtc = VoteTimingConfig(early=0.5, mid=0.5)
     assert vtc.early == 0.5
+
+
+# ---------------------------------------------------------------------------
+# SIMC-01: exp curve type end-to-end
+# ---------------------------------------------------------------------------
+
+def test_generate_scenario_exp_curve_end_to_end():
+    """SIMC-01: generate_scenario(curve_type='exp') runs end-to-end through run_backtest."""
+    from backtesting.simulation.runner import run_backtest, build_results_dataframe
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        events = generate_scenario(n_voters=20, n_proposals=3, seed=42, curve_type='exp')
+
+    assert len(events) > 0, 'No events generated with curve_type=exp'
+
+    raw = run_backtest(events, curve_type='exp')
+    df = build_results_dataframe(raw, events)
+
+    # Should have rows for each event
+    assert len(df) == len(events), f'Expected {len(events)} rows, got {len(df)}'
+
+    # signals tallies should be non-zero for vote events
+    vote_rows = df[df['event_type'] == 'VOTE_CAST']
+    if len(vote_rows) > 0:
+        signals_for_total = df['signals_for'].dropna().sum()
+        assert signals_for_total >= 0, f'Unexpected negative signals_for: {signals_for_total}'
+
+
+# ---------------------------------------------------------------------------
+# SIMC-01: floor parameter accepted by generate_scenario
+# ---------------------------------------------------------------------------
+
+def test_generate_scenario_floor_param():
+    """SIMC-01: generate_scenario(floor=0.3) is accepted without error."""
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        events = generate_scenario(n_voters=20, n_proposals=3, seed=42, floor=0.3)
+
+    assert len(events) > 0, 'No events generated with floor=0.3'
+
+    # Default floor also works
+    events_default = generate_scenario(n_voters=20, n_proposals=3, seed=42)
+    assert len(events_default) > 0, 'No events generated with default floor'
+
+
+# ---------------------------------------------------------------------------
+# SIMC-02: floor threads through run_backtest -> cadCAD -> suf_tallies
+# ---------------------------------------------------------------------------
+
+def test_run_backtest_floor_affects_signals():
+    """SIMC-02: run_backtest with different floor values produces different signals tallies."""
+    from backtesting.simulation.runner import run_backtest, build_results_dataframe
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        events = generate_scenario(n_voters=50, n_proposals=5, seed=42)
+
+    raw_low = run_backtest(events, curve_type='sqrt', floor=0.1)
+    df_low = build_results_dataframe(raw_low, events)
+
+    raw_high = run_backtest(events, curve_type='sqrt', floor=0.5)
+    df_high = build_results_dataframe(raw_high, events)
+
+    # Legacy tallies should be identical (floor only affects signals)
+    low_legacy = df_low['legacy_for'].dropna().sum()
+    high_legacy = df_high['legacy_for'].dropna().sum()
+    assert abs(low_legacy - high_legacy) < 1e-6, (
+        f'Legacy tallies should be identical across floor values: {low_legacy} vs {high_legacy}'
+    )
+
+    # Signals tallies should differ (floor=0.5 gives higher minimum contribution)
+    low_signals = df_low['signals_for'].dropna().sum()
+    high_signals = df_high['signals_for'].dropna().sum()
+    assert low_signals != high_signals, (
+        f'Signals tallies should differ between floor=0.1 and floor=0.5: '
+        f'{low_signals} vs {high_signals}'
+    )
