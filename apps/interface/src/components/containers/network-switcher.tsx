@@ -54,7 +54,7 @@ export function NetworkSwitcher() {
         >
           {current && (
             <NetworkIcon
-              network={current.iconVariant}
+              name={current.iconVariant}
               variant="branded"
               className="h-4 w-4 shrink-0"
             />
@@ -75,7 +75,7 @@ export function NetworkSwitcher() {
                 className="gap-2"
               >
                 <NetworkIcon
-                  network={network.iconVariant}
+                  name={network.iconVariant}
                   variant="branded"
                   className="h-4 w-4 shrink-0"
                 />
