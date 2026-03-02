@@ -3,6 +3,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { Breadcrumbs } from './breadcrumbs'
 import { SidebarTrigger } from '../ui/sidebar'
+import { NetworkSwitcher } from './network-switcher'
 
 export const TopNav = () => {
   return (
@@ -16,6 +17,7 @@ export const TopNav = () => {
             <SidebarTrigger />
           </div>
           <div className="hidden lg:flex items-center gap-4">
+            <NetworkSwitcher />
             <ConnectButton />
             <ThemeToggle className="" />
           </div>
