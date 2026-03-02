@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import useMeasure from 'react-use-measure'
 import { PlusIcon } from 'lucide-react'
 import { useWeb3 } from '@/contexts/WalletProvider'
 import { toast } from 'sonner'
@@ -9,12 +11,14 @@ import { parseUnits } from 'viem'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
-  DrawerContent,
   DrawerFooter,
   DrawerHeader,
+  DrawerOverlay,
+  DrawerPortal,
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
+import { Drawer as DrawerPrimitive } from 'vaul'
 import { useSignals } from '@/hooks/use-signals'
 import { useInitiativesStore } from '@/stores/useInitiativesStore'
 import { useApproveTokens } from '@/hooks/useApproveTokens'
@@ -27,9 +31,27 @@ import { useBalanceOf } from '@/hooks/useBalanceOf'
 import { usePublicClient } from '@/contexts/ChainProvider'
 import { useWalletClient } from '@/hooks/use-wallet-client'
 import { Alert, AlertDescription } from '../ui/alert'
-import { InitiativeFormFields, type AttachmentDraft, MAX_ATTACHMENTS } from './propose-initiative-drawer/InitiativeFormFields'
+import {
+  InitiativeFormFields,
+  type AttachmentDraft,
+  MAX_ATTACHMENTS,
+} from './propose-initiative-drawer/InitiativeFormFields'
 import { InitiativeLockTokens } from './propose-initiative-drawer/InitiativeLockTokens'
 import { InsufficientTokensMessage } from './propose-initiative-drawer/InsufficientTokensMessage'
+
+type Step = 'details' | 'lock' | 'summary'
+const STEPS: Step[] = ['details', 'lock', 'summary']
+const STEP_LABELS: Record<Step, string> = {
+  details: 'Details',
+  lock: 'Lock Tokens',
+  summary: 'Review & Submit',
+}
+
+const stepVariants = {
+  enter: (direction: number) => ({ x: direction > 0 ? 40 : -40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction > 0 ? -40 : 40, opacity: 0 }),
+}
 
 type ProposeInitiativeDrawerProps = {
   open?: boolean
@@ -58,6 +80,9 @@ export function ProposeInitiativeDrawer({
   const [attachments, setAttachments] = useState<AttachmentDraft[]>([])
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [step, setStep] = useState<Step>('details')
+  const [direction, setDirection] = useState(1)
+  const [measureRef, bounds] = useMeasure()
 
   const isDrawerOpen = externalOpen !== undefined ? externalOpen : internalDrawerOpen
   const setIsDrawerOpen = externalOnOpenChange || setInternalDrawerOpen
@@ -131,6 +156,8 @@ export function ProposeInitiativeDrawer({
     setAttachments([])
     setDuration(1)
     setIsSubmitting(false)
+    setStep('details')
+    setDirection(1)
   }
 
   const handleTriggerDrawer = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -162,34 +189,44 @@ export function ProposeInitiativeDrawer({
     }
   }
 
-  // This is used to set the amount to the minimum proposer lock amount when the lock tokens toggle is enabled
   useEffect(() => {
     if (lockTokens && minProposerLockAmount != null && amount < minProposerLockAmount) {
       setAmount(minProposerLockAmount)
     }
-    // We intentionally omit `amount` to avoid loops; this only reacts to new requirements/toggle state
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lockTokens, minProposerLockAmount])
 
-  const handleAddAttachment = () => {
+  const handleAddAttachment = (attachment: AttachmentDraft) => {
     if (attachments.length >= MAX_ATTACHMENTS) {
       toast(`You can add up to ${MAX_ATTACHMENTS} attachments`)
       return
     }
-
-    setAttachments((prev) => [...prev, { uri: '', mimeType: '', description: '' }])
-  }
-
-  const handleAttachmentChange = (index: number, field: keyof AttachmentDraft, value: string) => {
-    setAttachments((prev) =>
-      prev.map((attachment, idx) =>
-        idx === index ? { ...attachment, [field]: value } : attachment,
-      ),
-    )
+    setAttachments((prev) => [...prev, attachment])
   }
 
   const handleRemoveAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const goToStep = (target: Step) => {
+    const currentIndex = STEPS.indexOf(step)
+    const targetIndex = STEPS.indexOf(target)
+    setDirection(targetIndex > currentIndex ? 1 : -1)
+    setStep(target)
+  }
+
+  const goNext = () => {
+    const currentIndex = STEPS.indexOf(step)
+    if (currentIndex < STEPS.length - 1) {
+      goToStep(STEPS[currentIndex + 1])
+    }
+  }
+
+  const goBack = () => {
+    const currentIndex = STEPS.indexOf(step)
+    if (currentIndex > 0) {
+      goToStep(STEPS[currentIndex - 1])
+    }
   }
 
   const handleSubmit = async () => {
@@ -244,10 +281,16 @@ export function ProposeInitiativeDrawer({
         body: description,
         attachments: preparedAttachments,
       }
-      const functionName = amount ? 'proposeInitiativeWithLock' as const : 'proposeInitiative' as const
+      const functionName = amount
+        ? ('proposeInitiativeWithLock' as const)
+        : ('proposeInitiative' as const)
       const args = amount
-        ? [metadata, parseUnits(String(amount), board?.underlyingTokenDecimals ?? 18), duration] as const
-        : [metadata] as const
+        ? ([
+            metadata,
+            parseUnits(String(amount), board?.underlyingTokenDecimals ?? 18),
+            duration,
+          ] as const)
+        : ([metadata] as const)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { request } = await publicClient.simulateContract({
@@ -310,6 +353,168 @@ export function ProposeInitiativeDrawer({
     )
   }
 
+  const canProceedFromDetails = title.trim().length > 0 && description.trim().length > 0
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 'details':
+        return (
+          <InitiativeFormFields
+            title={title}
+            description={description}
+            attachments={attachments}
+            onTitleChange={setTitle}
+            onDescriptionChange={setDescription}
+            onAddAttachment={handleAddAttachment}
+            onRemoveAttachment={handleRemoveAttachment}
+          />
+        )
+      case 'lock':
+        return (
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-1 lg:w-1/2">
+              <InitiativeLockTokens
+                lockTokens={lockTokens}
+                amount={amount}
+                duration={duration}
+                minProposerLockAmount={minProposerLockAmount}
+                lockAmountBelowMinimum={lockAmountBelowMinimum}
+                maxLockIntervals={maxLockIntervals}
+                symbol={symbol ?? undefined}
+                board={{
+                  lockInterval: board.lockInterval ?? 0,
+                  acceptanceThreshold: BigInt(board.acceptanceThreshold ?? 0),
+                  decayCurveType: board.decayCurveType ?? 0,
+                  decayCurveParameters: String(board.decayCurveParameters?.[0] ?? '0'),
+                }}
+                formatter={formatter}
+                onToggleLock={handleToggleLockTokens}
+                onAmountChange={setAmount}
+                onDurationChange={setDuration}
+                formatDurationLabel={formatDurationLabel}
+              />
+            </div>
+            <div className="flex-1 lg:w-1/2">
+              <AcceptanceProgressChart
+                amount={amount}
+                duration={duration}
+                threshold={formatter(Number(board.acceptanceThreshold ?? 0))}
+                initiative={{
+                  createdAt: DateTime.now().toSeconds(),
+                  lockInterval: board.lockInterval,
+                  decayCurveType: board.decayCurveType,
+                  decayCurveParameters: board.decayCurveParameters,
+                }}
+                existingLocks={[]}
+                proposeNewInitiative={true}
+                supportInitiative={lockTokens}
+              />
+            </div>
+          </div>
+        )
+      case 'summary': {
+        const lockInterval = board.lockInterval ?? 0
+        const unlockDate =
+          lockTokens && amount > 0 && lockInterval > 0
+            ? DateTime.now().plus({ seconds: duration * lockInterval })
+            : null
+        const acceptanceThreshold = formatter(Number(board.acceptanceThreshold ?? 0))
+        const initialWeight = lockTokens && amount > 0 ? amount * duration : 0
+        const contributionPct =
+          acceptanceThreshold > 0 ? Math.min((initialWeight / acceptanceThreshold) * 100, 100) : 0
+
+        return (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+              <p className="text-body-sm text-muted-foreground">Title</p>
+              <p className="text-body font-medium">{title}</p>
+            </div>
+            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+              <p className="text-body-sm text-muted-foreground">Description</p>
+              <p className="text-body whitespace-pre-wrap">{description}</p>
+            </div>
+            {attachments.length > 0 && (
+              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+                <p className="text-body-sm text-muted-foreground">Attachments</p>
+                <ul className="text-body-sm space-y-1">
+                  {attachments.map((a, i) => (
+                    <li key={i} className="truncate">
+                      {a.uri}
+                      {a.description ? ` — ${a.description}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {lockTokens && amount > 0 && (
+              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+                <p className="text-body-sm text-muted-foreground">Token Lock</p>
+                <div className="space-y-1">
+                  <p className="text-body font-medium">
+                    {amount.toLocaleString()} {symbol ?? ''} for {duration} interval
+                    {duration !== 1 ? 's' : ''}
+                  </p>
+                  {unlockDate && (
+                    <p className="text-body-sm text-muted-foreground">
+                      Tokens unlock {unlockDate.toRelative()} (
+                      {unlockDate.toLocaleString(DateTime.DATE_MED)})
+                    </p>
+                  )}
+                  {contributionPct > 0 && (
+                    <p className="text-body-sm text-muted-foreground">
+                      Initial contribution: {contributionPct.toFixed(1)}% of acceptance threshold
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      }
+    }
+  }
+
+  const renderFooter = () => {
+    if (!meetsProposalThreshold(Number(balance ?? 0))) return null
+
+    switch (step) {
+      case 'details':
+        return (
+          <DrawerFooter>
+            <div className="flex justify-end">
+              <Button onClick={goNext} disabled={!canProceedFromDetails}>
+                Next
+              </Button>
+            </div>
+          </DrawerFooter>
+        )
+      case 'lock':
+        return (
+          <DrawerFooter>
+            <div className="flex justify-between">
+              <Button variant="ghost" onClick={goBack}>
+                Back
+              </Button>
+              <Button onClick={goNext}>Next</Button>
+            </div>
+          </DrawerFooter>
+        )
+      case 'summary':
+        return (
+          <DrawerFooter>
+            <div className="flex justify-between">
+              <Button variant="ghost" onClick={goBack}>
+                Back
+              </Button>
+              {resolveAction()}
+            </div>
+          </DrawerFooter>
+        )
+    }
+  }
+
+  const currentStepIndex = STEPS.indexOf(step)
+
   return (
     <Drawer
       dismissible={!isSubmitting && !isApproving}
@@ -323,93 +528,98 @@ export function ProposeInitiativeDrawer({
           </Button>
         </DrawerTrigger>
       )}
-      <DrawerContent>
-        <div className="overflow-y-auto p-8">
-          <DrawerHeader>
-            <DrawerTitle>Propose a new initiative</DrawerTitle>
-            <Alert className="bg-amber-50 dark:bg-stone-800">
-              <AlertDescription>
-                Submit a new initiative for the community to rally around.
-              </AlertDescription>
-            </Alert>
-          </DrawerHeader>
+      <DrawerPortal>
+        <DrawerOverlay />
+        <DrawerPrimitive.Content asChild>
+          <motion.div
+            className="group/drawer-content bg-background fixed inset-x-0 bottom-0 z-[80] mx-8 mb-16 flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700"
+            animate={{
+              height: bounds.height > 0 ? bounds.height : 'auto',
+            }}
+            transition={{
+              duration: 0.27,
+              ease: [0.25, 1, 0.5, 1],
+            }}
+            style={{ maxHeight: 'calc(80vh - 2rem)' }}
+          >
+            <div ref={measureRef}>
+              <div className="bg-muted mx-auto mt-4 h-2 w-[100px] shrink-0 rounded-full" />
+              <AnimatePresence mode="popLayout" custom={direction}>
+                <motion.div
+                  key={step}
+                  custom={direction}
+                  variants={stepVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    duration: 0.2,
+                    ease: [0.26, 0.08, 0.25, 1],
+                  }}
+                >
+                  <div className="overflow-y-auto p-8" style={{ maxHeight: 'calc(80vh - 2rem)' }}>
+                    <DrawerHeader className="flex flex-row items-center justify-between">
+                      <DrawerTitle>Propose a new initiative</DrawerTitle>
+                      <div className="flex items-center gap-2">
+                        {STEPS.map((s, i) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => {
+                              if (
+                                i < currentStepIndex ||
+                                (i === 1 && canProceedFromDetails) ||
+                                (i === 2 && canProceedFromDetails)
+                              ) {
+                                goToStep(s)
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 text-xs transition-colors ${
+                              s === step
+                                ? 'text-foreground font-medium'
+                                : i < currentStepIndex
+                                  ? 'text-muted-foreground cursor-pointer hover:text-foreground'
+                                  : 'text-muted-foreground/50 cursor-default'
+                            }`}
+                          >
+                            <span
+                              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium transition-colors ${
+                                s === step
+                                  ? 'bg-foreground text-background'
+                                  : i < currentStepIndex
+                                    ? 'bg-muted-foreground/20 text-muted-foreground'
+                                    : 'bg-muted-foreground/10 text-muted-foreground/50'
+                              }`}
+                            >
+                              {i + 1}
+                            </span>
+                            <span className="hidden sm:inline">{STEP_LABELS[s]}</span>
+                            {i < STEPS.length - 1 && (
+                              <span className="text-muted-foreground/30 ml-1">/</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </DrawerHeader>
 
-          {!meetsProposalThreshold(Number(balance ?? 0)) ? (
-            <InsufficientTokensMessage
-              requiredAmount={formatter(board.proposalThreshold)}
-              symbol={symbol ?? undefined}
-              balance={formatter(Number(balance ?? 0))}
-              isBalanceLoading={isBalanceLoading}
-            />
-          ) : (
-            <>
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left side: Title, Description, Attachments */}
-                <div className="flex flex-col flex-1 lg:w-1/2">
-                  <InitiativeFormFields
-                    title={title}
-                    description={description}
-                    attachments={attachments}
-                    onTitleChange={setTitle}
-                    onDescriptionChange={setDescription}
-                    onAddAttachment={handleAddAttachment}
-                    onAttachmentChange={handleAttachmentChange}
-                    onRemoveAttachment={handleRemoveAttachment}
-                  />
-                </div>
-
-                {/* Right side: Lock Tokens and Preview */}
-                <div className="flex flex-col flex-1 lg:w-1/2 gap-6">
-                  <InitiativeLockTokens
-                    lockTokens={lockTokens}
-                    amount={amount}
-                    duration={duration}
-                    minProposerLockAmount={minProposerLockAmount}
-                    lockAmountBelowMinimum={lockAmountBelowMinimum}
-                    maxLockIntervals={maxLockIntervals}
-                    symbol={symbol ?? undefined}
-                    board={{
-                      lockInterval: board.lockInterval ?? 0,
-                      acceptanceThreshold: BigInt(board.acceptanceThreshold ?? 0),
-                      decayCurveType: board.decayCurveType ?? 0,
-                      decayCurveParameters: String(board.decayCurveParameters?.[0] ?? '0'),
-                    }}
-                    formatter={formatter}
-                    onToggleLock={handleToggleLockTokens}
-                    onAmountChange={setAmount}
-                    onDurationChange={setDuration}
-                    formatDurationLabel={formatDurationLabel}
-                  />
-
-                  {/* Preview Chart */}
-                  <div className="hidden lg:block">
-                    <AcceptanceProgressChart
-                      amount={amount}
-                      duration={duration}
-                      threshold={formatter(Number(board.acceptanceThreshold ?? 0))}
-                      initiative={{
-                        createdAt: DateTime.now().toSeconds(),
-                        lockInterval: board.lockInterval,
-                        decayCurveType: board.decayCurveType,
-                        decayCurveParameters: board.decayCurveParameters,
-                      }}
-                      existingLocks={[]}
-                      proposeNewInitiative={true}
-                      supportInitiative={lockTokens}
-                    />
+                    {!meetsProposalThreshold(Number(balance ?? 0)) ? (
+                      <InsufficientTokensMessage
+                        requiredAmount={formatter(board.proposalThreshold)}
+                        symbol={symbol ?? undefined}
+                        balance={formatter(Number(balance ?? 0))}
+                        isBalanceLoading={isBalanceLoading}
+                      />
+                    ) : (
+                      renderStepContent()
+                    )}
                   </div>
-                </div>
-              </div>
-
-            </>
-          )}
-        </div>
-        {meetsProposalThreshold(Number(balance ?? 0)) && (
-          <DrawerFooter>
-            <div className="flex justify-end">{resolveAction()}</div>
-          </DrawerFooter>
-        )}
-      </DrawerContent>
+                  {renderFooter()}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </DrawerPrimitive.Content>
+      </DrawerPortal>
     </Drawer>
   )
 }

@@ -4,8 +4,8 @@ import { PageLayout } from '@/components/containers/page-layout'
 import { RouteSync } from '@/components/route-sync'
 import { useSignals } from '@/hooks/use-signals'
 import { normaliseNumber, timeAgoWords } from '@/lib/utils'
-import { Info } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { RuleCard } from './rule-card'
 
 const DECAY_CURVE_LABELS: Record<number, string> = {
   0: 'Linear decay',
@@ -173,34 +173,35 @@ export default function RulesPage() {
 
         <TooltipProvider delayDuration={50}>
           <div className="space-y-8">
-            <section className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-2 mb-6 dark:border-stone-800 dark:bg-stone-900">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-1 text-sm">
-                <div className="space-y-1">
-                  <div className="space-y-0.5 text-stone-900 dark:text-white">
-                    <div>
-                      <span className="text-stone-600 dark:text-stone-400">Board opens: </span>
-                      {board.opensAt ? (
-                        <>
-                          {opensAtLabel}
-                          <span className="text-stone-600 dark:text-stone-400">
-                            {' '}({timeAgoWords(board.opensAt)})
-                          </span>
-                        </>
-                      ) : (
-                        '—'
-                      )}
-                    </div>
-                    {board.closesAt && (
-                      <div>
-                        <span className="text-stone-600 dark:text-stone-400">Board closes: </span>
-                        {closesAtLabel}
-                        <span className="text-stone-600 dark:text-stone-400">
-                          {' '}({timeAgoWords(board.closesAt)})
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <section className="space-y-3">
+              <div>
+                <h3 className="text-lg font-medium">Board schedule</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <RuleCard
+                  label="Board opens"
+                  value={
+                    board.opensAt ? (
+                      <>
+                        {opensAtLabel} ({timeAgoWords(board.opensAt)})
+                      </>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
+                <RuleCard
+                  label="Board closes"
+                  value={
+                    board.closesAt ? (
+                      <>
+                        {closesAtLabel} ({timeAgoWords(board.closesAt)})
+                      </>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
               </div>
             </section>
 
@@ -209,42 +210,16 @@ export default function RulesPage() {
                 <h3 className="text-lg font-medium">Submitting new initiatives</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Minimum balance required
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        In order to propose a new initiative, you must have at least this amount of tokens in your wallet.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {proposalThreshold}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Minimum starting support required                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        In order to propose a new initiative, you must also support it with at least this amount of tokens.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {/* {minLockAmount} */}
-                    Minimum support goes here
-                  </p>
-                </div>
+                <RuleCard
+                  label="Minimum balance required"
+                  value={proposalThreshold}
+                  tooltip="In order to propose a new initiative, you must have at least this amount of tokens in your wallet."
+                />
+                <RuleCard
+                  label="Minimum starting support required"
+                  value={proposerMinLockAmount !== '—' ? proposerMinLockAmount : '—'}
+                  tooltip="In order to propose a new initiative, you must also support it with at least this amount of tokens."
+                />
               </div>
             </section>
 
@@ -253,79 +228,26 @@ export default function RulesPage() {
                 <h3 className="text-lg font-medium">Supporting existing initiatives</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Minimum balance required
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        In order to support an initiative, you must have at least this amount of tokens in your wallet.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {participantMinBalance}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Minimum support amount
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        In order to support an initiative, you must contribute at least this amount of tokens.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {/* {minLockAmount} */}
-                    Minimum support goes here
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Required boost lock duration
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        When adding support to an initiative, this is the minimum and maximum amount of time you can lock your tokens in order to boost the amount of support your contribution provides. A minimum of 0 days means no boost lock is required.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {minLockInterval} - {maxLockInterval}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Boost mode
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        Boosted support decays over time. This settings determines the rate at which the boosted support fades away.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {decayCurve}
-                  </p>
-                </div>
+                <RuleCard
+                  label="Minimum balance required"
+                  value={participantMinBalance}
+                  tooltip="In order to support an initiative, you must have at least this amount of tokens in your wallet."
+                />
+                <RuleCard
+                  label="Minimum support amount"
+                  value={participantMinLockAmount !== '—' ? participantMinLockAmount : '—'}
+                  tooltip="In order to support an initiative, you must contribute at least this amount of tokens."
+                />
+                <RuleCard
+                  label="Required boost lock duration"
+                  value={`${minLockInterval ?? '—'} - ${maxLockInterval ?? '—'}`}
+                  tooltip="When adding support to an initiative, this is the minimum and maximum amount of time you can lock your tokens in order to boost the amount of support your contribution provides. A minimum of 0 days means no boost lock is required."
+                />
+                <RuleCard
+                  label="Boost mode"
+                  value={decayCurve}
+                  tooltip="Boosted support decays over time. This setting determines the rate at which the boosted support fades away."
+                />
               </div>
             </section>
 
@@ -334,83 +256,21 @@ export default function RulesPage() {
                 <h3 className="text-lg font-medium">Accepting and cancelling initiatives</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Support required to accept
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        Once an initiative receives this amount of support, it can be accepted by the community.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {acceptanceThreshold}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Inactivity timeout
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        If an initiative has not received any support for this amount of time, it can be closed and set as expired.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {/* {inactivityTimeout} */}
-                    Inactivity timeout goes here (days?)
-                  </p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Minimum support amount
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        In order to support an initiative, you must contribute at least this amount of tokens.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {/* {acceptanceThreshold} */}
-                    Minimum support goes here
-                  </p>
-                </div>
-               
-                <div className="rounded-xl border border-stone-100 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Refund delay
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-stone-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">
-                        After an initiative is accepted or closed, tokens will be returned after this amount of time.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-white mt-1">
-                    {/* {releaseLockDuration} */}
-                    Refund delay goes here (days?)
-                  </p>
-                </div>
-             
+                <RuleCard
+                  label="Support required to accept"
+                  value={acceptanceThreshold}
+                  tooltip="Once an initiative receives this amount of support, it can be accepted by the community."
+                />
+                <RuleCard
+                  label="Inactivity timeout"
+                  value="—"
+                  tooltip="If an initiative has not received any support for this amount of time, it can be closed and set as expired."
+                />
+                <RuleCard
+                  label="Refund delay"
+                  value="—"
+                  tooltip="After an initiative is accepted or closed, tokens will be returned after this amount of time."
+                />
               </div>
             </section>
           </div>
