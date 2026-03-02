@@ -51,20 +51,6 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`theme ${apercu.variable}`}>
       <body>
-        <p>
-          Prölss’s publication <em>Schriften für Architekten</em> (1957) [1] inspired a study of
-          this typeface genre. It led to an exploration of the relation between form and
-          counter-form which is at the core of the design. Angular counters respond to the letter’s
-          external curves and do so differently for each weight. The forms and counter-forms of the
-          Thin and Black versions are perfectly inverted. The Light and Ultra Light weights offer
-          razor-sharp positive and negative forms.&nbsp;The width of the Medium and Regular weights
-          is adapted, and both offer rounder counter-shapes that recall some aspects of Aldo
-          Novarese’s Microgramma. This makes them just as suitable for text use and captions at
-          smaller sizes. The Bold cut is a detailed exploration of the balance between square
-          counters and organic curves. Finally, the Black is spaced and kerned tightly to create a
-          masterful rhythmic interaction between glyph spacing and counter-shapes, which makes it
-          perfect for typesetting in blocks to the strongest impact.&nbsp;
-        </p>
         <ThemeProvider initialTheme={theme}>
           <ChainProvider initialChainKey={initialChainKey}>
             <WalletProvider>
