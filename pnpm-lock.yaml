@@ -117,6 +117,9 @@ importers:
       '@privy-io/react-auth':
         specifier: ^3.8.1
         version: 3.8.1(@solana-program/system@0.8.1(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))))(@solana-program/token@0.9.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))))(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))(@solana/sysvars@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3))(@tanstack/query-core@5.90.12)(@tanstack/react-query@5.90.12(react@18.3.1))(@types/react@18.3.26)(@upstash/redis@1.35.5)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@18.3.1))(utf-8-validate@5.0.10)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.76)
+      '@web3icons/react':
+        specifier: ^4.0.26
+        version: 4.0.26(react@18.3.1)(typescript@5.9.3)
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -13900,7 +13903,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
       '@types/debug': 4.1.12
-      debug: 4.3.4
+      debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.7.4
       uuid: 9.0.1
@@ -19170,6 +19173,13 @@ snapshots:
   '@web3icons/common@0.11.20(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
+
+  '@web3icons/react@4.0.26(react@18.3.1)(typescript@5.9.3)':
+    dependencies:
+      '@web3icons/common': 0.11.20(typescript@5.9.3)
+      react: 18.3.1
+    transitivePeerDependencies:
+      - typescript
 
   '@web3icons/react@4.0.26(react@19.2.0)(typescript@5.9.3)':
     dependencies:

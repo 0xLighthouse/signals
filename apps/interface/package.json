@@ -12,6 +12,7 @@
   "dependencies": {
     "@ponder/client": "^0.10.4",
     "@privy-io/react-auth": "^3.8.1",
+    "@web3icons/react": "^4.0.26",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
