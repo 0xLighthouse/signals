@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import useMeasure from 'react-use-measure'
 import { PlusIcon } from 'lucide-react'
@@ -30,7 +30,6 @@ import { SignalsABI } from '../../../../../packages/abis'
 import { useBalanceOf } from '@/hooks/useBalanceOf'
 import { usePublicClient } from '@/contexts/ChainProvider'
 import { useWalletClient } from '@/hooks/use-wallet-client'
-import { Alert, AlertDescription } from '../ui/alert'
 import {
   InitiativeFormFields,
   type AttachmentDraft,
@@ -39,12 +38,11 @@ import {
 import { InitiativeLockTokens } from './propose-initiative-drawer/InitiativeLockTokens'
 import { InsufficientTokensMessage } from './propose-initiative-drawer/InsufficientTokensMessage'
 
-type Step = 'details' | 'lock' | 'summary'
-const STEPS: Step[] = ['details', 'lock', 'summary']
+type Step = 'details' | 'lock'
+const STEPS: Step[] = ['details', 'lock']
 const STEP_LABELS: Record<Step, string> = {
   details: 'Details',
   lock: 'Lock Tokens',
-  summary: 'Review & Submit',
 }
 
 const stepVariants = {
@@ -74,7 +72,6 @@ export function ProposeInitiativeDrawer({
 
   const [duration, setDuration] = useState(1)
   const [amount, setAmount] = useState<number>(0)
-  const [lockTokens, setLockTokens] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [attachments, setAttachments] = useState<AttachmentDraft[]>([])
@@ -83,6 +80,9 @@ export function ProposeInitiativeDrawer({
   const [step, setStep] = useState<Step>('details')
   const [direction, setDirection] = useState(1)
   const [measureRef, bounds] = useMeasure()
+
+  // Tracks whether the amount field has been initialized with the board minimum for this session
+  const amountInitializedRef = useRef(false)
 
   const isDrawerOpen = externalOpen !== undefined ? externalOpen : internalDrawerOpen
   const setIsDrawerOpen = externalOnOpenChange || setInternalDrawerOpen
@@ -125,11 +125,17 @@ export function ProposeInitiativeDrawer({
     return formatter(minProposerLockAmountRaw)
   }, [formatter, minProposerLockAmountRaw])
 
-  const requiresMinLockAmount =
-    lockTokens && minProposerLockAmount != null && minProposerLockAmount > 0
+  // True when the board enforces a minimum lock to propose
+  const boardRequiresLocking = minProposerLockAmount != null && minProposerLockAmount > 0
 
+  // True when the user has entered an amount below the required minimum
   const lockAmountBelowMinimum =
-    requiresMinLockAmount && (amount == null || amount < minProposerLockAmount)
+    amount > 0 && boardRequiresLocking && amount < minProposerLockAmount!
+
+  // Whether the current amount input is invalid for submission
+  const isAmountInvalid =
+    (boardRequiresLocking && amount === 0) || // board mandates locking but user entered 0
+    lockAmountBelowMinimum
 
   const { balance, isLoading: isBalanceLoading } = useBalanceOf(
     address,
@@ -148,9 +154,19 @@ export function ProposeInitiativeDrawer({
 
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
 
+  // Pre-fill the amount with the board minimum when drawer opens or board data loads
+  useEffect(() => {
+    if (isDrawerOpen && !amountInitializedRef.current && minProposerLockAmount !== null) {
+      setAmount(minProposerLockAmount)
+      amountInitializedRef.current = true
+    }
+    if (!isDrawerOpen) {
+      amountInitializedRef.current = false
+    }
+  }, [isDrawerOpen, minProposerLockAmount])
+
   const resetFormState = () => {
-    setAmount(0)
-    setLockTokens(false)
+    setAmount(minProposerLockAmount ?? 0)
     setTitle('')
     setDescription('')
     setAttachments([])
@@ -177,24 +193,6 @@ export function ProposeInitiativeDrawer({
     if (!open) resetFormState()
     setIsDrawerOpen(open)
   }
-
-  const handleToggleLockTokens = () => {
-    const nextValue = !lockTokens
-    setLockTokens(nextValue)
-    if (nextValue) {
-      setAmount(minProposerLockAmount ?? 0)
-    } else {
-      setAmount(0)
-      setDuration(1)
-    }
-  }
-
-  useEffect(() => {
-    if (lockTokens && minProposerLockAmount != null && amount < minProposerLockAmount) {
-      setAmount(minProposerLockAmount)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lockTokens, minProposerLockAmount])
 
   const handleAddAttachment = (attachment: AttachmentDraft) => {
     if (attachments.length >= MAX_ATTACHMENTS) {
@@ -231,17 +229,19 @@ export function ProposeInitiativeDrawer({
 
   const handleSubmit = async () => {
     if (!address) throw new Error('Address not available.')
-    if (lockTokens) {
-      if (!amount) {
-        toast('Please enter an amount to lock')
-        return
-      }
-      if (lockAmountBelowMinimum && minProposerLockAmount != null) {
-        toast(
-          `This board requires at least ${minProposerLockAmount.toLocaleString()} ${symbol ?? ''} to propose.`,
-        )
-        return
-      }
+
+    // Validate amount
+    if (boardRequiresLocking && amount === 0) {
+      toast(
+        `This board requires at least ${minProposerLockAmount!.toLocaleString()} ${symbol ?? ''} to propose.`,
+      )
+      return
+    }
+    if (lockAmountBelowMinimum && minProposerLockAmount != null) {
+      toast(
+        `This board requires at least ${minProposerLockAmount.toLocaleString()} ${symbol ?? ''} to propose.`,
+      )
+      return
     }
 
     const trimmedAttachments = attachments.map((attachment) => ({
@@ -338,13 +338,7 @@ export function ProposeInitiativeDrawer({
     }
     return (
       <Button
-        disabled={
-          (lockTokens && (!amount || lockAmountBelowMinimum)) ||
-          !title ||
-          !description ||
-          !publicClient ||
-          !isInitialized
-        }
+        disabled={isAmountInvalid || !title || !description || !publicClient || !isInitialized}
         onClick={handleSubmit}
         isLoading={isSubmitting}
       >
@@ -374,7 +368,6 @@ export function ProposeInitiativeDrawer({
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="flex-1 lg:w-1/2">
               <InitiativeLockTokens
-                lockTokens={lockTokens}
                 amount={amount}
                 duration={duration}
                 minProposerLockAmount={minProposerLockAmount}
@@ -387,8 +380,6 @@ export function ProposeInitiativeDrawer({
                   decayCurveType: board.decayCurveType ?? 0,
                   decayCurveParameters: String(board.decayCurveParameters?.[0] ?? '0'),
                 }}
-                formatter={formatter}
-                onToggleLock={handleToggleLockTokens}
                 onAmountChange={setAmount}
                 onDurationChange={setDuration}
                 formatDurationLabel={formatDurationLabel}
@@ -407,70 +398,11 @@ export function ProposeInitiativeDrawer({
                 }}
                 existingLocks={[]}
                 proposeNewInitiative={true}
-                supportInitiative={lockTokens}
+                supportInitiative={amount > 0}
               />
             </div>
           </div>
         )
-      case 'summary': {
-        const lockInterval = board.lockInterval ?? 0
-        const unlockDate =
-          lockTokens && amount > 0 && lockInterval > 0
-            ? DateTime.now().plus({ seconds: duration * lockInterval })
-            : null
-        const acceptanceThreshold = formatter(Number(board.acceptanceThreshold ?? 0))
-        const initialWeight = lockTokens && amount > 0 ? amount * duration : 0
-        const contributionPct =
-          acceptanceThreshold > 0 ? Math.min((initialWeight / acceptanceThreshold) * 100, 100) : 0
-
-        return (
-          <div className="flex flex-col gap-4">
-            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
-              <p className="text-body-sm text-muted-foreground">Title</p>
-              <p className="text-body font-medium">{title}</p>
-            </div>
-            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
-              <p className="text-body-sm text-muted-foreground">Description</p>
-              <p className="text-body whitespace-pre-wrap">{description}</p>
-            </div>
-            {attachments.length > 0 && (
-              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
-                <p className="text-body-sm text-muted-foreground">Attachments</p>
-                <ul className="text-body-sm space-y-1">
-                  {attachments.map((a, i) => (
-                    <li key={i} className="truncate">
-                      {a.uri}
-                      {a.description ? ` — ${a.description}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {lockTokens && amount > 0 && (
-              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
-                <p className="text-body-sm text-muted-foreground">Token Lock</p>
-                <div className="space-y-1">
-                  <p className="text-body font-medium">
-                    {amount.toLocaleString()} {symbol ?? ''} for {duration} interval
-                    {duration !== 1 ? 's' : ''}
-                  </p>
-                  {unlockDate && (
-                    <p className="text-body-sm text-muted-foreground">
-                      Tokens unlock {unlockDate.toRelative()} (
-                      {unlockDate.toLocaleString(DateTime.DATE_MED)})
-                    </p>
-                  )}
-                  {contributionPct > 0 && (
-                    <p className="text-body-sm text-muted-foreground">
-                      Initial contribution: {contributionPct.toFixed(1)}% of acceptance threshold
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      }
     }
   }
 
@@ -489,17 +421,6 @@ export function ProposeInitiativeDrawer({
           </DrawerFooter>
         )
       case 'lock':
-        return (
-          <DrawerFooter>
-            <div className="flex justify-between">
-              <Button variant="ghost" onClick={goBack}>
-                Back
-              </Button>
-              <Button onClick={goNext}>Next</Button>
-            </div>
-          </DrawerFooter>
-        )
-      case 'summary':
         return (
           <DrawerFooter>
             <div className="flex justify-between">
@@ -566,11 +487,7 @@ export function ProposeInitiativeDrawer({
                             key={s}
                             type="button"
                             onClick={() => {
-                              if (
-                                i < currentStepIndex ||
-                                (i === 1 && canProceedFromDetails) ||
-                                (i === 2 && canProceedFromDetails)
-                              ) {
+                              if (i < currentStepIndex || (i === 1 && canProceedFromDetails)) {
                                 goToStep(s)
                               }
                             }}

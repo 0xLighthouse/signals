@@ -1,13 +1,7 @@
-import { DateTime } from 'luxon'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { SwitchContainer } from '@/components/ui/switch-container'
-import { AcceptanceProgressChart } from '@/components/acceptance-progress-chart'
 import { AmountInput } from '../shared/AmountInput'
 import { DurationSlider } from '../shared/DurationSlider'
 
 type InitiativeLockTokensProps = {
-  lockTokens: boolean
   amount: number
   duration: number
   minProposerLockAmount: number | null
@@ -20,15 +14,12 @@ type InitiativeLockTokensProps = {
     decayCurveType: number
     decayCurveParameters: string
   }
-  formatter: (value: number) => number
-  onToggleLock: () => void
   onAmountChange: (value: number) => void
   onDurationChange: (value: number) => void
   formatDurationLabel: (seconds: number) => string
 }
 
 export function InitiativeLockTokens({
-  lockTokens,
   amount,
   duration,
   minProposerLockAmount,
@@ -36,71 +27,49 @@ export function InitiativeLockTokens({
   maxLockIntervals,
   symbol,
   board,
-  formatter,
-  onToggleLock,
   onAmountChange,
   onDurationChange,
   formatDurationLabel,
 }: InitiativeLockTokensProps) {
+  const boardRequiresLocking = minProposerLockAmount != null && minProposerLockAmount > 0
+  const allowsZero = !boardRequiresLocking
+
+  const showError = lockAmountBelowMinimum || (boardRequiresLocking && amount === 0)
+  const errorMessage = showError
+    ? boardRequiresLocking && amount === 0
+      ? `This board requires at least ${minProposerLockAmount!.toLocaleString()} ${symbol ?? ''} to propose`
+      : lockAmountBelowMinimum && minProposerLockAmount != null
+        ? `Enter at least ${minProposerLockAmount.toLocaleString()} ${symbol ?? ''} to meet proposer requirements`
+        : undefined
+    : undefined
+
   return (
     <div className="flex flex-col gap-6 my-2">
-      {/* Lock tokens toggle */}
-      <div className="flex items-center">
-        <Label className="w-1/5 flex items-center">Lock Tokens</Label>
-        <div className="w-4/5">
-          <SwitchContainer className="border-0 bg-transparent dark:bg-transparent px-0">
-            <Switch id="lock-tokens" checked={lockTokens} onCheckedChange={onToggleLock} />
-            <Label htmlFor="lock-tokens">Also lock tokens to add support</Label>
-          </SwitchContainer>
-        </div>
-      </div>
+      <p className="text-body-sm text-muted-foreground">
+        {allowsZero
+          ? `Locking tokens adds weight to your initiative and increases its chance of acceptance. Enter 0 to propose without locking.`
+          : `This board requires you to lock at least ${minProposerLockAmount!.toLocaleString()} ${symbol ?? ''} to propose.`}
+      </p>
 
-      {/* Amount field */}
-      {lockTokens && (
-        <AmountInput
-          amount={amount}
-          symbol={symbol}
-          minAmount={minProposerLockAmount}
-          showMinimum={true}
-          showError={!amount || lockAmountBelowMinimum}
-          errorMessage={
-            !amount
-              ? 'Please enter an amount to lock'
-              : lockAmountBelowMinimum && minProposerLockAmount != null
-                ? `Enter at least ${minProposerLockAmount.toLocaleString()} ${symbol} to meet proposer requirements`
-                : undefined
-          }
-          onAmountChange={onAmountChange}
+      <AmountInput
+        amount={amount}
+        symbol={symbol}
+        minAmount={minProposerLockAmount}
+        showMinimum={boardRequiresLocking}
+        showError={showError}
+        errorMessage={errorMessage}
+        onAmountChange={onAmountChange}
+      />
+
+      {/* Duration slider only relevant when the user is locking tokens */}
+      {amount > 0 && (
+        <DurationSlider
+          duration={duration}
+          maxIntervals={maxLockIntervals}
+          lockInterval={board.lockInterval}
+          formatDurationLabel={formatDurationLabel}
+          onDurationChange={onDurationChange}
         />
-      )}
-
-      {/* Duration - only shown when lockTokens is true */}
-      {lockTokens && (
-        <>
-          <DurationSlider
-            duration={duration}
-            maxIntervals={maxLockIntervals}
-            lockInterval={board.lockInterval}
-            formatDurationLabel={formatDurationLabel}
-            onDurationChange={onDurationChange}
-          />
-          <div className="block lg:hidden">
-            <AcceptanceProgressChart
-              amount={amount}
-              duration={duration}
-              threshold={formatter(Number(board.acceptanceThreshold))}
-              initiative={{
-                createdAt: DateTime.now().toSeconds(),
-                lockInterval: board.lockInterval,
-                decayCurveType: board.decayCurveType,
-                decayCurveParameters: board.decayCurveParameters ? [Number(board.decayCurveParameters)] : null,
-              }}
-              existingLocks={[]}
-              proposeNewInitiative={true}
-              supportInitiative={lockTokens}
-            />
-          </div>
-        </>
       )}
     </div>
   )
