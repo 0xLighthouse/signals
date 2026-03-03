@@ -56,6 +56,21 @@ export function AcceptInitiativeDialog({
       ? `${acceptanceThreshold} ${underlyingSymbol}`
       : acceptanceThreshold
 
+  // Determine token release behaviour from board config
+  const releaseLockSeconds = board.lockingConfig?.releaseLockDuration
+    ? Number(board.lockingConfig.releaseLockDuration)
+    : 0
+  const hasTimelock = releaseLockSeconds > 0
+  const releaseLockLabel = (() => {
+    if (!hasTimelock) return null
+    const days = Math.floor(releaseLockSeconds / 86400)
+    const hours = Math.floor((releaseLockSeconds % 86400) / 3600)
+    if (days > 0 && hours > 0) return `${days}d ${hours}h`
+    if (days > 0) return `${days} day${days !== 1 ? 's' : ''}`
+    if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''}`
+    return `${releaseLockSeconds} seconds`
+  })()
+
   const handleAccept = async () => {
     await onAccept()
     onOpenChange(false)
@@ -120,8 +135,10 @@ export function AcceptInitiativeDialog({
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/20">
             <p className="text-sm text-amber-900 dark:text-amber-200">
-              <strong>Note:</strong> Accepting an initiative is permanent and cannot be undone. Once
-              accepted, supporters can redeem their locked tokens after any release timelock period.
+              <strong>Note:</strong> Accepting an initiative is permanent and cannot be undone.{' '}
+              {hasTimelock
+                ? `Once accepted, supporters can redeem their locked tokens after the ${releaseLockLabel} release timelock has elapsed.`
+                : 'Once accepted, supporters can redeem their locked tokens immediately.'}
             </p>
           </div>
         </div>

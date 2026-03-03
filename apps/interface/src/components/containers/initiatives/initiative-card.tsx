@@ -42,7 +42,7 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
   const openDrawer = useSupportDrawerStore((state) => state.openDrawer)
   const { address } = useAccount()
   const { authenticated, login } = usePrivy()
-  const { boardAddress } = useSignals()
+  const { boardAddress, board } = useSignals()
   const publicClient = usePublicClient()
   const walletClient = useWalletClient()
   const fetchInitiatives = useInitiativesStore((state) => state.fetchInitiatives)
@@ -51,9 +51,39 @@ export const InitiativeCard: React.FC<Props> = ({ initiative }) => {
   const [isAcceptedDialogOpen, setIsAcceptedDialogOpen] = useState(false)
 
   const supportPercentage = Number.parseFloat(String(initiative.support * 100))
-  const canAccept = supportPercentage > 100 && initiative.status === 'active'
   const isAccepted = initiative.status === 'accepted'
   const isCancelled = initiative.status === 'archived'
+
+  // Board acceptance permissions
+  // AcceptancePermissions: 0 = Permissionless, 1 = OnlyOwner
+  // ThresholdOverride: 0 = None (must meet threshold), 1 = OnlyOwner (owner can bypass)
+  const permissions = board.acceptanceCriteria?.permissions ?? 0
+  const thresholdOverride = board.acceptanceCriteria?.thresholdOverride ?? 0
+  const thresholdMet = supportPercentage >= 100
+  const isOwner = !!(
+    address &&
+    board.owner &&
+    address.toLowerCase() === board.owner.toLowerCase()
+  )
+
+  let canAccept = false
+  if (initiative.status === 'active') {
+    if (permissions === 1) {
+      // OnlyOwner: only the board owner can accept
+      if (isOwner) {
+        // Owner can accept if threshold met, or if they can bypass (thresholdOverride = 1)
+        canAccept = thresholdMet || thresholdOverride === 1
+      }
+    } else {
+      // Permissionless: anyone can accept when threshold is met
+      if (thresholdMet) {
+        canAccept = true
+      } else if (isOwner && thresholdOverride === 1) {
+        // Owner can bypass threshold
+        canAccept = true
+      }
+    }
+  }
 
   // Determine if proposer is showing a hex address (no ENS)
   const isHexProposer = proposerName === shortAddress(initiative.proposer)
