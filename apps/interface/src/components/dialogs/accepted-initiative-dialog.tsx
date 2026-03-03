@@ -36,6 +36,21 @@ export function AcceptedInitiativeDialog({
   const supportPercentage = Number.parseFloat(String(initiative.support * 100))
   const hasAttachments = initiative.attachments && initiative.attachments.length > 0
 
+  // Determine token release behaviour from board config
+  const releaseLockSeconds = board.lockingConfig?.releaseLockDuration
+    ? Number(board.lockingConfig.releaseLockDuration)
+    : 0
+  const hasTimelock = releaseLockSeconds > 0
+  const releaseLockLabel = (() => {
+    if (!hasTimelock) return null
+    const days = Math.floor(releaseLockSeconds / 86400)
+    const hours = Math.floor((releaseLockSeconds % 86400) / 3600)
+    if (days > 0 && hours > 0) return `${days}d ${hours}h`
+    if (days > 0) return `${days} day${days !== 1 ? 's' : ''}`
+    if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''}`
+    return `${releaseLockSeconds} seconds`
+  })()
+
   const proposerName = useAsyncProp(
     resolveName(initiative.proposer),
     shortAddress(initiative.proposer),
@@ -70,7 +85,10 @@ export function AcceptedInitiativeDialog({
             <DialogTitle>Accepted Initiative</DialogTitle>
           </div>
           <DialogDescription>
-            This initiative has been accepted and can now be actioned by the community. Supporters can redeem their locked tokens after the refund delay.
+            This initiative has been accepted and can now be actioned by the community.{' '}
+            {hasTimelock
+              ? `Supporters can redeem their locked tokens after the ${releaseLockLabel} release timelock has elapsed.`
+              : 'Supporters can redeem their locked tokens immediately.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
