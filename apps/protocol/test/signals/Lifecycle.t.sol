@@ -283,6 +283,92 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
     }
 
+    /// Test that locked tokens can be redeemed immediately after acceptance when releaseLockDuration is 0
+    function test_Accept_Redeem_ImmediateRelease() public {
+        // Default config has releaseLockDuration = 0 (immediate release after acceptance)
+        uint256 lockAmount = defaultConfig.acceptanceCriteria.minThreshold;
+        uint256 beforeBalance = _tokenERC20.balanceOf(_alice);
+
+        // Propose and meet threshold
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(signals), lockAmount);
+        signals.proposeInitiativeWithLock(_metadata(1), lockAmount, 1);
+        vm.stopPrank();
+
+        // Owner accepts the initiative
+        vm.startPrank(_deployer);
+        signals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Verify initiative is accepted
+        ISignals.Initiative memory initiative = signals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
+
+        // Alice can redeem immediately (releaseLockDuration = 0)
+        vm.startPrank(_alice);
+        uint256[] memory lockIds = new uint256[](1);
+        lockIds[0] = 1;
+        signals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Verify tokens returned
+        ISignals.TokenLock memory lock = signals.getTokenLock(1);
+        assertEq(lock.withdrawn, true);
+        assertEq(_tokenERC20.balanceOf(_alice), beforeBalance);
+    }
+
+    /// Test that locked tokens cannot be redeemed before releaseLockDuration elapses after acceptance
+    function test_Accept_Redeem_AfterReleaseLockDuration() public {
+        uint256 releaseLock = 7 days;
+
+        // Configure board with a post-acceptance release timelock
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.lockingConfig.releaseLockDuration = releaseLock;
+        config.acceptanceCriteria.permissions = ISignals.AcceptancePermissions.OnlyOwner;
+        config.acceptanceCriteria.thresholdOverride = ISignals.ThresholdOverride.OnlyOwner;
+
+        ISignals customSignals = deploySignals(config);
+
+        uint256 lockAmount = defaultConfig.proposerRequirements.minBalance;
+        uint256 beforeBalance = _tokenERC20.balanceOf(_alice);
+
+        // Propose with a lock
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), lockAmount);
+        customSignals.proposeInitiativeWithLock(_metadata(1), lockAmount, 1);
+        vm.stopPrank();
+
+        // Owner accepts
+        vm.startPrank(_deployer);
+        customSignals.acceptInitiative(1);
+        vm.stopPrank();
+
+        // Verify accepted
+        ISignals.Initiative memory initiative = customSignals.getInitiative(1);
+        assertEq(uint256(initiative.state), uint256(ISignals.InitiativeState.Accepted));
+
+        // Immediate redemption should fail — release timelock not yet passed
+        vm.startPrank(_alice);
+        uint256[] memory lockIds = new uint256[](1);
+        lockIds[0] = 1;
+        vm.expectRevert(abi.encodeWithSelector(ISignals.Signals_StillTimelocked.selector, 1));
+        customSignals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Warp past the release lock duration
+        vm.warp(block.timestamp + releaseLock + 1);
+
+        // Now redemption should succeed
+        vm.startPrank(_alice);
+        customSignals.redeemLocksForInitiative(1, lockIds);
+        vm.stopPrank();
+
+        // Verify tokens returned
+        ISignals.TokenLock memory lock = customSignals.getTokenLock(1);
+        assertEq(lock.withdrawn, true);
+        assertEq(_tokenERC20.balanceOf(_alice), beforeBalance);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         LOCK DURATION TESTS
     //////////////////////////////////////////////////////////////*/
