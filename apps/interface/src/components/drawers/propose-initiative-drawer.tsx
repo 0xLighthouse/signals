@@ -38,11 +38,12 @@ import {
 import { InitiativeLockTokens } from './propose-initiative-drawer/InitiativeLockTokens'
 import { InsufficientTokensMessage } from './propose-initiative-drawer/InsufficientTokensMessage'
 
-type Step = 'details' | 'lock'
-const STEPS: Step[] = ['details', 'lock']
+type Step = 'details' | 'lock' | 'summary'
+const STEPS: Step[] = ['details', 'lock', 'summary']
 const STEP_LABELS: Record<Step, string> = {
   details: 'Details',
   lock: 'Lock Tokens',
+  summary: 'Review & Submit',
 }
 
 const stepVariants = {
@@ -403,6 +404,65 @@ export function ProposeInitiativeDrawer({
             </div>
           </div>
         )
+      case 'summary': {
+        const lockInterval = board.lockInterval ?? 0
+        const unlockDate =
+          amount > 0 && lockInterval > 0
+            ? DateTime.now().plus({ seconds: duration * lockInterval })
+            : null
+        const acceptanceThreshold = formatter(Number(board.acceptanceThreshold ?? 0))
+        const initialWeight = amount > 0 ? amount * duration : 0
+        const contributionPct =
+          acceptanceThreshold > 0 ? Math.min((initialWeight / acceptanceThreshold) * 100, 100) : 0
+
+        return (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+              <p className="text-body-sm text-muted-foreground">Title</p>
+              <p className="text-body font-medium">{title}</p>
+            </div>
+            <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+              <p className="text-body-sm text-muted-foreground">Description</p>
+              <p className="text-body whitespace-pre-wrap">{description}</p>
+            </div>
+            {attachments.length > 0 && (
+              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+                <p className="text-body-sm text-muted-foreground">Attachments</p>
+                <ul className="text-body-sm space-y-1">
+                  {attachments.map((a, i) => (
+                    <li key={i} className="truncate">
+                      {a.uri}
+                      {a.description ? ` — ${a.description}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {amount > 0 && (
+              <div className="rounded-md border border-stone-200 dark:border-stone-700 p-4 space-y-2">
+                <p className="text-body-sm text-muted-foreground">Token Lock</p>
+                <div className="space-y-1">
+                  <p className="text-body font-medium">
+                    {amount.toLocaleString()} {symbol ?? ''} for {duration} interval
+                    {duration !== 1 ? 's' : ''}
+                  </p>
+                  {unlockDate && (
+                    <p className="text-body-sm text-muted-foreground">
+                      Tokens unlock {unlockDate.toRelative()} (
+                      {unlockDate.toLocaleString(DateTime.DATE_MED)})
+                    </p>
+                  )}
+                  {contributionPct > 0 && (
+                    <p className="text-body-sm text-muted-foreground">
+                      Initial contribution: {contributionPct.toFixed(1)}% of acceptance threshold
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      }
     }
   }
 
@@ -421,6 +481,17 @@ export function ProposeInitiativeDrawer({
           </DrawerFooter>
         )
       case 'lock':
+        return (
+          <DrawerFooter>
+            <div className="flex justify-between">
+              <Button variant="ghost" onClick={goBack}>
+                Back
+              </Button>
+              <Button onClick={goNext}>Next</Button>
+            </div>
+          </DrawerFooter>
+        )
+      case 'summary':
         return (
           <DrawerFooter>
             <div className="flex justify-between">
@@ -487,7 +558,11 @@ export function ProposeInitiativeDrawer({
                             key={s}
                             type="button"
                             onClick={() => {
-                              if (i < currentStepIndex || (i === 1 && canProceedFromDetails)) {
+                              if (
+                                i < currentStepIndex ||
+                                (i === 1 && canProceedFromDetails) ||
+                                (i === 2 && canProceedFromDetails)
+                              ) {
                                 goToStep(s)
                               }
                             }}
