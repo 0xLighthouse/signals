@@ -69,7 +69,8 @@ abstract contract SignalsAuthorizer is IAuthorizer {
             return EligibilityResult.InsufficientLockAmount;
         }
 
-        // TODO: This needs to be rechecked
+        // minHoldingDuration is denominated in blocks (not seconds),
+        // since getPastVotes() requires a block number
         if (reqs.minHoldingDuration > 0) {
             // Check historical balance using ERC20Votes checkpoints
             try IVotes(reqs.token).getPastVotes(

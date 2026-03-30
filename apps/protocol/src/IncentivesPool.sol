@@ -332,7 +332,7 @@ contract IncentivesPool is IIncentivesPool, Ownable, ReentrancyGuard {
             _incentiveBucketsByInitiative[board][initiativeId];
 
         // Find correct bucket
-        for (uint256 i = 0; i <= INCENTIVE_RESOLUTION; i++) {
+        for (uint256 i = 0; i < INCENTIVE_RESOLUTION; i++) {
             if (buckets[i].endTime > timestamp) {
                 buckets[i].bucketTotalIncentiveCredits -= uint128(amount);
                 return;

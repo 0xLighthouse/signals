@@ -445,9 +445,7 @@ contract Signals is
         }
 
         // Transfer underlying tokens back to the supporter
-        if (!IERC20(underlyingToken).transfer(msg.sender, redeemAmount)) {
-            revert Signals_TokenTransferFailed();
-        }
+        IERC20(underlyingToken).safeTransfer(msg.sender, redeemAmount);
 
         // Claim incentives if pool is configured
         if (address(incentivesPool) != address(0)) {
