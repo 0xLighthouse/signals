@@ -524,7 +524,7 @@ export function ProposeInitiativeDrawer({
         <DrawerOverlay />
         <DrawerPrimitive.Content asChild>
           <motion.div
-            className="group/drawer-content bg-background fixed inset-x-0 bottom-0 z-[80] mx-8 mb-16 flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700"
+            className="group/drawer-content bg-background fixed inset-x-0 bottom-0 z-[80] mx-auto mb-16 flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700 max-w-7xl px-0"
             animate={{
               height: bounds.height > 0 ? bounds.height : 'auto',
             }}

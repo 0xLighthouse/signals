@@ -14,6 +14,7 @@ import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { BaseIcon } from '@/components/icons/base'
 import { ArbitrumIcon } from '@/components/icons/arbitrum'
 import type { SupportedNetworks } from '@/config/network-types'
+import { getNetworkUrl } from '@/lib/routing'
 
 const getNetworkIcon = (network: SupportedNetworks) => {
   if (network === 'base' || network === 'baseSepolia') {
@@ -47,7 +48,7 @@ export const Breadcrumbs: React.FC = () => {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink
-            href={`/${network}`}
+            href={getNetworkUrl(network)}
             className="flex items-center"
             aria-label={config.chain.name}
           >
