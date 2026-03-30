@@ -1,0 +1,87 @@
+---
+title: 'Adding Bounties (RFC)'
+weight: 6
+---
+
+# Adding Bounties
+
+> Distribution and refunds are not yet triggered on-chain. Balances are tracked but cannot be claimed.
+
+## `addBounty()`
+
+```solidity
+function addBounty(
+    uint256 _initiativeId,
+    address _token,
+    uint256 _amount,
+    uint256 _expiresAt,
+    Conditions _terms
+) external
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `_initiativeId` | `uint256` | Initiative to attach bounty to |
+| `_token` | `address` | ERC20 token (must be whitelisted in TokenRegistry) |
+| `_amount` | `uint256` | Tokens to contribute. Requires prior approval on Bounties contract. |
+| `_expiresAt` | `uint256` | Expiration timestamp. `0` = never expires. |
+| `_terms` | `Conditions` | Distribution conditions (stored, not enforced yet) |
+
+Tokens are transferred immediately on call.
+
+## Distribution formula
+
+```solidity
+protocolAmount = (totalAmount * protocolAllocation) / 100
+voterAmount    = (totalAmount * voterAllocation) / 100
+treasuryAmount = (totalAmount * treasuryAllocation) / 100
+
+// Per supporter
+supporterShare = (lockedAmount / totalLocked) * voterAmount
+```
+
+Allocations are configured via `updateSplits()` and must sum to 100. Versioned to prevent retroactive changes.
+
+## Data structures
+
+```solidity
+struct Bounty {
+    uint256 initiativeId;
+    IERC20 token;
+    uint256 amount;
+    uint256 paid;
+    uint256 refunded;
+    uint256 expiresAt;
+    address contributor;
+    Conditions terms;
+}
+```
+
+## Query functions
+
+```solidity
+// Aggregated bounties by token, excluding expired
+function getBounties(uint256 _initiativeId) external view
+    returns (address[] memory tokens, uint256[] memory amounts, uint256 expiredCount)
+
+// Returns 0 (not implemented)
+function previewRewards(uint256 _initiativeId, uint256 _tokenId) external view returns (uint256)
+```
+
+## Events
+
+```solidity
+event BountyAdded(uint256 indexed bountyId, uint256 indexed initiativeId, address indexed token, uint256 amount, uint256 expiresAt, Conditions terms)
+event BountiesUpdated(uint256 version)
+```
+
+## Errors
+
+| Error | Condition |
+|-------|-----------|
+| `Bounties_TokenNotRegistered` | Token not in whitelist |
+| `Bounties_InvalidInitiative` | Initiative doesn't exist |
+| `Bounties_InsufficientBalance` | Insufficient token balance |
+| `Bounties_InsufficientAllowance` | Bounties contract not approved |
+| `Bounties_InvalidAllocation` | Splits don't sum to 100 |
+| `Bounties_NotAuthorized` | Caller not authorized |

@@ -1,0 +1,36 @@
+---
+title: 'Expiring Initiatives'
+weight: 5
+---
+
+# Expiring Initiatives
+
+## `expireInitiative()`
+
+```solidity
+function expireInitiative(uint256 initiativeId) external onlyOwner
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | Initiative to expire. Must be in `Proposed` state. |
+
+Owner-only. Sets state to `Expired`. Requires `block.timestamp > lastActivity + inactivityTimeout`.
+
+`lastActivity` updates on initiative creation and each time a supporter locks tokens.
+
+Tokens locked against expired initiatives are redeemable immediately. No incentive rewards are distributed.
+
+## Events
+
+```solidity
+event InitiativeExpired(uint256 indexed initiativeId, address indexed actor)
+```
+
+## Errors
+
+| Error | Condition |
+|-------|-----------|
+| `Signals_InvalidID` | Initiative doesn't exist |
+| `Signals_IncorrectInitiativeState` | Not in `Proposed` state or not yet inactive long enough |
+| `OwnableUnauthorizedAccount` | Caller not owner |

@@ -1,0 +1,57 @@
+---
+title: 'Supporting Initiatives'
+weight: 2
+---
+
+# Supporting Initiatives
+
+## `supportInitiative()`
+
+```solidity
+function supportInitiative(
+    uint256 initiativeId,
+    uint256 amount,
+    uint256 lockDuration
+) external returns (uint256 tokenId)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | Initiative to support. Must be in `Proposed` state. |
+| `amount` | `uint256` | Tokens to lock (wei). Requires prior ERC20 approval. |
+| `lockDuration` | `uint256` | Lock duration in intervals. Must be ≤ `maxLockIntervals` |
+
+**Returns:** `tokenId` (ERC721 lock NFT).
+
+## Data structures
+
+```solidity
+struct TokenLock {
+    uint256 initiativeId;
+    address supporter;
+    uint256 tokenAmount;
+    uint256 lockDuration;
+    uint256 created;
+    bool withdrawn;
+}
+```
+
+## Events
+
+```solidity
+event InitiativeSupported(uint256 indexed initiativeId, address indexed supporter, uint256 tokenAmount, uint256 lockDuration, uint256 tokenId)
+```
+
+## Errors
+
+| Error | Condition |
+|-------|-----------|
+| `Signals_IncorrectBoardState` | Board not open |
+| `Signals_InvalidID` | Initiative doesn't exist |
+| `Signals_IncorrectInitiativeState` | Initiative not in `Proposed` state |
+| `Signals_InvalidArguments` | Duration is 0 or > `maxLockIntervals` |
+| `Signals_InsufficientTokens` | Balance {'<'} `minBalance` |
+| `Signals_InsufficientLockAmount` | Amount {'<'} `minLockAmount` |
+| `Signals_InsufficientTokenDuration` | Historical balance {'<'} `minBalance` |
+| `Signals_TokenHasNoCheckpointSupport` | Token doesn't implement `IVotes` |
+| `Signals_TokenTransferFailed` | ERC20 transfer reverted |

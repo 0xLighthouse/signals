@@ -1,0 +1,62 @@
+---
+title: "Querying Config"
+weight: 3
+---
+
+# Querying Board Configuration
+
+View functions for reading board configuration and checking participant eligibility.
+
+## Participant eligibility
+
+```solidity
+// Read proposer requirements
+IAuthorizer.ParticipantRequirements memory reqs = signals.getProposerRequirements();
+
+// Read supporter requirements
+IAuthorizer.ParticipantRequirements memory reqs = signals.getParticipantRequirements();
+
+// Check if a specific account can propose (with optional lock amount)
+bool canPropose = signals.accountCanPropose(account, lockAmount);
+
+// Check if a specific account can support (with given lock amount)
+bool canSupport = signals.accountCanSupport(account, lockAmount);
+```
+
+## Acceptance criteria
+
+```solidity
+// Get the full acceptance criteria struct
+AcceptanceCriteria memory criteria = signals.getAcceptanceCriteria();
+
+// Get the current effective threshold
+uint256 threshold = signals.getAcceptanceThreshold();
+```
+
+The effective threshold is dynamic. It recalculates based on current `totalSupply()`, so the value may change between calls if the underlying token supply changes.
+
+## Board state
+
+```solidity
+// Timing
+uint256 opens = signals.opensAt();
+uint256 closes = signals.closesAt();
+
+// Status
+bool open = signals.isBoardOpen();
+bool closed = signals.isBoardClosed();
+bool cancelled = signals.boardCancelled();
+
+// Locking
+uint256 interval = signals.lockInterval();
+uint256 maxIntervals = signals.maxLockIntervals();
+uint256 releaseDuration = signals.releaseLockDuration();
+uint256 timeout = signals.inactivityTimeout();
+
+// Decay
+uint256 curveType = signals.decayCurveType();
+uint256 param = signals.decayCurveParameters(0);
+
+// Token
+address token = signals.underlyingToken();
+```

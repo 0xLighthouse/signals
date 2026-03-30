@@ -1,0 +1,58 @@
+---
+title: 'Redeeming Tokens'
+weight: 3
+---
+
+# Redeeming Tokens
+
+## `redeemLock()`
+
+```solidity
+function redeemLock(uint256 lockId) external nonReentrant
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `lockId` | `uint256` | ERC721 token ID of the lock position |
+
+Burns the NFT, transfers locked tokens back to the holder. Auto-claims incentive rewards for accepted initiatives.
+
+## `redeemLocksForInitiative()`
+
+```solidity
+function redeemLocksForInitiative(
+    uint256 initiativeId,
+    uint256[] calldata lockIds
+) external nonReentrant
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | Initiative ID. All locks must belong to this initiative. |
+| `lockIds` | `uint256[]` | Array of lock token IDs to redeem |
+
+Batch redemption. More gas efficient than individual calls. Claims all incentive rewards in a single transaction.
+
+## Eligibility
+
+A lock is redeemable when **any** of these conditions is true:
+
+- Board is cancelled
+- Initiative is `Expired`
+- Lock has naturally expired (`lock.created + lockDuration × lockInterval` has passed)
+- Initiative is `Accepted` and `block.timestamp > acceptanceTimestamp + releaseLockDuration`
+
+## Events
+
+```solidity
+event Redeemed(uint256 indexed tokenId)
+```
+
+## Errors
+
+| Error | Condition |
+|-------|-----------|
+| `Signals_TokenAlreadyRedeemed` | Lock already withdrawn |
+| `Signals_NotOwner` | Caller doesn't own the NFT |
+| `Signals_StillTimelocked` | Release timelock not passed and lock not expired |
+| `Signals_InvalidID` | Lock doesn't belong to the specified initiative (batch only) |

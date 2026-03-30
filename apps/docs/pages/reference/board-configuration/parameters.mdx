@@ -72,19 +72,30 @@ struct AcceptanceCriteria {
 }
 ```
 
-**`permissions`** — `Permissionless` (anyone can accept if threshold met) or `OnlyOwner`.
+### Threshold
 
-**`thresholdOverride`** — `None` (everyone must meet threshold) or `OnlyOwner` (owner can bypass).
-
-**`thresholdPercentTotalSupplyWAD`** — Percentage of total token supply in WAD. `0.05e18` = 5%. Must be {'<'} `1e18`.
-
-**`minThreshold`** — Fixed minimum weight required. At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero.
-
-Effective threshold:
+The effective threshold is the greater of two values:
 
 ```solidity
 threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
 ```
+
+**`thresholdPercentTotalSupplyWAD`** — Percentage of total token supply in WAD notation. `0.05e18` = 5%. Must be {'<'} `1e18`.
+
+**`minThreshold`** — Fixed minimum weight, used as a floor. Prevents dust attacks when total supply is low.
+
+At least one must be non-zero.
+
+### Permissions
+
+`permissions` and `thresholdOverride` control who can call `acceptInitiative()` and whether the threshold check applies:
+
+| `permissions` | `thresholdOverride` | Who can accept | Threshold required |
+|---------------|---------------------|----------------|--------------------|
+| `Permissionless` | `None` | Anyone | Yes, for everyone |
+| `Permissionless` | `OnlyOwner` | Anyone | Yes, but owner bypasses |
+| `OnlyOwner` | `None` | Owner only | Yes |
+| `OnlyOwner` | `OnlyOwner` | Owner only | No (owner bypasses) |
 
 ## `proposerRequirements`
 
@@ -99,17 +110,29 @@ struct ParticipantRequirements {
 
 Controls who can call `proposeInitiative()` and `proposeInitiativeWithLock()`. Immutable after deployment.
 
+### Fields
+
 **`token`** — ERC20 checked for eligibility. Can differ from `underlyingToken`. Cannot be `address(0)`.
 
-**`minBalance`** — Minimum current balance required. Set to `0` for open access. When non-zero, checks `IERC20(token).balanceOf(caller) >= minBalance`.
+**`minBalance`** — Minimum current balance required. When non-zero, checks `IERC20(token).balanceOf(caller) >= minBalance`.
 
-**`minHoldingDuration`** — Minimum blocks the caller must have held `minBalance`. Set to `0` to skip. When non-zero, calls `IVotes(token).getPastVotes(caller, block.number - minHoldingDuration)`. Requires `minBalance > 0` and an **ERC20Votes** token.
-
-> Users must **delegate their tokens** (even to themselves) to activate checkpoints, otherwise `getPastVotes` returns zero.
+**`minHoldingDuration`** — Minimum blocks the caller must have held `minBalance`. When non-zero, calls `IVotes(token).getPastVotes(caller, block.number - minHoldingDuration)`. Requires `minBalance > 0` and an **ERC20Votes** token.
 
 **`minLockAmount`** — Minimum tokens to lock when proposing with lock. `proposeInitiative()` (without lock) reverts if `minLockAmount > 0`. Must be ≤ `minBalance`.
 
-**Block time reference for `minHoldingDuration`:**
+### Eligibility modes
+
+The mode is inferred from field values. There is no explicit enum.
+
+| `minBalance` | `minHoldingDuration` | Mode | Token type |
+|---|---|---|---|
+| `0` | `0` | Open access, anyone can participate | Any ERC20 |
+| `> 0` | `0` | Current balance check | Any ERC20 |
+| `> 0` | `> 0` | Historical balance check (snapshot) | ERC20Votes required |
+
+> For the historical balance mode, users must **delegate their tokens** (even to themselves) to activate checkpoints. Without delegation, `getPastVotes` returns zero.
+
+### Block time reference for `minHoldingDuration`
 
 | Chain | Block time | ~7 days | ~30 days |
 |-------|-----------|---------|----------|
@@ -119,7 +142,7 @@ Controls who can call `proposeInitiative()` and `proposeInitiativeWithLock()`. I
 
 ## `supporterRequirements`
 
-Same `ParticipantRequirements` struct as `proposerRequirements`. Controls who can call `supportInitiative()`. Immutable after deployment.
+Same `IAuthorizer.ParticipantRequirements` struct as above. Controls who can call `supportInitiative()`. Immutable after deployment.
 
 Configured independently. A board can have strict proposer requirements (high balance, holding duration) with open supporter requirements (anyone can lock tokens).
 
@@ -134,13 +157,31 @@ struct LockingConfig {
 }
 ```
 
-**`lockInterval`** — Base time unit in seconds. All lock durations and decay calculations use multiples of this. Must be > 0.
+### `lockInterval`
 
-**`maxLockIntervals`** — Maximum number of intervals a lock can span. Must be > 0. Max lock time = `lockInterval * maxLockIntervals`.
+Base time unit in seconds. Lock durations and decay calculations are measured in multiples of this value. Must be > 0.
 
-**`releaseLockDuration`** — Additional delay in seconds after acceptance before tokens can be redeemed. `0` = immediate release on acceptance.
+### `maxLockIntervals`
 
-**`inactivityTimeout`** — Seconds since last activity before the owner can expire an initiative. Activity updates on creation and each new lock.
+Maximum number of intervals a lock can span. Must be > 0. The maximum lock duration in seconds is `lockInterval × maxLockIntervals`.
+
+*Example:* `lockInterval = 1 days` and `maxLockIntervals = 365` allows locks up to 1 year.
+
+### `releaseLockDuration`
+
+Additional delay in seconds after an initiative is accepted before supporters can redeem their tokens. Set to `0` for immediate release on acceptance.
+
+This is separate from lock duration. A supporter's lock may have expired, but if the initiative was just accepted, they still wait `releaseLockDuration` before redeeming.
+
+> On a time-boxed board, setting `releaseLockDuration` ≥ the board duration prevents token recycling. Supporters cannot back one initiative, wait for acceptance, reclaim, and redirect to another before the board closes.
+
+### `inactivityTimeout`
+
+Seconds of inactivity before the owner can expire an initiative via `expireInitiative()`. An initiative's `lastActivity` timestamp updates on creation and each time a supporter locks tokens.
+
+```
+expirable when: block.timestamp > lastActivity + inactivityTimeout
+```
 
 ## `decayConfig`
 
@@ -158,35 +199,3 @@ struct DecayConfig {
 - **Linear** (`0`): `params = [decayRate]`. Rate of `1e18` = 1:1 decay per interval.
 - **Exponential** (`1`): `params = [decayMultiplier]`. Multiplier of `0.9e18` = 10% reduction per interval.
 
----
-
-## Validation errors
-
-| Error | Condition |
-|-------|-----------|
-| `SignalsFactory_ZeroAddressOwner` | `owner` is `address(0)` |
-| `Signals_InvalidArguments` | `underlyingToken` or participant `token` is `address(0)` |
-| `Signals_InvalidArguments` | Both thresholds are 0 |
-| `Signals_InvalidArguments` | `thresholdPercentTotalSupplyWAD` ≥ `1e18` |
-| `Signals_InvalidArguments` | `maxLockIntervals` or `lockInterval` is 0 |
-| `Signals_InvalidArguments` | Invalid decay curve type |
-| `Signals_InvalidArguments` | `closesAt` {'<'} `opensAt` |
-| `Signals_InvalidArguments` | `minHoldingDuration > 0` with `minBalance == 0` |
-| `Signals_InvalidArguments` | `minLockAmount > minBalance` |
-| `Signals_InsufficientTokens` | Current balance {'<'} `minBalance` |
-| `Signals_InsufficientTokenDuration` | Historical balance {'<'} `minBalance` |
-| `Signals_TokenHasNoCheckpointSupport` | Token doesn't implement `IVotes` |
-| `Signals_InsufficientLockAmount` | Lock amount {'<'} `minLockAmount` |
-
-## Querying on-chain
-
-```solidity
-ParticipantRequirements memory reqs = signals.getProposerRequirements();
-ParticipantRequirements memory reqs = signals.getParticipantRequirements();
-
-bool canPropose = signals.accountCanPropose(account, lockAmount);
-bool canSupport = signals.accountCanSupport(account, lockAmount);
-
-uint256 threshold = signals.getAcceptanceThreshold();
-AcceptanceCriteria memory criteria = signals.getAcceptanceCriteria();
-```
