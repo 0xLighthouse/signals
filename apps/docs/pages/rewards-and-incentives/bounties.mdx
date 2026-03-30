@@ -1,0 +1,48 @@
+---
+title: "Bounties (RFC)"
+weight: 2
+---
+
+# Adding Bounties
+
+Bounties let anyone attach external ERC20 token rewards to a specific initiative. When the initiative is accepted, the bounty is split three ways between the protocol, supporters, and a treasury according to configured percentages.
+
+> Bounties are initiative-specific and externally funded. For board-wide, DAO-funded rewards, see [Incentives](/rewards-and-incentives/adding-incentives).
+
+## Adding a bounty
+
+1. The token must be whitelisted in the board's **TokenRegistry**
+2. Approve the Bounties contract to spend your tokens
+3. Call `addBounty()` with the initiative ID, token address, amount, expiration, and conditions
+
+Tokens are transferred immediately on `addBounty()`. Multiple bounties (including different token types) can be attached to the same initiative.
+
+## Three-way split
+
+On acceptance, each bounty token is distributed according to the board's configured split:
+
+- **Protocol fee** (e.g. 5%)
+- **Supporter rewards** (e.g. 20%)
+- **Treasury allocation** (e.g. 75%)
+
+Percentages must sum to 100. Each supporter's share of the voter pool is proportional to their locked amount relative to the total locked in the initiative.
+
+## Versioned splits
+
+Board owners can update split percentages with `updateSplits()`. When splits change:
+
+- A new configuration version is created
+- Existing bounties use their **original version's splits**
+- New bounties use the current version
+
+This prevents retroactive changes to existing commitments.
+
+## Expiration
+
+Bounties can have an optional expiration timestamp (`expiresAt`). Expired bounties are excluded from distribution. Set `expiresAt` to `0` for bounties that never expire.
+
+## Current limitations
+
+Bounty distribution is tracked on-chain but **claim/withdrawal functions are not yet implemented**. Balances accumulate in the contract but cannot be withdrawn by supporters in the current version. Refund logic for expired bounties is also pending.
+
+See the [Initiative Interactions Reference](/reference/initiative-interactions#adding-bounties) for function signatures and parameters.

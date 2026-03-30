@@ -1,143 +1,55 @@
 ---
-title: "Actioning and Expiring Initiatives"
+title: "Accepting and Expiring Initiatives"
 weight: 4
 ---
 
-# Actioning and Expiring Initiatives
+# Accepting and Expiring Initiatives
 
-Board owners have two key functions to manage initiative lifecycle: **accepting** successful proposals and **expiring** inactive ones. Both actions are permanent and trigger different outcomes for supporters.
-
-## Initiative States
-
-```solidity
-enum InitiativeState {
-    Proposed,    // Initial state when created
-    Accepted,    // Approved via acceptInitiative
-    Cancelled,   // Reserved for future use
-    Expired      // Owner expired due to inactivity
-}
-```
-
-## State Transitions
-
-### Valid Transitions
+An initiative in the **Proposed** state can transition to **Accepted** (threshold met) or **Expired** (inactive too long). Both transitions are permanent and one-way.
 
 ```
 Proposed → Accepted  (via acceptInitiative)
 Proposed → Expired   (via expireInitiative)
 ```
 
-### Invalid Transitions
-
-- Cannot expire an Accepted initiative
-- Cannot accept an Expired initiative
-- Cannot transition to Cancelled state (reserved for future use)
-- Cannot reverse Accepted or Expired back to Proposed
-
-**All state transitions are ONE-WAY and PERMANENT.**
-
----
-
-# Actioning an Initiative
-
-Actioning an initiative means officially approving it, transitioning it from Proposed to Accepted state. This records the acceptance timestamp and makes locked tokens redeemable after any release timelock.
-
-## Access Control
-
-Access control is determined by the board's `AcceptanceCriteria`:
+## `acceptInitiative()`
 
 ```solidity
-struct AcceptanceCriteria {
-    AcceptancePermissions permissions;    // Permissionless or OnlyOwner
-    ThresholdOverride thresholdOverride;  // None or OnlyOwner
-    uint256 thresholdPercentTotalSupplyWAD;
-    uint256 minThreshold;
-}
+function acceptInitiative(uint256 initiativeId) external
 ```
 
-### Permission Settings
+Accepts an initiative that has reached the board's acceptance threshold. Records `acceptanceTimestamp`, which starts the `releaseLockDuration` countdown for token redemption. If an incentives pool is configured, supporters earn rewards on redemption.
 
-| permissions | thresholdOverride | Who Can Accept | Threshold Check |
-|-------------|-------------------|----------------|-----------------|
-| `OnlyOwner` | `None` | Owner only | Required |
-| `OnlyOwner` | `OnlyOwner` | Owner only | Owner bypasses |
-| `Permissionless` | `None` | Anyone | Required for all |
-| `Permissionless` | `OnlyOwner` | Anyone | Owner bypasses, others required |
+### Access control
 
-## Pre-conditions
+Who can call `acceptInitiative()` depends on the board's `AcceptanceCriteria`:
 
-1. **Initiative must exist** - `initiativeId <= initiativeCount`
-2. **Initiative must be in Proposed state** - Cannot accept already Accepted or Expired initiatives
-3. **Caller must have permission** - Based on `permissions` setting
-4. **Threshold must be met** - Unless caller is owner with `ThresholdOverride.OnlyOwner`
+| `permissions` | `thresholdOverride` | Who can accept | Threshold required |
+|---------------|---------------------|----------------|--------------------|
+| `OnlyOwner` | `None` | Owner only | Yes |
+| `OnlyOwner` | `OnlyOwner` | Owner only | No (owner bypasses) |
+| `Permissionless` | `None` | Anyone | Yes |
+| `Permissionless` | `OnlyOwner` | Anyone | Yes (owner bypasses) |
 
-### Threshold Calculation
-
-The acceptance threshold is dynamically calculated:
+The threshold is calculated as:
 
 ```solidity
-threshold = max(
-    totalSupply * thresholdPercentTotalSupplyWAD / 1e18,
-    minThreshold
-)
+threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
 ```
 
-At least one of these values must be non-zero.
+Query the current value with `getAcceptanceThreshold()` and compare against `getWeight(initiativeId)`.
 
-## What Happens When Accepting
+## `expireInitiative()`
 
-When an initiative is accepted:
+```solidity
+function expireInitiative(uint256 initiativeId) external onlyOwner
+```
 
-1. **State changes** to `Accepted` (irreversible)
-2. **Acceptance timestamp** is recorded (`acceptanceTimestamp = block.timestamp`)
-3. **Supporters can redeem** their locked tokens (after release timelock)
+Expires an initiative that has been inactive for longer than the board's `inactivityTimeout`. Owner-only. The initiative must still be in the **Proposed** state.
 
-### Automatic Integrations
+**Inactivity** is tracked by `lastActivity`, which updates when the initiative is created and each time a supporter locks tokens. If `block.timestamp > lastActivity + inactivityTimeout`, the initiative can be expired.
 
-#### Incentives
-
-If an incentives pool is configured, rewards are calculated and paid when supporters redeem their locks after acceptance.
-
-## Impact on Token Locks When Accepted
-
-### Redemption Timeline
-
-Locked tokens become redeemable based on `releaseLockDuration`:
-
-**Immediate Release (`releaseLockDuration = 0`):** Supporters can redeem immediately.
-
-**Timelocked Release:** Supporters must wait for `acceptanceTimestamp + releaseLockDuration` before redeeming.
-
-**Board Cancellation:** If the board is cancelled via `cancelBoard()`, the release timelock is bypassed and all locks become immediately redeemable.
-
----
-
-# Expiring an Initiative
-
-Expiring an initiative terminates an inactive proposal that has failed to gain sufficient support. No additional support can be added, and the initiative is removed from active consideration. Tokens locked in support of an expired initiative can be redeemed immediately.
-
-## Access Control
-
-**Owner-only** - Uses `onlyOwner` modifier. Only the board owner can expire initiatives.
-
-## Pre-conditions
-
-1. **Initiative must exist**
-2. **Initiative must be in Proposed state** - Cannot expire Accepted initiatives
-3. **Initiative must be inactive** for > `inactivityTimeout` (default 60 days)
-
-**Activity tracking:**
-- `lastActivity` updates when:
-  - Initiative is created
-  - Any supporter locks tokens
-- Default timeout: 60 days (configurable via board config)
-
-## What Happens When Expiring
-
-1. **State changes** to `Expired`
-2. **Emits** `InitiativeExpired` event
-3. **Supporters can redeem** their locked tokens immediately (no waiting period)
-4. **No incentive rewards** are distributed for expired initiatives
+Tokens locked against an expired initiative are redeemable immediately with no waiting period. No incentive rewards are distributed.
 
 ## Events
 
@@ -145,3 +57,5 @@ Expiring an initiative terminates an inactive proposal that has failed to gain s
 event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
 event InitiativeExpired(uint256 indexed initiativeId, address indexed actor)
 ```
+
+See [Redeeming Tokens](/initiatives/reclaim-tokens) for how supporters reclaim tokens after acceptance or expiry.

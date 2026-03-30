@@ -1,0 +1,192 @@
+---
+title: "Parameters"
+weight: 1
+---
+
+# BoardConfig
+
+```solidity
+struct BoardConfig {
+    string version;
+    address owner;
+    address underlyingToken;
+    uint256 opensAt;
+    uint256 closesAt;
+    Metadata boardMetadata;
+    AcceptanceCriteria acceptanceCriteria;
+    IAuthorizer.ParticipantRequirements proposerRequirements;
+    IAuthorizer.ParticipantRequirements supporterRequirements;
+    LockingConfig lockingConfig;
+    DecayConfig decayConfig;
+}
+```
+
+---
+
+## `version`
+
+Off-chain compatibility marker. Current version: `"0.3.2"`.
+
+## `owner`
+
+Board controller. Can accept initiatives, close/cancel the board, and adjust timing parameters. Use a multisig or DAO governor contract for decentralized operation.
+
+## `underlyingToken`
+
+ERC20 token used for locking and weight calculation. Cannot be `address(0)`. This is the token supporters lock when backing initiatives.
+
+## `opensAt`
+
+Timestamp when the board starts accepting proposals and support. Set to `block.timestamp` to open immediately, or a future timestamp to schedule.
+
+## `closesAt`
+
+Timestamp when the board stops accepting new activity. Must be ≥ `opensAt`. Set to `0` for a board that never closes.
+
+## `boardMetadata`
+
+```solidity
+struct Metadata {
+    string title;
+    string body;
+    Attachment[] attachments;
+}
+
+struct Attachment {
+    string uri;
+    string mimeType;
+    string description;
+}
+```
+
+Title, body (markdown), and up to 5 attachments. Emitted in the `BoardCreated` event, not stored on-chain. `uri` must be non-empty (`https://`, `ipfs://`, or on-chain pointer). `mimeType` and `description` are optional hints for clients.
+
+## `acceptanceCriteria`
+
+```solidity
+struct AcceptanceCriteria {
+    AcceptancePermissions permissions;
+    ThresholdOverride thresholdOverride;
+    uint256 thresholdPercentTotalSupplyWAD;
+    uint256 minThreshold;
+}
+```
+
+**`permissions`** — `Permissionless` (anyone can accept if threshold met) or `OnlyOwner`.
+
+**`thresholdOverride`** — `None` (everyone must meet threshold) or `OnlyOwner` (owner can bypass).
+
+**`thresholdPercentTotalSupplyWAD`** — Percentage of total token supply in WAD. `0.05e18` = 5%. Must be {'<'} `1e18`.
+
+**`minThreshold`** — Fixed minimum weight required. At least one of `thresholdPercentTotalSupplyWAD` or `minThreshold` must be non-zero.
+
+Effective threshold:
+
+```solidity
+threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
+```
+
+## `proposerRequirements`
+
+```solidity
+struct ParticipantRequirements {
+    address token;
+    uint256 minBalance;
+    uint256 minHoldingDuration;
+    uint256 minLockAmount;
+}
+```
+
+Controls who can call `proposeInitiative()` and `proposeInitiativeWithLock()`. Immutable after deployment.
+
+**`token`** — ERC20 checked for eligibility. Can differ from `underlyingToken`. Cannot be `address(0)`.
+
+**`minBalance`** — Minimum current balance required. Set to `0` for open access. When non-zero, checks `IERC20(token).balanceOf(caller) >= minBalance`.
+
+**`minHoldingDuration`** — Minimum blocks the caller must have held `minBalance`. Set to `0` to skip. When non-zero, calls `IVotes(token).getPastVotes(caller, block.number - minHoldingDuration)`. Requires `minBalance > 0` and an **ERC20Votes** token.
+
+> Users must **delegate their tokens** (even to themselves) to activate checkpoints, otherwise `getPastVotes` returns zero.
+
+**`minLockAmount`** — Minimum tokens to lock when proposing with lock. `proposeInitiative()` (without lock) reverts if `minLockAmount > 0`. Must be ≤ `minBalance`.
+
+**Block time reference for `minHoldingDuration`:**
+
+| Chain | Block time | ~7 days | ~30 days |
+|-------|-----------|---------|----------|
+| Ethereum | 12s | 50,400 | 216,000 |
+| Base | 2s | 302,400 | 1,296,000 |
+| Arbitrum | ~0.25s | 2,419,200 | 10,368,000 |
+
+## `supporterRequirements`
+
+Same `ParticipantRequirements` struct as `proposerRequirements`. Controls who can call `supportInitiative()`. Immutable after deployment.
+
+Configured independently. A board can have strict proposer requirements (high balance, holding duration) with open supporter requirements (anyone can lock tokens).
+
+## `lockingConfig`
+
+```solidity
+struct LockingConfig {
+    uint256 lockInterval;
+    uint256 maxLockIntervals;
+    uint256 releaseLockDuration;
+    uint256 inactivityTimeout;
+}
+```
+
+**`lockInterval`** — Base time unit in seconds. All lock durations and decay calculations use multiples of this. Must be > 0.
+
+**`maxLockIntervals`** — Maximum number of intervals a lock can span. Must be > 0. Max lock time = `lockInterval * maxLockIntervals`.
+
+**`releaseLockDuration`** — Additional delay in seconds after acceptance before tokens can be redeemed. `0` = immediate release on acceptance.
+
+**`inactivityTimeout`** — Seconds since last activity before the owner can expire an initiative. Activity updates on creation and each new lock.
+
+## `decayConfig`
+
+```solidity
+struct DecayConfig {
+    DecayCurveType curveType;
+    uint256[] params;
+}
+```
+
+**`curveType`** — `0` = Linear, `1` = Exponential.
+
+**`params`** — Curve-specific parameters:
+
+- **Linear** (`0`): `params = [decayRate]`. Rate of `1e18` = 1:1 decay per interval.
+- **Exponential** (`1`): `params = [decayMultiplier]`. Multiplier of `0.9e18` = 10% reduction per interval.
+
+---
+
+## Validation errors
+
+| Error | Condition |
+|-------|-----------|
+| `SignalsFactory_ZeroAddressOwner` | `owner` is `address(0)` |
+| `Signals_InvalidArguments` | `underlyingToken` or participant `token` is `address(0)` |
+| `Signals_InvalidArguments` | Both thresholds are 0 |
+| `Signals_InvalidArguments` | `thresholdPercentTotalSupplyWAD` ≥ `1e18` |
+| `Signals_InvalidArguments` | `maxLockIntervals` or `lockInterval` is 0 |
+| `Signals_InvalidArguments` | Invalid decay curve type |
+| `Signals_InvalidArguments` | `closesAt` {'<'} `opensAt` |
+| `Signals_InvalidArguments` | `minHoldingDuration > 0` with `minBalance == 0` |
+| `Signals_InvalidArguments` | `minLockAmount > minBalance` |
+| `Signals_InsufficientTokens` | Current balance {'<'} `minBalance` |
+| `Signals_InsufficientTokenDuration` | Historical balance {'<'} `minBalance` |
+| `Signals_TokenHasNoCheckpointSupport` | Token doesn't implement `IVotes` |
+| `Signals_InsufficientLockAmount` | Lock amount {'<'} `minLockAmount` |
+
+## Querying on-chain
+
+```solidity
+ParticipantRequirements memory reqs = signals.getProposerRequirements();
+ParticipantRequirements memory reqs = signals.getParticipantRequirements();
+
+bool canPropose = signals.accountCanPropose(account, lockAmount);
+bool canSupport = signals.accountCanSupport(account, lockAmount);
+
+uint256 threshold = signals.getAcceptanceThreshold();
+AcceptanceCriteria memory criteria = signals.getAcceptanceCriteria();
+```
