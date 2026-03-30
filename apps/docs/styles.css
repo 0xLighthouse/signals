@@ -104,6 +104,12 @@
   }
 }
 
+/* Constrain logo size in nav */
+img[alt="Logo"] {
+  max-height: 22px !important;
+  width: auto !important;
+}
+
 /* Make sidebar collapse arrows clickable */
 .vocs_Sidebar_Item[data-collapsible] button[data-toggle] {
   pointer-events: auto !important;

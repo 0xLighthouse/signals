@@ -10,7 +10,7 @@ export default defineConfig({
   aiCta: false,
   title: 'Signals Docs',
   description: 'Signals - Community-driven initiative governance with token-weighted voting',
-  logoUrl: '/logo.png',
+  logoUrl: '/logo-docs.png',
   iconUrl: '/favicon.ico',
   rootDir: '.',
   markdown: {
@@ -24,7 +24,14 @@ export default defineConfig({
     },
     {
       text: 'Use Cases',
-      link: '/use-cases',
+      collapsed: false,
+      items: [
+        {
+          text: 'Overview',
+          link: '/use-cases',
+        },
+        ...nav.navItems('/use-cases'),
+      ],
     },
     {
       text: 'Signals Boards',

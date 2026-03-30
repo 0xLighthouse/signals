@@ -25,7 +25,7 @@
     "front-matter": "^4.0.2",
     "lucide-react": "^0.263.1",
     "react": "^19.2.0",
-    "vocs": "^1.0.13"
+    "vocs": "^1.4.1"
   },
   "dependencies": {
     "@web3icons/react": "^4.0.19",
