@@ -1,0 +1,42 @@
+---
+title: 'Accepting Initiatives'
+weight: 4
+---
+
+# Accepting Initiatives
+
+## `acceptInitiative()`
+
+```solidity
+function acceptInitiative(uint256 initiativeId) external
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `initiativeId` | `uint256` | Initiative to accept. Must be in `Proposed` state. |
+
+Sets state to `Accepted`, records `acceptanceTimestamp`. Supporters can redeem after `releaseLockDuration` passes.
+
+## Access control
+
+| `permissions` | `thresholdOverride` | Who can call | Threshold required |
+|---------------|---------------------|--------------|-------------------|
+| `Permissionless` | `None` | Anyone | Yes |
+| `Permissionless` | `OnlyOwner` | Anyone | Yes, but owner bypasses |
+| `OnlyOwner` | `None` | Owner only | Yes |
+| `OnlyOwner` | `OnlyOwner` | Owner only | No |
+
+## Events
+
+```solidity
+event InitiativeAccepted(uint256 indexed initiativeId, address indexed actor)
+```
+
+## Errors
+
+| Error | Condition |
+|-------|-----------|
+| `Signals_InvalidID` | Initiative doesn't exist |
+| `Signals_IncorrectInitiativeState` | Initiative not in `Proposed` state |
+| `OwnableUnauthorizedAccount` | Caller not owner (when `OnlyOwner`) |
+| `Signals_InsufficientSupport` | Weight below threshold |

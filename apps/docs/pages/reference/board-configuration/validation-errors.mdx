@@ -1,0 +1,35 @@
+---
+title: "Validation Errors"
+weight: 2
+---
+
+# Validation Errors
+
+Errors thrown during board initialization via `SignalsFactory.create()` and during participant eligibility checks at runtime.
+
+## Initialization errors
+
+These revert during `create()` if the `BoardConfig` is invalid.
+
+| Error | Condition |
+|-------|-----------|
+| `SignalsFactory_ZeroAddressOwner` | `owner` is `address(0)` |
+| `Signals_InvalidArguments` | `underlyingToken` or participant `token` is `address(0)` |
+| `Signals_InvalidArguments` | Both `thresholdPercentTotalSupplyWAD` and `minThreshold` are 0 |
+| `Signals_InvalidArguments` | `thresholdPercentTotalSupplyWAD` ≥ `1e18` |
+| `Signals_InvalidArguments` | `maxLockIntervals` or `lockInterval` is 0 |
+| `Signals_InvalidArguments` | Invalid `DecayCurveType` |
+| `Signals_InvalidArguments` | `closesAt` {'<'} `opensAt` |
+| `Signals_InvalidArguments` | `minHoldingDuration > 0` with `minBalance == 0` |
+| `Signals_InvalidArguments` | `minLockAmount > minBalance` |
+
+## Runtime errors
+
+These revert when a participant tries to propose or support an initiative.
+
+| Error | Condition |
+|-------|-----------|
+| `Signals_InsufficientTokens` | Current balance {'<'} `minBalance` |
+| `Signals_InsufficientTokenDuration` | Historical balance {'<'} `minBalance` at `block.number - minHoldingDuration` |
+| `Signals_TokenHasNoCheckpointSupport` | `minHoldingDuration > 0` but token doesn't implement `IVotes` |
+| `Signals_InsufficientLockAmount` | Lock amount {'<'} `minLockAmount` |

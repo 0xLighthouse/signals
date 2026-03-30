@@ -49,26 +49,18 @@ export default defineConfig({
       items: nav.navItems('/rewards-and-incentives'),
     },
     {
-      text: 'Developer Reference',
+      text: 'Function Reference',
       collapsed: false,
       items: [
         {
           text: 'Board Configuration',
           collapsed: true,
-          items: [
-            ...nav.navItems('/reference/board-configuration'),
-            {
-              text: 'Post Deployment Configuration',
-              collapsed: true,
-              items: nav.navItems('/reference/board-configuration/post-deployment-configuration'),
-            },
-          ],
+          items: nav.navItems('/reference/board-configuration'),
         },
         {
-          text: 'Initiative Interactions',
-          link: '/reference/initiative-interactions',
+          text: 'Initiative Actions',
           collapsed: true,
-          items: nav.navItems('/reference/initiative-functions'),
+          items: nav.navItems('/reference/initiative-actions'),
         },
       ],
     }
