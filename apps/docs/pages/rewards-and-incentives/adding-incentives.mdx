@@ -1,151 +1,80 @@
 ---
-title: "Adding Incentives to a Board"
-weight: 2
+title: "Incentive Pools"
+weight: 1
 ---
 
-# Adding Incentives to a Board
+# Incentive Pools
 
-Incentives are board-wide reward pools that incentivize early support across all initiatives. They use time-weighted distribution to reward supporters who identify and back promising proposals early.
+import { Steps, Step } from 'vocs/components'
 
-## Overview
+Incentives are board-wide reward pools that distribute tokens to supporters of accepted initiatives. The distribution is **time-weighted**: earlier supporters earn a larger share than those who lock later. Rewards are auto-claimed when supporters redeem their lock positions.
 
-The incentives system:
-- Rewards early supporters with more tokens
-- Funded by DAO/board owner upfront
-- Distributed across all accepted initiatives
-- Auto-claimed when supporters redeem locks
-- Non-blocking (doesn't prevent acceptance if depleted)
+| | Incentive Pools | Bounties (RFC) |
+|---|---|---|
+| **Scope** | Board-wide | Per-initiative |
+| **Funded by** | DAO / board owner | Anyone |
+| **Token** | Single ERC20 | Multiple whitelisted ERC20s |
+| **Reward basis** | Time-weighted (early supporters favored) | Proportional to lock amount |
+| **Claiming** | Auto-claimed on redemption | Not yet implemented |
+| **Contract** | `IncentivesPool.sol` | `Bounties.sol` |
 
-## Prerequisites
+See [Bounties](/rewards-and-incentives/bounties) for details on initiative-specific rewards.
 
-Before adding incentives:
+## Distribution
 
-1. **Deploy your Signals board** via SignalsFactory
-2. **Have reward tokens** ready (typically DAO governance token)
-3. **Plan to link incentives before the board opens** - you cannot set the pool after `opensAt`
+When a supporter locks tokens, the pool records an **incentive credit** with the lock amount and timestamp. The timestamp determines which **time bucket** the credit falls into. Each initiative tracks 24 time buckets that expand as needed (starting at 1-hour intervals, compressing when full).
 
-## Setup Workflow
+Each bucket has a **multiplier** derived from the incentive curve. Earlier buckets get higher multipliers, later buckets get lower ones. A supporter who locks on day 1 has their credit weighted more heavily than one who locks on day 10.
 
-### Step 1: Deploy IncentivesPool Contract
+On redemption, the reward formula is:
 
-Deploy a new IncentivesPool contract. This contract manages:
-- Reward token storage
-- Distribution calculations
-- Board approvals
-- Reward claiming
-
-### Step 2: Fund the Pool
-
-Fund the pool with your reward token using `addFundsToPool`:
-- **Reward Token:** Typically your DAO's governance token
-- **Total Pool Amount:** Total tokens available for rewards (e.g., 1M tokens)
-- **Max Per Initiative:** Set later when approving boards
-
-The total pool amount is transferred immediately to the pool and shared across all accepted initiatives on the board.
-
-### Step 3: Approve the Board
-
-The pool must explicitly approve which boards can use it. This is a security feature that prevents unauthorized boards from accessing the pool.
-
-### Step 4: Link Pool to Board
-
-Finally, connect the pool to your board using `setIncentivesPool()`.
-
-**Critical timing:** This must be called before the `opensAt` timestamp. Once the board opens, you cannot change the incentives pool.
-
-For detailed code examples and function signatures, see the [Incentives Configuration Reference](/reference/incentives-configuration).
-
-## Incentive Configuration
-
-### Decay Curve: How Early Support is Rewarded
-
-The incentive curve determines how early supporter bonuses are calculated. Parameters are interpolated across time buckets from `opensAt` to acceptance.
-
-#### Linear Decay (Type 0)
-
-Only linear curves are supported. With a linear curve:
-- Early supporters (near board open) receive higher multipliers
-- Multipliers decrease over time until acceptance
-
-#### Choosing Decay Rate
-
-Provide at least two values in `incentiveParametersWAD` (start and end). More values allow shaping the curve with intermediate points.
-
-### Pool Sizing Guidelines
-
-**Total Pool Amount:**
 ```
-Conservative: 1-2% of circulating supply
-Moderate: 2-5% of circulating supply
-Aggressive: 5-10% of circulating supply
+supporterReward = totalRewardPerInitiative × (supporterWeightedCredits / totalWeightedCredits)
 ```
 
-**Max Per Initiative:**
-```
-Typical formula: totalPool / (expected initiatives * 2)
-```
+Where `weightedCredits = lockAmount × bucketMultiplier` for each lock. The pool sums weighted credits across all supporters to determine each individual's share.
 
-This allows approximately 50 initiatives with buffer for multiple acceptances.
+Rewards are auto-claimed during `redeemLock()`. No separate transaction needed. Redeeming before acceptance forfeits incentive rewards. Acceptance itself does not call the pool, and is **non-blocking** even if the pool is depleted.
 
-## How Incentives Are Distributed
+## Incentive curve
 
-### Reward Calculation and Claiming
+The curve determines how early-supporter bonuses are calculated. Only **linear curves** are currently supported. Parameters are provided as `incentiveParametersWAD` (at least 2 values, up to 24) and interpolated across time buckets from `opensAt` to acceptance.
 
-Signals records incentive credits when locks are created. Rewards are calculated and paid when supporters redeem after acceptance (and any release timelock) via the IncentivesPool. Acceptance itself does not call the pool, and acceptance remains non-blocking even if the pool is depleted.
+Earlier buckets receive higher multipliers. A supporter who locks on day 1 earns more per token than one who locks on day 10, even if both lock the same amount for the same duration.
 
-### Time-Weighted Calculation
+## Setup
 
-Each supporter's reward is based on:
-- **Lock amount:** How many tokens they locked
-- **Lock timing:** When they locked relative to board opening and acceptance
-- **Decay curve:** The configured decay rate
+The incentives pool must be linked to the board **before it opens**. Once `opensAt` passes, you cannot attach or change the pool.
 
-Early supporters get higher weight for the same lock amount, resulting in more rewards.
+<Steps>
+  <Step title="Deploy an IncentivesPool contract">
+    The pool manages reward token storage, distribution calculations, and board approvals.
+  </Step>
+  <Step title="Fund the pool">
+    Transfer reward tokens to the pool using `addFundsToPool()`. The total amount is shared across all accepted initiatives on the board.
+  </Step>
+  <Step title="Approve the board">
+    The pool must explicitly approve which boards can draw from it. Call `approveBoard()` on the pool contract with the board address.
+  </Step>
+  <Step title="Link pool to board">
+    Call `setIncentivesPool(poolAddress, config)` on the board. This can only be called once and only before `opensAt`.
+  </Step>
+</Steps>
 
-See the [Incentives Configuration Reference](/reference/incentives-configuration#time-weighted-calculation) for detailed formulas and examples.
+See the [Incentives Configuration Reference](/reference/incentives-configuration) for function signatures and parameters.
 
-### Automatic Claiming
+## Multiple boards, one pool
 
-Rewards are automatically claimed when supporters redeem their lock positions. Benefits:
-- No separate claim transaction needed
-- Gas efficient
-- Automatic for all supporters
-- Idempotent (safe to call multiple times)
+A single IncentivesPool can serve multiple boards. Each board is approved independently with its own `totalRewardPerInitiative` and `boardRemainingBudget`. The pool's total funds are shared across all boards, with each board drawing from the pool as its initiatives are accepted.
 
-## Operational Notes
+![One incentive pool serving multiple boards](/incentive-pool-chart.svg)
 
-- Acceptance is non-blocking even if the pool is depleted; later initiatives may receive reduced rewards.
-- Pool balances should be monitored to plan for new seasons.
-- Pools cannot be refilled mid-season; deploy a new board for a fresh budget.
+Each board has a fixed reward amount per accepted initiative. As initiatives are accepted and supporters redeem, rewards draw down from the board's remaining budget. When a board's budget is exhausted, later acceptances on that board receive reduced or zero rewards, but other boards are unaffected.
 
-## Combining with Bounties
-
-Incentives and bounties work together! Your board can have:
-- **Incentives:** Board-wide, time-weighted DAO token rewards
-- **Bounties:** Initiative-specific, externally funded multi-token rewards
-
-When an initiative with both is accepted, supporters receive:
-1. Their locked tokens back
-2. Time-weighted incentive rewards (auto-claimed)
-3. Proportional bounty rewards (claimed separately)
-
-See [Bounties vs. Incentives](/rewards-and-incentives/bounties-vs-incentives) for a detailed comparison.
-
-## Validation & Common Issues
+## Common issues
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Cannot set pool | Board already opened | Must set before `opensAt` |
-| Cannot enable incentives | Board created with `enabled: false` | Cannot add to existing board |
-| Pool not approved | Forgot to call `approveBoard()` | Approve the board in the pool |
-| Insufficient balance | Not enough tokens | Approve more tokens before initialization |
-
-## Advanced: Multiple Boards, One Pool
-
-A single IncentivesPool can serve multiple boards, allowing you to share a budget across multiple governance rounds or seasons. Each board must be individually approved by the pool.
-
-**Use case:** Multi-season governance with shared budget.
-
----
-
-For complete technical implementation details including function signatures, data structures, formulas, query functions, events, errors, and code examples, see the [Incentives Configuration Reference](/reference/incentives-configuration).
+| Pool not approved | Forgot `approveBoard()` | Approve the board in the pool first |
+| Reduced rewards on later initiatives | Pool partially depleted | Monitor pool balance; deploy a new board for a fresh budget |

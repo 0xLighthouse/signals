@@ -44,7 +44,7 @@ export default defineConfig({
       items: nav.navItems('/initiatives'),
     },
     {
-      text: 'Rewards and Incentives',
+      text: 'Reward Mechanisms',
       collapsed: false,
       items: nav.navItems('/rewards-and-incentives'),
     },
