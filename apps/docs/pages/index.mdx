@@ -1,39 +1,58 @@
 # Signals Protocol
 
-### Token holders reveal collective priorities by locking governance tokens behind the initiatives they support
+Signals is a conviction-weighted governance primitive. Community members propose initiatives and lock governance tokens behind the ones they want prioritised. Locking tokens for longer generates more support weight, at the cost of having those tokens unavailable for the duration. When token supply is finite and lock durations are real, participants are forced to choose between competing initiatives. That constraint is the mechanism's core property.
 
-Signals is a conviction-weighted governance primitive. Community members propose **initiatives**, and other participants lock their existing governance tokens to back the ones they believe matter. Locking tokens for longer generates more **support weight**, at the cost of having those tokens unavailable for the duration. When token supply is finite and lock durations are real, participants are forced to choose between competing initiatives. That constraint is the mechanism's core property: support that costs nothing reveals nothing.
+## Lock mechanics
 
-### Support weight decays, which keeps priorities current
+Each lock's support weight starts at `amount × duration` and decreases over time according to a configured decay curve (linear or exponential). Stale support loses influence automatically — an initiative that was popular three months ago but has attracted no new backing will fall below threshold without any intervention. Sustained conviction requires sustained participation.
 
-Each lock's weight starts at amount multiplied by duration, then decreases over time according to a configured **decay curve** (linear or exponential). This means stale support loses influence. An initiative that was popular three months ago but has attracted no new backing will naturally fall below threshold. Sustained conviction requires sustained participation.
+## Thresholds and acceptance
 
-### Acceptance is threshold-based, not vote-based
+An initiative is eligible for acceptance when its aggregate support weight crosses a configured threshold. The threshold is the greater of:
 
-When an initiative's aggregate support weight crosses a configured threshold, it can be **accepted**. The threshold is the greater of a percentage of total token supply or a fixed minimum, preventing both whale capture and dust attacks. Acceptance permissions are configurable: owner-only, permissionless, or owner with threshold bypass.
+- A percentage of total token supply, which prevents a single large holder from pushing an initiative through alone (whale capture).
+- A fixed minimum, which prevents spam initiatives from reaching acceptance with trivial token amounts (dust attacks).
 
-On acceptance, locked tokens enter a **release timelock** (configurable, can be zero), after which supporters reclaim their tokens. Initiatives that never reach threshold can be **expired** by the board owner after an inactivity timeout, which returns tokens immediately.
+Acceptance permissions are configurable: owner-only, permissionless, or owner with threshold bypass.
 
-### The incentive structure penalizes indiscriminate support
+On acceptance, locked tokens enter a release timelock (configurable, can be zero), after which supporters reclaim their tokens. Initiatives that never reach threshold can be expired by the board owner after an inactivity timeout — a configurable period with no new locks — which returns tokens immediately.
 
-The game theory rests on three expected behaviors:
+## Transferable lock positions
+
+Each lock mints an ERC-721 token representing the position. Lock NFTs are fully transferable, which means support positions can be traded on secondary markets.
+
+If a lock position on a popular initiative trades above the value of the underlying tokens, the premium reflects the market's estimate of that initiative's likelihood of acceptance and the value of associated rewards. The spread between lock price and underlying token value is a price signal for conviction.
+
+## Incentives
+
+An optional incentives pool distributes participation rewards weighted by lock timing. The reward pool divides the initiative's lifetime into 24 equal time buckets, and locks placed in earlier buckets receive proportionally higher shares. Earlier supporters earn more, which rewards conviction over bandwagoning.
+
+Separate bounties can also be attached to individual initiatives. On acceptance, bounty payouts split between supporters, the protocol, and a treasury at configured ratios.
+
+## Game theory
+
+The mechanism's expected behaviours follow from opportunity cost, not explicit rules:
 
 - Participants support initiatives they genuinely believe in, because locking tokens has real opportunity cost.
-- Participants avoid supporting initiatives they're indifferent to, because those tokens could be backing something with a better chance of acceptance.
-- Participants may support initiatives they're personally indifferent to but believe the broader community will prioritize, because accepted initiatives return tokens (and optionally distribute rewards).
+- Participants avoid supporting initiatives they are indifferent to, because those tokens could back something with a better chance of acceptance.
+- Participants may support initiatives they are personally indifferent to but believe the broader community will prioritise, because accepted initiatives return tokens and optionally distribute rewards.
 
-### Lock positions are transferable NFTs
+## Initiative lifecycle
 
-Each lock mints an **ERC721 token** representing the position. Lock NFTs are fully transferable, which means support positions can be traded on secondary markets. This is a deliberate design choice: it creates a price signal for conviction.
+An initiative moves through four states:
 
-### Rewards attach to successful initiatives
+- **Proposed** — accepting locks.
+- **Accepted** — threshold met, tokens timelocked for release.
+- **Expired** — inactive beyond the configured timeout, tokens returned.
+- **Cancelled** — board-level emergency, tokens returned immediately.
 
-An optional **incentives pool** distributes participation rewards weighted by lock timing. Earlier supporters receive higher multipliers through a 24-bucket time-weighted system. Separate **bounties** can be attached to specific initiatives, splitting payouts between supporters, the protocol, and a treasury on acceptance.
+Every terminal state returns tokens to holders. Participants never lose principal through the mechanism itself.
 
-### Board closure is an emergency release valve
+## Board administration
 
-The board owner can **close** a board (stops new activity, existing locks follow normal redemption rules) or **cancel** it (immediately releases all locked tokens regardless of state). Cancellation exists because governance systems need a way to unwind cleanly when assumptions break.
+The board owner can:
 
-### Initiative lifecycle
+- **Shut down** a board — stops new activity; existing locks follow normal redemption rules.
+- **Cancel** a board — releases all locked tokens at once, regardless of state.
 
-An initiative moves through four possible states: **Proposed** (accepting locks), **Accepted** (threshold met, tokens timelocked for release), **Expired** (inactive too long, tokens returned), or **Cancelled** (board-level emergency, tokens returned immediately).
+Cancellation exists because governance systems need a clean unwind path when assumptions break.
