@@ -1,39 +1,39 @@
 # Signals Protocol
 
-### Finding community alignment
+### Token holders reveal collective priorities by locking governance tokens behind the initiatives they support
 
-With Signals, community members post initiatives that they think are important, and other participants can lock up their existing governance tokens in support of the initiatives they agree with. Locking up tokens for a longer period of time gives greater support, at the cost of having those tokens unavailable for longer. In many situations, users may be forced to make a choice between which initiatives to support, which further increases the value of the signal as it is no longer feasible to support everything.
+Signals is a conviction-weighted governance primitive. Community members propose **initiatives**, and other participants lock their existing governance tokens to back the ones they believe matter. Locking tokens for longer generates more **support weight**, at the cost of having those tokens unavailable for the duration. When token supply is finite and lock durations are real, participants are forced to choose between competing initiatives. That constraint is the mechanism's core property: support that costs nothing reveals nothing.
 
-Support for initiatives algorithmically decays over time, which keeps the indicators timely.
+### Support weight decays, which keeps priorities current
 
-Once an initiative reaches a preconfigured threshold of support, it can be “actioned” by the DAO, in which all the locked tokens are immediately returned to their owners and the initiative can be considered an official priority. Unpopular initiatives will also have their tokens unlocked, eventually, but the length of lockups means participants are further encouraged to only support initiatives they truly believe in.
+Each lock's weight starts at amount multiplied by duration, then decreases over time according to a configured **decay curve** (linear or exponential). This means stale support loses influence. An initiative that was popular three months ago but has attracted no new backing will naturally fall below threshold. Sustained conviction requires sustained participation.
 
-As an additional incentive, rewards can be attached to successful initiatives to be shared with supporters.
+### Acceptance is threshold-based, not vote-based
 
-The game theoretical design of this system attempts to ensure that:
+When an initiative's aggregate support weight crosses a configured threshold, it can be **accepted**. The threshold is the greater of a percentage of total token supply or a fixed minimum, preventing both whale capture and dust attacks. Acceptance permissions are configurable: owner-only, permissionless, or owner with threshold bypass.
 
-- Participants DO support initiatives they truly believe in.
-- Participands DO NOT support initiatives they don't have any interest in or feel connected to.
-- Participants MIGHT support initiatives they don't have any interest in, but which they will believe are representative of the community's priorities.
+On acceptance, locked tokens enter a **release timelock** (configurable, can be zero), after which supporters reclaim their tokens. Initiatives that never reach threshold can be **expired** by the board owner after an inactivity timeout, which returns tokens immediately.
 
-### Initiative Proposers
+### The incentive structure penalizes indiscriminate support
 
-Create and propose initiatives to your community. Lock your own tokens to demonstrate commitment and gather support from other token holders.
+The game theory rests on three expected behaviors:
 
-### Token Holders
+- Participants support initiatives they genuinely believe in, because locking tokens has real opportunity cost.
+- Participants avoid supporting initiatives they're indifferent to, because those tokens could be backing something with a better chance of acceptance.
+- Participants may support initiatives they're personally indifferent to but believe the broader community will prioritize, because accepted initiatives return tokens (and optionally distribute rewards).
 
-Support initiatives by locking your tokens for a specified duration. Your locked tokens generate voting weight that decays over time, creating dynamic, time-weighted governance.
+### Lock positions are transferable NFTs
 
-### Board Administrators
+Each lock mints an **ERC721 token** representing the position. Lock NFTs are fully transferable, which means support positions can be traded on secondary markets. This is a deliberate design choice: it creates a price signal for conviction.
 
-Configure proposal requirements, acceptance thresholds, and decay curves to match your community's governance needs. Set parameters at initialization for immutable, transparent rules.
+### Rewards attach to successful initiatives
 
-## Core Features
+An optional **incentives pool** distributes participation rewards weighted by lock timing. Earlier supporters receive higher multipliers through a 24-bucket time-weighted system. Separate **bounties** can be attached to specific initiatives, splitting payouts between supporters, the protocol, and a treasury on acceptance.
 
-- **Token-Weighted Voting**: Support initiatives by locking tokens for custom durations
-- **Decay Curves**: Vote weight decays over time (linear or exponential)
-- **Transferable Positions**: Lock positions are represented as ERC721 NFTs
-- **Configurable Requirements**: Set minimum balances and holding durations for proposers
-- **Release Timelock**: Optional delay for token withdrawals after acceptance
-- **Board Closure**: Emergency exit mechanism to immediately release all locked tokens
-- **Initiative Lifecycle**: Proposed → Accepted/Expired → Redeemable
+### Board closure is an emergency release valve
+
+The board owner can **close** a board (stops new activity, existing locks follow normal redemption rules) or **cancel** it (immediately releases all locked tokens regardless of state). Cancellation exists because governance systems need a way to unwind cleanly when assumptions break.
+
+### Initiative lifecycle
+
+An initiative moves through four possible states: **Proposed** (accepting locks), **Accepted** (threshold met, tokens timelocked for release), **Expired** (inactive too long, tokens returned), or **Cancelled** (board-level emergency, tokens returned immediately).
