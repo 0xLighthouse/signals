@@ -36,7 +36,7 @@ export const NETWORK_CONFIG: Record<SupportedNetworks, NetworkConfig> = {
         decimals: 18,
       },
       SignalsFactory: {
-        address: ZERO_ADDRESS,
+        address: '0xf2bd22802f6672EDe21a4c23DA81C2ece269baA3' as `0x${string}`,
         abi: SignalsFactoryABI,
         label: 'Signals Factory',
       },
