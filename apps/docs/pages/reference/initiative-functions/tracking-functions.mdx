@@ -160,3 +160,14 @@ function totalSupply() external view returns (uint256)
 // Get lock count
 function lockCount() external view returns (uint256)
 ```
+
+## Events
+
+Monitor these events for real-time tracking:
+
+- `InitiativeProposed(uint256 indexed initiativeId, address indexed proposer)` — new initiative created
+- `InitiativeSupported(uint256 indexed initiativeId, uint256 indexed tokenId, address indexed supporter)` — tokens locked
+- `InitiativeAccepted(uint256 indexed initiativeId)` — initiative accepted
+- `InitiativeExpired(uint256 indexed initiativeId)` — initiative expired due to inactivity
+- `Redeemed(uint256 indexed tokenId)` — lock position redeemed
+- `Transfer(address indexed from, address indexed to, uint256 indexed tokenId)` — NFT position transferred

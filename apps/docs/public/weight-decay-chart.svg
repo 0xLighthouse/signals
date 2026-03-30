@@ -1,0 +1,72 @@
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <!-- Background -->
+  <rect width="640" height="320" fill="#fafafa" rx="8"/>
+
+  <!-- Header -->
+  <text x="60" y="30" font-size="13" fill="#666">100 tokens locked for 10 intervals</text>
+
+  <!-- Chart area -->
+  <rect x="60" y="45" width="520" height="220" fill="#f0f4ff" rx="4" opacity="0.5"/>
+
+  <!-- Y axis labels -->
+  <text x="50" y="55" font-size="11" fill="#999" text-anchor="end">1,000</text>
+  <text x="50" y="100" font-size="11" fill="#999" text-anchor="end">800</text>
+  <text x="50" y="145" font-size="11" fill="#999" text-anchor="end">600</text>
+  <text x="50" y="190" font-size="11" fill="#999" text-anchor="end">400</text>
+  <text x="50" y="235" font-size="11" fill="#999" text-anchor="end">200</text>
+  <text x="50" y="260" font-size="11" fill="#999" text-anchor="end">100</text>
+
+  <!-- Weight floor line -->
+  <line x1="60" y1="256" x2="580" y2="256" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="588" y="252" font-size="10" fill="#f59e0b" font-weight="500">weight floor</text>
+
+  <!-- Linear decay line -->
+  <polyline
+    points="60,50 112,72 164,94 216,116 268,138 320,160 372,182 424,204 476,226 528,248 528,256"
+    fill="none"
+    stroke="#4f46e5"
+    stroke-width="2.5"
+    stroke-linejoin="round"
+  />
+  <!-- Floor segment -->
+  <polyline
+    points="528,256 580,256"
+    fill="none"
+    stroke="#4f46e5"
+    stroke-width="2.5"
+    stroke-dasharray="4,3"
+  />
+
+  <!-- Exponential decay line -->
+  <polyline
+    points="60,50 112,70 164,88 216,104 268,118 320,131 372,142 424,152 476,160 528,167 580,173"
+    fill="none"
+    stroke="#16a34a"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+
+  <!-- Dots at key points -->
+  <circle cx="60" cy="50" r="4" fill="#4f46e5"/>
+  <circle cx="528" cy="256" r="4" fill="#4f46e5" stroke="white" stroke-width="1.5"/>
+  <circle cx="60" cy="50" r="4" fill="#16a34a"/>
+
+  <!-- Labels for lines -->
+  <text x="340" y="180" font-size="11" fill="#4f46e5" font-weight="600">Linear decay</text>
+  <text x="440" y="140" font-size="11" fill="#16a34a" font-weight="600">Exponential (0.9x)</text>
+
+  <!-- Expired annotation -->
+  <line x1="528" y1="45" x2="528" y2="265" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+  <text x="528" y="278" font-size="10" fill="#ef4444" text-anchor="middle" font-weight="500">lock expires</text>
+
+  <!-- X axis labels -->
+  <text x="60" y="282" font-size="11" fill="#999">0</text>
+  <text x="164" y="282" font-size="11" fill="#999">2</text>
+  <text x="268" y="282" font-size="11" fill="#999">4</text>
+  <text x="372" y="282" font-size="11" fill="#999">6</text>
+  <text x="476" y="282" font-size="11" fill="#999">8</text>
+  <text x="528" y="292" font-size="11" fill="#999">10</text>
+
+  <!-- Axis label -->
+  <text x="320" y="308" font-size="12" fill="#666" text-anchor="middle">Intervals elapsed</text>
+</svg>
