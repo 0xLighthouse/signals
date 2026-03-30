@@ -3,63 +3,47 @@ title: Capital Allocation
 weight: 1
 ---
 
-# Capital Allocation
+# Capital allocation
 
-## Treasuries need better signal than snapshot votes
+Signals can be used as a capital allocation mechanism. Token holders lock governance tokens behind funding proposals they want to see capitalised. Because locked tokens cannot simultaneously back multiple initiatives, every allocation decision carries opportunity cost. The result is a ranked signal of where the community wants capital deployed — something binary yes/no votes on individual proposals cannot produce.
 
-Most DAOs allocate treasury funds through binary votes: a proposal passes or it doesn't. This tells you whether a quorum showed up. It tells you almost nothing about *relative priority*. When a community has twenty worthy funding proposals and budget for five, a yes/no vote on each one produces no ranking and no tradeoff information.
+## RFP evaluation
 
-Signals solves this by making support expensive. Token holders lock governance tokens behind the funding proposals they want to see capitalized. Because locked tokens can't simultaneously back multiple initiatives, every allocation decision carries **opportunity cost**. The result is a ranked signal of where the community actually wants capital deployed.
+A DAO creates a board scoped to a specific RFP. Service providers submit initiatives describing their approach, timeline, and cost. Token holders lock tokens behind the provider they want to see selected. The first proposal to cross the acceptance threshold wins the RFP.
 
-> Support that costs nothing reveals nothing. Locked tokens are the cost.
+| Parameter | Suggested value | Why |
+|-----------|-----------------|-----|
+| Interval | 1 day | Daily granularity for a multi-week evaluation period |
+| Max lock duration | 6 months | High enough ceiling for strong conviction signals |
+| Decay curve | Linear, moderate rate | Prevents early submissions from coasting on stale support |
+| Release timelock | Duration of the RFP | Prevents token recycling between competing bids |
+| Board closes | End of RFP window | Fixes the evaluation period |
+| Acceptance criteria | Percentage of supply | Scales with participation |
 
-## Running an RFP through a Signals board
+The release timelock is the critical parameter. Setting it to match or exceed the RFP duration means a supporter cannot back one provider, wait for acceptance, reclaim tokens, and redirect them to a second. Every token holder must decide upfront which bid they believe in.
 
-The DAO creates a board scoped to a specific RFP. Service providers submit initiatives describing their approach, timeline, and cost. Token holders lock tokens behind the provider they want to see win. Because tokens locked behind one proposal are *unavailable for another*, supporters have to pick. The **acceptance threshold** acts as the selection bar. The first proposal to cross it wins the RFP.
+## Pre-funded programme
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| `lockInterval` | 1 day | Daily granularity for a multi-week evaluation period |
-| `maxLockIntervals` | 180 (6 months) | Ceiling high enough for strong conviction signals |
-| `decayConfig` | Linear, moderate rate | Prevents early submissions from coasting on stale support |
-| `releaseLockDuration` | Duration of the RFP | Prevents token recycling between competing bids |
-| `closesAt` | End of RFP window | Fixes the evaluation period |
-| `acceptanceCriteria` | Percentage of supply | Scales with participation |
+A DAO earmarks a fixed budget (e.g. 100,000 USDC) for ecosystem development and creates a board that stays open for a year, pre-funded with the full amount. Each accepted initiative receives a capped payout (e.g. up to 30,000 USDC). Anyone can submit a proposal at any time. When a proposal crosses the acceptance threshold, it gets funded and clears the board. The remaining budget stays available for future proposals.
 
-The `releaseLockDuration` is the critical parameter. Setting it to match or exceed the RFP duration means a supporter **cannot** back one provider, wait for acceptance, reclaim tokens, and redirect them to a second. Every token holder must decide upfront which bid they believe in.
+This replaces the conventional quarterly funding round — collect proposals for a month, vote, allocate, repeat — with a single governance decision that produces a year of autonomous prioritisation. Proposals are evaluated on their own merits as they arrive, rather than being batched into artificial deadlines.
 
-## Pre-funded programs that run autonomously
+This configuration uses a release timelock of zero (immediate release) and a low decay rate so that participation stays fluid across a long time horizon.
 
-Consider a DAO with **100,000 USDC** earmarked for ecosystem development. The conventional approach concentrates all decisions into a short funding round: collect proposals for a month, vote, allocate, repeat next quarter. This is manual, repetitive, and forces artificial deadlines on ideas that don't arrive on schedule.
+## Discretionary budget
 
-With Signals, the DAO creates a board that stays open for a year, pre-funded with the full budget. Each accepted initiative receives up to 30,000 USDC. Anyone can submit a proposal at any time. When a proposal crosses the acceptance threshold, it gets funded and clears the board. The remaining **70,000 USDC** stays available for future proposals that haven't been conceived yet.
+A DAO can allocate a fixed budget to a specific category — events, marketing, developer tooling, community programmes — through a single governance proposal that creates the board, funds it, and sets its rules on-chain. Once deployed, the board operates without further governance votes.
 
-> One governance decision. One year of autonomous prioritization.
+Anyone who wants funding submits a proposal with their request, scope, and deliverables. Token holders lock support. When a proposal crosses the acceptance threshold, it gets funded immediately from the board's pre-allocated pool. The remaining budget is visible on-chain at all times. When the budget runs out or the fiscal period ends, the board closes.
 
-The DAO sets the rules and allocates the budget. The community handles the rest. This configuration uses `releaseLockDuration: 0` (immediate release) and a low decay rate so that participation stays fluid across a long time horizon.
+This matters because in most current governance systems, getting a 3,000 USDC event funded requires the same process as a 300,000 USDC protocol upgrade. That overhead discourages small-but-useful spending and rewards people who are good at campaigning over people who are good at executing. A dedicated board with a pre-set budget removes the bottleneck.
 
-## Discretionary budgets remove the governance bottleneck
+The model scales across categories. Each gets its own board with its own budget. The DAO makes a handful of high-level allocation decisions per quarter and delegates the rest to the community through Signals.
 
-A DAO can assert upfront: **20,000 USDC for events this quarter**. That decision happens once, through a formal governance proposal that creates the board, funds it, and sets its rules on-chain. Once deployed, the board operates trustlessly. No further governance votes required.
+## Reviewer incentives
 
-```mermaid
-flowchart TD
-    A["🏛️ DAO Governance Vote\nCreate board, set rules, fund 20,000 USDC"] --> B["📋 Signals Board (open)"]
-    B --> C["Submit proposal"]
-    C --> D["Token holders lock support"]
-    D -- "Threshold met" --> E["✅ Funded"]
-    D -- "No support" --> F["❌ Expired"]
-    E --> B
-```
+Capital allocation suffers from a free-rider problem: everyone benefits from good allocation decisions, but evaluating proposals takes effort. Two mechanisms address this.
 
-Anyone who wants to run an event submits a proposal with their funding request, scope, and deliverables. Token holders lock support if the proposal meets the bar. When it crosses the acceptance threshold, it gets funded immediately from the board's pre-allocated pool. No campaign. No forum thread. No multi-week vote cycle.
+**Bounties** attached to funding initiatives reward the token holders who do the work of evaluating proposals and backing good ones. On acceptance, bounty payouts split between supporters, the protocol, and a treasury at configured ratios.
 
-In the current model, getting a *3,000 USDC event* funded requires the same governance process as a *300,000 USDC protocol upgrade*. That overhead discourages small-but-useful spending and rewards people who are good at campaigning over people who are good at executing. A dedicated board shifts the emphasis to **the quality of the proposal itself**. The remaining budget is visible on-chain at all times. When the budget runs out or the fiscal period ends, the board closes.
-
-This model scales across categories. Events, marketing, developer tooling, community programs: each gets its own board with its own budget. The DAO makes a handful of high-level allocation decisions per quarter and delegates the rest to the community through Signals.
-
-## Bounties and incentives align reviewer effort
-
-Attaching **bounties** to funding initiatives rewards the token holders who do the work of evaluating proposals and backing good ones. This matters because capital allocation suffers from a *free-rider problem*: everyone benefits from good allocation decisions, but evaluating proposals takes effort.
-
-An **incentives pool** with early-supporter multipliers rewards participants who identify strong proposals before they become obvious. The first supporters of an eventually-accepted initiative earn a larger share of incentive rewards than those who pile on late. This creates an incentive to do diligence early rather than wait for social proof.
+**Early-supporter multipliers** from the incentives pool reward participants who identify strong proposals before they become obvious. The first supporters of an eventually-accepted initiative earn a larger share of incentive rewards than those who lock later. This creates an incentive to do diligence early rather than wait for social proof.

@@ -1,31 +1,33 @@
-# Use Cases
+# Use cases
 
-## Long-running boards surface evolving priorities
+## Long-running board
 
-A community that needs ongoing signal about product direction or funding priorities can leave a board open indefinitely. Long max lock durations let passionate supporters commit heavily, while low decay keeps older support relevant for longer. Initiatives rise and fall organically as community sentiment shifts.
+A board with no close date functions as a continuous prioritisation engine. Communities that need ongoing signal about product direction or funding priorities can leave a board open indefinitely, and initiatives rise and fall organically as sentiment shifts.
 
-| Parameter | Value |
-|-----------|-------|
-| Interval | 1 day |
-| Max Lock Duration | 1 year |
-| Decay Curve | Linear, low rate |
-| Release Timelock | 0 (immediate) |
-| Board Closes | Never |
+Long max lock durations let committed supporters generate significant weight, while a low decay rate keeps older support relevant for longer. Setting the release timelock to zero means tokens return immediately on acceptance, so participants can redirect them to the next priority without delay.
 
-Because tokens return immediately on acceptance, the board functions as a continuous prioritization engine. Accepted initiatives can feed directly into a product roadmap or grants pipeline.
+| Parameter | Suggested value | Why |
+|-----------|-----------------|-----|
+| Interval | 1 day | Frequent weight recalculation keeps the ranking responsive |
+| Max lock duration | 1 year | Rewards long-term conviction with high initial weight |
+| Decay curve | Linear, low rate | Older support stays relevant; priorities shift gradually |
+| Release timelock | 0 (immediate) | Accepted initiatives free tokens for reuse instantly |
+| Board closes | Never | The board runs as a standing prioritisation surface |
 
-## Time-boxed boards force hard tradeoffs in a fixed window
+Accepted initiatives can feed directly into a product roadmap or grants pipeline.
 
-A board that closes after a set period creates urgency. Participants know the window is finite, which compresses decision-making and raises the cost of spreading support too thin.
+## Time-boxed board
 
-The release timelock is the key parameter here. Setting it to expire after the board closes means supporters cannot reclaim tokens from an accepted initiative and immediately redirect them to another. This eliminates sequential gaming: you cannot back a frontrunner, wait for it to pass, then pivot your tokens to the next initiative before the board ends.
+A board with a fixed close date creates urgency. Participants know the window is finite, which compresses decision-making and raises the cost of spreading support too thin.
 
-| Parameter | Value |
-|-----------|-------|
-| Interval | 6 hours |
-| Max Lock Duration | 6 months |
-| Decay Curve | Linear, moderate rate |
-| Release Timelock | 7 days |
-| Board Closes | 7 days |
+The release timelock is the key parameter. Setting it to expire after the board closes prevents participants from backing a frontrunner, reclaiming their tokens once it passes, and redirecting them to another initiative before the window ends. That constraint forces genuine prioritisation — support committed to one initiative is unavailable for others for the duration of the board.
 
-This configuration works well for sprint-style governance: identify the top priorities from a set of competing proposals, then close the board and act on the results.
+| Parameter | Suggested value | Why |
+|-----------|-----------------|-----|
+| Interval | 6 hours | Faster recalculation matches the compressed timeline |
+| Max lock duration | 6 months | Long enough to generate meaningful weight within the window |
+| Decay curve | Linear, moderate rate | Older support decays faster, keeping the ranking dynamic |
+| Release timelock | 7 days | Exceeds the board duration, preventing token recycling |
+| Board closes | 7 days | Fixed window forces hard tradeoffs |
+
+This configuration works well for sprint-style governance: surface the top priorities from a set of competing proposals, close the board, and act on the results.
