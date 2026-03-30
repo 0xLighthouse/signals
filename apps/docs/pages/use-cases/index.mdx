@@ -1,0 +1,31 @@
+# Use Cases
+
+## Long-running boards surface evolving priorities
+
+A community that needs ongoing signal about product direction or funding priorities can leave a board open indefinitely. Long max lock durations let passionate supporters commit heavily, while low decay keeps older support relevant for longer. Initiatives rise and fall organically as community sentiment shifts.
+
+| Parameter | Value |
+|-----------|-------|
+| Interval | 1 day |
+| Max Lock Duration | 1 year |
+| Decay Curve | Linear, low rate |
+| Release Timelock | 0 (immediate) |
+| Board Closes | Never |
+
+Because tokens return immediately on acceptance, the board functions as a continuous prioritization engine. Accepted initiatives can feed directly into a product roadmap or grants pipeline.
+
+## Time-boxed boards force hard tradeoffs in a fixed window
+
+A board that closes after a set period creates urgency. Participants know the window is finite, which compresses decision-making and raises the cost of spreading support too thin.
+
+The release timelock is the key parameter here. Setting it to expire after the board closes means supporters cannot reclaim tokens from an accepted initiative and immediately redirect them to another. This eliminates sequential gaming: you cannot back a frontrunner, wait for it to pass, then pivot your tokens to the next initiative before the board ends.
+
+| Parameter | Value |
+|-----------|-------|
+| Interval | 6 hours |
+| Max Lock Duration | 6 months |
+| Decay Curve | Linear, moderate rate |
+| Release Timelock | 7 days |
+| Board Closes | 7 days |
+
+This configuration works well for sprint-style governance: identify the top priorities from a set of competing proposals, then close the board and act on the results.

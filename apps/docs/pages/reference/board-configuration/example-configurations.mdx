@@ -1,0 +1,204 @@
+---
+title: "Example Configurations"
+weight: 3
+---
+
+# Example Configurations
+
+Each example below is a complete `BoardConfig` that can be passed directly to `SignalsFactory.create()`. The parameter values are opinionated starting points. Adjust thresholds and durations to match your community's size and governance cadence.
+
+## Community prioritization board
+
+A board that stays open indefinitely and surfaces evolving community priorities. Low decay keeps older support relevant. Immediate token release on acceptance means supporters can continuously reallocate across initiatives as priorities shift.
+
+```solidity
+BoardConfig({
+    version: "0.3.2",
+    owner: 0xDAO_MULTISIG,
+    underlyingToken: 0xGOV_TOKEN,
+    opensAt: block.timestamp,
+    closesAt: 0, // never closes
+    boardMetadata: Metadata({
+        title: "Community Priorities",
+        body: "Signal which initiatives matter most",
+        attachments: new string[](0)
+    }),
+    acceptanceCriteria: AcceptanceCriteria({
+        permissions: AcceptancePermissions.Permissionless,
+        thresholdOverride: ThresholdOverride.None,
+        thresholdPercentTotalSupplyWAD: 0.05e18, // 5% of supply
+        minThreshold: 100_000e18 // floor of 100k tokens
+    }),
+    proposerRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 50_000e18,
+        minHoldingDuration: 0,
+        minLockAmount: 0
+    }),
+    supporterRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 0,
+        minHoldingDuration: 0,
+        minLockAmount: 1e18
+    }),
+    lockingConfig: LockingConfig({
+        lockInterval: 1 days,
+        maxLockIntervals: 365, // up to 1 year
+        releaseLockDuration: 0, // immediate release on acceptance
+        inactivityTimeout: 60 days
+    }),
+    decayConfig: DecayConfig({
+        curveType: DecayCurveType.Linear,
+        params: [0.5e18] // slow decay
+    })
+})
+```
+
+**Why these values:** `releaseLockDuration: 0` keeps participation fluid on a long-lived board. The 5% supply threshold with a 100k token floor prevents both whale-dominated acceptance and dust attacks. `inactivityTimeout: 60 days` cleans up abandoned initiatives without expiring active ones too aggressively.
+
+## Time-boxed sprint board
+
+A board that runs for one week and forces hard tradeoffs. The `releaseLockDuration` matches the board duration, which prevents supporters from backing a frontrunner, reclaiming tokens on acceptance, and redirecting them to a second initiative before the board closes.
+
+```solidity
+BoardConfig({
+    version: "0.3.2",
+    owner: 0xDAO_MULTISIG,
+    underlyingToken: 0xGOV_TOKEN,
+    opensAt: SPRINT_START,
+    closesAt: SPRINT_START + 7 days,
+    boardMetadata: Metadata({
+        title: "Q1 Sprint Priorities",
+        body: "Identify top initiatives for the quarter",
+        attachments: new string[](0)
+    }),
+    acceptanceCriteria: AcceptanceCriteria({
+        permissions: AcceptancePermissions.Permissionless,
+        thresholdOverride: ThresholdOverride.None,
+        thresholdPercentTotalSupplyWAD: 0.1e18, // 10% of supply
+        minThreshold: 50_000e18
+    }),
+    proposerRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 10_000e18,
+        minHoldingDuration: 0,
+        minLockAmount: 0
+    }),
+    supporterRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 0,
+        minHoldingDuration: 0,
+        minLockAmount: 1e18
+    }),
+    lockingConfig: LockingConfig({
+        lockInterval: 6 hours,
+        maxLockIntervals: 2920, // up to 6 months in 6hr intervals
+        releaseLockDuration: 7 days, // matches board duration
+        inactivityTimeout: 7 days
+    }),
+    decayConfig: DecayConfig({
+        curveType: DecayCurveType.Linear,
+        params: [1e18] // moderate decay
+    })
+})
+```
+
+**Why these values:** `lockInterval: 6 hours` gives finer granularity over a short board. `releaseLockDuration: 7 days` is the anti-gaming parameter, it eliminates sequential token recycling. The higher threshold (10%) is appropriate because the compressed timeframe concentrates participation.
+
+## RFP selection board
+
+A board scoped to a single request for proposals. Service providers submit competing bids, token holders lock support behind their preferred provider. Only the board owner can accept, giving the DAO final say over which provider is selected.
+
+```solidity
+BoardConfig({
+    version: "0.3.2",
+    owner: 0xDAO_MULTISIG,
+    underlyingToken: 0xGOV_TOKEN,
+    opensAt: RFP_START,
+    closesAt: RFP_START + 30 days,
+    boardMetadata: Metadata({
+        title: "RFP: Oracle Integration",
+        body: "Select a provider for oracle infrastructure",
+        attachments: new string[](0)
+    }),
+    acceptanceCriteria: AcceptanceCriteria({
+        permissions: AcceptancePermissions.OnlyOwner,
+        thresholdOverride: ThresholdOverride.None,
+        thresholdPercentTotalSupplyWAD: 0.05e18, // 5% of supply
+        minThreshold: 75_000e18
+    }),
+    proposerRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 0, // open to external providers
+        minHoldingDuration: 0,
+        minLockAmount: 0
+    }),
+    supporterRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 1_000e18, // minimum stake to participate
+        minHoldingDuration: 7200, // ~1 day in blocks, proves token commitment
+        minLockAmount: 500e18
+    }),
+    lockingConfig: LockingConfig({
+        lockInterval: 1 days,
+        maxLockIntervals: 180,
+        releaseLockDuration: 30 days, // matches RFP duration
+        inactivityTimeout: 30 days
+    }),
+    decayConfig: DecayConfig({
+        curveType: DecayCurveType.Linear,
+        params: [0.8e18]
+    })
+})
+```
+
+**Why these values:** `AcceptancePermissions.OnlyOwner` ensures the DAO multisig makes the final call, while the threshold requirement means the owner can only accept a bid that has genuine community backing. `proposerRequirements.minBalance: 0` opens submissions to external service providers who may not hold governance tokens. `supporterRequirements.minHoldingDuration` filters out participants who acquired tokens solely to influence the RFP outcome.
+
+## Discretionary budget board
+
+A board pre-funded with a fixed budget for a specific spending category. Low barrier to propose, low threshold to accept, immediate token release. Designed to handle small, recurring allocations without full governance overhead.
+
+```solidity
+BoardConfig({
+    version: "0.3.2",
+    owner: 0xDAO_MULTISIG,
+    underlyingToken: 0xGOV_TOKEN,
+    opensAt: QUARTER_START,
+    closesAt: QUARTER_START + 90 days,
+    boardMetadata: Metadata({
+        title: "Events Budget Q2 2026",
+        body: "20,000 USDC allocated for community events",
+        attachments: new string[](0)
+    }),
+    acceptanceCriteria: AcceptanceCriteria({
+        permissions: AcceptancePermissions.Permissionless,
+        thresholdOverride: ThresholdOverride.OnlyOwner,
+        thresholdPercentTotalSupplyWAD: 0.02e18, // 2% of supply
+        minThreshold: 25_000e18
+    }),
+    proposerRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 1_000e18, // low barrier
+        minHoldingDuration: 0,
+        minLockAmount: 0
+    }),
+    supporterRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 0,
+        minHoldingDuration: 0,
+        minLockAmount: 1e18
+    }),
+    lockingConfig: LockingConfig({
+        lockInterval: 1 days,
+        maxLockIntervals: 90, // matches quarter
+        releaseLockDuration: 0, // immediate release
+        inactivityTimeout: 14 days // short timeout for small requests
+    }),
+    decayConfig: DecayConfig({
+        curveType: DecayCurveType.Linear,
+        params: [1.5e18] // aggressive decay keeps evaluation pressure on
+    })
+})
+```
+
+**Why these values:** Low thresholds and immediate release keep the board responsive for small allocations. `ThresholdOverride.OnlyOwner` gives the DAO multisig an escape hatch to fast-track urgent requests. Aggressive decay (`1.5e18`) ensures proposals that don't attract sustained support drop off quickly, keeping the board focused on active requests. Short `inactivityTimeout` cleans up stale proposals faster, appropriate for a board handling time-sensitive spending.
