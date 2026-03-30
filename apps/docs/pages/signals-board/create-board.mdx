@@ -1,104 +1,105 @@
 ---
-title: "Creating a Signals Board"
+title: "Creating a Board"
 weight: 1
 ---
 
 # Creating a Signals Board
 
-A Signals board can be created around a specific theme or purpose, allowing participants to submit initiatives in line with the chosen objective. The board will have an owner who has additional rights and responsibilities to administer the board. It is possible for a DAO to enact ownership functions as the result of a DAO vote, enabling decentralized and permissionless operation of the board.
+Board creation is a two-phase process. First, deploy the board through the **SignalsFactory** with a complete `BoardConfig`. Then, optionally attach an incentives pool before the board opens. Acceptance criteria, locking parameters, and decay curves are **immutable after deployment**.
 
-The board is first deployed via the `SignalsFactory` contract, and additional timing/incentives configuration can be applied later.
+The board owner can be any address. Setting it to a DAO multisig or governor contract means ownership functions (accepting initiatives, closing the board) require a governance vote, enabling fully decentralized operation.
 
-## Factory Deployment
-
-Boards are created through the `SignalsFactory` contract:
+## Deploy through the factory
 
 ```solidity
-function create(BoardConfig calldata config)
-    external
-    payable
-    returns (address)
+SignalsFactory factory = SignalsFactory(FACTORY_ADDRESS);
+address board = factory.create(config);
 ```
 
-### Returns
+The factory deploys a minimal proxy (EIP-1167) of the Signals implementation contract and calls `initialize()` with your config. This emits a `BoardCreated` event with the new board address.
 
-- `address` - The deployed Signals board contract address
-
-### Event Emitted
+## Example: complete deployment
 
 ```solidity
-event BoardCreated(
-    address indexed board,
-    address indexed owner,
-    Metadata boardMetadata
-)
+address board = factory.create(BoardConfig({
+    version: "0.3.2",
+    owner: 0xDAO_MULTISIG,
+    underlyingToken: 0xGOV_TOKEN,
+    opensAt: block.timestamp + 1 days,
+    closesAt: 0, // never closes
+    boardMetadata: Metadata({
+        title: "Community Priorities",
+        body: "Signal which initiatives matter most",
+        attachments: new string[](0)
+    }),
+    acceptanceCriteria: AcceptanceCriteria({
+        permissions: AcceptancePermissions.Permissionless,
+        thresholdOverride: ThresholdOverride.None,
+        thresholdPercentTotalSupplyWAD: 0.05e18,
+        minThreshold: 100_000e18
+    }),
+    proposerRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 50_000e18,
+        minHoldingDuration: 0,
+        minLockAmount: 0
+    }),
+    supporterRequirements: ParticipantRequirements({
+        token: 0xGOV_TOKEN,
+        minBalance: 0,
+        minHoldingDuration: 0,
+        minLockAmount: 1e18
+    }),
+    lockingConfig: LockingConfig({
+        lockInterval: 1 days,
+        maxLockIntervals: 365,
+        releaseLockDuration: 0,
+        inactivityTimeout: 60 days
+    }),
+    decayConfig: DecayConfig({
+        curveType: DecayCurveType.Linear,
+        params: [0.5e18]
+    })
+}));
 ```
 
-## Configuration Structure
+See [Example Configurations](/reference/board-configuration/example-configurations) for more complete configurations with rationale, or [Board Deployment Parameters](/reference/board-configuration/config-parameters) for the full parameter reference.
+
+## Post-deployment configuration
+
+The owner can adjust timing and attach incentives **before the board opens**:
 
 ```solidity
-struct BoardConfig {
-    string version;
-    address owner;
-    address underlyingToken;
-    uint256 opensAt;
-    uint256 closesAt;
-    Metadata boardMetadata;
-    AcceptanceCriteria acceptanceCriteria;
-    ParticipantRequirements proposerRequirements;
-    ParticipantRequirements supporterRequirements;
-    LockingConfig lockingConfig;
-    DecayConfig decayConfig;
-}
+Signals board = Signals(boardAddress);
+
+// Adjust open time (only before board opens)
+board.setOpensAt(newOpenTime);
+
+// Attach incentives pool (only before board opens, can only be set once)
+board.setIncentivesPool(poolAddress, config);
 ```
 
-Supporting structs:
+Once the board is open, the owner can extend or set a close time:
 
 ```solidity
-struct ParticipantRequirements {
-    address token;            // Token used for eligibility checks
-    uint256 minBalance;
-    uint256 minHoldingDuration;
-    uint256 minLockAmount;
-}
-
-struct LockingConfig {
-    uint256 lockInterval;         // Time unit for locks (seconds)
-    uint256 maxLockIntervals;     // Max lock duration in intervals
-    uint256 releaseLockDuration;  // Timelock after acceptance
-    uint256 inactivityTimeout;    // Seconds before initiative can expire
-}
-
-struct DecayConfig {
-    DecayCurveType curveType; // 0=linear, 1=exponential
-    uint256[] params;         // Curve params
-}
+// Extend or set close time (only while board is open, must be in the future)
+board.setClosesAt(newCloseTime);
 ```
 
-Acceptance criteria follow the same structure described in [Board Deployment Parameters](/reference/board-configuration/config-parameters).
+> Attach your incentives pool before the board opens. This cannot be done after participation begins, and can only be set once.
 
-## Deployment Process
+## Emergency controls
 
-1. Deploy (or reuse) a `SignalsFactory`.
-2. Build a `BoardConfig` with metadata, tokens, acceptance criteria, eligibility, locking, and decay settings.
-3. Call `create(config)` to deploy the board.
-4. Optionally link an incentives pool **before** opening the board.
-
-## Post-Deployment Controls
-
-After deployment, the board owner can:
+Both of these are owner-only and require the board to be open:
 
 ```solidity
-// Timing controls
-board.setOpensAt(newOpenTime)
-board.setClosesAt(newCloseTime)
+// Stop new activity, existing locks follow normal redemption rules
+board.closeBoard();
 
-// Incentives (only while the board is closed)
-board.setIncentivesPool(poolAddress, config)
-
-// Emergency actions
-board.closeBoard()   // Close board normally
-board.cancelBoard()  // Cancel board (immediate redemption for all)
+// Immediately release all locked tokens regardless of state
+board.cancelBoard();
 ```
 
-Acceptance criteria, eligibility tokens, locking, and decay parameters are fixed at deployment.
+`closeBoard()` sets `closesAt` to the current timestamp. No new proposals or support, but tokens are redeemed normally. `cancelBoard()` does the same but additionally flags the board as cancelled, which bypasses all timelocks and allows immediate token withdrawal.
+
+See [Closing a Signals Board](/signals-board/close-cancel-board) for details.

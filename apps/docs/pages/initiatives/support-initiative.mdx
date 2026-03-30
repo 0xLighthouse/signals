@@ -1,192 +1,67 @@
 ---
-title: "Add Support to an Initiative"
+title: "Supporting an Initiative"
 weight: 2
 ---
 
-# Add Support to an Initiative
+# Supporting an Initiative
 
-Supporting an initiative allows community members to lock tokens to signal their backing for a proposed idea. Support is represented by an ERC721 NFT that can be redeemed once the initiative is accepted or expired.
+Lock ERC20 tokens behind an initiative to generate **support weight** that counts toward its acceptance threshold. Each lock mints a transferable ERC721 NFT representing the position. For example, a board using ENS token would mint NFTs named `ENS Locked Support` with symbol `sxENS`. Trading the NFT transfers the right to redeem the underlying tokens.
 
-## Overview
-
-When you support an initiative, you:
-
-1. Lock ERC20 tokens for a specified duration
-2. Receive an ERC721 NFT representing your lock position
-3. Contribute weight toward the initiative's acceptance threshold
-4. Become eligible for incentive rewards (if configured)
-
-## How to Support
-
-To support an initiative, call `supportInitiative()` with:
-
-- The initiative ID you want to support
-- The amount of tokens to lock (in wei)
-- The lock duration (measured in intervals, not seconds)
-
-You'll receive an NFT token ID representing your lock position.
-
-See the [Initiative Interactions Reference](/reference/initiative-interactions#supporting-initiatives) for detailed function signatures and parameters.
-
-## Prerequisites
-
-Before supporting an initiative, ensure:
-
-1. **Board is open** - Current time ≥ `opensAt` and < `closesAt`
-2. **Initiative exists and is in Proposed state** - Cannot support accepted or expired initiatives
-3. **You meet participant requirements** - Check eligibility with `accountCanSupport(address, amount)`
-4. **You have sufficient tokens and approval** - Balance ≥ amount and approved the Signals contract
-
-## Token Approval
-
-You must approve the Signals contract to spend your tokens before calling `supportInitiative`. The contract will transfer your tokens when you lock them.
-
-## Participant Eligibility
-
-Boards configure participant requirements using four fields (`token`, `minBalance`, `minHoldingDuration`, `minLockAmount`). The `token` controls which ERC20/IVotes balance is checked—it can be the underlying lock token or a separate governance token. Different patterns emerge based on which fields are set:
-
-### 1. None (Most Permissive)
-
-Anyone can participate - just need tokens to lock.
+## `supportInitiative()`
 
 ```solidity
-ParticipantRequirements({
-    token: UNDERLYING_TOKEN,
-    minBalance: 0,
-    minHoldingDuration: 0,
-    minLockAmount: 0
-})
+function supportInitiative(
+    uint256 initiativeId,
+    uint256 amount,
+    uint256 lockDuration
+) external returns (uint256 tokenId)
 ```
 
-### 2. Minimum Balance
+Call with the initiative ID, the amount of tokens to lock, and a lock duration (measured in intervals). You must have approved the Signals contract to transfer your tokens beforehand.
 
-Participants must hold a minimum token balance at support time. Optionally, a minimum lock amount can be enforced.
+The initiative must be in the **Proposed** state and the board must be open. Check eligibility with `accountCanSupport(address, amount)`.
+
+You can support the same initiative multiple times. Each call creates a separate NFT with its own amount, duration, and decay calculation.
+
+## Weight calculation and decay
+
+Support weight determines when an initiative can be accepted.
+
+**Initial weight** = `lockAmount * lockDuration`
+
+Locking 100 tokens for 10 intervals produces an initial weight of 1,000. Locking 50 tokens for 20 intervals also produces 1,000. The mechanism rewards large commitments and long commitments equally.
+
+![Weight decay over time for a single lock position](/weight-decay-chart.svg)
+
+Both curves start at 1,000 (100 tokens x 10 intervals). Linear decay drops steadily until it hits the **weight floor** at 100 (the locked amount), then holds there until the lock expires. Exponential decay (0.9x per interval) falls steeply at first, then flattens, staying above the floor for longer.
+
+**Weight decay** reduces the initial value over elapsed intervals according to the board's configured decay curve:
+
+- **Linear decay:** weight decreases by a fixed rate per interval. With a rate of `1e18`, 100 tokens locked for 10 intervals loses 100 weight per interval elapsed.
+- **Exponential decay:** weight is multiplied by a decay factor each interval. With a multiplier of `0.9e18`, weight retains 90% of its value each interval, compounding.
+
+**Weight floor:** a lock's weight never drops below the locked amount itself. Even after heavy decay, 100 locked tokens still contribute at least 100 weight until the lock expires. This guarantees early supporters always retain baseline influence.
+
+**Aggregate weight** for an initiative is the sum of all individual lock weights at a given timestamp. When aggregate weight crosses the acceptance threshold, the initiative can be accepted.
+
+## Acceptance threshold
 
 ```solidity
-ParticipantRequirements({
-    token: UNDERLYING_TOKEN,
-    minBalance: 10_000 * 1e18,    // Must hold 10k tokens
-    minHoldingDuration: 0,
-    minLockAmount: 1_000 * 1e18   // Must lock at least 1k tokens
-})
+threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
 ```
 
-This prevents low-balance sybil attacks and ensures supporters lock meaningful amounts.
+The effective threshold is the greater of a percentage of total token supply or a fixed minimum.
 
-### 3. Minimum Balance and Duration (Most Restrictive)
+*Example: board with 5% supply threshold and 100k minThreshold, 10M total supply*
 
-Participants must:
+![Weight accumulation toward acceptance threshold](/weight-threshold-chart.svg)
 
-- Currently hold ≥ `minBalance` tokens
-- Have held ≥ `minBalance` for ≥ `minHoldingDuration` blocks (historical balance check)
-- Lock ≥ `minLockAmount` tokens (must be ≤ minBalance)
-- Token must support ERC20Votes (checkpoint functionality)
+**Initiative B** accumulates sustained support and crosses the 500k threshold (5% of 10M supply) on day 15. It can now be accepted. **Initiative A** attracted early support but stalled. Without new locks, decay pulls its weight down. It never reaches threshold.
 
-```solidity
-ParticipantRequirements({
-    token: GOVERNANCE_TOKEN,      // Can differ from the locking token
-    minBalance: 10_000 * 1e18,
-    minHoldingDuration: 50400,    // ~7 days at 12s/block
-    minLockAmount: 1_000 * 1e18
-})
-```
+Query the current threshold with `getAcceptanceThreshold()`. Query an initiative's current weight with `getWeight(initiativeId)` or at a specific time with `getWeightAt(initiativeId, timestamp)`.
 
-This ensures only committed token holders can participate.
+## Incentive rewards
 
-## Weight Contribution
+If the board has an **incentives pool** attached, lock positions earn rewards weighted by creation time. Earlier locks receive higher multipliers. Rewards are auto-claimed during [redemption](/initiatives/reclaim-tokens). Redeeming before acceptance forfeits incentive rewards for that position.
 
-Your support contributes weight toward the initiative's acceptance threshold. Weight is calculated based on:
-
-- Lock amount
-- Lock duration
-- Time decay (based on board's decay curve)
-
-### Initial Weight
-
-Your initial weight = amount × lockDuration
-
-For example:
-
-- Lock 100 tokens for 10 intervals
-- Initial weight = 100 × 10 = 1,000
-
-### Weight Decay
-
-Weight decays over time based on the board's decay curve:
-
-**Linear Decay:** Weight decreases steadily over time
-**Exponential Decay:** Weight decreases at an accelerating rate
-
-Weight never drops below the nominal lock amount until the lock expires.
-
-### Acceptance Threshold
-
-The threshold an initiative must reach is calculated as:
-
-```solidity
-threshold = max(
-    totalSupply * thresholdPercentTotalSupplyWAD / 1e18,
-    minThreshold
-)
-```
-
-Query the current threshold with `getAcceptanceThreshold()`.
-
-## NFT Lock Position
-
-When you support an initiative, you receive an ERC721 NFT representing your lock position.
-
-### NFT Properties
-
-- **Name:** `{underlyingToken.name()} Locked Support`
-- **Symbol:** `sx{underlyingToken.symbol()}`
-- **Transferable:** Yes - you can trade your lock position
-- **Redeemable:** Holder can redeem underlying tokens after acceptance/expiration
-
-The NFT contains all lock details including amount, duration, and creation timestamp.
-
-## Multiple Lock Positions
-
-You can support the same initiative multiple times with different amounts and durations. Each support creates a **separate NFT** with independent:
-
-- Lock duration
-- Amount
-- Creation timestamp
-- Decay calculation
-
-## Redemption
-
-You cannot withdraw tokens early. Redemption is only available when:
-
-1. **Initiative is Accepted**
-   - Must wait for `releaseLockDuration` to pass (if configured)
-   - Auto-claims incentive rewards on redemption
-
-2. **Initiative is Expired**
-   - Immediate redemption available
-   - No incentive rewards
-
-3. **Lock Duration Passed**
-   - Can redeem once your lock duration expires
-   - Initiative state doesn't matter
-
-4. **Board is Cancelled**
-   - Emergency override - all locks become immediately redeemable
-   - Bypasses release timelock
-
-See the [Reclaiming Locked Tokens](/initiatives/reclaim-tokens) guide for redemption details.
-
-## Integration with Incentives
-
-If the board has incentives enabled:
-
-- **Early supporters get more rewards** - Time-weighted based on when you lock
-- **Rewards are calculated on redemption** - Based on your credited weight and time buckets
-- **Auto-claimed on redemption** - No need to manually claim
-- **Multiple locks are weighted independently** - Each position earns rewards
-
-The pool does not expose per-supporter reward previews before redemption.
-
----
-
-For technical details including function signatures, data structures, weight formulas, events, errors, and code examples, see the [Initiative Interactions Reference](/reference/initiative-interactions#supporting-initiatives).
+See the [Initiative Interactions Reference](/reference/initiative-interactions#supporting-initiatives) for full function details.

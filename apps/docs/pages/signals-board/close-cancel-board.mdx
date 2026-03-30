@@ -1,74 +1,61 @@
 ---
-title: "Closing a Signals Board"
+title: "Closing a Board"
 weight: 2
 ---
 
-# Closing a Signals Board
+# Closing and Cancelling a Board
 
-Board closure is a **permanent, owner-only action** that immediately releases all locked tokens and prevents any future activity on the board.
+There are two ways to shut down a board, and they have different consequences for locked tokens. Both are **owner-only** and **irreversible**.
 
-## To Do: Add "Cancel" and "Close" Function
-
-Closing a board should leave locks intact, cancelling the board should release everything immediately.
-
-
-## Board States
-
-Boards have only two possible states:
-
-```solidity
-enum BoardState {
-    Open,    // Board accepting proposals and support
-    Closed   // Board permanently closed, all locks withdrawable
-}
-```
-
-## Closing a Board
-
-### Function Signature
+## Closing a board
 
 ```solidity
 function closeBoard() external onlyOwner
 ```
 
-### Access Control
+Closing sets `closesAt` to the current timestamp. The board stops accepting new proposals and new support. Existing locks follow their **normal redemption rules**: accepted initiatives respect the `releaseLockDuration` timelock, expired initiatives release immediately, and individual locks can still be redeemed after their natural expiry.
 
-**Only the board owner** can close a board. This function uses OpenZeppelin's `onlyOwner` modifier.
-
-### Event Emitted
+Use `closeBoard()` when the board has served its purpose and you want to wind down gracefully without disrupting existing commitments.
 
 ```solidity
+// Emitted on close
 event BoardClosed(address indexed actor)
 ```
 
-The `actor` parameter contains the address that called `closeBoard()` (for now, only the owner).
-
-## Current Effects of Closing a Board
-
-Board closure is PERMANENT and IRREVERSIBLE. 
-
-### 1. All Token Locks Become Immediately Withdrawable
-
-Closing a board **bypasses all withdrawal restrictions**, so all locks become immediately withdrawable.
-
-### 2. No New Proposals Allowed
-
-### 3. No New Support Allowed
-
-### 4. Existing Initiatives Remain Unchanged
-
-Closing the board **does not change initiative states**:
-
-- Proposed initiatives stay Proposed
-- Accepted initiatives stay Accepted
-- Expired initiatives stay Expired
-
-The closure only affects the ability to interact with the board and withdraw tokens.
-
-## Token Redemption After Closure
-
-Users redeem tokens using the `redeemLock()` function:
+## Cancelling a board
 
 ```solidity
-function redeemLock(uint256 lockId) external nonReentrant
+function cancelBoard() external onlyOwner
 ```
+
+Cancellation does everything `closeBoard()` does, plus sets a `boardCancelled` flag that **bypasses all timelocks**. Every locked token becomes immediately redeemable regardless of initiative state, lock duration, or release timelock.
+
+Use `cancelBoard()` when something has gone wrong and token holders need their tokens back now.
+
+```solidity
+// Emitted on cancel
+event BoardCancelled(address indexed actor)
+```
+
+## How redemption changes after each action
+
+| Scenario | Close | Cancel |
+|----------|-------|--------|
+| Accepted initiative, within release timelock | Must wait for timelock | Redeemable immediately |
+| Proposed initiative, lock not yet expired | Must wait for lock expiry | Redeemable immediately |
+| Expired initiative | Redeemable immediately | Redeemable immediately |
+| Lock past its natural expiry | Redeemable immediately | Redeemable immediately |
+
+## After closure or cancellation
+
+Initiative states are unchanged. Proposed initiatives stay Proposed, accepted stay Accepted. The board simply stops accepting new activity. Token holders call `redeemLock()` or `redeemLocksForInitiative()` to withdraw:
+
+```solidity
+// Redeem a single lock position
+function redeemLock(uint256 lockId) external nonReentrant
+
+// Batch redeem all locks for an initiative
+function redeemLocksForInitiative(uint256 initiativeId, uint256[] calldata lockIds) external nonReentrant
+```
+
+> Both actions are permanent. There is no way to reopen a closed or cancelled board.

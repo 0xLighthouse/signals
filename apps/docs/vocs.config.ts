@@ -34,7 +34,7 @@ export default defineConfig({
       ],
     },
     {
-      text: 'Signals Boards',
+      text: 'Boards',
       collapsed: false,
       items: nav.navItems('/signals-board'),
     },

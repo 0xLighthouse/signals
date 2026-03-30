@@ -1,137 +1,62 @@
 ---
-title: "Submit an Initiative"
+title: "Proposing an Initiative"
 weight: 1
 ---
 
-# Submit an Initiative
+# Proposing an Initiative
 
-Initiatives are proposals submitted to a Signals board that allow community members to signal support by locking tokens. Anyone who meets the board's proposer requirements can create an initiative.
+An initiative is a proposal submitted to a Signals board. Anyone who meets the board's **proposer requirements** can create one. Both methods accept a title, description (markdown supported), and up to **5 attachments** (URIs pointing to supporting documents, designs, or forum posts).
 
-## Overview
+> Check eligibility before proposing with `accountCanPropose(address, lockAmount)`. This returns whether the address meets the board's proposer requirements.
 
-There are two ways to create an initiative:
+## `proposeInitiative()`
 
-1. **Propose only** - Create the initiative without locking tokens
-2. **Propose with lock** - Create the initiative and immediately lock tokens to show support
+Creates the initiative without locking tokens. Other supporters can lock tokens behind it afterward.
 
-## Prerequisites
+```solidity
+function proposeInitiative(Metadata calldata metadata) external returns (uint256 initiativeId)
+```
 
-Before submitting an initiative, ensure:
+## `proposeInitiativeWithLock()`
 
-- The board is open (current time ≥ `opensAt`)
-- You meet the board's proposer requirements
-- You have sufficient token balance and approval (if locking tokens)
+Creates the initiative and locks your tokens in a single transaction. This gives the initiative immediate support weight and signals that the proposer has skin in the game.
 
-You can check if you're eligible to propose using the `accountCanPropose(address, lockAmount)` view function.
+```solidity
+function proposeInitiativeWithLock(
+    Metadata calldata metadata,
+    uint256 amount,
+    uint256 lockDuration
+) external returns (uint256 initiativeId, uint256 tokenId)
+```
 
-## Creating an Initiative
-
-### Basic Proposal
-
-The simplest way to create an initiative is using `proposeInitiative`. You provide a title, detailed description (markdown supported), and optionally supply attachment metadata. This creates the initiative without locking any tokens.
-
-See the [Initiative Interactions Reference](/reference/initiative-interactions#proposing-initiatives) for function signatures and parameters.
-
-### Proposal with Lock
-
-To immediately show support for your initiative, use `proposeInitiativeWithLock`. In addition to the title, description, and optional attachments, you specify an amount of tokens to lock and a lock duration (measured in intervals).
-
-This creates the initiative and your first lock position in a single transaction.
+You must first approve the Signals contract to transfer your tokens. The contract uses `safeTransferFrom` to pull the locked amount.
 
 ## Attachments
 
-Attachments let you include supporting resources such as proposal documents, designs, or forum posts.
+Attachments let you include supporting resources like proposal documents, designs, or forum posts.
 
-- Add up to **5** attachments per initiative
+- Up to **5 attachments** per initiative
 - Each attachment requires a non-empty URI (`https://`, `ipfs://`, or on-chain pointer)
 - MIME type and description fields are optional hints for clients
-- Pass an empty array if you do not need attachments
+- Pass an empty array if you don't need attachments
 
-## Duration and Intervals
+## Proposer eligibility
 
-Lock duration is measured in **intervals**, not seconds:
-- Intervals are defined per board using the `lockInterval` parameter (typically 1 day)
-- Example: If `lockInterval = 1 day` and you specify duration `7`, tokens are locked for 7 days
-- Maximum duration is limited by the board's `maxLockIntervals` setting
+Boards configure proposer requirements at deployment. There are three levels:
 
-## Proposer Eligibility
+- **No requirements:** anyone can propose. Set `minBalance: 0` and `minHoldingDuration: 0`.
+- **Minimum balance:** proposers must hold at least `minBalance` tokens at the time of proposal.
+- **Minimum balance and holding duration:** proposers must hold at least `minBalance` tokens *and* have held them for at least `minHoldingDuration` blocks. This requires the token to support `ERC20Votes` checkpoints.
 
-Boards can configure three types of proposer requirements:
+## Lock duration is measured in intervals
 
-### 1. None (Most Permissive)
+When proposing with a lock, you specify duration as a number of **intervals**, not seconds. The board's `lockInterval` parameter defines how long one interval is (typically 1 day). A duration of `30` on a board with `lockInterval = 1 day` locks your tokens for 30 days. The maximum is capped by `maxLockIntervals`.
 
-Anyone can propose. When proposing with lock, those tokens get locked.
+## After proposal
 
-### 2. Minimum Balance
+Your initiative starts in the **Proposed** state. From here it can be:
 
-Proposers must hold a minimum balance. This prevents low-balance accounts from creating proposals.
+- **Accepted** when its aggregate support weight crosses the board's acceptance threshold
+- **Expired** by the board owner if no new support is added within the `inactivityTimeout` window
 
-### 3. Minimum Balance and Duration (Most Restrictive)
-
-Proposers must:
-- Currently hold ≥ `minBalance` tokens
-- Have held ≥ `minBalance` for ≥ `minHoldingDuration` blocks
-- Use a token that supports ERC20Votes (checkpoint functionality)
-
-This ensures only committed token holders can create proposals.
-
-## Token Approval
-
-When locking tokens (using `proposeInitiativeWithLock`), you must first approve the Signals contract to spend your tokens. Without approval, the transaction will fail.
-
-## Initiative States
-
-Once created, your initiative starts in the **Proposed** state and can transition to:
-
-- **Accepted** - Approved via `acceptInitiative` (based on acceptance criteria)
-- **Expired** - No activity for more than the inactivity timeout (default 60 days)
-
-## Weight and Decay
-
-When tokens are locked in support of an initiative, they contribute **weight** that decays over time:
-
-- Initial weight is based on the locked amount and duration
-- Weight decays according to the board's decay curve (Linear or Exponential)
-- Weight has a floor at the nominal lock amount until the lock expires
-- An initiative can be accepted when its weight reaches the acceptance threshold
-
-The acceptance threshold is calculated as:
-```solidity
-threshold = max(totalSupply * thresholdPercentTotalSupplyWAD / 1e18, minThreshold)
-```
-
-## Board Configuration Impact
-
-These board parameters affect initiative creation:
-
-- `acceptanceCriteria` - Who can accept and threshold requirements
-- `maxLockIntervals` - Maximum lock duration allowed
-- `lockInterval` - Duration of one interval
-- `proposerRequirements` - Eligibility criteria for proposers
-- `opensAt` - Timestamp when board opens for proposals
-- `inactivityTimeout` - Inactivity period before expiration
-
-## Best Practices
-
-### Writing Proposals
-
-1. **Clear title** - Concise and descriptive
-2. **Detailed description** - Explain the problem, proposed solution, and expected outcomes
-3. **Use markdown** - Format your proposal for readability
-4. **Be specific** - Provide actionable details
-
-### Lock Strategy When Proposing
-
-1. **Signal commitment** - Lock tokens to show you believe in your proposal
-2. **Choose appropriate duration** - Balance between weight contribution and lock time
-3. **Consider incentives** - Early supporters often earn more rewards
-
-### Eligibility
-
-1. **Check requirements first** - Use `accountCanPropose()` before attempting to create
-2. **Ensure sufficient balance** - Account for minimum balance requirements
-3. **Hold tokens long enough** - For duration-based requirements, wait before proposing
-
----
-
-For technical details including function signatures, data structures, events, errors, and code examples, see the [Initiative Interactions Reference](/reference/initiative-interactions#proposing-initiatives).
+See [Lock Tokens to Support an Initiative](/initiatives/support-initiative) for how other token holders add support, and [Accepting and Expiring Initiatives](/initiatives/action-expire-initiative) for how initiatives change state.

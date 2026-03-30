@@ -1,143 +1,50 @@
 ---
-title: "Reclaiming Locked Tokens"
+title: "Redeeming Tokens"
 weight: 6
 ---
 
-# Reclaiming Locked Tokens
+# Redeeming Tokens
 
-When you support an initiative by locking tokens, you receive an ERC721 NFT representing your lock position. Once the initiative is accepted or expired, you can redeem this NFT to reclaim your locked tokens (plus any rewards).
+When you lock tokens behind an initiative, you receive an ERC721 NFT representing that position. Redemption burns the NFT and returns your tokens. When and how you can redeem depends on the state of the initiative and the board.
 
-## When Can You Redeem?
+## Redemption rules
 
-Your locks become redeemable when the initiative reaches a terminal state:
+A lock becomes redeemable when **any** of the following conditions is true:
 
-### Accepted Initiatives
+- **Initiative accepted** and `releaseLockDuration` has passed since acceptance
+- **Initiative expired** (immediate, no waiting)
+- **Lock naturally expired** (lock duration elapsed, regardless of initiative state)
+- **Board cancelled** (immediate, bypasses all timelocks)
 
-If the initiative is **accepted**, all token locks are released early, regardless of their lockup duration. Supporters must wait for the soonest of the following two conditions to be met before redeeming their tokens:
-1. The lockup duration the supporter committed to is already completed
-2. The amount of time specified by the board-level `releaseLockDuration` has passed since the initiative was accepted
+If the board is **closed** (not cancelled), normal rules still apply. Closing a board stops new activity but does not accelerate redemption.
 
-If the board has a `releaseLockDuration` of 0, then all tokens are immediately redeemable.
+## What you receive
 
-### Expired Initiatives
+**From accepted initiatives:** your locked tokens plus any incentive rewards (auto-claimed during redemption). Bounty rewards are tracked separately in the Bounties contract.
 
-If the initiative is **expired**:
-- Redeem immediately - no waiting period
+**From expired initiatives or natural lock expiry:** your locked tokens only. No incentive or bounty rewards.
 
-### Lock Expiry (Before Acceptance)
+> Redeeming before an initiative is accepted forfeits all incentive rewards for that position.
 
-If your lock duration ends before the initiative is accepted, you can redeem once the lock expires even while the initiative remains Proposed.
+## How to redeem
 
-### Board Closure
+```solidity
+// Single lock
+function redeemLock(uint256 lockId) external nonReentrant
 
-If the board has been closed, all locks must still wait until their lockup duration is completed before they can be redeemed. This enforces the commitment supporters made to the initiatives they supported.
+// Batch: all your locks on one initiative
+function redeemLocksForInitiative(
+    uint256 initiativeId,
+    uint256[] calldata lockIds
+) external nonReentrant
+```
 
-### Board Cancellation (Emergency)
+The function validates ownership, checks the lock is redeemable, marks it as withdrawn, burns the NFT, and transfers tokens back. For accepted initiatives, incentive rewards are claimed automatically.
 
-If the **board is cancelled** by the owner:
-- All locks become immediately redeemable regardless of initiative state
-- The `releaseLockDuration` timelock is bypassed, allowing instant redemption
-- This provides an emergency exit mechanism for all supporters
+Use `redeemLocksForInitiative()` when you have multiple positions on the same initiative. It's more gas efficient and claims all rewards in a single transaction.
 
-## What You Receive
+## Finding your lock positions
 
-When you redeem, you get:
+Lock NFTs are ERC721Enumerable. Use `balanceOf(address)` and `tokenOfOwnerByIndex(address, index)` to enumerate your positions. Use `getTokenLock(lockId)` to inspect a specific lock's state.
 
-**From Accepted Initiatives:**
-- ✅ Your original locked tokens
-- ✅ Incentive rewards (automatically claimed if configured)
-- ✅ Bounty rewards tracked in the Bounties contract (claim/withdraw not implemented yet)
-
-**From Expired Initiatives or Lock Expiry Before Acceptance:**
-- ✅ Your original locked tokens only
-- ❌ No incentive rewards
-- ❌ No bounty rewards
-
-## How to Redeem
-
-### Check Redemption Status
-
-Before attempting to redeem, check that:
-1. The initiative is in Accepted or Expired state
-2. For Accepted initiatives, the release timelock has passed
-3. Your lock position hasn't already been redeemed
-4. You own the NFT representing the lock position
-
-You can use the `getTokenLock()` and `getInitiative()` functions to query this information.
-
-### Redeem Your Position
-
-Call the `redeemLock()` function with your NFT token ID. For multiple positions on the same initiative, use `redeemLocksForInitiative()` to batch redeem. The function will:
-1. Validate the lock hasn't been redeemed
-2. Verify you own the NFT
-3. Check the initiative state and timelock
-4. Mark the lock as withdrawn
-5. Burn the NFT
-6. Transfer your locked tokens back
-7. Auto-claim any incentive rewards
-
-See the [Initiative Functions Reference](/reference/initiative-functions/redeem) for detailed function signatures and batch redemption examples.
-
-### Find Your Token IDs
-
-Use ERC721Enumerable functions (`balanceOf`, `tokenOfOwnerByIndex`) to enumerate your lock NFT token IDs.
-
-## Multiple Positions on Same Initiative
-
-If you locked tokens multiple times on the same initiative:
-- Each lock has its own NFT token ID
-- You can redeem each position separately with `redeemLock()`, or redeem all at once with `redeemLocksForInitiative()`
-- Each lock earns its own proportional share of incentive rewards based on when it was created
-- Batch redemption with `redeemLocksForInitiative()` is more gas efficient and claims rewards for all locks in one transaction
-
-## What Happens During Redemption
-
-The redemption process:
-1. Validates the lock exists and hasn't been redeemed
-2. Verifies you own the NFT
-3. Checks the initiative is in a redeemable state (Accepted or Expired)
-4. Validates any release timelock has passed (for Accepted)
-5. Marks the lock as withdrawn
-6. Burns the NFT
-7. Transfers locked tokens back to you
-8. Auto-claims incentive rewards (for Accepted initiatives only)
-
-## Claiming Bounty Rewards
-
-Incentive rewards are automatically claimed during redemption. Bounty balances are tracked in the Bounties contract, but claim/withdrawal is not implemented in the current version.
-
-## Best Practices
-
-1. **Check before redeeming** - Verify the initiative is in a redeemable state
-2. **Wait for full timelock** - Don't attempt to redeem before release time
-3. **Track your positions** - Use query functions to see all your locks
-4. **Monitor initiative state** - Watch for acceptance or expiration events
-5. **Redeem promptly** - Claim rewards while the incentive pool still has funds
-
-## Common Scenarios
-
-### Scenario 1: Accepted Initiative with Timelock
-1. Initiative is accepted by board owner
-2. Wait for `releaseLockDuration` to pass
-3. Call `redeemLock()` to receive tokens + incentive rewards
-4. Claim bounty rewards separately (if configured)
-
-### Scenario 2: Expired Initiative
-1. Initiative expires due to inactivity
-2. Call `redeemLock()` immediately (no waiting)
-3. Receive your original locked tokens only
-
-### Scenario 3: Board Cancelled
-1. Board owner cancels the board
-2. All locks become immediately redeemable (timelock bypassed)
-3. Call `redeemLock()` to receive tokens (+ rewards if accepted)
-
-### Scenario 4: Multiple Locks (Batch Redemption)
-1. You have multiple lock positions on the same initiative
-2. Initiative is accepted and timelock has passed
-3. Call `redeemLocksForInitiative()` with array of lock IDs
-4. All locks redeemed in single transaction (gas efficient)
-
----
-
-For technical details including function signatures, data structures, error codes, and code examples, see the [Initiative Interactions Reference](/reference/initiative-interactions#redeeming-locks).
+See the [Initiative Functions Reference](/reference/initiative-functions/redeem) for full function signatures and examples.
