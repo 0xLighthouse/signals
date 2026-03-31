@@ -1,58 +1,45 @@
 # Signals Protocol
 
-Signals is a conviction-weighted governance primitive. Community members propose initiatives and lock governance tokens behind the ones they want prioritised. Locking tokens for longer generates more support weight, at the cost of having those tokens unavailable for the duration. When token supply is finite and lock durations are real, participants are forced to choose between competing initiatives. That constraint is the mechanism's core property.
+Signals is an onchain governance primitive that lets communities surface and rank their priorities through continuous, conviction-weighted support, rather than one-shot token votes.
 
-## Lock mechanics
+Instead of voting yes or no on a proposal, participants lock governance tokens behind **initiatives** they want to see prioritised. The longer and larger the lock, the more support weight it carries. Because token supply is finite and locked tokens can't be used elsewhere, every lock represents real opportunity cost, which makes the signal meaningful.
 
-Each lock's support weight starts at `amount × duration` and decreases over time according to a configured decay curve (linear or exponential). Stale support loses influence automatically — an initiative that was popular three months ago but has attracted no new backing will fall below threshold without any intervention. Sustained conviction requires sustained participation.
+## Core concepts
+
+A **board** is a single deployment of the Signals contract, scoped to one ERC-20 token and one set of governance parameters. Boards are deployed through a factory contract (EIP-1167 minimal proxies) and their configuration is immutable after creation. A board can run indefinitely as a standing prioritisation surface, or can be configured to close after a fixed window.
+
+An **initiative** is a proposal submitted to a board. Any tokenholder (above a configurable minimum balance) can propose one. Initiatives receive support in the form of token locks, accumulate support weight, and end up accepted due to popularity or expired due to inactivity. Tokens are evenutally returned to holders, and participants never lose principal through the mechanism itself.
+
+A **lock** is an amount of tokens deposited into the Signals contract in support of an initiative. The contract then enforces the conditions of the lock the supporter has comitted to. Locks can be minted as transferable ERC-721 tokens to allow the future claim to tokens to be traded on secondary markets.
+
+## How support weight works
+
+A lock provides support equal to the amount of tokens deposited, plus a bonus multiplier based on the amount of time comitted to locking. The bonus multiplier decays over time according to the board's configuration, meaning support is self-correcting: an initiative that was popular months ago but which has attracted no new backing will gradually lose weight and fall below the threshold without any intervention. Priorities stay current because sustained conviction requires sustained participation.
+
+The decay mechanism also gives smaller holders a path to meaningful influence. A participant who locks a modest amount for months can generate more cumulative weight than a whale who locks a large amount for a short amount of time.
 
 ## Thresholds and acceptance
 
-An initiative is eligible for acceptance when its aggregate support weight crosses a configured threshold. The threshold is the greater of:
+An initiative becomes eligible for acceptance when its aggregate support weight crosses the board's threshold. The threshold is the greater of a percentage of total token supply (preventing whale capture) and a fixed minimum (preventing dust attacks). This dual-bound design means no single actor can push an initiative through alone, and trivial token amounts can't game the system.
 
-- A percentage of total token supply, which prevents a single large holder from pushing an initiative through alone (whale capture).
-- A fixed minimum, which prevents spam initiatives from reaching acceptance with trivial token amounts (dust attacks).
-
-Acceptance permissions are configurable: owner-only, permissionless, or owner with threshold bypass.
-
-On acceptance, locked tokens enter a release timelock (configurable, can be zero), after which supporters reclaim their tokens. Initiatives that never reach threshold can be expired by the board owner after an inactivity timeout — a configurable period with no new locks — which returns tokens immediately.
-
-## Transferable lock positions
-
-Each lock mints an ERC-721 token representing the position. Lock NFTs are fully transferable, which means support positions can be traded on secondary markets.
-
-If a lock position on a popular initiative trades above the value of the underlying tokens, the premium reflects the market's estimate of that initiative's likelihood of acceptance and the value of associated rewards. The spread between lock price and underlying token value is a price signal for conviction.
+Acceptance can be either be triggered by anyone or restricted to the board owner, based on the board's configuration. On acceptance, locked tokens enter a release timelock (configurable, can be zero), after which supporters reclaim them. Initiatives that never reach threshold can be expired after a configurable inactivity timeout (a period with no new locks) which returns tokens immediately.
 
 ## Incentives
 
-An optional incentives pool distributes participation rewards weighted by lock timing. The reward pool divides the initiative's lifetime into 24 equal time buckets, and locks placed in earlier buckets receive proportionally higher shares. Earlier supporters earn more, which rewards conviction over bandwagoning.
+Boards can optionally attach two layers of financial incentives to reward participation.
 
-Separate bounties can also be attached to individual initiatives. On acceptance, bounty payouts split between supporters, the protocol, and a treasury at configured ratios.
+**Participation rewards** distribute tokens from a funded pool, weighted by lock timing.  Locks placed earlier in an initiative's lifecycle receive proportionally higher shares of the reward. This benefits early conviction over bandwagoning.
 
-## Game theory
+**Bounties** can be attached to individual initiatives by any contributor. On acceptance, bounty payouts are split between supporters, the protocol, and a configurable treasury address. If the initiative expires or is cancelled, bounties are returned to the contributor.
 
-The mechanism's expected behaviours follow from opportunity cost, not explicit rules:
+## Why it works
 
-- Participants support initiatives they genuinely believe in, because locking tokens has real opportunity cost.
-- Participants avoid supporting initiatives they are indifferent to, because those tokens could back something with a better chance of acceptance.
-- Participants may support initiatives they are personally indifferent to but believe the broader community will prioritise, because accepted initiatives return tokens and optionally distribute rewards.
+The mechanism's expected behaviours are motivated by opportunity cost. Participants will only support initiatives they believe in because locking tokens has a real cost. They avoid supporting initiatives they're indifferent to because those tokens could instead be used to back something with a better chance of acceptance. And they may support initiatives they're personally neutral on but believe the broader community will prioritise, because accepted initiatives return tokens and can distribute rewards. This creates a self-selecting market for conviction.
 
-## Initiative lifecycle
+## Transferable positions
 
-An initiative moves through four states:
-
-- **Proposed** — accepting locks.
-- **Accepted** — threshold met, tokens timelocked for release.
-- **Expired** — inactive beyond the configured timeout, tokens returned.
-- **Cancelled** — board-level emergency, tokens returned immediately.
-
-Every terminal state returns tokens to holders. Participants never lose principal through the mechanism itself.
+Because each lock can be an ERC-721, support positions can have a secondary market. If a lock position on a popular initiative trades above the value of the underlying tokens, the premium reflects the market's estimate of that initiative's likelihood of acceptance and the value of its associated rewards. The spread between lock price and underlying token value becomes a price signal for conviction which is visible, tradeable, and continuous.
 
 ## Board administration
 
-The board owner can:
-
-- **Shut down** a board — stops new activity; existing locks follow normal redemption rules.
-- **Cancel** a board — releases all locked tokens at once, regardless of state.
-
-Cancellation exists because governance systems need a clean unwind path when assumptions break.
+The board owner can be an EOA, multisig, or a governor contract for fully decentralised operation. When a board has served its purpose, it can shut down and stop new activity while allowing existing locks follow normal redemption rules, forcing users to follow through on their commitments.
