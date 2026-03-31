@@ -7,11 +7,42 @@ import { Activity, Info, BarChart, BookOpenText, ExternalLink, Lock, Sun, Moon }
 import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { UITheme } from '@/config/theme'
+import { useNetworkConfig } from '@/hooks/useNetworkConfig'
+import { ZERO_ADDRESS } from '@/config/network-config'
 
 interface NavItem {
   href: string
   label: string
   icon: LucideIcon
+}
+
+function FactoryVersion() {
+  const { config } = useNetworkConfig()
+  const factory = config.contracts.SignalsFactory
+  if (!factory || factory.address === ZERO_ADDRESS) return null
+
+  const explorerUrl = config.explorerUrl
+    ? `${config.explorerUrl}/address/${factory.address}`
+    : null
+
+  return (
+    <div className="mt-4 px-2">
+      {explorerUrl ? (
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-stone-300 hover:text-stone-400 dark:text-stone-600 dark:hover:text-stone-500 transition-colors"
+        >
+          Factory v0.3.2
+        </a>
+      ) : (
+        <span className="text-xs text-stone-300 dark:text-stone-600">
+          Factory v0.3.2
+        </span>
+      )}
+    </div>
+  )
 }
 
 export function SecondaryNav() {
@@ -80,6 +111,7 @@ export function SecondaryNav() {
         {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         {isDark ? 'Dark' : 'Light'}
       </button>
+      <FactoryVersion />
     </nav>
   )
 }
