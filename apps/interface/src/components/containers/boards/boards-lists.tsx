@@ -1,11 +1,18 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
+import { PlusIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ListContainer } from '@/components/list-container'
 import { PageSection } from '@/components/page-section'
+import { Button } from '@/components/ui/button'
 import { useBoardsStore } from '@/stores/useBoardsStore'
 import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useAccount } from '@/hooks/useAccount'
+import { usePrivy } from '@privy-io/react-auth'
+import { toast } from 'sonner'
+import { getSlugFromNetwork } from '@/lib/routing'
 import { BoardCard } from './board-card'
 
 export const BoardsList = () => {
@@ -14,6 +21,9 @@ export const BoardsList = () => {
   const fetchBoards = useBoardsStore((state) => state.fetchBoards)
   const resetBoards = useBoardsStore((state) => state.reset)
   const selectedNetwork = useNetworkStore((state) => state.selected)
+  const { address } = useAccount()
+  const { authenticated, login } = usePrivy()
+  const router = useRouter()
 
   useEffect(() => {
     // On network change, reset cached results and refetch
@@ -32,13 +42,33 @@ export const BoardsList = () => {
     })
   }, [boards])
 
+  const handleCreate = () => {
+    if (!authenticated) {
+      login()
+      return
+    }
+    if (!address) {
+      toast('Please connect a wallet')
+      return
+    }
+    const slug = getSlugFromNetwork(selectedNetwork)
+    router.push(`/${slug}/create-board`)
+  }
+
+  const createButton = (
+    <Button variant="default" onClick={handleCreate}>
+      <PlusIcon size={16} className="mr-2" />
+      Create Board
+    </Button>
+  )
+
   if (isFetching) {
     return <LoadingSpinner />
   }
 
   if (sortedBoards.length === 0) {
     return (
-      <ListContainer title="Boards">
+      <ListContainer title="Boards" rightAction={createButton}>
         <PageSection>
           <div className="text-center py-8">
             <h3 className="text-lg font-medium mb-2">No boards found</h3>
@@ -52,7 +82,7 @@ export const BoardsList = () => {
   }
 
   return (
-    <ListContainer title="Boards">
+    <ListContainer title="Boards" rightAction={createButton}>
       {sortedBoards.map((board, index) => (
         <BoardCard
           key={board.contractAddress}

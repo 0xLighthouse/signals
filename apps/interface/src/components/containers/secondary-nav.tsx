@@ -3,8 +3,10 @@
 import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { Activity, Info, BarChart, BookOpenText, ExternalLink, Lock } from 'lucide-react'
+import { Activity, Info, BarChart, BookOpenText, ExternalLink, Lock, Sun, Moon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
+import { UITheme } from '@/config/theme'
 
 interface NavItem {
   href: string
@@ -15,6 +17,8 @@ interface NavItem {
 export function SecondaryNav() {
   const params = useParams()
   const pathname = usePathname()
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === UITheme.DARK
 
   const network = params?.network as string | undefined
   const boardAddress = params?.boardAddress as string | undefined
@@ -68,6 +72,14 @@ export function SecondaryNav() {
         Docs
         <ExternalLink className="size-3 opacity-70" />
       </a>
+      <button
+        type="button"
+        onClick={() => setTheme(isDark ? UITheme.LIGHT : UITheme.DARK)}
+        className="inline-flex items-center gap-2 whitespace-nowrap px-2 py-1.5 text-sm text-stone-400 hover:text-stone-950 dark:text-stone-500 dark:hover:text-stone-50 transition-colors"
+      >
+        {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        {isDark ? 'Dark' : 'Light'}
+      </button>
     </nav>
   )
 }
