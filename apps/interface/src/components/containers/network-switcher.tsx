@@ -21,18 +21,22 @@ import {
 
 import { SUPPORTED_NETWORKS } from '@/config/supported-networks'
 import type { SupportedNetworks } from '@/config/network-types'
+import { NETWORKS } from '@/config/networks'
 import { useNetworkStore } from '@/stores/useNetworkStore'
 import { getNetworkUrl } from '@/lib/routing'
+import { useWalletClient } from '@/hooks/use-wallet-client'
+import { ensureWalletNetwork } from '@/lib/wallet-network'
 
 export function NetworkSwitcher() {
   const [open, setOpen] = React.useState(false)
   const selected = useNetworkStore((s) => s.selected)
   const setNetwork = useNetworkStore((s) => s.setNetwork)
   const router = useRouter()
+  const walletClient = useWalletClient()
 
   const current = SUPPORTED_NETWORKS.find((n) => n.key === selected)
 
-  const handleSelect = (key: SupportedNetworks) => {
+  const handleSelect = async (key: SupportedNetworks) => {
     if (key === selected) {
       setOpen(false)
       return
@@ -40,6 +44,10 @@ export function NetworkSwitcher() {
     setNetwork(key)
     router.push(getNetworkUrl(key))
     setOpen(false)
+
+    if (walletClient) {
+      await ensureWalletNetwork({ walletClient, network: NETWORKS[key] })
+    }
   }
 
   return (

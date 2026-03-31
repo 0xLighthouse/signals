@@ -9,6 +9,7 @@ import { useWalletClient } from '@/hooks/use-wallet-client'
 import { useNetworkConfig } from '@/hooks/useNetworkConfig'
 import { useAccount } from '@/hooks/useAccount'
 import { getSlugFromNetwork } from '@/lib/routing'
+import { ensureWalletNetwork } from '@/lib/wallet-network'
 import { SignalsFactoryABI } from '../../../../packages/abis'
 
 export const BOARD_DEFAULTS = {
@@ -131,6 +132,16 @@ export function useCreateBoard() {
 
       try {
         setIsSubmitting(true)
+
+        // Ensure wallet is on the correct chain
+        const networkResult = await ensureWalletNetwork({
+          walletClient,
+          network: config,
+        })
+        if (!networkResult.success) {
+          toast('Please switch to the correct network')
+          return null
+        }
 
         // Read factory version
         const version = await publicClient.readContract({
