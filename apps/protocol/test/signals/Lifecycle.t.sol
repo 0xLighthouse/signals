@@ -149,6 +149,35 @@ contract SignalsLifecycleTest is Test, SignalsHarness {
         signals.supportInitiative(1, lockAmount, 6);
     }
 
+    /// Test that a linear decay rate above 1e18 keeps weights readable and the initiative
+    /// acceptable late in a lock, when the decay passes the starting weight
+    function test_Accept_LinearDecayRateAboveOne_LateInLock() public {
+        ISignals.BoardConfig memory config = defaultConfig;
+        config.decayConfig.params[0] = 11e17; // 1.1
+        ISignals customSignals = deploySignals(config);
+
+        uint256 lockAmount = 50_000 ether;
+        vm.startPrank(_alice);
+        _tokenERC20.approve(address(customSignals), lockAmount);
+        customSignals.proposeInitiativeWithLock(_metadata(1), lockAmount, 20);
+        vm.stopPrank();
+
+        // Mid-lock the curve is unchanged: 20 - 5 * 1.1 = 14.5x
+        vm.warp(block.timestamp + 5 days);
+        assertEq(customSignals.getWeight(1), (lockAmount * 145) / 10);
+
+        // Interval 19: 19 * 1.1 > 20, so the weight floors at the locked amount
+        vm.warp(block.timestamp + 14 days);
+        assertEq(customSignals.getWeight(1), lockAmount);
+
+        vm.prank(_deployer);
+        customSignals.acceptInitiative(1);
+        assertEq(
+            uint256(customSignals.getInitiative(1).state),
+            uint256(ISignals.InitiativeState.Accepted)
+        );
+    }
+
     /// Test that non-owner can accept after support is added when Permissionless is enabled
     function test_Accept_Permissionless_AddSupportThenAccept() public {
         // Create config with Permissionless permissions + OnlyOwner

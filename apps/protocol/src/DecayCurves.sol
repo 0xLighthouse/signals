@@ -34,15 +34,18 @@ library DecayCurves {
         // Example: 100 tokens, 10 intervals, decay rate 1e18 (1:1), at interval 5:
         //   weight = 100 * 10 - (100 * 5 * 1e18) / 1e18 = 1000 - 500 = 500
         // The weight starts at lockAmount * lockDuration and decreases linearly
-        uint256 weight = lockAmount * lockDuration - (lockAmount * currentInterval * curveParameters[0]) / 1e18;
+        uint256 initialWeight = lockAmount * lockDuration;
+        uint256 decay = (lockAmount * currentInterval * curveParameters[0]) / 1e18;
 
         // Floor the weight at the original lock amount
-        // This ensures early supporters always have at least their nominal value as weight
-        if (weight < lockAmount) {
+        // This ensures early supporters always have at least their nominal value as weight.
+        // With a decay rate above 1e18 the decay can exceed the initial weight before the
+        // lock ends, so check before subtracting instead of underflowing.
+        if (decay >= initialWeight || initialWeight - decay < lockAmount) {
             return lockAmount;
         }
 
-        return weight;
+        return initialWeight - decay;
     }
 
     /**

@@ -64,4 +64,33 @@ contract BoardConfigTest is Test, SignalsHarness {
         // The validation happens inside initialize() when converting enum to uint256
         // This test is covered by testing that only Linear(0) and Exponential(1) are valid
     }
+
+    /// Test that decay params must hold exactly one value (both curves require it)
+    function test_Initialize_RejectsInvalidDecayParamsLength() public {
+        Signals board = new Signals();
+
+        // Empty params
+        config = defaultConfig;
+        config.decayConfig.params = new uint256[](0);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
+        board.initialize(config);
+
+        // Too many params, exponential curve
+        config = defaultConfig;
+        config.decayConfig.curveType = ISignals.DecayCurveType.Exponential;
+        config.decayConfig.params = new uint256[](2);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
+        board.initialize(config);
+
+        // The factory surfaces the same revert
+        config = defaultConfig;
+        config.decayConfig.params = new uint256[](0);
+        vm.expectRevert(ISignals.Signals_InvalidArguments.selector);
+        factory.create(config);
+
+        // A single param is still accepted
+        config = defaultConfig;
+        board.initialize(config);
+        assertEq(board.owner(), config.owner);
+    }
 }
