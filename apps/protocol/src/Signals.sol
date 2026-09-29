@@ -127,6 +127,9 @@ contract Signals is
         if (config.decayConfig.curveType > type(DecayCurveType).max) {
             revert Signals_InvalidArguments();
         }
+        // Both decay curves take exactly one parameter; any other length would make every
+        // weight calculation revert once the board has locks
+        if (config.decayConfig.params.length != 1) revert Signals_InvalidArguments();
 
         _setAcceptanceCriteria(config.acceptanceCriteria);
 
